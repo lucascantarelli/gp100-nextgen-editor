@@ -8,6 +8,8 @@
 *.dll binary
 *.pdf binary
 
-# Especificação executável: BYTES CONGELADOS — o hash da baseline (PROTOCOL.md §13)
-# cobre os EOLs; -text impede qualquer conversão, no disco e no checkout.
+# Especificação executável e patches de referência: BYTES CONGELADOS — o
+# round-trip byte-idêntico (R4) e o hash da baseline (§13) cobrem os EOLs;
+# -text impede qualquer conversão, no disco e no checkout.
 docs/protocol_golden.json -text
+files/patches/*.prst -text
