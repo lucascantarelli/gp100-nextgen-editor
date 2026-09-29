@@ -2,32 +2,19 @@
 //! reproduzir os writes REAIS das fixtures P4 byte a byte. É o elo entre o
 //! codec (M0.4) e o que a pedaleira de fato recebeu em campo.
 
-use std::path::PathBuf;
-
 use gp100_core::codec::{
     ir_chunk_ack_payload, ir_chunk_parse, meta_block, nibble_collapse, nibble_expand, set_param,
     set_param_parse,
 };
 
-/// Lê uma fixture JSONL (regime de bytes: arquivo do repo, checkout limpo).
-fn fixture(name: &str) -> Vec<serde_json::Value> {
-    let mut p = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    p.pop(); // raiz do repo
-    p.push("analysis");
-    p.push("fixtures");
-    p.push(name);
-    std::fs::read_to_string(&p)
-        .expect("fixture existe (make_fixtures.py)")
-        .lines()
-        .map(|l| serde_json::from_str(l).expect("JSONL válido"))
-        .collect()
-}
+mod common;
+use common::fixture_rows;
 
 /// set_param reproduz as 92 writes de knob das fixtures (S3: 89, S1 doc: 3)
 /// byte a byte: parse do payload capturado → rebuild → idêntico.
 #[test]
 fn set_param_matches_all_fixture_writes() {
-    let knobs = fixture("knobs.jsonl");
+    let knobs = fixture_rows("knobs.jsonl");
     assert_eq!(knobs.len(), 92, "89 (S3) + 3 (S1 doc)");
     let mut checked = 0;
     for k in &knobs {
@@ -61,7 +48,7 @@ fn set_param_matches_all_fixture_writes() {
 /// meta_block reproduz as writes de metadados do save (S4 + S2) byte a byte.
 #[test]
 fn meta_block_matches_fixture_writes() {
-    let save = fixture("save.jsonl");
+    let save = fixture_rows("save.jsonl");
     // S4: "It's GP100" (pp 0, type 4) — os 5 writes do bloco
     let s4: Vec<&serde_json::Value> = save
         .iter()
@@ -105,7 +92,7 @@ fn meta_block_matches_fixture_writes() {
 /// chunks por slot, último idx duplicado; frame por frame).
 #[test]
 fn ir_upload_matches_fixture_frame_by_frame() {
-    let ir = fixture("ir.jsonl");
+    let ir = fixture_rows("ir.jsonl");
     assert_eq!(ir.len(), 1186, "2 BEGIN + 592 chunks + 592 ACKs");
 
     // BEGINs (slots 0 e 1)
@@ -162,7 +149,7 @@ fn ir_upload_matches_fixture_frame_by_frame() {
 /// devolve 15 bytes; expand volta ao original).
 #[test]
 fn nibble_roundtrip_on_real_chunk() {
-    let ir = fixture("ir.jsonl");
+    let ir = fixture_rows("ir.jsonl");
     let chunk = ir
         .iter()
         .find(|x| x["addr"] == "12001002" && x["dir"] == "out")

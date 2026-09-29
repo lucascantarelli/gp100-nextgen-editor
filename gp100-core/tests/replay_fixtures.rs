@@ -9,30 +9,8 @@ use gp100_core::golden::decode_envelope;
 use gp100_core::session::Session;
 use gp100_core::transport::{DeviceTransport, TransportError};
 
-/// Lê fixture JSONL (regime de bytes: arquivo do repo, checkout limpo),
-/// com os payloads hex completos.
-fn fixture(name: &str) -> Vec<(String, String, String, String, String)> {
-    let mut p = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    p.pop();
-    p.push("analysis");
-    p.push("fixtures");
-    p.push(name);
-    std::fs::read_to_string(&p)
-        .expect("fixture existe (P4)")
-        .lines()
-        .filter(|l| !l.trim().is_empty())
-        .map(|l| {
-            let v: serde_json::Value = serde_json::from_str(l).expect("JSONL válido");
-            (
-                v["s"].as_str().unwrap_or("").to_string(),
-                v["dir"].as_str().unwrap_or("").to_string(),
-                v["func"].as_str().unwrap_or("").to_string(),
-                v["addr"].as_str().unwrap_or("").to_string(),
-                v["data"].as_str().unwrap_or("").to_string(),
-            )
-        })
-        .collect()
-}
+mod common;
+use common::{fixture_rows, fixture_tuple};
 
 /// Transporte de replay: os sends da Session são comparados com o próximo
 /// OUT esperado (func+addr+payload, byte a byte — divergência registrada
@@ -48,7 +26,10 @@ struct ReplayTransport {
 
 impl ReplayTransport {
     fn new(fixture_name: &str) -> Self {
-        let rows = fixture(fixture_name);
+        let rows: Vec<_> = fixture_rows(fixture_name)
+            .into_iter()
+            .map(fixture_tuple)
+            .collect();
         let expect = rows
             .iter()
             .filter(|(_, d, _, _, _)| d == "out")
@@ -177,7 +158,10 @@ fn replay_t1_tabelas_isolado() {
 /// S1 byte a byte (divergências de framing = falha com diff hex).
 #[test]
 fn replay_boot_byte_a_byte() {
-    let rows = fixture("boot.jsonl");
+    let rows: Vec<_> = fixture_rows("boot.jsonl")
+        .into_iter()
+        .map(fixture_tuple)
+        .collect();
     // pps na ORDEM DA CAPTURA (prova C toma os pps de 11/13010000)
     let mut pps: Vec<u16> = Vec::new();
     for (_, dir, _f, addr, data) in &rows {
@@ -236,7 +220,10 @@ fn replay_save_byte_a_byte() {
 /// set_param (§13.11, codec) — os OUTs devem ser IDÊNTICOS byte a byte.
 #[test]
 fn replay_knobs_byte_a_byte() {
-    let rows = fixture("knobs.jsonl");
+    let rows: Vec<_> = fixture_rows("knobs.jsonl")
+        .into_iter()
+        .map(fixture_tuple)
+        .collect();
     assert_eq!(rows.len(), 92, "89 (S3) + 3 (S1 doc)");
     let mut t = ReplayTransport::new("knobs.jsonl");
     let mut session = Session::new(&mut t);
@@ -267,7 +254,10 @@ fn replay_knobs_byte_a_byte() {
 /// com os índices em páginas de 128 — a Session repete o que a captura tem.
 #[test]
 fn replay_ir_upload_byte_a_byte() {
-    let rows = fixture("ir.jsonl");
+    let rows: Vec<_> = fixture_rows("ir.jsonl")
+        .into_iter()
+        .map(fixture_tuple)
+        .collect();
     let outs: Vec<&(String, String, String, String, String)> =
         rows.iter().filter(|(_, d, ..)| d == "out").collect();
     let ins: Vec<&(String, String, String, String, String)> =

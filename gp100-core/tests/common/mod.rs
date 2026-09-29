@@ -13,6 +13,39 @@
 
 use gp100_core::model::DICTIONARY_JSON;
 
+use std::path::PathBuf;
+
+/// Lê uma fixture JSONL de `analysis/fixtures/` como linhas JSON cruas
+/// (`serde_json::Value`). FONTE ÚNICA do caminho de leitura (regime de
+/// bytes: arquivo do repo, checkout limpo — skill `rust-practices`); antes
+/// estava duplicado em `codec_wire.rs` e `replay_fixtures.rs` (achado do
+/// core review 29/09). O acesso aos campos fica no consumidor (`v["dir"]`).
+pub fn fixture_rows(name: &str) -> Vec<serde_json::Value> {
+    let mut p = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    p.pop(); // raiz do repo
+    p.push("analysis");
+    p.push("fixtures");
+    p.push(name);
+    std::fs::read_to_string(&p)
+        .expect("fixture existe (make_fixtures.py)")
+        .lines()
+        .filter(|l| !l.trim().is_empty())
+        .map(|l| serde_json::from_str(l).expect("JSONL válido"))
+        .collect()
+}
+
+/// Converte uma linha de fixture em `(s, dir, func, addr, data)` hex — a
+/// forma consumida pelos testes de replay da M0.6.
+pub fn fixture_tuple(v: serde_json::Value) -> (String, String, String, String, String) {
+    (
+        v["s"].as_str().unwrap_or("").to_string(),
+        v["dir"].as_str().unwrap_or("").to_string(),
+        v["func"].as_str().unwrap_or("").to_string(),
+        v["addr"].as_str().unwrap_or("").to_string(),
+        v["data"].as_str().unwrap_or("").to_string(),
+    )
+}
+
 /// Corrompe o JSON embutido via `serde_json::Value` (o caminho REAL de
 /// parse — mesmas regras que o serde aplica) e devolve o JSON corrompido.
 /// Usado pelos testes de rejeição de `Dictionary::from_json`.
