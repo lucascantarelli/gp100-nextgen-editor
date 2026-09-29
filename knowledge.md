@@ -20,8 +20,8 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
   principal); não é resposta de save nem retransmissão; FSM não modela (D7).
   §13.7 também corrigido: o frame 0x226 duplicado NÃO é `0F`×15 — payload é
   a cauda REAL do blob; marcador de fim = a duplicação. GAPS menores: op
-  `00020000` BE confirmado contra fixture (`00010000` = 1), mas `op_payload`
-  ainda SEM teste (M0.6 replay cobre); S2 índices de chunk em páginas
+  `00020000` BE confirmado contra fixture (`00010000` = 1) e TRAVADO em teste
+  (`op_payload_vector` no codec.rs, 29/09 — gap fechado); S2 índices de chunk em páginas
   intercaladas 0-127/256-383/512-550 (dois slots × páginas alternadas).
 - ADR-6 ✅ ACEITO (29/09, rev.3): `docs/DECISIONS.md` — assinaturas da FSM
   `Session<T: DeviceTransport>` (boot/scan_state/set_param/save_preset/

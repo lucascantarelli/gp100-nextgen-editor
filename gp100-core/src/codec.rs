@@ -201,6 +201,9 @@ pub fn meta_block(pp: u16, pp_type: u16, name: &str) -> Result<Vec<WireWrite>, P
 
 /// Payload da op `00020000` (§13.12): `[4..5]` = nº da op u16 BE
 /// (0 = sair/commit, 1 = entrar modo edição; capturado ×2 cada no S4).
+/// Evidência byte-exata da fixture `save.jsonl`: `0000000000010000` →
+/// bytes `[4..5]` = `00 01` = 1 em **BE** (LE daria 256 — nunca observado;
+/// ADR-1: campos de endereçamento/globais são BE).
 pub fn op_payload(op: u8) -> Vec<u8> {
     let mut out = vec![0u8; 4];
     out.extend_from_slice(&(op as u16).to_be_bytes());
@@ -384,5 +387,25 @@ mod tests {
         assert_eq!(ir_chunk_ack_payload(0, 0), [0x00, 0x00, 0x00, 0x01]);
         assert!(ir_chunk_payload(20, 0, &data).is_err());
         assert!(ir_chunk_payload(0, 0, &data[..14]).is_err());
+    }
+
+    /// op_payload: vetores REAIS das fixtures de save (S4 = ciclo de ops
+    /// 0,0 → 1,1 re-derivado; §13.12 + D3 do ADR-6). Fecha o gap registrado
+    /// no knowledge (29/09): o BE de `[4..5]` fica travado contra fixture.
+    #[test]
+    fn op_payload_vector() {
+        // op 0 = sair/commit: `0000000000000000` (S4, ×2)
+        assert_eq!(
+            op_payload(0),
+            [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+        );
+        // op 1 = entrar modo edição: `0000000000010000` (S4, ×2)
+        assert_eq!(
+            op_payload(1),
+            [0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00]
+        );
+        // o par [4..5] é o nº da op em BE — LE produziria `01 00` (256 LE ≠ 1)
+        assert_eq!(&op_payload(1)[4..6], &[0x00, 0x01]);
+        assert_eq!(&op_payload(0)[4..6], &[0x00, 0x00]);
     }
 }
