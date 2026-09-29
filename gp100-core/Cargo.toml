@@ -1,0 +1,16 @@
+[package]
+name = "gp100-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Núcleo do GP-100 NextGen Editor: modelo de dados, presets .prst, codec do protocolo de fio e transporte (mock/real)"
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+
+[features]
+default = []
+# transporte com device REAL (USB-MIDI). Mock é o default (política de hardware).
+real-device = []

@@ -1,0 +1,8127 @@
+{
+ "meta": {
+  "product": "GP-100",
+  "firmware_target": "2.1",
+  "source_of_truth": "official Valeton Suite algorithm.xml (V1.5.1 payload), cross-validated",
+  "validation": {
+   "patch_slots_checked": 909,
+   "distinct_codes_observed": 116,
+   "patch_codes_missing": [],
+   "param_range_conflicts": [],
+   "fw_name_verified": 150,
+   "fw_name_unverified": [
+    "COMP",
+    "OCTA",
+    "SnapTone 1",
+    "SnapTone 2",
+    "SnapTone 3",
+    "SnapTone 4",
+    "SnapTone 5",
+    "EQ 1",
+    "EQ 2",
+    "Vibe",
+    "Room",
+    "Hall"
+   ]
+  },
+  "modules": {
+   "AMP": [
+    "AC Pre",
+    "Bad-KT CL",
+    "Bad-KT OD",
+    "Bass Pre",
+    "Bellman 59B",
+    "Bellman 59N",
+    "Bog BlueV",
+    "Bog RedM",
+    "BogSV CL",
+    "BogSV OD",
+    "Classic Bass",
+    "Dark Twin",
+    "Dizz VH",
+    "EV 51",
+    "Eagle 120",
+    "Flagman",
+    "Flagman+",
+    "Foxy 30N",
+    "Foxy 30TB",
+    "Foxy Bass",
+    "J-120 CL",
+    "Juice R100",
+    "Knights CL",
+    "Knights OD",
+    "L-Star CL",
+    "L-Star OD",
+    "Match CL",
+    "Match OD",
+    "Mess Bass",
+    "Mess DualM",
+    "Mess DualV",
+    "Mess2C+ 1",
+    "Mess2C+ 2",
+    "Mess4 LD",
+    "Mini Bass",
+    "Power LD",
+    "SUPDual OD",
+    "SnapTone 1",
+    "SnapTone 2",
+    "SnapTone 3",
+    "SnapTone 4",
+    "SnapTone 5",
+    "Solo100 LD",
+    "Solo100 OD",
+    "Tweedy",
+    "UK 45",
+    "UK 50JP",
+    "UK 800",
+    "UK 900",
+    "Z38 CL",
+    "Z38 OD"
+   ],
+   "CAB": [
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "2Rick 2x12",
+    "Ameg 4x10",
+    "Ameg 8x10",
+    "Bad-KT 1x12",
+    "Bellman 4x10",
+    "BogSV 1x12",
+    "D",
+    "Dark 1x12",
+    "DarkTW 2x12",
+    "Dizz 4x12",
+    "EV51 4x12",
+    "Eagle 4x12",
+    "Foxy 1x12",
+    "Free 2x12",
+    "GA",
+    "H-Way 4x12",
+    "J-120 2x12",
+    "Juice 4x12",
+    "Jumbo",
+    "L-Star 2x12",
+    "Max 4x10",
+    "Mess-D 4x12",
+    "MessBass 2x10",
+    "OM",
+    "Pogner 4x12",
+    "Regular 1x12",
+    "SUP 1x6",
+    "Solo 4x12",
+    "Studio 1x12",
+    "TWD 1x8",
+    "TWD 2x12",
+    "TWD-P 1x10",
+    "U-ban 4x12",
+    "UK-75 4x12",
+    "UK-DK 4x12",
+    "UK-GN 2x12",
+    "UK-GN 4x12",
+    "UK-LD 4x12",
+    "UK-MD 4x12",
+    "US 4x12"
+   ],
+   "DLY": [
+    "999 Echo",
+    "Dual Echo",
+    "M-Echo",
+    "M-Echo2",
+    "P-Echo",
+    "Ping Pong",
+    "Rev Echo",
+    "Slapbk",
+    "Sweet",
+    "Swp Echo",
+    "T-Echo",
+    "Vin-Rack"
+   ],
+   "DST": [
+    "14 Boost",
+    "Bass Dist",
+    "Blues OD",
+    "Boost",
+    "Chief",
+    "Darktale",
+    "Flex OD",
+    "Green OD",
+    "La Charger",
+    "Lazaro",
+    "Penesas",
+    "Plustortion",
+    "Red Haze",
+    "SM Dist",
+    "Scream OD",
+    "Super OD",
+    "TaiChi OD",
+    "Tube Clipper",
+    "Yellow OD"
+   ],
+   "EQ": [
+    "EQ 1",
+    "EQ 2",
+    "Mess EQ"
+   ],
+   "MOD": [
+    "A-Chorus",
+    "B-Chorus",
+    "Bias Trem",
+    "Detune",
+    "Flanger",
+    "G-Chorus",
+    "Opto Trem",
+    "Phaser",
+    "Sine Trem",
+    "Triangle Trem",
+    "Vibe",
+    "Vibrato"
+   ],
+   "NR": [
+    "Gate 1",
+    "Gate 2"
+   ],
+   "PRE": [
+    "14 Boost",
+    "A-WAH",
+    "AC Sim",
+    "Boost",
+    "C-Wah",
+    "COMP",
+    "COMP4",
+    "Hammy",
+    "OCTA",
+    "P-Bend",
+    "Pitch",
+    "Ring Mod",
+    "Saturate",
+    "Step Filter",
+    "T-Wah",
+    "V-Wah"
+   ],
+   "RVB": [
+    "Church",
+    "Clear Sky",
+    "Deep Sea",
+    "Hall",
+    "Mod Verb",
+    "N-Star",
+    "Plate",
+    "Room",
+    "Shimmer",
+    "Spring"
+   ]
+  }
+ },
+ "algorithms": [
+  {
+   "name": "COMP",
+   "module": "PRE",
+   "code": 0,
+   "nibble": 0,
+   "index": 0,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Sustain",
+     "pos": 0,
+     "default": "20.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Output",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "observed_in_patches": 38,
+   "observed_slots": [
+    "0",
+    "1"
+   ]
+  },
+  {
+   "name": "COMP4",
+   "module": "PRE",
+   "code": 1,
+   "nibble": 0,
+   "index": 1,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Sustain",
+     "pos": 0,
+     "default": "20.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Attack",
+     "pos": 1,
+     "default": "60.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Output",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Clip",
+     "pos": 3,
+     "default": "10.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 4,
+   "observed_slots": [
+    "0",
+    "1"
+   ]
+  },
+  {
+   "name": "Boost",
+   "module": "PRE",
+   "code": 26,
+   "nibble": 0,
+   "index": 26,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Gain",
+     "pos": 0,
+     "default": "20.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "switch",
+     "name": "Bright",
+     "pos": 1,
+     "default": "1",
+     "options": [
+      "On",
+      "Off"
+     ],
+     "option_ids": [
+      1,
+      0
+     ]
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 14,
+   "observed_slots": [
+    "0",
+    "1",
+    "2"
+   ],
+   "code_shared_with": [
+    "DST:Boost"
+   ]
+  },
+  {
+   "name": "14 Boost",
+   "module": "PRE",
+   "code": 14,
+   "nibble": 0,
+   "index": 14,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Gain",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "code_shared_with": [
+    "DST:14 Boost"
+   ]
+  },
+  {
+   "name": "AC Sim",
+   "module": "PRE",
+   "code": 16777217,
+   "nibble": 1,
+   "index": 1,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Body",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Top",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "VOL",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "combox",
+     "name": "Mode",
+     "pos": 3,
+     "default": "0",
+     "options": [
+      "STD",
+      "Jumbo",
+      "ENH",
+      "Piezo"
+     ],
+     "option_ids": [
+      0,
+      1,
+      2,
+      3
+     ]
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 5,
+   "observed_slots": [
+    "0",
+    "1"
+   ]
+  },
+  {
+   "name": "T-Wah",
+   "module": "PRE",
+   "code": 16777231,
+   "nibble": 1,
+   "index": 15,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Sens",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Range",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Q",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Mix",
+     "pos": 3,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "combox",
+     "name": "Mode",
+     "pos": 4,
+     "default": "0",
+     "options": [
+      "Guitar",
+      "Bass"
+     ],
+     "option_ids": [
+      0,
+      1
+     ]
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 2,
+   "observed_slots": [
+    "0"
+   ]
+  },
+  {
+   "name": "A-WAH",
+   "module": "PRE",
+   "code": 16777237,
+   "nibble": 1,
+   "index": 21,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Depth",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Rate",
+     "pos": 1,
+     "default": "0.5",
+     "min": 0.1,
+     "max": 10.0,
+     "step": 0.1,
+     "bind": "Sync"
+    },
+    {
+     "type": "knob",
+     "name": "VOL",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Low",
+     "pos": 3,
+     "default": "20.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Q",
+     "pos": 4,
+     "default": "70.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "High",
+     "pos": 5,
+     "default": "60.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "switch",
+     "name": "Sync",
+     "pos": 6,
+     "default": "0",
+     "options": [
+      "On",
+      "Off"
+     ],
+     "option_ids": [
+      1,
+      0
+     ]
+    }
+   ],
+   "fw_name_verified": true
+  },
+  {
+   "name": "V-Wah",
+   "module": "PRE",
+   "code": 83886081,
+   "nibble": 5,
+   "index": 1,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Range",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Q",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "VOL",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 14,
+   "observed_slots": [
+    "0"
+   ]
+  },
+  {
+   "name": "C-Wah",
+   "module": "PRE",
+   "code": 83886088,
+   "nibble": 5,
+   "index": 8,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Range",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Q",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "VOL",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 18,
+   "observed_slots": [
+    "0"
+   ]
+  },
+  {
+   "name": "OCTA",
+   "module": "PRE",
+   "code": 16777249,
+   "nibble": 1,
+   "index": 33,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "L-Oct",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "H-Oct",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Dry",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "observed_in_patches": 4,
+   "observed_slots": [
+    "0",
+    "1",
+    "6"
+   ]
+  },
+  {
+   "name": "Pitch",
+   "module": "PRE",
+   "code": 16777251,
+   "nibble": 1,
+   "index": 35,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "H-Pitch",
+     "pos": 0,
+     "default": "12.0",
+     "min": 0.0,
+     "max": 24.0
+    },
+    {
+     "type": "knob",
+     "name": "L-Pitch",
+     "pos": 1,
+     "default": "-12.0",
+     "min": 0.0,
+     "max": -24.0
+    },
+    {
+     "type": "knob",
+     "name": "Dry",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "H-Vol",
+     "pos": 3,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "L-Vol",
+     "pos": 4,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true
+  },
+  {
+   "name": "P-Bend",
+   "module": "PRE",
+   "code": 16777252,
+   "nibble": 1,
+   "index": 36,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "H-Pitch",
+     "pos": 0,
+     "default": "12.0",
+     "min": 0.0,
+     "max": 12.0
+    },
+    {
+     "type": "knob",
+     "name": "L-Pitch",
+     "pos": 1,
+     "default": "0.0",
+     "min": 0.0,
+     "max": -12.0
+    },
+    {
+     "type": "knob",
+     "name": "Wet",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Dry",
+     "pos": 3,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Range",
+     "pos": 4,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true
+  },
+  {
+   "name": "Hammy",
+   "module": "PRE",
+   "code": 16777289,
+   "nibble": 1,
+   "index": 73,
+   "controls": [
+    {
+     "type": "combox",
+     "name": "Range",
+     "pos": 0,
+     "default": "2",
+     "options": [
+      "-2 Oct",
+      "-1 Oct",
+      "+1 Oct",
+      "+2 Oct",
+      "+/-1 Oct",
+      "+/-2 Oct"
+     ],
+     "option_ids": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+     ]
+    },
+    {
+     "type": "switch",
+     "name": "Harmony",
+     "pos": 1,
+     "default": "0",
+     "options": [
+      "On",
+      "Off"
+     ],
+     "option_ids": [
+      1,
+      0
+     ]
+    },
+    {
+     "type": "knob",
+     "name": "VOL",
+     "pos": 2,
+     "default": "99",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Position",
+     "pos": 3,
+     "default": "0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true
+  },
+  {
+   "name": "Saturate",
+   "module": "PRE",
+   "code": 16777267,
+   "nibble": 1,
+   "index": 51,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Gain",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Mix",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "VOL",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "H-Cut",
+     "pos": 3,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 1,
+   "observed_slots": [
+    "1"
+   ]
+  },
+  {
+   "name": "Step Filter",
+   "module": "PRE",
+   "code": 16777241,
+   "nibble": 1,
+   "index": 25,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Step 1",
+     "pos": 0,
+     "default": "10.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Step 2",
+     "pos": 1,
+     "default": "30.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Step 3",
+     "pos": 2,
+     "default": "55.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Step 4",
+     "pos": 3,
+     "default": "85.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Rate",
+     "pos": 4,
+     "default": "0.5",
+     "min": 0.1,
+     "max": 10.0,
+     "step": 0.1,
+     "bind": "Sync"
+    },
+    {
+     "type": "switch",
+     "name": "Sync",
+     "pos": 5,
+     "default": "0",
+     "options": [
+      "On",
+      "Off"
+     ],
+     "option_ids": [
+      1,
+      0
+     ]
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 1,
+   "observed_slots": [
+    "4"
+   ]
+  },
+  {
+   "name": "Ring Mod",
+   "module": "PRE",
+   "code": 16777263,
+   "nibble": 1,
+   "index": 47,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Mix",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Freq",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Fine",
+     "pos": 2,
+     "default": "0.0",
+     "min": -50.0,
+     "max": 50.0
+    },
+    {
+     "type": "knob",
+     "name": "Tone",
+     "pos": 3,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true
+  },
+  {
+   "name": "Penesas",
+   "module": "DST",
+   "code": 50331668,
+   "nibble": 3,
+   "index": 20,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Gain",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Tone",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "VOL",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true
+  },
+  {
+   "name": "Scream OD",
+   "module": "DST",
+   "code": 50331656,
+   "nibble": 3,
+   "index": 8,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Gain",
+     "pos": 0,
+     "default": "30.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Tone",
+     "pos": 1,
+     "default": "60.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "switch",
+     "name": "Fat",
+     "pos": 3,
+     "default": "0",
+     "options": [
+      "On",
+      "Off"
+     ],
+     "option_ids": [
+      1,
+      0
+     ]
+    },
+    {
+     "type": "switch",
+     "name": "Air",
+     "pos": 4,
+     "default": "1",
+     "options": [
+      "On",
+      "Off"
+     ],
+     "option_ids": [
+      1,
+      0
+     ]
+    }
+   ],
+   "fw_name_verified": true
+  },
+  {
+   "name": "Tube Clipper",
+   "module": "DST",
+   "code": 50331659,
+   "nibble": 3,
+   "index": 11,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Gain",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Bass",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Treble",
+     "pos": 3,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true
+  },
+  {
+   "name": "TaiChi OD",
+   "module": "DST",
+   "code": 50331664,
+   "nibble": 3,
+   "index": 16,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Gain",
+     "pos": 0,
+     "default": "40.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Tone",
+     "pos": 1,
+     "default": "30.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Voice",
+     "pos": 3,
+     "default": "60.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true
+  },
+  {
+   "name": "Plustortion",
+   "module": "DST",
+   "code": 50331689,
+   "nibble": 3,
+   "index": 41,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Gain",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true
+  },
+  {
+   "name": "Chief",
+   "module": "DST",
+   "code": 50331693,
+   "nibble": 3,
+   "index": 45,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Gain",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Bass",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Middle",
+     "pos": 3,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Treble",
+     "pos": 4,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true
+  },
+  {
+   "name": "Green OD",
+   "module": "DST",
+   "code": 50331648,
+   "nibble": 3,
+   "index": 0,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Gain",
+     "pos": 0,
+     "default": "40.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Tone",
+     "pos": 1,
+     "default": "70.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "VOL",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 55,
+   "observed_slots": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  {
+   "name": "Yellow OD",
+   "module": "DST",
+   "code": 50331650,
+   "nibble": 3,
+   "index": 2,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Gain",
+     "pos": 0,
+     "default": "40.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "VOL",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 10,
+   "observed_slots": [
+    "1"
+   ]
+  },
+  {
+   "name": "Super OD",
+   "module": "DST",
+   "code": 50331654,
+   "nibble": 3,
+   "index": 6,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Gain",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Tone",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "VOL",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 5,
+   "observed_slots": [
+    "0",
+    "1",
+    "2"
+   ]
+  },
+  {
+   "name": "Blues OD",
+   "module": "DST",
+   "code": 50331657,
+   "nibble": 3,
+   "index": 9,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Gain",
+     "pos": 0,
+     "default": "40.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Tone",
+     "pos": 1,
+     "default": "60.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "VOL",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 6,
+   "observed_slots": [
+    "0",
+    "1"
+   ]
+  },
+  {
+   "name": "Lazaro",
+   "module": "DST",
+   "code": 50331682,
+   "nibble": 3,
+   "index": 34,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Sustain",
+     "pos": 0,
+     "default": "40.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Tone",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "VOL",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 9,
+   "observed_slots": [
+    "0",
+    "1"
+   ]
+  },
+  {
+   "name": "Red Haze",
+   "module": "DST",
+   "code": 50331684,
+   "nibble": 3,
+   "index": 36,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Fuzz",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "VOL",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 3,
+   "observed_slots": [
+    "1"
+   ]
+  },
+  {
+   "name": "Darktale",
+   "module": "DST",
+   "code": 50331691,
+   "nibble": 3,
+   "index": 43,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Gain",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Filter",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "VOL",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 1,
+   "observed_slots": [
+    "1"
+   ]
+  },
+  {
+   "name": "Flex OD",
+   "module": "DST",
+   "code": 50331711,
+   "nibble": 3,
+   "index": 63,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Gain",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Tone",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "VOL",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "combox",
+     "name": "Mode",
+     "pos": 3,
+     "default": "0",
+     "options": [
+      "Normal",
+      "Scoop",
+      "Edge"
+     ],
+     "option_ids": [
+      0,
+      1,
+      2
+     ]
+    },
+    {
+     "type": "knob",
+     "name": "Blend",
+     "pos": 4,
+     "default": "50",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 4,
+   "observed_slots": [
+    "1"
+   ]
+  },
+  {
+   "name": "SM Dist",
+   "module": "DST",
+   "code": 50331690,
+   "nibble": 3,
+   "index": 42,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Gain",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Tone",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "VOL",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 3,
+   "observed_slots": [
+    "1"
+   ]
+  },
+  {
+   "name": "La Charger",
+   "module": "DST",
+   "code": 50331696,
+   "nibble": 3,
+   "index": 48,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Gain",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Tone",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "VOL",
+     "pos": 2,
+     "default": "50",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 1,
+   "observed_slots": [
+    "1"
+   ]
+  },
+  {
+   "name": "Bass Dist",
+   "module": "DST",
+   "code": 50331712,
+   "nibble": 3,
+   "index": 64,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Gain",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Blend",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "VOL",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Bass",
+     "pos": 3,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Treble",
+     "pos": 4,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 4,
+   "observed_slots": [
+    "0",
+    "1"
+   ]
+  },
+  {
+   "name": "Boost",
+   "module": "DST",
+   "code": 26,
+   "nibble": 0,
+   "index": 26,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Gain",
+     "pos": 0,
+     "default": "20.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "switch",
+     "name": "Bright",
+     "pos": 1,
+     "default": "0",
+     "options": [
+      "On",
+      "Off"
+     ],
+     "option_ids": [
+      1,
+      0
+     ]
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 14,
+   "observed_slots": [
+    "0",
+    "1",
+    "2"
+   ],
+   "code_shared_with": [
+    "PRE:Boost"
+   ]
+  },
+  {
+   "name": "14 Boost",
+   "module": "DST",
+   "code": 14,
+   "nibble": 0,
+   "index": 14,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Gain",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "code_shared_with": [
+    "PRE:14 Boost"
+   ]
+  },
+  {
+   "name": "Tweedy",
+   "module": "AMP",
+   "code": 117440513,
+   "nibble": 7,
+   "index": 1,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "VOL",
+     "pos": 0,
+     "default": "20.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Tone",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Output",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 5,
+   "observed_slots": [
+    "2"
+   ]
+  },
+  {
+   "name": "Bellman 59N",
+   "module": "AMP",
+   "code": 117440515,
+   "nibble": 7,
+   "index": 3,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "VOL",
+     "pos": 0,
+     "default": "20.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "PRES ",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Output",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Bass",
+     "pos": 3,
+     "default": "30.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Middle",
+     "pos": 4,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Treble",
+     "pos": 5,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 4,
+   "observed_slots": [
+    "2"
+   ]
+  },
+  {
+   "name": "Dark Twin",
+   "module": "AMP",
+   "code": 117440516,
+   "nibble": 7,
+   "index": 4,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "VOL",
+     "pos": 0,
+     "default": "20.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Output",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Bass",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Middle",
+     "pos": 3,
+     "default": "40.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Treble",
+     "pos": 4,
+     "default": "60.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "switch",
+     "name": "Bright",
+     "pos": 5,
+     "default": "1",
+     "options": [
+      "On",
+      "Off"
+     ],
+     "option_ids": [
+      1,
+      0
+     ]
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 8,
+   "observed_slots": [
+    "2"
+   ]
+  },
+  {
+   "name": "L-Star CL",
+   "module": "AMP",
+   "code": 117440537,
+   "nibble": 7,
+   "index": 25,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Gain",
+     "pos": 0,
+     "default": "40.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "PRES",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Master",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Bass",
+     "pos": 3,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Middle",
+     "pos": 4,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Treble",
+     "pos": 5,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 3,
+   "observed_slots": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "name": "Foxy 30N",
+   "module": "AMP",
+   "code": 117440529,
+   "nibble": 7,
+   "index": 17,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "VOL",
+     "pos": 0,
+     "default": "20.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Cut",
+     "pos": 1,
+     "default": "60.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Master",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "switch",
+     "name": "Bright",
+     "pos": 3,
+     "default": "0",
+     "options": [
+      "On",
+      "Off"
+     ],
+     "option_ids": [
+      1,
+      0
+     ]
+    }
+   ],
+   "fw_name_verified": true
+  },
+  {
+   "name": "BogSV CL",
+   "module": "AMP",
+   "code": 117440538,
+   "nibble": 7,
+   "index": 26,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Gain",
+     "pos": 0,
+     "default": "20.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "PRES",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Master",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Bass",
+     "pos": 3,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Treble",
+     "pos": 4,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "switch",
+     "name": "Bright",
+     "pos": 5,
+     "default": "1",
+     "options": [
+      "On",
+      "Off"
+     ],
+     "option_ids": [
+      1,
+      0
+     ]
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 1,
+   "observed_slots": [
+    "2"
+   ]
+  },
+  {
+   "name": "J-120 CL",
+   "module": "AMP",
+   "code": 117440532,
+   "nibble": 7,
+   "index": 20,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "VOL",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Bass",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Middle",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Treble",
+     "pos": 3,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "switch",
+     "name": "Bright",
+     "pos": 4,
+     "default": "0",
+     "options": [
+      "On",
+      "Off"
+     ],
+     "option_ids": [
+      1,
+      0
+     ]
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 2,
+   "observed_slots": [
+    "0",
+    "2"
+   ]
+  },
+  {
+   "name": "Match CL",
+   "module": "AMP",
+   "code": 117440533,
+   "nibble": 7,
+   "index": 21,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Gain",
+     "pos": 0,
+     "default": "20.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "PRES",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Master",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Bass",
+     "pos": 3,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Middle",
+     "pos": 4,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Treble",
+     "pos": 5,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 4,
+   "observed_slots": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "name": "Z38 CL",
+   "module": "AMP",
+   "code": 117440539,
+   "nibble": 7,
+   "index": 27,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Gain",
+     "pos": 0,
+     "default": "20.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Cut",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Master",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Bass",
+     "pos": 3,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Middle",
+     "pos": 4,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Treble",
+     "pos": 5,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true
+  },
+  {
+   "name": "Knights CL",
+   "module": "AMP",
+   "code": 117440543,
+   "nibble": 7,
+   "index": 31,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Gain",
+     "pos": 0,
+     "default": "20.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "VOL",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Bass",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Middle",
+     "pos": 3,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Treble",
+     "pos": 4,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 1,
+   "observed_slots": [
+    "2"
+   ]
+  },
+  {
+   "name": "Bad-KT CL",
+   "module": "AMP",
+   "code": 117440546,
+   "nibble": 7,
+   "index": 34,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Gain",
+     "pos": 0,
+     "default": "20.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "PRES",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Master",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 1,
+   "observed_slots": [
+    "2"
+   ]
+  },
+  {
+   "name": "UK 45",
+   "module": "AMP",
+   "code": 117440554,
+   "nibble": 7,
+   "index": 42,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "VOL",
+     "pos": 0,
+     "default": "30.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "PRES",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Output",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Bass",
+     "pos": 3,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Middle",
+     "pos": 4,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Treble",
+     "pos": 5,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 1,
+   "observed_slots": [
+    "2"
+   ]
+  },
+  {
+   "name": "UK 50JP",
+   "module": "AMP",
+   "code": 117440559,
+   "nibble": 7,
+   "index": 47,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "VOL 1",
+     "pos": 0,
+     "default": "30.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "PRES",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Output",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Bass",
+     "pos": 3,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Middle ",
+     "pos": 4,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Treble",
+     "pos": 5,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "VOL 2",
+     "pos": 6,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 5,
+   "observed_slots": [
+    "2"
+   ]
+  },
+  {
+   "name": "UK 800",
+   "module": "AMP",
+   "code": 117440565,
+   "nibble": 7,
+   "index": 53,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Gain",
+     "pos": 0,
+     "default": "30.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "PRES",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Master",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Bass",
+     "pos": 3,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Middle",
+     "pos": 4,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Treble",
+     "pos": 5,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 5,
+   "observed_slots": [
+    "2"
+   ]
+  },
+  {
+   "name": "Flagman",
+   "module": "AMP",
+   "code": 117440576,
+   "nibble": 7,
+   "index": 64,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Gain",
+     "pos": 0,
+     "default": "30.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "PRES",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Master",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Bass",
+     "pos": 3,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Middle ",
+     "pos": 4,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Treble",
+     "pos": 5,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 3,
+   "observed_slots": [
+    "2"
+   ]
+  },
+  {
+   "name": "Z38 OD",
+   "module": "AMP",
+   "code": 117440585,
+   "nibble": 7,
+   "index": 73,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Gain",
+     "pos": 0,
+     "default": "30.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Cut",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Master",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Bass",
+     "pos": 3,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Middle",
+     "pos": 4,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Treble",
+     "pos": 5,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 4,
+   "observed_slots": [
+    "2"
+   ]
+  },
+  {
+   "name": "BogSV OD",
+   "module": "AMP",
+   "code": 117440573,
+   "nibble": 7,
+   "index": 61,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Gain",
+     "pos": 0,
+     "default": "30.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "PRES",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Master",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Bass",
+     "pos": 3,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Middle",
+     "pos": 4,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Treble",
+     "pos": 5,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true
+  },
+  {
+   "name": "Bellman 59B",
+   "module": "AMP",
+   "code": 117440548,
+   "nibble": 7,
+   "index": 36,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "VOL",
+     "pos": 0,
+     "default": "30.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "PRES",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Output",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Bass",
+     "pos": 3,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Middle",
+     "pos": 4,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Treble",
+     "pos": 5,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true
+  },
+  {
+   "name": "Foxy 30TB",
+   "module": "AMP",
+   "code": 117440551,
+   "nibble": 7,
+   "index": 39,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "VOL",
+     "pos": 0,
+     "default": "30.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Cut",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Master",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Bass",
+     "pos": 3,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Treble",
+     "pos": 4,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "combox",
+     "name": "Char",
+     "pos": 5,
+     "default": null,
+     "options": [
+      "Cool",
+      "Hot"
+     ],
+     "option_ids": [
+      0,
+      1
+     ]
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 2,
+   "observed_slots": [
+    "2"
+   ]
+  },
+  {
+   "name": "SUPDual OD",
+   "module": "AMP",
+   "code": 117440552,
+   "nibble": 7,
+   "index": 40,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "VOL 1",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Tone 1",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "VOL 2",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Tone 2",
+     "pos": 3,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Output",
+     "pos": 4,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true
+  },
+  {
+   "name": "Match OD",
+   "module": "AMP",
+   "code": 117440584,
+   "nibble": 7,
+   "index": 72,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Gain",
+     "pos": 0,
+     "default": "30.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "PRES",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Master",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Bass",
+     "pos": 3,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Middle",
+     "pos": 4,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Treble",
+     "pos": 5,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 3,
+   "observed_slots": [
+    "2"
+   ]
+  },
+  {
+   "name": "Solo100 OD",
+   "module": "AMP",
+   "code": 117440583,
+   "nibble": 7,
+   "index": 71,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Gain",
+     "pos": 0,
+     "default": "30.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "PRES",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Master",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Bass",
+     "pos": 3,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Middle",
+     "pos": 4,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Treble",
+     "pos": 5,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 1,
+   "observed_slots": [
+    "2"
+   ]
+  },
+  {
+   "name": "L-Star OD",
+   "module": "AMP",
+   "code": 117440586,
+   "nibble": 7,
+   "index": 74,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Gain",
+     "pos": 0,
+     "default": "30.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "PRES",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Master",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Bass",
+     "pos": 3,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Middle",
+     "pos": 4,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Treble",
+     "pos": 5,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true
+  },
+  {
+   "name": "Bad-KT OD",
+   "module": "AMP",
+   "code": 117440587,
+   "nibble": 7,
+   "index": 75,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Gain",
+     "pos": 0,
+     "default": "30.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "PRES",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Master",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Bass",
+     "pos": 3,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Edge",
+     "pos": 4,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Treble",
+     "pos": 5,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true
+  },
+  {
+   "name": "Mess2C+ 1",
+   "module": "AMP",
+   "code": 117440569,
+   "nibble": 7,
+   "index": 57,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Gain",
+     "pos": 0,
+     "default": "30.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "PRES",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Master",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Bass",
+     "pos": 3,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Middle",
+     "pos": 4,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Treble",
+     "pos": 5,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true
+  },
+  {
+   "name": "Mess2C+ 2",
+   "module": "AMP",
+   "code": 117440570,
+   "nibble": 7,
+   "index": 58,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Gain",
+     "pos": 0,
+     "default": "30.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "PRES",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Master",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Bass",
+     "pos": 3,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Middle",
+     "pos": 4,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Treble",
+     "pos": 5,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true
+  },
+  {
+   "name": "Knights OD",
+   "module": "AMP",
+   "code": 117440636,
+   "nibble": 7,
+   "index": 124,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Gain",
+     "pos": 0,
+     "default": "30.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Bass",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Middle",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Treble",
+     "pos": 3,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "VOL",
+     "pos": 4,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 1,
+   "observed_slots": [
+    "2"
+   ]
+  },
+  {
+   "name": "Dizz VH",
+   "module": "AMP",
+   "code": 117440613,
+   "nibble": 7,
+   "index": 101,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Gain",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "PRES",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Master",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Bass",
+     "pos": 3,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Middle",
+     "pos": 4,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Treble",
+     "pos": 5,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 1,
+   "observed_slots": [
+    "2"
+   ]
+  },
+  {
+   "name": "Eagle 120",
+   "module": "AMP",
+   "code": 117440607,
+   "nibble": 7,
+   "index": 95,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Gain",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "PRES",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Master",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Bass",
+     "pos": 3,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Middle",
+     "pos": 4,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Treble",
+     "pos": 5,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 1,
+   "observed_slots": [
+    "2"
+   ]
+  },
+  {
+   "name": "EV 51",
+   "module": "AMP",
+   "code": 117440602,
+   "nibble": 7,
+   "index": 90,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Gain",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Master",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Bass",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Middle",
+     "pos": 3,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Treble",
+     "pos": 4,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "PRES",
+     "pos": 5,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 1,
+   "observed_slots": [
+    "2"
+   ]
+  },
+  {
+   "name": "Solo100 LD",
+   "module": "AMP",
+   "code": 117440601,
+   "nibble": 7,
+   "index": 89,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Gain",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "PRES",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Master",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Bass",
+     "pos": 3,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Middle",
+     "pos": 4,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Treble",
+     "pos": 5,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 2,
+   "observed_slots": [
+    "2"
+   ]
+  },
+  {
+   "name": "Mess4 LD",
+   "module": "AMP",
+   "code": 117440597,
+   "nibble": 7,
+   "index": 85,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Gain",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "PRES",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Master",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Bass",
+     "pos": 3,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Middle",
+     "pos": 4,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Treble",
+     "pos": 5,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true
+  },
+  {
+   "name": "Mess DualV",
+   "module": "AMP",
+   "code": 117440616,
+   "nibble": 7,
+   "index": 104,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Gain",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "PRES",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Master",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Bass",
+     "pos": 3,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Middle",
+     "pos": 4,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Treble",
+     "pos": 5,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 1,
+   "observed_slots": [
+    "2"
+   ]
+  },
+  {
+   "name": "Power LD",
+   "module": "AMP",
+   "code": 117440611,
+   "nibble": 7,
+   "index": 99,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Gain",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "PRES",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Master",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Bass",
+     "pos": 3,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Middle",
+     "pos": 4,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Treble",
+     "pos": 5,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true
+  },
+  {
+   "name": "Flagman+",
+   "module": "AMP",
+   "code": 117440605,
+   "nibble": 7,
+   "index": 93,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Gain",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "PRES",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Master",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Bass",
+     "pos": 3,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Middle",
+     "pos": 4,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Treble",
+     "pos": 5,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true
+  },
+  {
+   "name": "Juice R100",
+   "module": "AMP",
+   "code": 117440595,
+   "nibble": 7,
+   "index": 83,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Gain",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Master",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Bass",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Middle",
+     "pos": 3,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Treble",
+     "pos": 4,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 2,
+   "observed_slots": [
+    "2"
+   ]
+  },
+  {
+   "name": "Mess DualM",
+   "module": "AMP",
+   "code": 117440617,
+   "nibble": 7,
+   "index": 105,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Gain",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "PRES",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Master",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Bass",
+     "pos": 3,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Middle",
+     "pos": 4,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Treble",
+     "pos": 5,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 2,
+   "observed_slots": [
+    "2"
+   ]
+  },
+  {
+   "name": "Bog BlueV",
+   "module": "AMP",
+   "code": 117440621,
+   "nibble": 7,
+   "index": 109,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Gain",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "PRES",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Master",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Bass",
+     "pos": 3,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Middle",
+     "pos": 4,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Treble",
+     "pos": 5,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true
+  },
+  {
+   "name": "Bog RedM",
+   "module": "AMP",
+   "code": 117440622,
+   "nibble": 7,
+   "index": 110,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Gain",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "PRES",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Master",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Bass",
+     "pos": 3,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Middle",
+     "pos": 4,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Treble",
+     "pos": 5,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 2,
+   "observed_slots": [
+    "2"
+   ]
+  },
+  {
+   "name": "UK 900",
+   "module": "AMP",
+   "code": 117440590,
+   "nibble": 7,
+   "index": 78,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Gain",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "PRES",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Master",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Bass",
+     "pos": 3,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Middle",
+     "pos": 4,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Treble",
+     "pos": 5,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true
+  },
+  {
+   "name": "Classic Bass",
+   "module": "AMP",
+   "code": 117440627,
+   "nibble": 7,
+   "index": 115,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Gain",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Bass",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Middle",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "combox",
+     "name": "MRange",
+     "pos": 3,
+     "default": "1",
+     "options": [
+      "220Hz",
+      "450Hz",
+      "800Hz",
+      "1.6kHz",
+      "3kHz"
+     ],
+     "option_ids": [
+      0,
+      1,
+      2,
+      3,
+      4
+     ]
+    },
+    {
+     "type": "knob",
+     "name": "Treble",
+     "pos": 4,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Master",
+     "pos": 5,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 7,
+   "observed_slots": [
+    "2",
+    "3"
+   ]
+  },
+  {
+   "name": "Bass Pre",
+   "module": "AMP",
+   "code": 134217846,
+   "nibble": 8,
+   "index": 118,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "VOL",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "switch",
+     "name": "Bright",
+     "pos": 1,
+     "default": "0",
+     "options": [
+      "On",
+      "Off"
+     ],
+     "option_ids": [
+      1,
+      0
+     ]
+    },
+    {
+     "type": "knob",
+     "name": "Bass",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Middle",
+     "pos": 3,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Treble",
+     "pos": 4,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 5,
+   "observed_slots": [
+    "2"
+   ]
+  },
+  {
+   "name": "Mini Bass",
+   "module": "AMP",
+   "code": 134217845,
+   "nibble": 8,
+   "index": 117,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "VOL",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Bass",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Treble",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 2,
+   "observed_slots": [
+    "2",
+    "3"
+   ]
+  },
+  {
+   "name": "Foxy Bass",
+   "module": "AMP",
+   "code": 117440629,
+   "nibble": 7,
+   "index": 117,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "VOL",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Bass",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Treble",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 6,
+   "observed_slots": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "name": "Mess Bass",
+   "module": "AMP",
+   "code": 117440631,
+   "nibble": 7,
+   "index": 119,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "VOL",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Master",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Bass",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Middle",
+     "pos": 3,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Treble",
+     "pos": 4,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true
+  },
+  {
+   "name": "AC Pre",
+   "module": "AMP",
+   "code": 134217850,
+   "nibble": 8,
+   "index": 122,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "VOL",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Tone",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Gain",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "EQ Freq",
+     "pos": 3,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "EQ Q",
+     "pos": 4,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "EQ Gain",
+     "pos": 5,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 15,
+   "observed_slots": [
+    "2"
+   ]
+  },
+  {
+   "name": "SnapTone 1",
+   "module": "AMP",
+   "code": 251658240,
+   "nibble": 15,
+   "index": 0,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Gain",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "VOL",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Bass",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Middle",
+     "pos": 3,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Treble",
+     "pos": 4,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ]
+  },
+  {
+   "name": "SnapTone 2",
+   "module": "AMP",
+   "code": 251658241,
+   "nibble": 15,
+   "index": 1,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Gain",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "VOL",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Bass",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Middle",
+     "pos": 3,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Treble",
+     "pos": 4,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ]
+  },
+  {
+   "name": "SnapTone 3",
+   "module": "AMP",
+   "code": 251658242,
+   "nibble": 15,
+   "index": 2,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Gain",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "VOL",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Bass",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Middle",
+     "pos": 3,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Treble",
+     "pos": 4,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ]
+  },
+  {
+   "name": "SnapTone 4",
+   "module": "AMP",
+   "code": 251658243,
+   "nibble": 15,
+   "index": 3,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Gain",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "VOL",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Bass",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Middle",
+     "pos": 3,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Treble",
+     "pos": 4,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ]
+  },
+  {
+   "name": "SnapTone 5",
+   "module": "AMP",
+   "code": 251658244,
+   "nibble": 15,
+   "index": 4,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Gain",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "VOL",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Bass",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Middle",
+     "pos": 3,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Treble",
+     "pos": 4,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ]
+  },
+  {
+   "name": "Gate 1",
+   "module": "NR",
+   "code": 27,
+   "nibble": 0,
+   "index": 27,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Thre ",
+     "pos": 0,
+     "default": "20.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 89,
+   "observed_slots": [
+    "2",
+    "3",
+    "4"
+   ]
+  },
+  {
+   "name": "Gate 2",
+   "module": "NR",
+   "code": 29,
+   "nibble": 0,
+   "index": 29,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Thre",
+     "pos": 0,
+     "default": "20.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Attack",
+     "pos": 1,
+     "default": "25.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Rel",
+     "pos": 2,
+     "default": "60.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 12,
+   "observed_slots": [
+    "3",
+    "4"
+   ]
+  },
+  {
+   "name": "TWD 2x12",
+   "module": "CAB",
+   "code": 167772187,
+   "nibble": 10,
+   "index": 27,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 2,
+   "observed_slots": [
+    "4"
+   ]
+  },
+  {
+   "name": "DarkTW 2x12",
+   "module": "CAB",
+   "code": 167772178,
+   "nibble": 10,
+   "index": 18,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 9,
+   "observed_slots": [
+    "3",
+    "4"
+   ]
+  },
+  {
+   "name": "L-Star 2x12",
+   "module": "CAB",
+   "code": 167772185,
+   "nibble": 10,
+   "index": 25,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 6,
+   "observed_slots": [
+    "3",
+    "4"
+   ]
+  },
+  {
+   "name": "2Rick 2x12",
+   "module": "CAB",
+   "code": 167772188,
+   "nibble": 10,
+   "index": 28,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 7,
+   "observed_slots": [
+    "4"
+   ]
+  },
+  {
+   "name": "J-120 2x12",
+   "module": "CAB",
+   "code": 167772177,
+   "nibble": 10,
+   "index": 17,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 1,
+   "observed_slots": [
+    "4"
+   ]
+  },
+  {
+   "name": "UK-GN 2x12",
+   "module": "CAB",
+   "code": 167772179,
+   "nibble": 10,
+   "index": 19,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 1,
+   "observed_slots": [
+    "4"
+   ]
+  },
+  {
+   "name": "Free 2x12",
+   "module": "CAB",
+   "code": 167772186,
+   "nibble": 10,
+   "index": 26,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true
+  },
+  {
+   "name": "UK-75 4x12",
+   "module": "CAB",
+   "code": 167772208,
+   "nibble": 10,
+   "index": 48,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 7,
+   "observed_slots": [
+    "4"
+   ]
+  },
+  {
+   "name": "UK-GN 4x12",
+   "module": "CAB",
+   "code": 167772194,
+   "nibble": 10,
+   "index": 34,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 8,
+   "observed_slots": [
+    "4"
+   ]
+  },
+  {
+   "name": "UK-LD 4x12",
+   "module": "CAB",
+   "code": 167772191,
+   "nibble": 10,
+   "index": 31,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 1,
+   "observed_slots": [
+    "4"
+   ]
+  },
+  {
+   "name": "UK-DK 4x12",
+   "module": "CAB",
+   "code": 167772203,
+   "nibble": 10,
+   "index": 43,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 1,
+   "observed_slots": [
+    "4"
+   ]
+  },
+  {
+   "name": "UK-MD 4x12",
+   "module": "CAB",
+   "code": 167772193,
+   "nibble": 10,
+   "index": 33,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 1,
+   "observed_slots": [
+    "4"
+   ]
+  },
+  {
+   "name": "Pogner 4x12",
+   "module": "CAB",
+   "code": 167772199,
+   "nibble": 10,
+   "index": 39,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 1,
+   "observed_slots": [
+    "4"
+   ]
+  },
+  {
+   "name": "Dizz 4x12",
+   "module": "CAB",
+   "code": 167772206,
+   "nibble": 10,
+   "index": 46,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true
+  },
+  {
+   "name": "Eagle 4x12",
+   "module": "CAB",
+   "code": 167772198,
+   "nibble": 10,
+   "index": 38,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true
+  },
+  {
+   "name": "EV51 4x12",
+   "module": "CAB",
+   "code": 167772192,
+   "nibble": 10,
+   "index": 32,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 2,
+   "observed_slots": [
+    "4"
+   ]
+  },
+  {
+   "name": "Solo 4x12",
+   "module": "CAB",
+   "code": 167772200,
+   "nibble": 10,
+   "index": 40,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true
+  },
+  {
+   "name": "US 4x12",
+   "module": "CAB",
+   "code": 167772209,
+   "nibble": 10,
+   "index": 49,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true
+  },
+  {
+   "name": "Mess-D 4x12",
+   "module": "CAB",
+   "code": 167772196,
+   "nibble": 10,
+   "index": 36,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 2,
+   "observed_slots": [
+    "4"
+   ]
+  },
+  {
+   "name": "U-ban 4x12",
+   "module": "CAB",
+   "code": 167772204,
+   "nibble": 10,
+   "index": 44,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 4,
+   "observed_slots": [
+    "4"
+   ]
+  },
+  {
+   "name": "Juice 4x12",
+   "module": "CAB",
+   "code": 167772201,
+   "nibble": 10,
+   "index": 41,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 1,
+   "observed_slots": [
+    "4"
+   ]
+  },
+  {
+   "name": "H-Way 4x12",
+   "module": "CAB",
+   "code": 167772202,
+   "nibble": 10,
+   "index": 42,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 3,
+   "observed_slots": [
+    "4"
+   ]
+  },
+  {
+   "name": "BogSV 1x12",
+   "module": "CAB",
+   "code": 167772166,
+   "nibble": 10,
+   "index": 6,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true
+  },
+  {
+   "name": "Dark 1x12",
+   "module": "CAB",
+   "code": 167772164,
+   "nibble": 10,
+   "index": 4,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 1,
+   "observed_slots": [
+    "4"
+   ]
+  },
+  {
+   "name": "Regular 1x12",
+   "module": "CAB",
+   "code": 167772173,
+   "nibble": 10,
+   "index": 13,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 3,
+   "observed_slots": [
+    "4"
+   ]
+  },
+  {
+   "name": "Bad-KT 1x12",
+   "module": "CAB",
+   "code": 167772167,
+   "nibble": 10,
+   "index": 7,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 5,
+   "observed_slots": [
+    "4"
+   ]
+  },
+  {
+   "name": "Foxy 1x12",
+   "module": "CAB",
+   "code": 167772168,
+   "nibble": 10,
+   "index": 8,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 3,
+   "observed_slots": [
+    "4"
+   ]
+  },
+  {
+   "name": "Studio 1x12",
+   "module": "CAB",
+   "code": 167772172,
+   "nibble": 10,
+   "index": 12,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 1,
+   "observed_slots": [
+    "4"
+   ]
+  },
+  {
+   "name": "SUP 1x6",
+   "module": "CAB",
+   "code": 167772160,
+   "nibble": 10,
+   "index": 0,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true
+  },
+  {
+   "name": "TWD 1x8",
+   "module": "CAB",
+   "code": 167772161,
+   "nibble": 10,
+   "index": 1,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true
+  },
+  {
+   "name": "TWD-P 1x10",
+   "module": "CAB",
+   "code": 167772162,
+   "nibble": 10,
+   "index": 2,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 1,
+   "observed_slots": [
+    "4"
+   ]
+  },
+  {
+   "name": "Bellman 4x10",
+   "module": "CAB",
+   "code": 167772190,
+   "nibble": 10,
+   "index": 30,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true
+  },
+  {
+   "name": "MessBass 2x10",
+   "module": "CAB",
+   "code": 167772213,
+   "nibble": 10,
+   "index": 53,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 2,
+   "observed_slots": [
+    "4",
+    "5"
+   ]
+  },
+  {
+   "name": "Max 4x10",
+   "module": "CAB",
+   "code": 167772217,
+   "nibble": 10,
+   "index": 57,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 7,
+   "observed_slots": [
+    "4"
+   ]
+  },
+  {
+   "name": "Ameg 4x10",
+   "module": "CAB",
+   "code": 167772216,
+   "nibble": 10,
+   "index": 56,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 7,
+   "observed_slots": [
+    "3",
+    "4",
+    "5"
+   ]
+  },
+  {
+   "name": "Ameg 8x10",
+   "module": "CAB",
+   "code": 167772219,
+   "nibble": 10,
+   "index": 59,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 3,
+   "observed_slots": [
+    "4"
+   ]
+  },
+  {
+   "name": "D",
+   "module": "CAB",
+   "code": 167772220,
+   "nibble": 10,
+   "index": 60,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "observed_in_patches": 4,
+   "observed_slots": [
+    "4"
+   ]
+  },
+  {
+   "name": "OM",
+   "module": "CAB",
+   "code": 167772222,
+   "nibble": 10,
+   "index": 62,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "observed_in_patches": 2,
+   "observed_slots": [
+    "4"
+   ]
+  },
+  {
+   "name": "Jumbo",
+   "module": "CAB",
+   "code": 167772223,
+   "nibble": 10,
+   "index": 63,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 4,
+   "observed_slots": [
+    "4"
+   ]
+  },
+  {
+   "name": "GA",
+   "module": "CAB",
+   "code": 167772225,
+   "nibble": 10,
+   "index": 65,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "observed_in_patches": 1,
+   "observed_slots": [
+    "4"
+   ]
+  },
+  {
+   "name": "",
+   "module": "CAB",
+   "code": 168820736,
+   "nibble": 10,
+   "index": 1048576,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ]
+  },
+  {
+   "name": "",
+   "module": "CAB",
+   "code": 168820737,
+   "nibble": 10,
+   "index": 1048577,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ]
+  },
+  {
+   "name": "",
+   "module": "CAB",
+   "code": 168820738,
+   "nibble": 10,
+   "index": 1048578,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ]
+  },
+  {
+   "name": "",
+   "module": "CAB",
+   "code": 168820739,
+   "nibble": 10,
+   "index": 1048579,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ]
+  },
+  {
+   "name": "",
+   "module": "CAB",
+   "code": 168820740,
+   "nibble": 10,
+   "index": 1048580,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ]
+  },
+  {
+   "name": "",
+   "module": "CAB",
+   "code": 168820741,
+   "nibble": 10,
+   "index": 1048581,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ]
+  },
+  {
+   "name": "",
+   "module": "CAB",
+   "code": 168820742,
+   "nibble": 10,
+   "index": 1048582,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ]
+  },
+  {
+   "name": "",
+   "module": "CAB",
+   "code": 168820743,
+   "nibble": 10,
+   "index": 1048583,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ]
+  },
+  {
+   "name": "",
+   "module": "CAB",
+   "code": 168820744,
+   "nibble": 10,
+   "index": 1048584,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ]
+  },
+  {
+   "name": "",
+   "module": "CAB",
+   "code": 168820745,
+   "nibble": 10,
+   "index": 1048585,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ]
+  },
+  {
+   "name": "",
+   "module": "CAB",
+   "code": 168820746,
+   "nibble": 10,
+   "index": 1048586,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ]
+  },
+  {
+   "name": "",
+   "module": "CAB",
+   "code": 168820747,
+   "nibble": 10,
+   "index": 1048587,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ]
+  },
+  {
+   "name": "",
+   "module": "CAB",
+   "code": 168820748,
+   "nibble": 10,
+   "index": 1048588,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ]
+  },
+  {
+   "name": "",
+   "module": "CAB",
+   "code": 168820749,
+   "nibble": 10,
+   "index": 1048589,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ]
+  },
+  {
+   "name": "",
+   "module": "CAB",
+   "code": 168820750,
+   "nibble": 10,
+   "index": 1048590,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ]
+  },
+  {
+   "name": "",
+   "module": "CAB",
+   "code": 168820751,
+   "nibble": 10,
+   "index": 1048591,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ]
+  },
+  {
+   "name": "",
+   "module": "CAB",
+   "code": 168820752,
+   "nibble": 10,
+   "index": 1048592,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ]
+  },
+  {
+   "name": "",
+   "module": "CAB",
+   "code": 168820753,
+   "nibble": 10,
+   "index": 1048593,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ]
+  },
+  {
+   "name": "",
+   "module": "CAB",
+   "code": 168820754,
+   "nibble": 10,
+   "index": 1048594,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ]
+  },
+  {
+   "name": "",
+   "module": "CAB",
+   "code": 168820755,
+   "nibble": 10,
+   "index": 1048595,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Volume",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ]
+  },
+  {
+   "name": "EQ 1",
+   "module": "EQ",
+   "code": 16777269,
+   "nibble": 1,
+   "index": 53,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "125Hz",
+     "pos": 0,
+     "default": "0.0",
+     "min": -50.0,
+     "max": 50.0
+    },
+    {
+     "type": "knob",
+     "name": "400Hz",
+     "pos": 1,
+     "default": "0.0",
+     "min": -50.0,
+     "max": 50.0
+    },
+    {
+     "type": "knob",
+     "name": "800Hz",
+     "pos": 2,
+     "default": "0.0",
+     "min": -50.0,
+     "max": 50.0
+    },
+    {
+     "type": "knob",
+     "name": "1.6kHz",
+     "pos": 3,
+     "default": "0.0",
+     "min": -50.0,
+     "max": 50.0
+    },
+    {
+     "type": "knob",
+     "name": "4kHz",
+     "pos": 4,
+     "default": "0.0",
+     "min": -50.0,
+     "max": 50.0
+    },
+    {
+     "type": "knob",
+     "name": "VOL ",
+     "pos": 5,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "observed_in_patches": 51,
+   "observed_slots": [
+    "4",
+    "5",
+    "6"
+   ]
+  },
+  {
+   "name": "EQ 2",
+   "module": "EQ",
+   "code": 16777274,
+   "nibble": 1,
+   "index": 58,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "50Hz",
+     "pos": 0,
+     "default": "0.0",
+     "min": -50.0,
+     "max": 50.0
+    },
+    {
+     "type": "knob",
+     "name": "120Hz",
+     "pos": 1,
+     "default": "0.0",
+     "min": -50.0,
+     "max": 50.0
+    },
+    {
+     "type": "knob",
+     "name": "400Hz",
+     "pos": 2,
+     "default": "0.0",
+     "min": -50.0,
+     "max": 50.0
+    },
+    {
+     "type": "knob",
+     "name": "800Hz",
+     "pos": 3,
+     "default": "0.0",
+     "min": -50.0,
+     "max": 50.0
+    },
+    {
+     "type": "knob",
+     "name": "2kHz",
+     "pos": 4,
+     "default": "0.0",
+     "min": -50.0,
+     "max": 50.0
+    },
+    {
+     "type": "knob",
+     "name": "VOL ",
+     "pos": 5,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "observed_in_patches": 20,
+   "observed_slots": [
+    "3",
+    "5",
+    "6"
+   ]
+  },
+  {
+   "name": "Mess EQ",
+   "module": "EQ",
+   "code": 16777276,
+   "nibble": 1,
+   "index": 60,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "80Hz",
+     "pos": 0,
+     "default": "0.0",
+     "min": -50.0,
+     "max": 50.0
+    },
+    {
+     "type": "knob",
+     "name": "240Hz",
+     "pos": 1,
+     "default": "0.0",
+     "min": -50.0,
+     "max": 50.0
+    },
+    {
+     "type": "knob",
+     "name": "750Hz",
+     "pos": 2,
+     "default": "0.0",
+     "min": -50.0,
+     "max": 50.0
+    },
+    {
+     "type": "knob",
+     "name": "2.2kHz",
+     "pos": 3,
+     "default": "0.0",
+     "min": -50.0,
+     "max": 50.0
+    },
+    {
+     "type": "knob",
+     "name": "6.6kHz",
+     "pos": 4,
+     "default": "0.0",
+     "min": -50.0,
+     "max": 50.0
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 30,
+   "observed_slots": [
+    "5"
+   ]
+  },
+  {
+   "name": "A-Chorus",
+   "module": "MOD",
+   "code": 67108864,
+   "nibble": 4,
+   "index": 0,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Depth",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Rate",
+     "pos": 1,
+     "default": "0.5",
+     "min": 0.1,
+     "max": 10.0,
+     "step": 0.1,
+     "bind": "Sync"
+    },
+    {
+     "type": "knob",
+     "name": "Tone",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "switch",
+     "name": "Sync",
+     "pos": 3,
+     "default": "0",
+     "options": [
+      "On",
+      "Off"
+     ],
+     "option_ids": [
+      1,
+      0
+     ]
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 62,
+   "observed_slots": [
+    "1",
+    "5",
+    "6"
+   ]
+  },
+  {
+   "name": "G-Chorus",
+   "module": "MOD",
+   "code": 67108865,
+   "nibble": 4,
+   "index": 1,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Depth",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Rate",
+     "pos": 1,
+     "default": "0.5",
+     "min": 0.1,
+     "max": 10.0,
+     "step": 0.1,
+     "bind": "Sync"
+    },
+    {
+     "type": "knob",
+     "name": "VOL",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "switch",
+     "name": "Sync",
+     "pos": 3,
+     "default": "0",
+     "options": [
+      "On",
+      "Off"
+     ],
+     "option_ids": [
+      1,
+      0
+     ]
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 6,
+   "observed_slots": [
+    "6",
+    "7"
+   ]
+  },
+  {
+   "name": "B-Chorus",
+   "module": "MOD",
+   "code": 67108872,
+   "nibble": 4,
+   "index": 8,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Depth",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Rate",
+     "pos": 1,
+     "default": "0.5",
+     "min": 0.1,
+     "max": 10.0,
+     "step": 0.1,
+     "bind": "Sync"
+    },
+    {
+     "type": "knob",
+     "name": "Level",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "switch",
+     "name": "Sync",
+     "pos": 3,
+     "default": "0",
+     "options": [
+      "On",
+      "Off"
+     ],
+     "option_ids": [
+      1,
+      0
+     ]
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 7,
+   "observed_slots": [
+    "6",
+    "7"
+   ]
+  },
+  {
+   "name": "Detune",
+   "module": "MOD",
+   "code": 16777257,
+   "nibble": 1,
+   "index": 41,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Detune",
+     "pos": 0,
+     "default": "-25",
+     "min": -50.0,
+     "max": 50.0
+    },
+    {
+     "type": "knob",
+     "name": "Wet",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Dry",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true
+  },
+  {
+   "name": "Flanger",
+   "module": "MOD",
+   "code": 67108881,
+   "nibble": 4,
+   "index": 17,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Depth",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Rate",
+     "pos": 1,
+     "default": "0.5",
+     "min": 0.1,
+     "max": 10.0,
+     "step": 0.1,
+     "bind": "Sync"
+    },
+    {
+     "type": "knob",
+     "name": "PreDly",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "FdBk",
+     "pos": 3,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "switch",
+     "name": "Sync",
+     "pos": 4,
+     "default": "0",
+     "options": [
+      "On",
+      "Off"
+     ],
+     "option_ids": [
+      1,
+      0
+     ]
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 2,
+   "observed_slots": [
+    "7"
+   ]
+  },
+  {
+   "name": "Vibrato",
+   "module": "MOD",
+   "code": 67108885,
+   "nibble": 4,
+   "index": 21,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Depth",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Rate",
+     "pos": 1,
+     "default": "0.5",
+     "min": 0.1,
+     "max": 10.0,
+     "step": 0.1,
+     "bind": "Sync"
+    },
+    {
+     "type": "switch",
+     "name": "Sync",
+     "pos": 2,
+     "default": "0",
+     "options": [
+      "On",
+      "Off"
+     ],
+     "option_ids": [
+      1,
+      0
+     ]
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 2,
+   "observed_slots": [
+    "6"
+   ]
+  },
+  {
+   "name": "Phaser",
+   "module": "MOD",
+   "code": 67108889,
+   "nibble": 4,
+   "index": 25,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Rate",
+     "pos": 0,
+     "default": "0.5",
+     "min": 0.1,
+     "max": 10.0,
+     "step": 0.1,
+     "bind": "Sync"
+    },
+    {
+     "type": "switch",
+     "name": "Sync",
+     "pos": 1,
+     "default": "0",
+     "options": [
+      "On",
+      "Off"
+     ],
+     "option_ids": [
+      1,
+      0
+     ]
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 4,
+   "observed_slots": [
+    "6"
+   ]
+  },
+  {
+   "name": "Vibe",
+   "module": "MOD",
+   "code": 67108895,
+   "nibble": 4,
+   "index": 31,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Depth",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Rate",
+     "pos": 1,
+     "default": "0.5",
+     "min": 0.1,
+     "max": 10.0,
+     "step": 0.1,
+     "bind": "Sync"
+    },
+    {
+     "type": "switch",
+     "name": "Sync",
+     "pos": 2,
+     "default": "0",
+     "options": [
+      "On",
+      "Off"
+     ],
+     "option_ids": [
+      1,
+      0
+     ]
+    }
+   ],
+   "observed_in_patches": 7,
+   "observed_slots": [
+    "6"
+   ]
+  },
+  {
+   "name": "Opto Trem",
+   "module": "MOD",
+   "code": 67108897,
+   "nibble": 4,
+   "index": 33,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Depth",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Rate",
+     "pos": 1,
+     "default": "0.5",
+     "min": 0.1,
+     "max": 10.0,
+     "step": 0.1,
+     "bind": "Sync"
+    },
+    {
+     "type": "switch",
+     "name": "Sync",
+     "pos": 2,
+     "default": "0",
+     "options": [
+      "On",
+      "Off"
+     ],
+     "option_ids": [
+      1,
+      0
+     ]
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 6,
+   "observed_slots": [
+    "6"
+   ]
+  },
+  {
+   "name": "Sine Trem",
+   "module": "MOD",
+   "code": 67108902,
+   "nibble": 4,
+   "index": 38,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Depth",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Rate",
+     "pos": 1,
+     "default": "0.5",
+     "min": 0.1,
+     "max": 10.0,
+     "step": 0.1,
+     "bind": "Sync"
+    },
+    {
+     "type": "knob",
+     "name": "VOL",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "switch",
+     "name": "Sync",
+     "pos": 3,
+     "default": "0",
+     "options": [
+      "On",
+      "Off"
+     ],
+     "option_ids": [
+      1,
+      0
+     ]
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 5,
+   "observed_slots": [
+    "6"
+   ]
+  },
+  {
+   "name": "Triangle Trem",
+   "module": "MOD",
+   "code": 67108903,
+   "nibble": 4,
+   "index": 39,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Depth",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Rate",
+     "pos": 1,
+     "default": "0.5",
+     "min": 0.1,
+     "max": 10.0,
+     "step": 0.1,
+     "bind": "Sync"
+    },
+    {
+     "type": "knob",
+     "name": "VOL",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "switch",
+     "name": "Sync",
+     "pos": 3,
+     "default": "0",
+     "options": [
+      "On",
+      "Off"
+     ],
+     "option_ids": [
+      1,
+      0
+     ]
+    }
+   ],
+   "fw_name_verified": true
+  },
+  {
+   "name": "Bias Trem",
+   "module": "MOD",
+   "code": 67108904,
+   "nibble": 4,
+   "index": 40,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Depth",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Rate",
+     "pos": 1,
+     "default": "0.5",
+     "min": 0.1,
+     "max": 10.0,
+     "step": 0.1,
+     "bind": "Sync"
+    },
+    {
+     "type": "knob",
+     "name": "VOL",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "switch",
+     "name": "Sync",
+     "pos": 3,
+     "default": "0",
+     "options": [
+      "On",
+      "Off"
+     ],
+     "option_ids": [
+      1,
+      0
+     ]
+    },
+    {
+     "type": "knob",
+     "name": "Bias",
+     "pos": 4,
+     "default": "0",
+     "min": 0.0,
+     "max": 99.0
+    }
+   ],
+   "fw_name_verified": true
+  },
+  {
+   "name": "Sweet",
+   "module": "DLY",
+   "code": 184549389,
+   "nibble": 11,
+   "index": 13,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Mix",
+     "pos": 0,
+     "default": "20.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Time",
+     "pos": 1,
+     "default": "500.0",
+     "min": 20.0,
+     "max": 4000.0,
+     "bind": "Sync"
+    },
+    {
+     "type": "knob",
+     "name": "FdBk",
+     "pos": 2,
+     "default": "30.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "switch",
+     "name": "Sync",
+     "pos": 3,
+     "default": "0",
+     "options": [
+      "On",
+      "Off"
+     ],
+     "option_ids": [
+      1,
+      0
+     ]
+    },
+    {
+     "type": "switch",
+     "name": "Tail",
+     "pos": 4,
+     "default": "0",
+     "options": [
+      "On",
+      "Off"
+     ],
+     "option_ids": [
+      1,
+      0
+     ]
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 54,
+   "observed_slots": [
+    "7"
+   ]
+  },
+  {
+   "name": "P-Echo",
+   "module": "DLY",
+   "code": 184549376,
+   "nibble": 11,
+   "index": 0,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Mix",
+     "pos": 0,
+     "default": "20.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Time",
+     "pos": 1,
+     "default": "500.0",
+     "min": 20.0,
+     "max": 4000.0,
+     "bind": "Sync"
+    },
+    {
+     "type": "knob",
+     "name": "FdBk",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "switch",
+     "name": "Sync",
+     "pos": 3,
+     "default": "0",
+     "options": [
+      "On",
+      "Off"
+     ],
+     "option_ids": [
+      1,
+      0
+     ]
+    },
+    {
+     "type": "switch",
+     "name": "Tail",
+     "pos": 4,
+     "default": "0",
+     "options": [
+      "On",
+      "Off"
+     ],
+     "option_ids": [
+      1,
+      0
+     ]
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 9,
+   "observed_slots": [
+    "7"
+   ]
+  },
+  {
+   "name": "M-Echo",
+   "module": "DLY",
+   "code": 184549378,
+   "nibble": 11,
+   "index": 2,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Mix",
+     "pos": 0,
+     "default": "20.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Time",
+     "pos": 1,
+     "default": "500.0",
+     "min": 20.0,
+     "max": 4000.0,
+     "bind": "Sync"
+    },
+    {
+     "type": "knob",
+     "name": "FdBk",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "switch",
+     "name": "Sync",
+     "pos": 3,
+     "default": "0",
+     "options": [
+      "On",
+      "Off"
+     ],
+     "option_ids": [
+      1,
+      0
+     ]
+    },
+    {
+     "type": "switch",
+     "name": "Tail",
+     "pos": 4,
+     "default": "0",
+     "options": [
+      "On",
+      "Off"
+     ],
+     "option_ids": [
+      1,
+      0
+     ]
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 7,
+   "observed_slots": [
+    "7"
+   ]
+  },
+  {
+   "name": "T-Echo",
+   "module": "DLY",
+   "code": 184549387,
+   "nibble": 11,
+   "index": 11,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Mix",
+     "pos": 0,
+     "default": "20.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Time",
+     "pos": 1,
+     "default": "500.0",
+     "min": 20.0,
+     "max": 4000.0,
+     "bind": "Sync"
+    },
+    {
+     "type": "knob",
+     "name": "FdBk",
+     "pos": 2,
+     "default": "30.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "switch",
+     "name": "Sync",
+     "pos": 3,
+     "default": "0",
+     "options": [
+      "On",
+      "Off"
+     ],
+     "option_ids": [
+      1,
+      0
+     ]
+    },
+    {
+     "type": "switch",
+     "name": "Tail",
+     "pos": 4,
+     "default": "0",
+     "options": [
+      "On",
+      "Off"
+     ],
+     "option_ids": [
+      1,
+      0
+     ]
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 7,
+   "observed_slots": [
+    "6",
+    "7"
+   ]
+  },
+  {
+   "name": "999 Echo",
+   "module": "DLY",
+   "code": 184549394,
+   "nibble": 11,
+   "index": 18,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Mix",
+     "pos": 0,
+     "default": "20.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Time",
+     "pos": 1,
+     "default": "500.0",
+     "min": 20.0,
+     "max": 4000.0,
+     "bind": "Sync"
+    },
+    {
+     "type": "knob",
+     "name": "FdBk",
+     "pos": 2,
+     "default": "30.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "switch",
+     "name": "Sync",
+     "pos": 3,
+     "default": "0",
+     "options": [
+      "On",
+      "Off"
+     ],
+     "option_ids": [
+      1,
+      0
+     ]
+    },
+    {
+     "type": "switch",
+     "name": "Tail",
+     "pos": 4,
+     "default": "0",
+     "options": [
+      "On",
+      "Off"
+     ],
+     "option_ids": [
+      1,
+      0
+     ]
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 8,
+   "observed_slots": [
+    "7"
+   ]
+  },
+  {
+   "name": "Rev Echo",
+   "module": "DLY",
+   "code": 184549395,
+   "nibble": 11,
+   "index": 19,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Mix",
+     "pos": 0,
+     "default": "20.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "FdBk",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Time",
+     "pos": 2,
+     "default": "500.0",
+     "min": 20.0,
+     "max": 4000.0,
+     "bind": "Sync"
+    },
+    {
+     "type": "switch",
+     "name": "Sync",
+     "pos": 3,
+     "default": "0",
+     "options": [
+      "On",
+      "Off"
+     ],
+     "option_ids": [
+      1,
+      0
+     ]
+    },
+    {
+     "type": "switch",
+     "name": "Tail",
+     "pos": 4,
+     "default": "0",
+     "options": [
+      "On",
+      "Off"
+     ],
+     "option_ids": [
+      1,
+      0
+     ]
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 3,
+   "observed_slots": [
+    "6",
+    "7"
+   ]
+  },
+  {
+   "name": "Slapbk",
+   "module": "DLY",
+   "code": 184549381,
+   "nibble": 11,
+   "index": 5,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Mix",
+     "pos": 0,
+     "default": "20.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Time",
+     "pos": 1,
+     "default": "150.0",
+     "min": 20.0,
+     "max": 300.0,
+     "bind": "Sync"
+    },
+    {
+     "type": "knob",
+     "name": "FdBk",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "switch",
+     "name": "Tail",
+     "pos": 3,
+     "default": "0",
+     "options": [
+      "On",
+      "Off"
+     ],
+     "option_ids": [
+      1,
+      0
+     ]
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 2,
+   "observed_slots": [
+    "7"
+   ]
+  },
+  {
+   "name": "Vin-Rack",
+   "module": "DLY",
+   "code": 184549396,
+   "nibble": 11,
+   "index": 20,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Mix",
+     "pos": 0,
+     "default": "20.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "FdBk",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Time",
+     "pos": 2,
+     "default": "500.0",
+     "min": 20.0,
+     "max": 4000.0,
+     "bind": "Sync"
+    },
+    {
+     "type": "knob",
+     "name": "Mod",
+     "pos": 3,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Tone",
+     "pos": 4,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "switch",
+     "name": "Sync",
+     "pos": 5,
+     "default": "0",
+     "options": [
+      "On",
+      "Off"
+     ],
+     "option_ids": [
+      1,
+      0
+     ]
+    },
+    {
+     "type": "switch",
+     "name": "Trail",
+     "pos": 6,
+     "default": "0",
+     "options": [
+      "On",
+      "Off"
+     ],
+     "option_ids": [
+      1,
+      0
+     ]
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 4,
+   "observed_slots": [
+    "7"
+   ]
+  },
+  {
+   "name": "Swp Echo",
+   "module": "DLY",
+   "code": 184549382,
+   "nibble": 11,
+   "index": 6,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Mix",
+     "pos": 0,
+     "default": "20.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Fdbk",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Time",
+     "pos": 2,
+     "default": "500.0",
+     "min": 20.0,
+     "max": 4000.0,
+     "bind": "T-Sync"
+    },
+    {
+     "type": "knob",
+     "name": "S-Depth",
+     "pos": 3,
+     "default": "50",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "S-Rate",
+     "pos": 4,
+     "default": "50",
+     "min": 0.0,
+     "max": 99.0,
+     "bind": "S-Sync"
+    },
+    {
+     "type": "switch",
+     "name": "S-Sync",
+     "pos": 5,
+     "default": "0",
+     "options": [
+      "On",
+      "Off"
+     ],
+     "option_ids": [
+      1,
+      0
+     ]
+    },
+    {
+     "type": "switch",
+     "name": "T-Sync",
+     "pos": 6,
+     "default": "0",
+     "options": [
+      "On",
+      "Off"
+     ],
+     "option_ids": [
+      1,
+      0
+     ]
+    },
+    {
+     "type": "switch",
+     "name": "Trail",
+     "pos": 7,
+     "default": "0",
+     "options": [
+      "On",
+      "Off"
+     ],
+     "option_ids": [
+      1,
+      0
+     ]
+    }
+   ],
+   "fw_name_verified": true
+  },
+  {
+   "name": "Ping Pong",
+   "module": "DLY",
+   "code": 184549380,
+   "nibble": 11,
+   "index": 4,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Mix",
+     "pos": 0,
+     "default": "20.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "FdBk",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Time",
+     "pos": 2,
+     "default": "500.0",
+     "min": 20.0,
+     "max": 4000.0,
+     "bind": "Sync"
+    },
+    {
+     "type": "switch",
+     "name": "Sync",
+     "pos": 3,
+     "default": "0",
+     "options": [
+      "On",
+      "Off"
+     ],
+     "option_ids": [
+      1,
+      0
+     ]
+    },
+    {
+     "type": "switch",
+     "name": "Trail",
+     "pos": 4,
+     "default": "0",
+     "options": [
+      "On",
+      "Off"
+     ],
+     "option_ids": [
+      1,
+      0
+     ]
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 3,
+   "observed_slots": [
+    "7"
+   ]
+  },
+  {
+   "name": "M-Echo2",
+   "module": "DLY",
+   "code": 184549388,
+   "nibble": 11,
+   "index": 12,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Mix",
+     "pos": 0,
+     "default": "20.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Time",
+     "pos": 1,
+     "default": "500.0",
+     "min": 20.0,
+     "max": 4000.0,
+     "bind": "Sync"
+    },
+    {
+     "type": "knob",
+     "name": "FdBk",
+     "pos": 2,
+     "default": "30.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Tone",
+     "pos": 3,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "switch",
+     "name": "Sync",
+     "pos": 4,
+     "default": "0",
+     "options": [
+      "On",
+      "Off"
+     ],
+     "option_ids": [
+      1,
+      0
+     ]
+    },
+    {
+     "type": "switch",
+     "name": "Trail",
+     "pos": 5,
+     "default": "0",
+     "options": [
+      "On",
+      "Off"
+     ],
+     "option_ids": [
+      1,
+      0
+     ]
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 4,
+   "observed_slots": [
+    "6",
+    "7"
+   ]
+  },
+  {
+   "name": "Dual Echo",
+   "module": "DLY",
+   "code": 184549379,
+   "nibble": 11,
+   "index": 3,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Mix A",
+     "pos": 0,
+     "default": "20.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "FdBk A",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Time A",
+     "pos": 2,
+     "default": "500.0",
+     "min": 20.0,
+     "max": 4000.0,
+     "bind": "Sync A"
+    },
+    {
+     "type": "knob",
+     "name": "Mix B",
+     "pos": 3,
+     "default": "20.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "FdBk B",
+     "pos": 4,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Time B",
+     "pos": 5,
+     "default": "400.0",
+     "min": 20.0,
+     "max": 4000.0,
+     "bind": "Sync B"
+    },
+    {
+     "type": "switch",
+     "name": "Sync A",
+     "pos": 6,
+     "default": "0",
+     "options": [
+      "On",
+      "Off"
+     ],
+     "option_ids": [
+      1,
+      0
+     ]
+    },
+    {
+     "type": "switch",
+     "name": "Sync B",
+     "pos": 7,
+     "default": "0",
+     "options": [
+      "On",
+      "Off"
+     ],
+     "option_ids": [
+      1,
+      0
+     ]
+    },
+    {
+     "type": "switch",
+     "name": "Trail",
+     "pos": 8,
+     "default": "0",
+     "options": [
+      "On",
+      "Off"
+     ],
+     "option_ids": [
+      1,
+      0
+     ]
+    }
+   ],
+   "fw_name_verified": true
+  },
+  {
+   "name": "Room",
+   "module": "RVB",
+   "code": 201326592,
+   "nibble": 12,
+   "index": 0,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Mix",
+     "pos": 0,
+     "default": "30.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "PreDly",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 100.0
+    },
+    {
+     "type": "knob",
+     "name": "Decay",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "switch",
+     "name": "Trail",
+     "pos": 3,
+     "default": "0",
+     "options": [
+      "On",
+      "Off"
+     ],
+     "option_ids": [
+      1,
+      0
+     ]
+    }
+   ],
+   "observed_in_patches": 16,
+   "observed_slots": [
+    "8"
+   ]
+  },
+  {
+   "name": "Hall",
+   "module": "RVB",
+   "code": 201326593,
+   "nibble": 12,
+   "index": 1,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Mix",
+     "pos": 0,
+     "default": "30.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "PreDly",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 100.0
+    },
+    {
+     "type": "knob",
+     "name": "Decay",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "switch",
+     "name": "Trail",
+     "pos": 3,
+     "default": "0",
+     "options": [
+      "On",
+      "Off"
+     ],
+     "option_ids": [
+      1,
+      0
+     ]
+    }
+   ],
+   "observed_in_patches": 40,
+   "observed_slots": [
+    "8"
+   ]
+  },
+  {
+   "name": "Church",
+   "module": "RVB",
+   "code": 201326594,
+   "nibble": 12,
+   "index": 2,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Mix",
+     "pos": 0,
+     "default": "30.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "PreDly",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 100.0
+    },
+    {
+     "type": "knob",
+     "name": "Decay",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "switch",
+     "name": "Trail",
+     "pos": 3,
+     "default": "0",
+     "options": [
+      "On",
+      "Off"
+     ],
+     "option_ids": [
+      1,
+      0
+     ]
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 5,
+   "observed_slots": [
+    "8"
+   ]
+  },
+  {
+   "name": "Plate",
+   "module": "RVB",
+   "code": 201326595,
+   "nibble": 12,
+   "index": 3,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Mix",
+     "pos": 0,
+     "default": "30.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Decay",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "H-Damp",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "switch",
+     "name": "Trail",
+     "pos": 3,
+     "default": "0",
+     "options": [
+      "On",
+      "Off"
+     ],
+     "option_ids": [
+      1,
+      0
+     ]
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 18,
+   "observed_slots": [
+    "8"
+   ]
+  },
+  {
+   "name": "Spring",
+   "module": "RVB",
+   "code": 201326596,
+   "nibble": 12,
+   "index": 4,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Mix",
+     "pos": 0,
+     "default": "30.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Tone",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Decay",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "switch",
+     "name": "Trail",
+     "pos": 3,
+     "default": "0",
+     "options": [
+      "On",
+      "Off"
+     ],
+     "option_ids": [
+      1,
+      0
+     ]
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 13,
+   "observed_slots": [
+    "8"
+   ]
+  },
+  {
+   "name": "N-Star",
+   "module": "RVB",
+   "code": 201326598,
+   "nibble": 12,
+   "index": 6,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Mix",
+     "pos": 0,
+     "default": "30.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Decay",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "switch",
+     "name": "Trail",
+     "pos": 2,
+     "default": "0",
+     "options": [
+      "On",
+      "Off"
+     ],
+     "option_ids": [
+      1,
+      0
+     ]
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 4,
+   "observed_slots": [
+    "8"
+   ]
+  },
+  {
+   "name": "Deep Sea",
+   "module": "RVB",
+   "code": 201326599,
+   "nibble": 12,
+   "index": 7,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Mix",
+     "pos": 0,
+     "default": "30.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Decay",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "switch",
+     "name": "Trail",
+     "pos": 2,
+     "default": "0",
+     "options": [
+      "On",
+      "Off"
+     ],
+     "option_ids": [
+      1,
+      0
+     ]
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 1,
+   "observed_slots": [
+    "8"
+   ]
+  },
+  {
+   "name": "Mod Verb",
+   "module": "RVB",
+   "code": 201326600,
+   "nibble": 12,
+   "index": 8,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Mix",
+     "pos": 0,
+     "default": "30.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "PreDly",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 100.0
+    },
+    {
+     "type": "knob",
+     "name": "Decay",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Lo End",
+     "pos": 3,
+     "default": "0.0",
+     "min": -50.0,
+     "max": 50.0
+    },
+    {
+     "type": "knob",
+     "name": "Hi End",
+     "pos": 4,
+     "default": "0.0",
+     "min": -50.0,
+     "max": 50.0
+    },
+    {
+     "type": "switch",
+     "name": "Trail",
+     "pos": 5,
+     "default": "0",
+     "options": [
+      "On",
+      "Off"
+     ],
+     "option_ids": [
+      1,
+      0
+     ]
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 3,
+   "observed_slots": [
+    "8"
+   ]
+  },
+  {
+   "name": "Clear Sky",
+   "module": "RVB",
+   "code": 201326597,
+   "nibble": 12,
+   "index": 5,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Mix",
+     "pos": 0,
+     "default": "30.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Decay",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "switch",
+     "name": "Trail",
+     "pos": 2,
+     "default": "0",
+     "options": [
+      "On",
+      "Off"
+     ],
+     "option_ids": [
+      1,
+      0
+     ]
+    }
+   ],
+   "fw_name_verified": true,
+   "observed_in_patches": 1,
+   "observed_slots": [
+    "8"
+   ]
+  },
+  {
+   "name": "Shimmer",
+   "module": "RVB",
+   "code": 201326601,
+   "nibble": 12,
+   "index": 9,
+   "controls": [
+    {
+     "type": "knob",
+     "name": "Mix",
+     "pos": 0,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "PreDly",
+     "pos": 1,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 100.0
+    },
+    {
+     "type": "knob",
+     "name": "Decay",
+     "pos": 2,
+     "default": "50.0",
+     "min": 0.0,
+     "max": 99.0
+    },
+    {
+     "type": "knob",
+     "name": "Lo End",
+     "pos": 3,
+     "default": "0.0",
+     "min": -50.0,
+     "max": 50.0
+    },
+    {
+     "type": "knob",
+     "name": "Hi End",
+     "pos": 4,
+     "default": "0.0",
+     "min": -50.0,
+     "max": 50.0
+    },
+    {
+     "type": "switch",
+     "name": "Trail",
+     "pos": 5,
+     "default": "0",
+     "options": [
+      "On",
+      "Off"
+     ],
+     "option_ids": [
+      1,
+      0
+     ]
+    }
+   ],
+   "fw_name_verified": true
+  }
+ ]
+}

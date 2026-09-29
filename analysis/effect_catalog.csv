@@ -1,0 +1,910 @@
+file,preset,slot_x,module,name,code,state,param0,mod_nib,mod_hex,idx
+patches\all.prst,It's GP100,8,RVB,Hall,201326593,1,24,12,0x0C,1
+patches\all.prst,It's GP100,7,DLY,P-Echo,184549376,1,10,11,0x0B,0
+patches\all.prst,It's GP100,6,MOD,A-Chorus,67108864,0,50,4,0x04,0
+patches\all.prst,It's GP100,5,EQ,Mess EQ,16777276,1,0,1,0x01,60
+patches\all.prst,It's GP100,4,CAB,U-ban 4x12,167772204,1,72,10,0x0A,44
+patches\all.prst,It's GP100,3,NR,Gate 2,29,1,21,0,0x00,29
+patches\all.prst,It's GP100,2,AMP,Bog RedM,117440622,1,50,7,0x07,110
+patches\all.prst,It's GP100,1,DST,Green OD,50331648,1,1,3,0x03,0
+patches\all.prst,It's GP100,0,PRE,C-Wah,83886088,0,50,5,0x05,8
+patches\all.prst,Blink OD,8,RVB,N-Star,201326598,1,23,12,0x0C,6
+patches\all.prst,Blink OD,7,DLY,T-Echo,184549387,1,10,11,0x0B,11
+patches\all.prst,Blink OD,6,MOD,A-Chorus,67108864,0,50,4,0x04,0
+patches\all.prst,Blink OD,5,EQ,EQ 1,16777269,0,0,1,0x01,53
+patches\all.prst,Blink OD,4,CAB,Bad-KT 1x12,167772167,1,76,10,0x0A,7
+patches\all.prst,Blink OD,3,NR,Gate 1,27,1,19,0,0x00,27
+patches\all.prst,Blink OD,2,AMP,Match OD,117440584,1,15,7,0x07,72
+patches\all.prst,Blink OD,1,DST,Green OD,50331648,0,19,3,0x03,0
+patches\all.prst,Blink OD,0,PRE,COMP,0,0,50,0,0x00,0
+patches\all.prst,Star Clean,8,RVB,Plate,201326595,1,20,12,0x0C,3
+patches\all.prst,Star Clean,7,DLY,M-Echo,184549378,1,12,11,0x0B,2
+patches\all.prst,Star Clean,6,MOD,A-Chorus,67108864,0,16,4,0x04,0
+patches\all.prst,Star Clean,5,EQ,EQ 1,16777269,1,11,1,0x01,53
+patches\all.prst,Star Clean,4,CAB,DarkTW 2x12,167772178,1,65,10,0x0A,18
+patches\all.prst,Star Clean,3,NR,Gate 1,27,0,15,0,0x00,27
+patches\all.prst,Star Clean,2,AMP,L-Star CL,117440537,1,35,7,0x07,25
+patches\all.prst,Star Clean,1,DST,Green OD,50331648,0,0,3,0x03,0
+patches\all.prst,Star Clean,0,PRE,Boost,26,1,35,0,0x00,26
+patches\all.prst,Best Solo,8,RVB,Plate,201326595,1,30,12,0x0C,3
+patches\all.prst,Best Solo,7,DLY,Vin-Rack,184549396,1,15,11,0x0B,20
+patches\all.prst,Best Solo,6,MOD,A-Chorus,67108864,0,50,4,0x04,0
+patches\all.prst,Best Solo,5,EQ,Mess EQ,16777276,1,0,1,0x01,60
+patches\all.prst,Best Solo,4,CAB,UK-GN 4x12,167772194,1,70,10,0x0A,34
+patches\all.prst,Best Solo,3,NR,Gate 2,29,1,20,0,0x00,29
+patches\all.prst,Best Solo,2,AMP,Dizz VH,117440613,1,40,7,0x07,101
+patches\all.prst,Best Solo,1,DST,Super OD,50331654,1,0,3,0x03,6
+patches\all.prst,Best Solo,0,PRE,V-Wah,83886081,0,50,5,0x05,1
+patches\all.prst,Heavy Metal,8,RVB,Room,201326592,1,20,12,0x0C,0
+patches\all.prst,Heavy Metal,7,DLY,Sweet,184549389,0,50,11,0x0B,13
+patches\all.prst,Heavy Metal,6,MOD,A-Chorus,67108864,0,50,4,0x04,0
+patches\all.prst,Heavy Metal,5,EQ,Mess EQ,16777276,1,0,1,0x01,60
+patches\all.prst,Heavy Metal,4,CAB,EV51 4x12,167772192,1,85,10,0x0A,32
+patches\all.prst,Heavy Metal,3,NR,Gate 2,29,1,20,0,0x00,29
+patches\all.prst,Heavy Metal,2,AMP,EV 51,117440602,1,50,7,0x07,90
+patches\all.prst,Heavy Metal,1,DST,Green OD,50331648,0,0,3,0x03,0
+patches\all.prst,Heavy Metal,0,PRE,Boost,26,1,10,0,0x00,26
+patches\all.prst,Warm Clean,8,RVB,Church,201326594,1,25,12,0x0C,2
+patches\all.prst,Warm Clean,7,DLY,Sweet,184549389,0,50,11,0x0B,13
+patches\all.prst,Warm Clean,6,MOD,A-Chorus,67108864,0,68,4,0x04,0
+patches\all.prst,Warm Clean,5,EQ,Mess EQ,16777276,1,-12,1,0x01,60
+patches\all.prst,Warm Clean,4,CAB,L-Star 2x12,167772185,1,56,10,0x0A,25
+patches\all.prst,Warm Clean,3,NR,Gate 1,27,1,10,0,0x00,27
+patches\all.prst,Warm Clean,2,AMP,Tweedy,117440513,1,40,7,0x07,1
+patches\all.prst,Warm Clean,0,DST,Green OD,50331648,0,50,3,0x03,0
+patches\all.prst,Warm Clean,1,PRE,Boost,26,1,40,0,0x00,26
+patches\all.prst,Slick Rekto,8,RVB,Hall,201326593,1,30,12,0x0C,1
+patches\all.prst,Slick Rekto,6,DLY,T-Echo,184549387,1,15,11,0x0B,11
+patches\all.prst,Slick Rekto,7,MOD,B-Chorus,67108872,0,59,4,0x04,8
+patches\all.prst,Slick Rekto,5,EQ,EQ 1,16777269,1,23,1,0x01,53
+patches\all.prst,Slick Rekto,4,CAB,Mess-D 4x12,167772196,1,99,10,0x0A,36
+patches\all.prst,Slick Rekto,3,NR,Gate 1,27,1,20,0,0x00,27
+patches\all.prst,Slick Rekto,2,AMP,Mess DualM,117440617,1,30,7,0x07,105
+patches\all.prst,Slick Rekto,1,DST,Green OD,50331648,1,0,3,0x03,0
+patches\all.prst,Slick Rekto,0,PRE,C-Wah,83886088,0,50,5,0x05,8
+patches\all.prst,Modern UK,8,RVB,Room,201326592,0,20,12,0x0C,0
+patches\all.prst,Modern UK,7,DLY,Sweet,184549389,0,50,11,0x0B,13
+patches\all.prst,Modern UK,6,MOD,A-Chorus,67108864,0,50,4,0x04,0
+patches\all.prst,Modern UK,5,EQ,EQ 1,16777269,0,0,1,0x01,53
+patches\all.prst,Modern UK,4,CAB,UK-MD 4x12,167772193,1,56,10,0x0A,33
+patches\all.prst,Modern UK,3,NR,Gate 1,27,1,23,0,0x00,27
+patches\all.prst,Modern UK,2,AMP,Flagman,117440576,1,50,7,0x07,64
+patches\all.prst,Modern UK,1,DST,Yellow OD,50331650,0,30,3,0x03,2
+patches\all.prst,Modern UK,0,PRE,Boost,26,1,33,0,0x00,26
+patches\all.prst,Glassy SV,8,RVB,Hall,201326593,1,16,12,0x0C,1
+patches\all.prst,Glassy SV,7,DLY,T-Echo,184549387,1,16,11,0x0B,11
+patches\all.prst,Glassy SV,6,MOD,Phaser,67108889,0,10,4,0x04,25
+patches\all.prst,Glassy SV,5,EQ,EQ 1,16777269,0,0,1,0x01,53
+patches\all.prst,Glassy SV,4,CAB,L-Star 2x12,167772185,1,99,10,0x0A,25
+patches\all.prst,Glassy SV,3,NR,Gate 1,27,0,50,0,0x00,27
+patches\all.prst,Glassy SV,2,AMP,BogSV CL,117440538,1,45,7,0x07,26
+patches\all.prst,Glassy SV,1,DST,Green OD,50331648,0,50,3,0x03,0
+patches\all.prst,Glassy SV,0,PRE,COMP,0,0,0,0,0x00,0
+patches\all.prst,Tender Solo,8,RVB,Spring,201326596,1,32,12,0x0C,4
+patches\all.prst,Tender Solo,7,DLY,M-Echo,184549378,1,18,11,0x0B,2
+patches\all.prst,Tender Solo,6,MOD,A-Chorus,67108864,0,50,4,0x04,0
+patches\all.prst,Tender Solo,5,EQ,Mess EQ,16777276,1,0,1,0x01,60
+patches\all.prst,Tender Solo,4,CAB,L-Star 2x12,167772185,1,59,10,0x0A,25
+patches\all.prst,Tender Solo,3,NR,Gate 1,27,1,20,0,0x00,27
+patches\all.prst,Tender Solo,2,AMP,Z38 OD,117440585,1,20,7,0x07,73
+patches\all.prst,Tender Solo,1,DST,Yellow OD,50331650,1,50,3,0x03,2
+patches\all.prst,Tender Solo,0,PRE,V-Wah,83886081,0,50,5,0x05,1
+patches\all.prst,Fat Plexi,8,RVB,Plate,201326595,1,19,12,0x0C,3
+patches\all.prst,Fat Plexi,7,DLY,M-Echo,184549378,0,13,11,0x0B,2
+patches\all.prst,Fat Plexi,6,MOD,A-Chorus,67108864,0,50,4,0x04,0
+patches\all.prst,Fat Plexi,5,EQ,EQ 1,16777269,1,0,1,0x01,53
+patches\all.prst,Fat Plexi,4,CAB,UK-75 4x12,167772208,1,50,10,0x0A,48
+patches\all.prst,Fat Plexi,3,NR,Gate 2,29,1,20,0,0x00,29
+patches\all.prst,Fat Plexi,2,AMP,UK 50JP,117440559,1,40,7,0x07,47
+patches\all.prst,Fat Plexi,1,DST,Green OD,50331648,0,18,3,0x03,0
+patches\all.prst,Fat Plexi,0,PRE,V-Wah,83886081,0,50,5,0x05,1
+patches\all.prst,Tight Clean,8,RVB,Spring,201326596,1,40,12,0x0C,4
+patches\all.prst,Tight Clean,7,DLY,Sweet,184549389,0,50,11,0x0B,13
+patches\all.prst,Tight Clean,6,MOD,A-Chorus,67108864,0,50,4,0x04,0
+patches\all.prst,Tight Clean,5,EQ,EQ 1,16777269,1,0,1,0x01,53
+patches\all.prst,Tight Clean,3,CAB,DarkTW 2x12,167772178,1,70,10,0x0A,18
+patches\all.prst,Tight Clean,4,NR,Gate 2,29,1,12,0,0x00,29
+patches\all.prst,Tight Clean,2,AMP,Dark Twin,117440516,1,40,7,0x07,4
+patches\all.prst,Tight Clean,1,DST,Green OD,50331648,0,50,3,0x03,0
+patches\all.prst,Tight Clean,0,PRE,Boost,26,1,40,0,0x00,26
+patches\all.prst,Golden Head,8,RVB,Plate,201326595,1,37,12,0x0C,3
+patches\all.prst,Golden Head,7,DLY,T-Echo,184549387,1,12,11,0x0B,11
+patches\all.prst,Golden Head,6,MOD,B-Chorus,67108872,1,4,4,0x04,8
+patches\all.prst,Golden Head,5,EQ,Mess EQ,16777276,1,0,1,0x01,60
+patches\all.prst,Golden Head,4,CAB,UK-GN 4x12,167772194,1,50,10,0x0A,34
+patches\all.prst,Golden Head,3,NR,Gate 1,27,1,25,0,0x00,27
+patches\all.prst,Golden Head,2,AMP,UK 800,117440565,1,65,7,0x07,53
+patches\all.prst,Golden Head,1,DST,Green OD,50331648,1,5,3,0x03,0
+patches\all.prst,Golden Head,0,PRE,C-Wah,83886088,0,50,5,0x05,8
+patches\all.prst,80's Riff,8,RVB,Room,201326592,1,27,12,0x0C,0
+patches\all.prst,80's Riff,7,DLY,Sweet,184549389,0,50,11,0x0B,13
+patches\all.prst,80's Riff,6,MOD,A-Chorus,67108864,0,50,4,0x04,0
+patches\all.prst,80's Riff,5,EQ,Mess EQ,16777276,1,0,1,0x01,60
+patches\all.prst,80's Riff,4,CAB,UK-GN 4x12,167772194,1,50,10,0x0A,34
+patches\all.prst,80's Riff,3,NR,Gate 1,27,1,25,0,0x00,27
+patches\all.prst,80's Riff,2,AMP,UK 800,117440565,1,40,7,0x07,53
+patches\all.prst,80's Riff,1,DST,Green OD,50331648,1,0,3,0x03,0
+patches\all.prst,80's Riff,0,PRE,C-Wah,83886088,0,50,5,0x05,8
+patches\all.prst,800 Clean,8,RVB,Hall,201326593,1,33,12,0x0C,1
+patches\all.prst,800 Clean,7,DLY,P-Echo,184549376,1,18,11,0x0B,0
+patches\all.prst,800 Clean,6,MOD,A-Chorus,67108864,1,45,4,0x04,0
+patches\all.prst,800 Clean,5,EQ,Mess EQ,16777276,1,0,1,0x01,60
+patches\all.prst,800 Clean,4,CAB,UK-GN 4x12,167772194,1,99,10,0x0A,34
+patches\all.prst,800 Clean,3,NR,Gate 1,27,0,50,0,0x00,27
+patches\all.prst,800 Clean,2,AMP,UK 800,117440565,1,10,7,0x07,53
+patches\all.prst,800 Clean,1,DST,Green OD,50331648,0,1,3,0x03,0
+patches\all.prst,800 Clean,0,PRE,COMP,0,1,20,0,0x00,0
+patches\all.prst,MatchFusion,8,RVB,Hall,201326593,1,30,12,0x0C,1
+patches\all.prst,MatchFusion,7,DLY,Sweet,184549389,1,18,11,0x0B,13
+patches\all.prst,MatchFusion,6,MOD,A-Chorus,67108864,0,50,4,0x04,0
+patches\all.prst,MatchFusion,5,EQ,Mess EQ,16777276,1,0,1,0x01,60
+patches\all.prst,MatchFusion,4,CAB,2Rick 2x12,167772188,1,49,10,0x0A,28
+patches\all.prst,MatchFusion,3,NR,Gate 1,27,1,23,0,0x00,27
+patches\all.prst,MatchFusion,2,AMP,Match OD,117440584,1,25,7,0x07,72
+patches\all.prst,MatchFusion,1,DST,Green OD,50331648,1,7,3,0x03,0
+patches\all.prst,MatchFusion,0,PRE,C-Wah,83886088,0,50,5,0x05,8
+patches\all.prst,Robust OD,8,RVB,Spring,201326596,1,36,12,0x0C,4
+patches\all.prst,Robust OD,7,DLY,Sweet,184549389,1,16,11,0x0B,13
+patches\all.prst,Robust OD,6,MOD,A-Chorus,67108864,0,50,4,0x04,0
+patches\all.prst,Robust OD,5,EQ,Mess EQ,16777276,1,20,1,0x01,60
+patches\all.prst,Robust OD,4,CAB,Foxy 1x12,167772168,1,50,10,0x0A,8
+patches\all.prst,Robust OD,3,NR,Gate 1,27,1,20,0,0x00,27
+patches\all.prst,Robust OD,2,AMP,Tweedy,117440513,1,99,7,0x07,1
+patches\all.prst,Robust OD,1,DST,Flex OD,50331711,0,30,3,0x03,63
+patches\all.prst,Robust OD,0,PRE,V-Wah,83886081,0,50,5,0x05,1
+patches\all.prst,Basic Jazz,8,RVB,Room,201326592,1,36,12,0x0C,0
+patches\all.prst,Basic Jazz,7,DLY,Sweet,184549389,0,50,11,0x0B,13
+patches\all.prst,Basic Jazz,6,MOD,A-Chorus,67108864,0,79,4,0x04,0
+patches\all.prst,Basic Jazz,5,EQ,EQ 1,16777269,0,0,1,0x01,53
+patches\all.prst,Basic Jazz,4,CAB,2Rick 2x12,167772188,1,49,10,0x0A,28
+patches\all.prst,Basic Jazz,3,NR,Gate 1,27,0,50,0,0x00,27
+patches\all.prst,Basic Jazz,2,AMP,Dark Twin,117440516,1,20,7,0x07,4
+patches\all.prst,Basic Jazz,1,DST,Green OD,50331648,0,2,3,0x03,0
+patches\all.prst,Basic Jazz,0,PRE,Boost,26,1,40,0,0x00,26
+patches\all.prst,Foxy Blues,8,RVB,Plate,201326595,1,24,12,0x0C,3
+patches\all.prst,Foxy Blues,7,DLY,Sweet,184549389,1,16,11,0x0B,13
+patches\all.prst,Foxy Blues,6,MOD,A-Chorus,67108864,0,50,4,0x04,0
+patches\all.prst,Foxy Blues,5,EQ,EQ 1,16777269,0,0,1,0x01,53
+patches\all.prst,Foxy Blues,4,CAB,Studio 1x12,167772172,1,50,10,0x0A,12
+patches\all.prst,Foxy Blues,3,NR,Gate 2,29,1,19,0,0x00,29
+patches\all.prst,Foxy Blues,2,AMP,Foxy 30TB,117440551,1,40,7,0x07,39
+patches\all.prst,Foxy Blues,1,DST,Yellow OD,50331650,0,72,3,0x03,2
+patches\all.prst,Foxy Blues,0,PRE,V-Wah,83886081,0,50,5,0x05,1
+patches\all.prst,Twin Drive,8,RVB,Spring,201326596,1,25,12,0x0C,4
+patches\all.prst,Twin Drive,7,DLY,Slapbk,184549381,1,11,11,0x0B,5
+patches\all.prst,Twin Drive,6,MOD,A-Chorus,67108864,0,50,4,0x04,0
+patches\all.prst,Twin Drive,5,EQ,Mess EQ,16777276,1,5,1,0x01,60
+patches\all.prst,Twin Drive,4,CAB,DarkTW 2x12,167772178,1,65,10,0x0A,18
+patches\all.prst,Twin Drive,3,NR,Gate 2,29,1,20,0,0x00,29
+patches\all.prst,Twin Drive,2,AMP,Dark Twin,117440516,1,50,7,0x07,4
+patches\all.prst,Twin Drive,1,DST,Yellow OD,50331650,1,24,3,0x03,2
+patches\all.prst,Twin Drive,0,PRE,C-Wah,83886088,0,50,5,0x05,8
+patches\all.prst,Dirty Funk,8,RVB,Spring,201326596,1,27,12,0x0C,4
+patches\all.prst,Dirty Funk,7,DLY,Sweet,184549389,0,19,11,0x0B,13
+patches\all.prst,Dirty Funk,6,MOD,A-Chorus,67108864,0,50,4,0x04,0
+patches\all.prst,Dirty Funk,5,EQ,EQ 1,16777269,0,0,1,0x01,53
+patches\all.prst,Dirty Funk,4,CAB,Regular 1x12,167772173,1,83,10,0x0A,13
+patches\all.prst,Dirty Funk,3,NR,Gate 1,27,1,20,0,0x00,27
+patches\all.prst,Dirty Funk,2,AMP,Bellman 59N,117440515,1,65,7,0x07,3
+patches\all.prst,Dirty Funk,1,DST,Blues OD,50331657,0,11,3,0x03,9
+patches\all.prst,Dirty Funk,0,PRE,V-Wah,83886081,0,50,5,0x05,1
+patches\all.prst,Psychofuzz,8,RVB,Room,201326592,1,20,12,0x0C,0
+patches\all.prst,Psychofuzz,7,DLY,Sweet,184549389,1,25,11,0x0B,13
+patches\all.prst,Psychofuzz,6,MOD,Vibe,67108895,0,49,4,0x04,31
+patches\all.prst,Psychofuzz,5,EQ,Mess EQ,16777276,1,-15,1,0x01,60
+patches\all.prst,Psychofuzz,4,CAB,Juice 4x12,167772201,1,67,10,0x0A,41
+patches\all.prst,Psychofuzz,3,NR,Gate 1,27,1,23,0,0x00,27
+patches\all.prst,Psychofuzz,2,AMP,Juice R100,117440595,1,25,7,0x07,83
+patches\all.prst,Psychofuzz,1,DST,Red Haze,50331684,1,50,3,0x03,36
+patches\all.prst,Psychofuzz,0,PRE,V-Wah,83886081,0,50,5,0x05,1
+patches\all.prst,Trem OD,8,RVB,Plate,201326595,1,50,12,0x0C,3
+patches\all.prst,Trem OD,7,DLY,Vin-Rack,184549396,1,18,11,0x0B,20
+patches\all.prst,Trem OD,6,MOD,Opto Trem,67108897,1,65,4,0x04,33
+patches\all.prst,Trem OD,5,EQ,Mess EQ,16777276,1,0,1,0x01,60
+patches\all.prst,Trem OD,4,CAB,UK-75 4x12,167772208,1,50,10,0x0A,48
+patches\all.prst,Trem OD,3,NR,Gate 1,27,1,25,0,0x00,27
+patches\all.prst,Trem OD,2,AMP,UK 50JP,117440559,1,49,7,0x07,47
+patches\all.prst,Trem OD,1,DST,Green OD,50331648,0,50,3,0x03,0
+patches\all.prst,Trem OD,0,PRE,COMP,0,0,50,0,0x00,0
+patches\all.prst,Alt. Clean,8,RVB,Plate,201326595,1,16,12,0x0C,3
+patches\all.prst,Alt. Clean,7,DLY,M-Echo,184549378,1,10,11,0x0B,2
+patches\all.prst,Alt. Clean,6,MOD,Vibe,67108895,0,49,4,0x04,31
+patches\all.prst,Alt. Clean,5,EQ,Mess EQ,16777276,0,0,1,0x01,60
+patches\all.prst,Alt. Clean,4,CAB,Dark 1x12,167772164,1,83,10,0x0A,4
+patches\all.prst,Alt. Clean,3,NR,Gate 1,27,0,50,0,0x00,27
+patches\all.prst,Alt. Clean,0,AMP,J-120 CL,117440532,1,51,7,0x07,20
+patches\all.prst,Alt. Clean,2,DST,Green OD,50331648,0,50,3,0x03,0
+patches\all.prst,Alt. Clean,1,PRE,Saturate,16777267,1,50,1,0x01,51
+patches\all.prst,Mist,8,RVB,Church,201326594,1,35,12,0x0C,2
+patches\all.prst,Mist,7,DLY,P-Echo,184549376,1,15,11,0x0B,0
+patches\all.prst,Mist,6,MOD,A-Chorus,67108864,1,59,4,0x04,0
+patches\all.prst,Mist,5,EQ,Mess EQ,16777276,1,20,1,0x01,60
+patches\all.prst,Mist,4,CAB,Foxy 1x12,167772168,1,50,10,0x0A,8
+patches\all.prst,Mist,3,NR,Gate 2,29,1,25,0,0x00,29
+patches\all.prst,Mist,2,AMP,Tweedy,117440513,1,50,7,0x07,1
+patches\all.prst,Mist,1,DST,SM Dist,50331690,1,30,3,0x03,42
+patches\all.prst,Mist,0,PRE,COMP,0,0,50,0,0x00,0
+patches\all.prst,Dreamer,8,RVB,Church,201326594,1,27,12,0x0C,2
+patches\all.prst,Dreamer,7,DLY,Ping Pong,184549380,1,25,11,0x0B,4
+patches\all.prst,Dreamer,6,MOD,Vibe,67108895,1,9,4,0x04,31
+patches\all.prst,Dreamer,5,EQ,Mess EQ,16777276,1,-28,1,0x01,60
+patches\all.prst,Dreamer,4,CAB,DarkTW 2x12,167772178,1,73,10,0x0A,18
+patches\all.prst,Dreamer,3,NR,Gate 1,27,0,50,0,0x00,27
+patches\all.prst,Dreamer,2,AMP,Knights CL,117440543,1,45,7,0x07,31
+patches\all.prst,Dreamer,1,DST,Lazaro,50331682,1,25,3,0x03,34
+patches\all.prst,Dreamer,0,PRE,COMP,0,0,50,0,0x00,0
+patches\all.prst,Freezes,8,RVB,Plate,201326595,1,33,12,0x0C,3
+patches\all.prst,Freezes,6,DLY,Rev Echo,184549395,1,20,11,0x0B,19
+patches\all.prst,Freezes,7,MOD,G-Chorus,67108865,1,99,4,0x04,1
+patches\all.prst,Freezes,5,EQ,EQ 2,16777274,0,0,1,0x01,58
+patches\all.prst,Freezes,4,CAB,Regular 1x12,167772173,1,88,10,0x0A,13
+patches\all.prst,Freezes,3,NR,Gate 1,27,0,50,0,0x00,27
+patches\all.prst,Freezes,2,AMP,Bad-KT CL,117440546,1,45,7,0x07,34
+patches\all.prst,Freezes,1,DST,Green OD,50331648,0,10,3,0x03,0
+patches\all.prst,Freezes,0,PRE,COMP,0,0,50,0,0x00,0
+patches\all.prst,Octave Fuzz,8,RVB,Hall,201326593,1,26,12,0x0C,1
+patches\all.prst,Octave Fuzz,7,DLY,Sweet,184549389,0,50,11,0x0B,13
+patches\all.prst,Octave Fuzz,6,MOD,A-Chorus,67108864,0,50,4,0x04,0
+patches\all.prst,Octave Fuzz,5,EQ,Mess EQ,16777276,1,-27,1,0x01,60
+patches\all.prst,Octave Fuzz,4,CAB,UK-LD 4x12,167772191,1,49,10,0x0A,31
+patches\all.prst,Octave Fuzz,3,NR,Gate 1,27,1,30,0,0x00,27
+patches\all.prst,Octave Fuzz,2,AMP,Z38 OD,117440585,1,20,7,0x07,73
+patches\all.prst,Octave Fuzz,1,DST,Lazaro,50331682,1,40,3,0x03,34
+patches\all.prst,Octave Fuzz,0,PRE,OCTA,16777249,1,8,1,0x01,33
+patches\all.prst,UK Fuzz,8,RVB,Spring,201326596,1,20,12,0x0C,4
+patches\all.prst,UK Fuzz,7,DLY,T-Echo,184549387,1,12,11,0x0B,11
+patches\all.prst,UK Fuzz,6,MOD,A-Chorus,67108864,0,50,4,0x04,0
+patches\all.prst,UK Fuzz,5,EQ,EQ 1,16777269,1,-5,1,0x01,53
+patches\all.prst,UK Fuzz,4,CAB,UK-75 4x12,167772208,1,75,10,0x0A,48
+patches\all.prst,UK Fuzz,3,NR,Gate 1,27,1,25,0,0x00,27
+patches\all.prst,UK Fuzz,2,AMP,Match CL,117440533,1,50,7,0x07,21
+patches\all.prst,UK Fuzz,1,DST,Red Haze,50331684,1,99,3,0x03,36
+patches\all.prst,UK Fuzz,0,PRE,C-Wah,83886088,0,50,5,0x05,8
+patches\all.prst,Knightvibe,8,RVB,Hall,201326593,1,17,12,0x0C,1
+patches\all.prst,Knightvibe,7,DLY,Sweet,184549389,0,13,11,0x0B,13
+patches\all.prst,Knightvibe,6,MOD,Vibe,67108895,1,40,4,0x04,31
+patches\all.prst,Knightvibe,5,EQ,Mess EQ,16777276,1,-22,1,0x01,60
+patches\all.prst,Knightvibe,4,CAB,Regular 1x12,167772173,1,85,10,0x0A,13
+patches\all.prst,Knightvibe,3,NR,Gate 1,27,1,15,0,0x00,27
+patches\all.prst,Knightvibe,2,AMP,Knights OD,117440636,1,40,7,0x07,124
+patches\all.prst,Knightvibe,1,DST,Green OD,50331648,0,50,3,0x03,0
+patches\all.prst,Knightvibe,0,PRE,COMP4,1,1,11,0,0x00,1
+patches\all.prst,Full Chorus,8,RVB,Plate,201326595,1,35,12,0x0C,3
+patches\all.prst,Full Chorus,7,DLY,Sweet,184549389,0,50,11,0x0B,13
+patches\all.prst,Full Chorus,5,MOD,A-Chorus,67108864,1,99,4,0x04,0
+patches\all.prst,Full Chorus,6,EQ,EQ 1,16777269,0,0,1,0x01,53
+patches\all.prst,Full Chorus,4,CAB,UK-GN 2x12,167772179,1,50,10,0x0A,19
+patches\all.prst,Full Chorus,3,NR,Gate 1,27,1,20,0,0x00,27
+patches\all.prst,Full Chorus,2,AMP,Dark Twin,117440516,1,35,7,0x07,4
+patches\all.prst,Full Chorus,1,DST,Green OD,50331648,0,50,3,0x03,0
+patches\all.prst,Full Chorus,0,PRE,COMP,0,1,20,0,0x00,0
+patches\all.prst,Lone Star,8,RVB,Mod Verb,201326600,1,30,12,0x0C,8
+patches\all.prst,Lone Star,7,DLY,M-Echo2,184549388,1,15,11,0x0B,12
+patches\all.prst,Lone Star,6,MOD,Vibrato,67108885,1,89,4,0x04,21
+patches\all.prst,Lone Star,5,EQ,Mess EQ,16777276,1,0,1,0x01,60
+patches\all.prst,Lone Star,4,CAB,U-ban 4x12,167772204,1,99,10,0x0A,44
+patches\all.prst,Lone Star,3,NR,Gate 1,27,1,30,0,0x00,27
+patches\all.prst,Lone Star,1,AMP,L-Star CL,117440537,1,30,7,0x07,25
+patches\all.prst,Lone Star,0,DST,Lazaro,50331682,0,80,3,0x03,34
+patches\all.prst,Lone Star,2,PRE,Boost,26,1,50,0,0x00,26
+patches\all.prst,DivBellLead,8,RVB,Hall,201326593,1,24,12,0x0C,1
+patches\all.prst,DivBellLead,7,DLY,M-Echo,184549378,1,20,11,0x0B,2
+patches\all.prst,DivBellLead,6,MOD,A-Chorus,67108864,0,50,4,0x04,0
+patches\all.prst,DivBellLead,5,EQ,Mess EQ,16777276,1,-50,1,0x01,60
+patches\all.prst,DivBellLead,4,CAB,H-Way 4x12,167772202,1,54,10,0x0A,42
+patches\all.prst,DivBellLead,3,NR,Gate 1,27,1,25,0,0x00,27
+patches\all.prst,DivBellLead,2,AMP,Bellman 59N,117440515,1,40,7,0x07,3
+patches\all.prst,DivBellLead,1,DST,SM Dist,50331690,1,50,3,0x03,42
+patches\all.prst,DivBellLead,0,PRE,COMP,0,0,12,0,0x00,0
+patches\all.prst,ShineOnYou,8,RVB,Hall,201326593,1,20,12,0x0C,1
+patches\all.prst,ShineOnYou,7,DLY,P-Echo,184549376,0,8,11,0x0B,0
+patches\all.prst,ShineOnYou,6,MOD,A-Chorus,67108864,0,50,4,0x04,0
+patches\all.prst,ShineOnYou,5,EQ,Mess EQ,16777276,1,-40,1,0x01,60
+patches\all.prst,ShineOnYou,4,CAB,H-Way 4x12,167772202,1,70,10,0x0A,42
+patches\all.prst,ShineOnYou,3,NR,Gate 1,27,0,50,0,0x00,27
+patches\all.prst,ShineOnYou,2,AMP,UK 50JP,117440559,1,30,7,0x07,47
+patches\all.prst,ShineOnYou,1,DST,Yellow OD,50331650,0,49,3,0x03,2
+patches\all.prst,ShineOnYou,0,PRE,Boost,26,1,32,0,0x00,26
+patches\all.prst,In The Air,8,RVB,Hall,201326593,1,20,12,0x0C,1
+patches\all.prst,In The Air,7,DLY,T-Echo,184549387,1,15,11,0x0B,11
+patches\all.prst,In The Air,6,MOD,Phaser,67108889,1,0.8,4,0x04,25
+patches\all.prst,In The Air,5,EQ,Mess EQ,16777276,1,0,1,0x01,60
+patches\all.prst,In The Air,4,CAB,H-Way 4x12,167772202,1,64,10,0x0A,42
+patches\all.prst,In The Air,3,NR,Gate 1,27,1,17,0,0x00,27
+patches\all.prst,In The Air,2,AMP,Match CL,117440533,1,50,7,0x07,21
+patches\all.prst,In The Air,1,DST,Green OD,50331648,0,1,3,0x03,0
+patches\all.prst,In The Air,0,PRE,V-Wah,83886081,0,50,5,0x05,1
+patches\all.prst,BACKCAB,8,RVB,Deep Sea,201326599,1,31,12,0x0C,7
+patches\all.prst,BACKCAB,7,DLY,Rev Echo,184549395,1,15,11,0x0B,19
+patches\all.prst,BACKCAB,6,MOD,A-Chorus,67108864,1,87,4,0x04,0
+patches\all.prst,BACKCAB,5,EQ,Mess EQ,16777276,1,0,1,0x01,60
+patches\all.prst,BACKCAB,4,CAB,2Rick 2x12,167772188,1,96,10,0x0A,28
+patches\all.prst,BACKCAB,3,NR,Gate 1,27,0,20,0,0x00,27
+patches\all.prst,BACKCAB,2,AMP,Solo100 OD,117440583,1,31,7,0x07,71
+patches\all.prst,BACKCAB,1,DST,Yellow OD,50331650,0,44,3,0x03,2
+patches\all.prst,BACKCAB,0,PRE,V-Wah,83886081,0,50,5,0x05,1
+patches\all.prst,Tick Tock,8,RVB,N-Star,201326598,1,30,12,0x0C,6
+patches\all.prst,Tick Tock,7,DLY,Ping Pong,184549380,1,40,11,0x0B,4
+patches\all.prst,Tick Tock,6,MOD,A-Chorus,67108864,1,62,4,0x04,0
+patches\all.prst,Tick Tock,5,EQ,EQ 1,16777269,0,0,1,0x01,53
+patches\all.prst,Tick Tock,4,CAB,Pogner 4x12,167772199,1,63,10,0x0A,39
+patches\all.prst,Tick Tock,3,NR,Gate 1,27,0,50,0,0x00,27
+patches\all.prst,Tick Tock,2,AMP,L-Star CL,117440537,1,40,7,0x07,25
+patches\all.prst,Tick Tock,1,DST,Green OD,50331648,0,26,3,0x03,0
+patches\all.prst,Tick Tock,0,PRE,COMP,0,1,20,0,0x00,0
+patches\all.prst,70's Punk,8,RVB,Church,201326594,1,10,12,0x0C,2
+patches\all.prst,70's Punk,7,DLY,Sweet,184549389,0,50,11,0x0B,13
+patches\all.prst,70's Punk,6,MOD,A-Chorus,67108864,0,50,4,0x04,0
+patches\all.prst,70's Punk,5,EQ,EQ 1,16777269,1,0,1,0x01,53
+patches\all.prst,70's Punk,4,CAB,UK-DK 4x12,167772203,1,89,10,0x0A,43
+patches\all.prst,70's Punk,3,NR,Gate 1,27,1,20,0,0x00,27
+patches\all.prst,70's Punk,2,AMP,UK 800,117440565,1,65,7,0x07,53
+patches\all.prst,70's Punk,1,DST,Green OD,50331648,0,0,3,0x03,0
+patches\all.prst,70's Punk,0,PRE,C-Wah,83886088,0,50,5,0x05,8
+patches\all.prst,90's Grunge,8,RVB,Plate,201326595,1,21,12,0x0C,3
+patches\all.prst,90's Grunge,7,DLY,Sweet,184549389,0,50,11,0x0B,13
+patches\all.prst,90's Grunge,6,MOD,A-Chorus,67108864,0,99,4,0x04,0
+patches\all.prst,90's Grunge,5,EQ,Mess EQ,16777276,1,-50,1,0x01,60
+patches\all.prst,90's Grunge,4,CAB,DarkTW 2x12,167772178,1,74,10,0x0A,18
+patches\all.prst,90's Grunge,3,NR,Gate 1,27,1,25,0,0x00,27
+patches\all.prst,90's Grunge,2,AMP,Bellman 59N,117440515,1,40,7,0x07,3
+patches\all.prst,90's Grunge,1,DST,SM Dist,50331690,1,99,3,0x03,42
+patches\all.prst,90's Grunge,0,PRE,C-Wah,83886088,0,50,5,0x05,8
+patches\all.prst,Ska Ska Ska,8,RVB,Hall,201326593,1,31,12,0x0C,1
+patches\all.prst,Ska Ska Ska,7,DLY,Sweet,184549389,0,20,11,0x0B,13
+patches\all.prst,Ska Ska Ska,6,MOD,A-Chorus,67108864,0,50,4,0x04,0
+patches\all.prst,Ska Ska Ska,5,EQ,EQ 1,16777269,0,0,1,0x01,53
+patches\all.prst,Ska Ska Ska,4,CAB,DarkTW 2x12,167772178,1,64,10,0x0A,18
+patches\all.prst,Ska Ska Ska,3,NR,Gate 1,27,0,50,0,0x00,27
+patches\all.prst,Ska Ska Ska,2,AMP,Dark Twin,117440516,1,45,7,0x07,4
+patches\all.prst,Ska Ska Ska,1,DST,Green OD,50331648,0,10,3,0x03,0
+patches\all.prst,Ska Ska Ska,0,PRE,COMP,0,0,0,0,0x00,0
+patches\all.prst,Wanna Rock,8,RVB,Hall,201326593,1,14,12,0x0C,1
+patches\all.prst,Wanna Rock,7,DLY,Sweet,184549389,0,50,11,0x0B,13
+patches\all.prst,Wanna Rock,6,MOD,A-Chorus,67108864,0,50,4,0x04,0
+patches\all.prst,Wanna Rock,5,EQ,EQ 1,16777269,0,0,1,0x01,53
+patches\all.prst,Wanna Rock,4,CAB,UK-75 4x12,167772208,1,50,10,0x0A,48
+patches\all.prst,Wanna Rock,3,NR,Gate 1,27,1,20,0,0x00,27
+patches\all.prst,Wanna Rock,2,AMP,Juice R100,117440595,1,74,7,0x07,83
+patches\all.prst,Wanna Rock,1,DST,Green OD,50331648,0,0,3,0x03,0
+patches\all.prst,Wanna Rock,0,PRE,V-Wah,83886081,0,50,5,0x05,1
+patches\all.prst,Thoughts,8,RVB,Church,201326594,1,40,12,0x0C,2
+patches\all.prst,Thoughts,7,DLY,M-Echo,184549378,1,25,11,0x0B,2
+patches\all.prst,Thoughts,6,MOD,Opto Trem,67108897,1,60,4,0x04,33
+patches\all.prst,Thoughts,5,EQ,EQ 1,16777269,1,-13,1,0x01,53
+patches\all.prst,Thoughts,4,CAB,UK-GN 4x12,167772194,1,70,10,0x0A,34
+patches\all.prst,Thoughts,3,NR,Gate 1,27,1,14,0,0x00,27
+patches\all.prst,Thoughts,2,AMP,UK 50JP,117440559,1,35,7,0x07,47
+patches\all.prst,Thoughts,1,DST,Yellow OD,50331650,0,14,3,0x03,2
+patches\all.prst,Thoughts,0,PRE,C-Wah,83886088,0,50,5,0x05,8
+patches\all.prst,Rich J-120,8,RVB,Hall,201326593,1,18,12,0x0C,1
+patches\all.prst,Rich J-120,7,DLY,Sweet,184549389,0,50,11,0x0B,13
+patches\all.prst,Rich J-120,6,MOD,A-Chorus,67108864,1,73,4,0x04,0
+patches\all.prst,Rich J-120,5,EQ,EQ 1,16777269,0,0,1,0x01,53
+patches\all.prst,Rich J-120,4,CAB,DarkTW 2x12,167772178,1,50,10,0x0A,18
+patches\all.prst,Rich J-120,3,NR,Gate 1,27,0,50,0,0x00,27
+patches\all.prst,Rich J-120,2,AMP,J-120 CL,117440532,1,50,7,0x07,20
+patches\all.prst,Rich J-120,1,DST,Green OD,50331648,0,0,3,0x03,0
+patches\all.prst,Rich J-120,0,PRE,Boost,26,1,30,0,0x00,26
+patches\all.prst,G-Force,8,RVB,Room,201326592,1,20,12,0x0C,0
+patches\all.prst,G-Force,7,DLY,Sweet,184549389,0,50,11,0x0B,13
+patches\all.prst,G-Force,6,MOD,G-Chorus,67108865,0,72,4,0x04,1
+patches\all.prst,G-Force,5,EQ,EQ 1,16777269,1,6,1,0x01,53
+patches\all.prst,G-Force,4,CAB,U-ban 4x12,167772204,1,75,10,0x0A,44
+patches\all.prst,G-Force,3,NR,Gate 1,27,1,25,0,0x00,27
+patches\all.prst,G-Force,2,AMP,Eagle 120,117440607,1,50,7,0x07,95
+patches\all.prst,G-Force,1,DST,Lazaro,50331682,0,80,3,0x03,34
+patches\all.prst,G-Force,0,PRE,Boost,26,1,50,0,0x00,26
+patches\all.prst,RektoPower,8,RVB,Room,201326592,1,20,12,0x0C,0
+patches\all.prst,RektoPower,7,DLY,Sweet,184549389,0,50,11,0x0B,13
+patches\all.prst,RektoPower,6,MOD,G-Chorus,67108865,0,72,4,0x04,1
+patches\all.prst,RektoPower,5,EQ,Mess EQ,16777276,1,0,1,0x01,60
+patches\all.prst,RektoPower,4,CAB,Mess-D 4x12,167772196,1,60,10,0x0A,36
+patches\all.prst,RektoPower,3,NR,Gate 1,27,1,25,0,0x00,27
+patches\all.prst,RektoPower,2,AMP,Mess DualM,117440617,1,50,7,0x07,105
+patches\all.prst,RektoPower,1,DST,Blues OD,50331657,0,5,3,0x03,9
+patches\all.prst,RektoPower,0,PRE,Boost,26,1,31,0,0x00,26
+patches\all.prst,OS Solo100,8,RVB,Room,201326592,1,20,12,0x0C,0
+patches\all.prst,OS Solo100,7,DLY,Sweet,184549389,0,50,11,0x0B,13
+patches\all.prst,OS Solo100,6,MOD,G-Chorus,67108865,0,72,4,0x04,1
+patches\all.prst,OS Solo100,5,EQ,EQ 2,16777274,1,0,1,0x01,58
+patches\all.prst,OS Solo100,4,CAB,UK-75 4x12,167772208,1,97,10,0x0A,48
+patches\all.prst,OS Solo100,3,NR,Gate 1,27,1,25,0,0x00,27
+patches\all.prst,OS Solo100,2,AMP,Solo100 LD,117440601,1,40,7,0x07,89
+patches\all.prst,OS Solo100,1,DST,Lazaro,50331682,0,80,3,0x03,34
+patches\all.prst,OS Solo100,0,PRE,Boost,26,1,28,0,0x00,26
+patches\all.prst,FlagDjent,8,RVB,Hall,201326593,0,20,12,0x0C,1
+patches\all.prst,FlagDjent,7,DLY,Vin-Rack,184549396,0,20,11,0x0B,20
+patches\all.prst,FlagDjent,6,MOD,A-Chorus,67108864,0,50,4,0x04,0
+patches\all.prst,FlagDjent,5,EQ,EQ 1,16777269,1,0,1,0x01,53
+patches\all.prst,FlagDjent,4,CAB,EV51 4x12,167772192,1,98,10,0x0A,32
+patches\all.prst,FlagDjent,3,NR,Gate 2,29,1,30,0,0x00,29
+patches\all.prst,FlagDjent,2,AMP,Flagman,117440576,1,40,7,0x07,64
+patches\all.prst,FlagDjent,1,DST,Bass Dist,50331712,0,0,3,0x03,64
+patches\all.prst,FlagDjent,0,PRE,Boost,26,1,50,0,0x00,26
+patches\all.prst,USA Lead,8,RVB,Hall,201326593,1,16,12,0x0C,1
+patches\all.prst,USA Lead,7,DLY,P-Echo,184549376,1,10,11,0x0B,0
+patches\all.prst,USA Lead,6,MOD,A-Chorus,67108864,0,50,4,0x04,0
+patches\all.prst,USA Lead,5,EQ,Mess EQ,16777276,1,0,1,0x01,60
+patches\all.prst,USA Lead,4,CAB,UK-GN 4x12,167772194,1,87,10,0x0A,34
+patches\all.prst,USA Lead,3,NR,Gate 1,27,1,30,0,0x00,27
+patches\all.prst,USA Lead,2,AMP,Mess DualV,117440616,1,50,7,0x07,104
+patches\all.prst,USA Lead,1,DST,Flex OD,50331711,1,35,3,0x03,63
+patches\all.prst,USA Lead,0,PRE,C-Wah,83886088,0,50,5,0x05,8
+patches\all.prst,Rockabilly,8,RVB,Room,201326592,1,10,12,0x0C,0
+patches\all.prst,Rockabilly,7,DLY,Sweet,184549389,1,20,11,0x0B,13
+patches\all.prst,Rockabilly,6,MOD,A-Chorus,67108864,0,50,4,0x04,0
+patches\all.prst,Rockabilly,5,EQ,EQ 1,16777269,0,0,1,0x01,53
+patches\all.prst,Rockabilly,4,CAB,Bad-KT 1x12,167772167,1,73,10,0x0A,7
+patches\all.prst,Rockabilly,3,NR,Gate 1,27,0,50,0,0x00,27
+patches\all.prst,Rockabilly,2,AMP,Dark Twin,117440516,1,40,7,0x07,4
+patches\all.prst,Rockabilly,1,DST,Blues OD,50331657,0,10,3,0x03,9
+patches\all.prst,Rockabilly,0,PRE,COMP,0,1,7,0,0x00,0
+patches\all.prst,Skyline,8,RVB,Mod Verb,201326600,1,50,12,0x0C,8
+patches\all.prst,Skyline,7,DLY,Rev Echo,184549395,1,20,11,0x0B,19
+patches\all.prst,Skyline,5,MOD,A-Chorus,67108864,1,67,4,0x04,0
+patches\all.prst,Skyline,4,EQ,EQ 1,16777269,0,0,1,0x01,53
+patches\all.prst,Skyline,3,CAB,L-Star 2x12,167772185,1,69,10,0x0A,25
+patches\all.prst,Skyline,2,NR,Gate 1,27,0,0,0,0x00,27
+patches\all.prst,Skyline,1,AMP,Match CL,117440533,1,45,7,0x07,21
+patches\all.prst,Skyline,0,DST,Bass Dist,50331712,0,39,3,0x03,64
+patches\all.prst,Skyline,6,PRE,OCTA,16777249,1,26,1,0x01,33
+patches\all.prst,Sweet Kid,8,RVB,Hall,201326593,1,20,12,0x0C,1
+patches\all.prst,Sweet Kid,7,DLY,Sweet,184549389,1,10,11,0x0B,13
+patches\all.prst,Sweet Kid,6,MOD,A-Chorus,67108864,0,50,4,0x04,0
+patches\all.prst,Sweet Kid,5,EQ,EQ 1,16777269,1,0,1,0x01,53
+patches\all.prst,Sweet Kid,4,CAB,UK-75 4x12,167772208,1,50,10,0x0A,48
+patches\all.prst,Sweet Kid,3,NR,Gate 1,27,1,30,0,0x00,27
+patches\all.prst,Sweet Kid,2,AMP,UK 800,117440565,1,80,7,0x07,53
+patches\all.prst,Sweet Kid,1,DST,Lazaro,50331682,1,40,3,0x03,34
+patches\all.prst,Sweet Kid,0,PRE,V-Wah,83886081,0,50,5,0x05,1
+patches\all.prst,May Lead,8,RVB,Spring,201326596,1,41,12,0x0C,4
+patches\all.prst,May Lead,7,DLY,Sweet,184549389,0,50,11,0x0B,13
+patches\all.prst,May Lead,6,MOD,Opto Trem,67108897,0,10,4,0x04,33
+patches\all.prst,May Lead,5,EQ,EQ 1,16777269,0,0,1,0x01,53
+patches\all.prst,May Lead,4,CAB,Foxy 1x12,167772168,1,56,10,0x0A,8
+patches\all.prst,May Lead,3,NR,Gate 1,27,1,30,0,0x00,27
+patches\all.prst,May Lead,2,AMP,Foxy 30TB,117440551,1,42,7,0x07,39
+patches\all.prst,May Lead,1,DST,Red Haze,50331684,1,50,3,0x03,36
+patches\all.prst,May Lead,0,PRE,V-Wah,83886081,0,50,5,0x05,1
+patches\all.prst,Plexicream,8,RVB,Spring,201326596,1,30,12,0x0C,4
+patches\all.prst,Plexicream,7,DLY,M-Echo2,184549388,0,50,11,0x0B,12
+patches\all.prst,Plexicream,6,MOD,B-Chorus,67108872,0,17,4,0x04,8
+patches\all.prst,Plexicream,5,EQ,EQ 1,16777269,1,-20,1,0x01,53
+patches\all.prst,Plexicream,4,CAB,UK-75 4x12,167772208,1,88,10,0x0A,48
+patches\all.prst,Plexicream,3,NR,Gate 2,29,0,10,0,0x00,29
+patches\all.prst,Plexicream,2,AMP,UK 50JP,117440559,1,50,7,0x07,47
+patches\all.prst,Plexicream,1,DST,Green OD,50331648,0,6,3,0x03,0
+patches\all.prst,Plexicream,0,PRE,C-Wah,83886088,0,50,5,0x05,8
+patches\all.prst,Moon Echo,8,RVB,Hall,201326593,1,30,12,0x0C,1
+patches\all.prst,Moon Echo,6,DLY,M-Echo2,184549388,1,15,11,0x0B,12
+patches\all.prst,Moon Echo,7,MOD,Flanger,67108881,1,60,4,0x04,17
+patches\all.prst,Moon Echo,5,EQ,EQ 1,16777269,1,-25,1,0x01,53
+patches\all.prst,Moon Echo,4,CAB,2Rick 2x12,167772188,1,62,10,0x0A,28
+patches\all.prst,Moon Echo,3,NR,Gate 1,27,1,13,0,0x00,27
+patches\all.prst,Moon Echo,2,AMP,Z38 OD,117440585,1,15,7,0x07,73
+patches\all.prst,Moon Echo,1,DST,Green OD,50331648,0,5,3,0x03,0
+patches\all.prst,Moon Echo,0,PRE,V-Wah,83886081,0,50,5,0x05,1
+patches\all.prst,Dub&Vibe,8,RVB,Hall,201326593,1,20,12,0x0C,1
+patches\all.prst,Dub&Vibe,7,DLY,M-Echo,184549378,1,25,11,0x0B,2
+patches\all.prst,Dub&Vibe,6,MOD,Vibe,67108895,1,36,4,0x04,31
+patches\all.prst,Dub&Vibe,5,EQ,EQ 1,16777269,0,0,1,0x01,53
+patches\all.prst,Dub&Vibe,4,CAB,J-120 2x12,167772177,1,65,10,0x0A,17
+patches\all.prst,Dub&Vibe,3,NR,Gate 1,27,0,10,0,0x00,27
+patches\all.prst,Dub&Vibe,2,AMP,Dark Twin,117440516,1,50,7,0x07,4
+patches\all.prst,Dub&Vibe,1,DST,Darktale,50331691,0,71,3,0x03,43
+patches\all.prst,Dub&Vibe,0,PRE,C-Wah,83886088,0,50,5,0x05,8
+patches\all.prst,Countryman,8,RVB,Spring,201326596,1,50,12,0x0C,4
+patches\all.prst,Countryman,7,DLY,Sweet,184549389,1,11,11,0x0B,13
+patches\all.prst,Countryman,6,MOD,Sine Trem,67108902,0,87,4,0x04,38
+patches\all.prst,Countryman,5,EQ,Mess EQ,16777276,1,0,1,0x01,60
+patches\all.prst,Countryman,4,CAB,DarkTW 2x12,167772178,1,63,10,0x0A,18
+patches\all.prst,Countryman,3,NR,Gate 1,27,1,14,0,0x00,27
+patches\all.prst,Countryman,2,AMP,Bellman 59N,117440515,1,55,7,0x07,3
+patches\all.prst,Countryman,1,DST,Green OD,50331648,0,10,3,0x03,0
+patches\all.prst,Countryman,0,PRE,V-Wah,83886081,0,50,5,0x05,1
+patches\all.prst,Dover Lead,8,RVB,Room,201326592,1,50,12,0x0C,0
+patches\all.prst,Dover Lead,7,DLY,Sweet,184549389,1,11,11,0x0B,13
+patches\all.prst,Dover Lead,6,MOD,Vibrato,67108885,0,85,4,0x04,21
+patches\all.prst,Dover Lead,5,EQ,Mess EQ,16777276,1,-10,1,0x01,60
+patches\all.prst,Dover Lead,4,CAB,UK-GN 4x12,167772194,1,79,10,0x0A,34
+patches\all.prst,Dover Lead,3,NR,Gate 1,27,1,18,0,0x00,27
+patches\all.prst,Dover Lead,2,AMP,UK 45,117440554,1,40,7,0x07,42
+patches\all.prst,Dover Lead,1,DST,Super OD,50331654,1,30,3,0x03,6
+patches\all.prst,Dover Lead,0,PRE,C-Wah,83886088,0,50,5,0x05,8
+patches\all.prst,70 Soul Q,8,RVB,Spring,201326596,1,16,12,0x0C,4
+patches\all.prst,70 Soul Q,7,DLY,Sweet,184549389,0,14,11,0x0B,13
+patches\all.prst,70 Soul Q,6,MOD,A-Chorus,67108864,0,50,4,0x04,0
+patches\all.prst,70 Soul Q,5,EQ,EQ 1,16777269,0,0,1,0x01,53
+patches\all.prst,70 Soul Q,4,CAB,L-Star 2x12,167772185,1,70,10,0x0A,25
+patches\all.prst,70 Soul Q,3,NR,Gate 1,27,0,50,0,0x00,27
+patches\all.prst,70 Soul Q,2,AMP,Match CL,117440533,1,55,7,0x07,21
+patches\all.prst,70 Soul Q,1,DST,Green OD,50331648,0,50,3,0x03,0
+patches\all.prst,70 Soul Q,0,PRE,T-Wah,16777231,1,75,1,0x01,15
+patches\all.prst,Cry Solo,8,RVB,Hall,201326593,1,20,12,0x0C,1
+patches\all.prst,Cry Solo,7,DLY,Sweet,184549389,1,10,11,0x0B,13
+patches\all.prst,Cry Solo,6,MOD,A-Chorus,67108864,0,50,4,0x04,0
+patches\all.prst,Cry Solo,5,EQ,Mess EQ,16777276,1,0,1,0x01,60
+patches\all.prst,Cry Solo,4,CAB,2Rick 2x12,167772188,1,96,10,0x0A,28
+patches\all.prst,Cry Solo,3,NR,Gate 1,27,1,21,0,0x00,27
+patches\all.prst,Cry Solo,2,AMP,Solo100 LD,117440601,1,40,7,0x07,89
+patches\all.prst,Cry Solo,1,DST,Green OD,50331648,1,0,3,0x03,0
+patches\all.prst,Cry Solo,0,PRE,C-Wah,83886088,0,97.6256,5,0x05,8
+patches\all.prst,Smooth Jazz,8,RVB,Plate,201326595,1,33,12,0x0C,3
+patches\all.prst,Smooth Jazz,7,DLY,Sweet,184549389,0,15,11,0x0B,13
+patches\all.prst,Smooth Jazz,6,MOD,A-Chorus,67108864,1,69,4,0x04,0
+patches\all.prst,Smooth Jazz,5,EQ,EQ 2,16777274,1,-20,1,0x01,58
+patches\all.prst,Smooth Jazz,4,CAB,2Rick 2x12,167772188,1,50,10,0x0A,28
+patches\all.prst,Smooth Jazz,3,NR,Gate 1,27,0,38,0,0x00,27
+patches\all.prst,Smooth Jazz,2,AMP,Tweedy,117440513,1,55,7,0x07,1
+patches\all.prst,Smooth Jazz,1,DST,Green OD,50331648,0,0,3,0x03,0
+patches\all.prst,Smooth Jazz,0,PRE,Boost,26,0,20,0,0x00,26
+patches\all.prst,Woody Jazz,8,RVB,Plate,201326595,1,30,12,0x0C,3
+patches\all.prst,Woody Jazz,7,DLY,Sweet,184549389,0,50,11,0x0B,13
+patches\all.prst,Woody Jazz,6,MOD,A-Chorus,67108864,0,20,4,0x04,0
+patches\all.prst,Woody Jazz,5,EQ,EQ 2,16777274,1,0,1,0x01,58
+patches\all.prst,Woody Jazz,4,CAB,Bad-KT 1x12,167772167,1,70,10,0x0A,7
+patches\all.prst,Woody Jazz,3,NR,Gate 1,27,0,50,0,0x00,27
+patches\all.prst,Woody Jazz,2,AMP,Bass Pre,134217846,1,80,8,0x08,118
+patches\all.prst,Woody Jazz,0,DST,Green OD,50331648,0,10,3,0x03,0
+patches\all.prst,Woody Jazz,1,PRE,AC Sim,16777217,1,45,1,0x01,1
+patches\all.prst,Lover's End,8,RVB,Hall,201326593,1,23,12,0x0C,1
+patches\all.prst,Lover's End,7,DLY,Sweet,184549389,1,15,11,0x0B,13
+patches\all.prst,Lover's End,6,MOD,A-Chorus,67108864,0,50,4,0x04,0
+patches\all.prst,Lover's End,5,EQ,EQ 1,16777269,0,0,1,0x01,53
+patches\all.prst,Lover's End,4,CAB,UK-GN 4x12,167772194,1,87,10,0x0A,34
+patches\all.prst,Lover's End,3,NR,Gate 1,27,1,30,0,0x00,27
+patches\all.prst,Lover's End,2,AMP,Z38 OD,117440585,1,20,7,0x07,73
+patches\all.prst,Lover's End,1,DST,Super OD,50331654,1,20,3,0x03,6
+patches\all.prst,Lover's End,0,PRE,C-Wah,83886088,0,50,5,0x05,8
+patches\all.prst,MassiveOcta,8,RVB,Plate,201326595,0,10,12,0x0C,3
+patches\all.prst,MassiveOcta,7,DLY,999 Echo,184549394,0,10,11,0x0B,18
+patches\all.prst,MassiveOcta,6,MOD,A-Chorus,67108864,0,85,4,0x04,0
+patches\all.prst,MassiveOcta,5,EQ,EQ 2,16777274,1,0,1,0x01,58
+patches\all.prst,MassiveOcta,4,CAB,Ameg 4x10,167772216,1,75,10,0x0A,56
+patches\all.prst,MassiveOcta,3,NR,Gate 1,27,0,50,0,0x00,27
+patches\all.prst,MassiveOcta,2,AMP,Tweedy,117440513,1,40,7,0x07,1
+patches\all.prst,MassiveOcta,1,DST,Lazaro,50331682,0,64,3,0x03,34
+patches\all.prst,MassiveOcta,0,PRE,OCTA,16777249,1,0,1,0x01,33
+patches\all.prst,J-Rocker,8,RVB,Hall,201326593,1,20,12,0x0C,1
+patches\all.prst,J-Rocker,7,DLY,Sweet,184549389,1,15,11,0x0B,13
+patches\all.prst,J-Rocker,6,MOD,A-Chorus,67108864,0,50,4,0x04,0
+patches\all.prst,J-Rocker,5,EQ,EQ 1,16777269,0,0,1,0x01,53
+patches\all.prst,J-Rocker,4,CAB,Bad-KT 1x12,167772167,1,76,10,0x0A,7
+patches\all.prst,J-Rocker,3,NR,Gate 1,27,1,30,0,0x00,27
+patches\all.prst,J-Rocker,2,AMP,Flagman,117440576,1,35,7,0x07,64
+patches\all.prst,J-Rocker,1,DST,La Charger,50331696,1,10,3,0x03,48
+patches\all.prst,J-Rocker,0,PRE,C-Wah,83886088,0,50,5,0x05,8
+patches\all.prst,Calidream,8,RVB,Spring,201326596,1,33,12,0x0C,4
+patches\all.prst,Calidream,7,DLY,999 Echo,184549394,0,15,11,0x0B,18
+patches\all.prst,Calidream,6,MOD,B-Chorus,67108872,0,82,4,0x04,8
+patches\all.prst,Calidream,5,EQ,EQ 1,16777269,0,0,1,0x01,53
+patches\all.prst,Calidream,4,CAB,L-Star 2x12,167772185,1,81,10,0x0A,25
+patches\all.prst,Calidream,3,NR,Gate 1,27,0,50,0,0x00,27
+patches\all.prst,Calidream,2,AMP,Dark Twin,117440516,1,40,7,0x07,4
+patches\all.prst,Calidream,1,DST,Green OD,50331648,0,5,3,0x03,0
+patches\all.prst,Calidream,0,PRE,COMP,0,0,15,0,0x00,0
+patches\all.prst,AC Sim 1,8,RVB,Room,201326592,1,28,12,0x0C,0
+patches\all.prst,AC Sim 1,7,DLY,Sweet,184549389,0,50,11,0x0B,13
+patches\all.prst,AC Sim 1,6,MOD,A-Chorus,67108864,0,50,4,0x04,0
+patches\all.prst,AC Sim 1,5,EQ,EQ 1,16777269,1,12,1,0x01,53
+patches\all.prst,AC Sim 1,4,CAB,D,167772220,1,99,10,0x0A,60
+patches\all.prst,AC Sim 1,3,NR,Gate 1,27,1,15,0,0x00,27
+patches\all.prst,AC Sim 1,2,AMP,AC Pre,134217850,1,72,8,0x08,122
+patches\all.prst,AC Sim 1,1,DST,Green OD,50331648,0,50,3,0x03,0
+patches\all.prst,AC Sim 1,0,PRE,AC Sim,16777217,1,40,1,0x01,1
+patches\all.prst,AC Sim 2,8,RVB,Room,201326592,1,28,12,0x0C,0
+patches\all.prst,AC Sim 2,7,DLY,Sweet,184549389,0,50,11,0x0B,13
+patches\all.prst,AC Sim 2,6,MOD,A-Chorus,67108864,0,50,4,0x04,0
+patches\all.prst,AC Sim 2,5,EQ,EQ 1,16777269,1,0,1,0x01,53
+patches\all.prst,AC Sim 2,4,CAB,OM,167772222,1,94,10,0x0A,62
+patches\all.prst,AC Sim 2,3,NR,Gate 1,27,1,14,0,0x00,27
+patches\all.prst,AC Sim 2,2,AMP,AC Pre,134217850,1,86,8,0x08,122
+patches\all.prst,AC Sim 2,1,DST,Green OD,50331648,0,50,3,0x03,0
+patches\all.prst,AC Sim 2,0,PRE,AC Sim,16777217,1,51,1,0x01,1
+patches\all.prst,AC Sim 3,8,RVB,Hall,201326593,1,20,12,0x0C,1
+patches\all.prst,AC Sim 3,7,DLY,Sweet,184549389,0,50,11,0x0B,13
+patches\all.prst,AC Sim 3,6,MOD,A-Chorus,67108864,0,50,4,0x04,0
+patches\all.prst,AC Sim 3,5,EQ,EQ 2,16777274,1,-20,1,0x01,58
+patches\all.prst,AC Sim 3,4,CAB,Jumbo,167772223,1,99,10,0x0A,63
+patches\all.prst,AC Sim 3,3,NR,Gate 1,27,1,17,0,0x00,27
+patches\all.prst,AC Sim 3,2,AMP,AC Pre,134217850,1,80,8,0x08,122
+patches\all.prst,AC Sim 3,1,DST,Green OD,50331648,0,50,3,0x03,0
+patches\all.prst,AC Sim 3,0,PRE,AC Sim,16777217,1,28,1,0x01,1
+patches\all.prst,Finger Bass,8,RVB,Room,201326592,1,17,12,0x0C,0
+patches\all.prst,Finger Bass,7,DLY,Sweet,184549389,0,50,11,0x0B,13
+patches\all.prst,Finger Bass,6,MOD,A-Chorus,67108864,0,50,4,0x04,0
+patches\all.prst,Finger Bass,5,EQ,EQ 2,16777274,1,9,1,0x01,58
+patches\all.prst,Finger Bass,4,CAB,Ameg 4x10,167772216,1,50,10,0x0A,56
+patches\all.prst,Finger Bass,3,NR,Gate 1,27,0,50,0,0x00,27
+patches\all.prst,Finger Bass,2,AMP,Classic Bass,117440627,1,50,7,0x07,115
+patches\all.prst,Finger Bass,1,DST,Flex OD,50331711,0,30,3,0x03,63
+patches\all.prst,Finger Bass,0,PRE,COMP,0,1,6,0,0x00,0
+patches\all.prst,Smooth Bass,8,RVB,Hall,201326593,0,20,12,0x0C,1
+patches\all.prst,Smooth Bass,7,DLY,999 Echo,184549394,0,10,11,0x0B,18
+patches\all.prst,Smooth Bass,1,MOD,A-Chorus,67108864,0,50,4,0x04,0
+patches\all.prst,Smooth Bass,6,EQ,EQ 2,16777274,1,10,1,0x01,58
+patches\all.prst,Smooth Bass,5,CAB,MessBass 2x10,167772213,1,50,10,0x0A,53
+patches\all.prst,Smooth Bass,4,NR,Gate 1,27,0,13,0,0x00,27
+patches\all.prst,Smooth Bass,3,AMP,Mini Bass,134217845,1,80,8,0x08,117
+patches\all.prst,Smooth Bass,2,DST,Green OD,50331648,0,28,3,0x03,0
+patches\all.prst,Smooth Bass,0,PRE,COMP,0,1,10,0,0x00,0
+patches\all.prst,Pick Bass,8,RVB,Hall,201326593,0,15,12,0x0C,1
+patches\all.prst,Pick Bass,7,DLY,Sweet,184549389,0,50,11,0x0B,13
+patches\all.prst,Pick Bass,6,MOD,A-Chorus,67108864,0,10,4,0x04,0
+patches\all.prst,Pick Bass,5,EQ,EQ 2,16777274,1,-22,1,0x01,58
+patches\all.prst,Pick Bass,4,CAB,Max 4x10,167772217,1,50,10,0x0A,57
+patches\all.prst,Pick Bass,3,NR,Gate 1,27,1,15,0,0x00,27
+patches\all.prst,Pick Bass,2,AMP,Classic Bass,117440627,1,60,7,0x07,115
+patches\all.prst,Pick Bass,0,DST,Blues OD,50331657,1,41,3,0x03,9
+patches\all.prst,Pick Bass,1,PRE,COMP4,1,1,7,0,0x00,1
+patches\all.prst,Slap Bass,8,RVB,Room,201326592,0,17,12,0x0C,0
+patches\all.prst,Slap Bass,7,DLY,Sweet,184549389,0,50,11,0x0B,13
+patches\all.prst,Slap Bass,6,MOD,A-Chorus,67108864,0,50,4,0x04,0
+patches\all.prst,Slap Bass,5,EQ,EQ 2,16777274,1,0,1,0x01,58
+patches\all.prst,Slap Bass,4,CAB,Max 4x10,167772217,1,82,10,0x0A,57
+patches\all.prst,Slap Bass,3,NR,Gate 1,27,0,50,0,0x00,27
+patches\all.prst,Slap Bass,2,AMP,Bass Pre,134217846,1,50,8,0x08,118
+patches\all.prst,Slap Bass,1,DST,Flex OD,50331711,0,16,3,0x03,63
+patches\all.prst,Slap Bass,0,PRE,COMP,0,1,10,0,0x00,0
+patches\all.prst,OD Bass,8,RVB,Hall,201326593,0,20,12,0x0C,1
+patches\all.prst,OD Bass,7,DLY,999 Echo,184549394,0,10,11,0x0B,18
+patches\all.prst,OD Bass,1,MOD,A-Chorus,67108864,0,50,4,0x04,0
+patches\all.prst,OD Bass,6,EQ,EQ 1,16777269,1,-14,1,0x01,53
+patches\all.prst,OD Bass,5,CAB,Ameg 4x10,167772216,1,50,10,0x0A,56
+patches\all.prst,OD Bass,4,NR,Gate 1,27,1,17,0,0x00,27
+patches\all.prst,OD Bass,3,AMP,Classic Bass,117440627,1,57,7,0x07,115
+patches\all.prst,OD Bass,2,DST,Super OD,50331654,1,34,3,0x03,6
+patches\all.prst,OD Bass,0,PRE,COMP,0,1,24,0,0x00,0
+patches\all.prst,BalanceBass,8,RVB,Hall,201326593,1,15,12,0x0C,1
+patches\all.prst,BalanceBass,7,DLY,Sweet,184549389,0,50,11,0x0B,13
+patches\all.prst,BalanceBass,6,MOD,A-Chorus,67108864,0,10,4,0x04,0
+patches\all.prst,BalanceBass,5,EQ,EQ 1,16777269,1,-7,1,0x01,53
+patches\all.prst,BalanceBass,4,CAB,Max 4x10,167772217,1,50,10,0x0A,57
+patches\all.prst,BalanceBass,3,NR,Gate 1,27,0,50,0,0x00,27
+patches\all.prst,BalanceBass,2,AMP,Classic Bass,117440627,1,55,7,0x07,115
+patches\all.prst,BalanceBass,1,DST,Green OD,50331648,0,1,3,0x03,0
+patches\all.prst,BalanceBass,0,PRE,COMP,0,1,21,0,0x00,0
+patches\all.prst,Power Bass,8,RVB,Plate,201326595,0,28,12,0x0C,3
+patches\all.prst,Power Bass,7,DLY,Sweet,184549389,0,14,11,0x0B,13
+patches\all.prst,Power Bass,6,MOD,Opto Trem,67108897,0,49,4,0x04,33
+patches\all.prst,Power Bass,5,EQ,EQ 1,16777269,1,0,1,0x01,53
+patches\all.prst,Power Bass,4,CAB,Ameg 8x10,167772219,1,50,10,0x0A,59
+patches\all.prst,Power Bass,3,NR,Gate 1,27,1,17,0,0x00,27
+patches\all.prst,Power Bass,2,AMP,Classic Bass,117440627,1,50,7,0x07,115
+patches\all.prst,Power Bass,1,DST,Yellow OD,50331650,1,15,3,0x03,2
+patches\all.prst,Power Bass,0,PRE,COMP,0,1,28,0,0x00,0
+patches\all.prst,Bass Dist,8,RVB,Spring,201326596,0,21,12,0x0C,4
+patches\all.prst,Bass Dist,7,DLY,999 Echo,184549394,0,14,11,0x0B,18
+patches\all.prst,Bass Dist,6,MOD,A-Chorus,67108864,0,50,4,0x04,0
+patches\all.prst,Bass Dist,5,EQ,EQ 1,16777269,1,-4,1,0x01,53
+patches\all.prst,Bass Dist,4,CAB,Ameg 4x10,167772216,1,50,10,0x0A,56
+patches\all.prst,Bass Dist,3,NR,Gate 1,27,1,30,0,0x00,27
+patches\all.prst,Bass Dist,2,AMP,Mini Bass,134217845,1,70,8,0x08,117
+patches\all.prst,Bass Dist,1,DST,Bass Dist,50331712,1,41,3,0x03,64
+patches\all.prst,Bass Dist,0,PRE,COMP,0,1,11,0,0x00,0
+patches\all.prst,Bass Fuzz,8,RVB,Plate,201326595,0,10,12,0x0C,3
+patches\all.prst,Bass Fuzz,7,DLY,999 Echo,184549394,0,10,11,0x0B,18
+patches\all.prst,Bass Fuzz,6,MOD,A-Chorus,67108864,0,50,4,0x04,0
+patches\all.prst,Bass Fuzz,3,EQ,EQ 2,16777274,1,-21,1,0x01,58
+patches\all.prst,Bass Fuzz,5,CAB,Ameg 4x10,167772216,1,50,10,0x0A,56
+patches\all.prst,Bass Fuzz,4,NR,Gate 1,27,1,25,0,0x00,27
+patches\all.prst,Bass Fuzz,2,AMP,Foxy Bass,117440629,1,50,7,0x07,117
+patches\all.prst,Bass Fuzz,1,DST,Lazaro,50331682,1,88,3,0x03,34
+patches\all.prst,Bass Fuzz,0,PRE,COMP,0,1,0,0,0x00,0
+patches\all.prst,Djent Bass,8,RVB,Spring,201326596,0,21,12,0x0C,4
+patches\all.prst,Djent Bass,7,DLY,999 Echo,184549394,0,14,11,0x0B,18
+patches\all.prst,Djent Bass,6,MOD,A-Chorus,67108864,0,50,4,0x04,0
+patches\all.prst,Djent Bass,5,EQ,EQ 2,16777274,1,20,1,0x01,58
+patches\all.prst,Djent Bass,4,CAB,Max 4x10,167772217,1,85,10,0x0A,57
+patches\all.prst,Djent Bass,3,NR,Gate 2,29,1,45,0,0x00,29
+patches\all.prst,Djent Bass,2,AMP,Bass Pre,134217846,1,75,8,0x08,118
+patches\all.prst,Djent Bass,1,DST,Bass Dist,50331712,1,13,3,0x03,64
+patches\all.prst,Djent Bass,0,PRE,COMP,0,1,85,0,0x00,0
+patches\all.prst,Dirty Wah,8,RVB,Room,201326592,1,16,12,0x0C,0
+patches\all.prst,Dirty Wah,7,DLY,Sweet,184549389,0,50,11,0x0B,13
+patches\all.prst,Dirty Wah,6,MOD,A-Chorus,67108864,0,50,4,0x04,0
+patches\all.prst,Dirty Wah,5,EQ,EQ 1,16777269,0,50,1,0x01,53
+patches\all.prst,Dirty Wah,4,CAB,Max 4x10,167772217,1,50,10,0x0A,57
+patches\all.prst,Dirty Wah,3,NR,Gate 1,27,0,50,0,0x00,27
+patches\all.prst,Dirty Wah,2,AMP,Bass Pre,134217846,1,70,8,0x08,118
+patches\all.prst,Dirty Wah,1,DST,Lazaro,50331682,1,34,3,0x03,34
+patches\all.prst,Dirty Wah,0,PRE,T-Wah,16777231,1,73,1,0x01,15
+patches\all.prst,Woody Bass,8,RVB,Hall,201326593,1,9,12,0x0C,1
+patches\all.prst,Woody Bass,7,DLY,Sweet,184549389,0,50,11,0x0B,13
+patches\all.prst,Woody Bass,6,MOD,A-Chorus,67108864,0,20,4,0x04,0
+patches\all.prst,Woody Bass,5,EQ,EQ 1,16777269,1,-7,1,0x01,53
+patches\all.prst,Woody Bass,4,CAB,Jumbo,167772223,1,82,10,0x0A,63
+patches\all.prst,Woody Bass,3,NR,Gate 1,27,0,50,0,0x00,27
+patches\all.prst,Woody Bass,2,AMP,Bass Pre,134217846,1,58,8,0x08,118
+patches\all.prst,Woody Bass,0,DST,Green OD,50331648,1,20,3,0x03,0
+patches\all.prst,Woody Bass,1,PRE,AC Sim,16777217,1,99,1,0x01,1
+patches\all.prst,Sweet JBass,8,RVB,Hall,201326593,1,12,12,0x0C,1
+patches\all.prst,Sweet JBass,7,DLY,Sweet,184549389,0,50,11,0x0B,13
+patches\all.prst,Sweet JBass,6,MOD,B-Chorus,67108872,0,99,4,0x04,8
+patches\all.prst,Sweet JBass,5,EQ,EQ 2,16777274,1,8,1,0x01,58
+patches\all.prst,Sweet JBass,4,CAB,Max 4x10,167772217,1,91,10,0x0A,57
+patches\all.prst,Sweet JBass,3,NR,Gate 1,27,0,50,0,0x00,27
+patches\all.prst,Sweet JBass,2,AMP,Foxy Bass,117440629,1,83,7,0x07,117
+patches\all.prst,Sweet JBass,1,DST,Green OD,50331648,0,1,3,0x03,0
+patches\all.prst,Sweet JBass,0,PRE,COMP,0,1,12,0,0x00,0
+patches\all.prst,DI Bass Sim,8,RVB,Hall,201326593,0,21,12,0x0C,1
+patches\all.prst,DI Bass Sim,7,DLY,Sweet,184549389,0,18,11,0x0B,13
+patches\all.prst,DI Bass Sim,6,MOD,Phaser,67108889,0,10,4,0x04,25
+patches\all.prst,DI Bass Sim,5,EQ,EQ 1,16777269,0,50,1,0x01,53
+patches\all.prst,DI Bass Sim,4,CAB,MessBass 2x10,167772213,1,99,10,0x0A,53
+patches\all.prst,DI Bass Sim,3,NR,Gate 1,27,0,50,0,0x00,27
+patches\all.prst,DI Bass Sim,2,AMP,Foxy Bass,117440629,1,99,7,0x07,117
+patches\all.prst,DI Bass Sim,1,DST,Green OD,50331648,0,1,3,0x03,0
+patches\all.prst,DI Bass Sim,0,PRE,COMP,0,1,3,0,0x00,0
+patches\all.prst,Motown Funk,8,RVB,Hall,201326593,0,15,12,0x0C,1
+patches\all.prst,Motown Funk,7,DLY,Sweet,184549389,0,50,11,0x0B,13
+patches\all.prst,Motown Funk,6,MOD,A-Chorus,67108864,0,10,4,0x04,0
+patches\all.prst,Motown Funk,5,EQ,EQ 2,16777274,1,0,1,0x01,58
+patches\all.prst,Motown Funk,4,CAB,Ameg 8x10,167772219,1,70,10,0x0A,59
+patches\all.prst,Motown Funk,3,NR,Gate 1,27,1,15,0,0x00,27
+patches\all.prst,Motown Funk,2,AMP,Foxy Bass,117440629,1,99,7,0x07,117
+patches\all.prst,Motown Funk,0,DST,Blues OD,50331657,1,51,3,0x03,9
+patches\all.prst,Motown Funk,1,PRE,COMP,0,1,6,0,0x00,0
+patches\all.prst,Bass Chorus,8,RVB,Plate,201326595,0,20,12,0x0C,3
+patches\all.prst,Bass Chorus,7,DLY,999 Echo,184549394,0,15,11,0x0B,18
+patches\all.prst,Bass Chorus,6,MOD,B-Chorus,67108872,1,84,4,0x04,8
+patches\all.prst,Bass Chorus,5,EQ,EQ 1,16777269,1,0,1,0x01,53
+patches\all.prst,Bass Chorus,4,CAB,Ameg 4x10,167772216,1,99,10,0x0A,56
+patches\all.prst,Bass Chorus,3,NR,Gate 1,27,0,50,0,0x00,27
+patches\all.prst,Bass Chorus,2,AMP,Foxy Bass,117440629,1,99,7,0x07,117
+patches\all.prst,Bass Chorus,1,DST,Green OD,50331648,0,5,3,0x03,0
+patches\all.prst,Bass Chorus,0,PRE,COMP,0,0,17,0,0x00,0
+patches\all.prst,AmbientBass,8,RVB,Hall,201326593,1,22,12,0x0C,1
+patches\all.prst,AmbientBass,7,DLY,Sweet,184549389,1,10,11,0x0B,13
+patches\all.prst,AmbientBass,6,MOD,Vibe,67108895,1,75,4,0x04,31
+patches\all.prst,AmbientBass,5,EQ,EQ 2,16777274,1,-18,1,0x01,58
+patches\all.prst,AmbientBass,4,CAB,Max 4x10,167772217,1,99,10,0x0A,57
+patches\all.prst,AmbientBass,3,NR,Gate 1,27,0,50,0,0x00,27
+patches\all.prst,AmbientBass,2,AMP,Classic Bass,117440627,1,50,7,0x07,115
+patches\all.prst,AmbientBass,1,DST,Green OD,50331648,0,1,3,0x03,0
+patches\all.prst,AmbientBass,0,PRE,COMP,0,0,6,0,0x00,0
+patches\all.prst,Path Bass,8,RVB,Plate,201326595,1,28,12,0x0C,3
+patches\all.prst,Path Bass,7,DLY,Sweet,184549389,0,14,11,0x0B,13
+patches\all.prst,Path Bass,6,MOD,Opto Trem,67108897,1,50,4,0x04,33
+patches\all.prst,Path Bass,5,EQ,EQ 1,16777269,0,0,1,0x01,53
+patches\all.prst,Path Bass,3,CAB,Ameg 4x10,167772216,1,99,10,0x0A,56
+patches\all.prst,Path Bass,2,NR,Gate 1,27,0,50,0,0x00,27
+patches\all.prst,Path Bass,1,AMP,Foxy Bass,117440629,1,99,7,0x07,117
+patches\all.prst,Path Bass,0,DST,Green OD,50331648,1,28,3,0x03,0
+patches\all.prst,Path Bass,4,PRE,Step Filter,16777241,1,3,1,0x01,25
+patches\all.prst,Octa Dream,8,RVB,Mod Verb,201326600,1,67,12,0x0C,8
+patches\all.prst,Octa Dream,7,DLY,Ping Pong,184549380,1,19,11,0x0B,4
+patches\all.prst,Octa Dream,6,MOD,G-Chorus,67108865,1,78,4,0x04,1
+patches\all.prst,Octa Dream,5,EQ,EQ 2,16777274,1,-6,1,0x01,58
+patches\all.prst,Octa Dream,4,CAB,Ameg 8x10,167772219,1,99,10,0x0A,59
+patches\all.prst,Octa Dream,3,NR,Gate 1,27,1,15,0,0x00,27
+patches\all.prst,Octa Dream,2,AMP,Classic Bass,117440627,1,50,7,0x07,115
+patches\all.prst,Octa Dream,0,DST,Blues OD,50331657,0,0,3,0x03,9
+patches\all.prst,Octa Dream,1,PRE,OCTA,16777249,1,33,1,0x01,33
+patches\all.prst,Basic Aco,8,RVB,Hall,201326593,1,20,12,0x0C,1
+patches\all.prst,Basic Aco,7,DLY,Sweet,184549389,0,49,11,0x0B,13
+patches\all.prst,Basic Aco,6,MOD,A-Chorus,67108864,0,49,4,0x04,0
+patches\all.prst,Basic Aco,5,EQ,EQ 1,16777269,0,50,1,0x01,53
+patches\all.prst,Basic Aco,4,CAB,TWD 2x12,167772187,0,49,10,0x0A,27
+patches\all.prst,Basic Aco,3,NR,Gate 1,27,0,49,0,0x00,27
+patches\all.prst,Basic Aco,2,AMP,AC Pre,134217850,1,99,8,0x08,122
+patches\all.prst,Basic Aco,1,DST,Green OD,50331648,0,49,3,0x03,0
+patches\all.prst,Basic Aco,0,PRE,COMP,0,1,15,0,0x00,0
+patches\all.prst,Slap Aco,8,RVB,Room,201326592,1,20,12,0x0C,0
+patches\all.prst,Slap Aco,7,DLY,Vin-Rack,184549396,0,20,11,0x0B,20
+patches\all.prst,Slap Aco,6,MOD,A-Chorus,67108864,0,50,4,0x04,0
+patches\all.prst,Slap Aco,5,EQ,EQ 1,16777269,1,0,1,0x01,53
+patches\all.prst,Slap Aco,4,CAB,2Rick 2x12,167772188,0,80,10,0x0A,28
+patches\all.prst,Slap Aco,3,NR,Gate 1,27,0,50,0,0x00,27
+patches\all.prst,Slap Aco,2,AMP,AC Pre,134217850,1,76,8,0x08,122
+patches\all.prst,Slap Aco,1,DST,Green OD,50331648,0,50,3,0x03,0
+patches\all.prst,Slap Aco,0,PRE,COMP4,1,1,12,0,0x00,1
+patches\all.prst,Smooth Aco,8,RVB,Hall,201326593,1,28,12,0x0C,1
+patches\all.prst,Smooth Aco,7,DLY,P-Echo,184549376,0,6,11,0x0B,0
+patches\all.prst,Smooth Aco,6,MOD,Phaser,67108889,0,10,4,0x04,25
+patches\all.prst,Smooth Aco,5,EQ,EQ 1,16777269,1,0,1,0x01,53
+patches\all.prst,Smooth Aco,4,CAB,D,167772220,0,50,10,0x0A,60
+patches\all.prst,Smooth Aco,3,NR,Gate 1,27,0,50,0,0x00,27
+patches\all.prst,Smooth Aco,2,AMP,AC Pre,134217850,1,99,8,0x08,122
+patches\all.prst,Smooth Aco,1,DST,Yellow OD,50331650,0,72,3,0x03,2
+patches\all.prst,Smooth Aco,0,PRE,COMP,0,1,16,0,0x00,0
+patches\all.prst,Aco OD,8,RVB,Hall,201326593,1,26,12,0x0C,1
+patches\all.prst,Aco OD,7,DLY,Slapbk,184549381,0,23,11,0x0B,5
+patches\all.prst,Aco OD,6,MOD,B-Chorus,67108872,0,77,4,0x04,8
+patches\all.prst,Aco OD,5,EQ,EQ 1,16777269,1,18,1,0x01,53
+patches\all.prst,Aco OD,4,CAB,TWD-P 1x10,167772162,0,99,10,0x0A,2
+patches\all.prst,Aco OD,3,NR,Gate 1,27,0,50,0,0x00,27
+patches\all.prst,Aco OD,2,AMP,AC Pre,134217850,1,99,8,0x08,122
+patches\all.prst,Aco OD,0,DST,Super OD,50331654,1,35,3,0x03,6
+patches\all.prst,Aco OD,1,PRE,COMP,0,1,57,0,0x00,0
+patches\all.prst,D-Type Sim,8,RVB,Hall,201326593,1,25,12,0x0C,1
+patches\all.prst,D-Type Sim,7,DLY,Sweet,184549389,0,50,11,0x0B,13
+patches\all.prst,D-Type Sim,6,MOD,Sine Trem,67108902,0,67,4,0x04,38
+patches\all.prst,D-Type Sim,5,EQ,EQ 2,16777274,1,2,1,0x01,58
+patches\all.prst,D-Type Sim,4,CAB,D,167772220,1,49,10,0x0A,60
+patches\all.prst,D-Type Sim,3,NR,Gate 1,27,0,50,0,0x00,27
+patches\all.prst,D-Type Sim,2,AMP,AC Pre,134217850,1,89,8,0x08,122
+patches\all.prst,D-Type Sim,1,DST,Green OD,50331648,0,50,3,0x03,0
+patches\all.prst,D-Type Sim,0,PRE,COMP,0,1,4,0,0x00,0
+patches\all.prst,OM-Type Sim,8,RVB,Hall,201326593,1,25,12,0x0C,1
+patches\all.prst,OM-Type Sim,7,DLY,Sweet,184549389,0,50,11,0x0B,13
+patches\all.prst,OM-Type Sim,6,MOD,Sine Trem,67108902,0,67,4,0x04,38
+patches\all.prst,OM-Type Sim,5,EQ,EQ 1,16777269,1,-9,1,0x01,53
+patches\all.prst,OM-Type Sim,4,CAB,OM,167772222,1,49,10,0x0A,62
+patches\all.prst,OM-Type Sim,3,NR,Gate 1,27,0,50,0,0x00,27
+patches\all.prst,OM-Type Sim,2,AMP,AC Pre,134217850,1,99,8,0x08,122
+patches\all.prst,OM-Type Sim,1,DST,Green OD,50331648,0,50,3,0x03,0
+patches\all.prst,OM-Type Sim,0,PRE,COMP,0,1,4,0,0x00,0
+patches\all.prst,J-Type Sim,8,RVB,Hall,201326593,1,25,12,0x0C,1
+patches\all.prst,J-Type Sim,7,DLY,Sweet,184549389,0,50,11,0x0B,13
+patches\all.prst,J-Type Sim,6,MOD,Sine Trem,67108902,0,67,4,0x04,38
+patches\all.prst,J-Type Sim,5,EQ,EQ 2,16777274,1,0,1,0x01,58
+patches\all.prst,J-Type Sim,4,CAB,Jumbo,167772223,1,49,10,0x0A,63
+patches\all.prst,J-Type Sim,3,NR,Gate 1,27,0,50,0,0x00,27
+patches\all.prst,J-Type Sim,2,AMP,AC Pre,134217850,1,99,8,0x08,122
+patches\all.prst,J-Type Sim,1,DST,Green OD,50331648,0,50,3,0x03,0
+patches\all.prst,J-Type Sim,0,PRE,COMP,0,1,4,0,0x00,0
+patches\all.prst,GA-Type Sim,8,RVB,Hall,201326593,1,25,12,0x0C,1
+patches\all.prst,GA-Type Sim,7,DLY,Sweet,184549389,0,50,11,0x0B,13
+patches\all.prst,GA-Type Sim,6,MOD,Sine Trem,67108902,0,67,4,0x04,38
+patches\all.prst,GA-Type Sim,5,EQ,EQ 2,16777274,1,-9,1,0x01,58
+patches\all.prst,GA-Type Sim,4,CAB,GA,167772225,1,50,10,0x0A,65
+patches\all.prst,GA-Type Sim,3,NR,Gate 1,27,0,50,0,0x00,27
+patches\all.prst,GA-Type Sim,2,AMP,AC Pre,134217850,1,99,8,0x08,122
+patches\all.prst,GA-Type Sim,1,DST,Green OD,50331648,0,50,3,0x03,0
+patches\all.prst,GA-Type Sim,0,PRE,COMP,0,1,4,0,0x00,0
+patches\all.prst,Lush Aco,8,RVB,Hall,201326593,1,39,12,0x0C,1
+patches\all.prst,Lush Aco,7,DLY,P-Echo,184549376,1,10,11,0x0B,0
+patches\all.prst,Lush Aco,6,MOD,G-Chorus,67108865,1,49,4,0x04,1
+patches\all.prst,Lush Aco,5,EQ,EQ 1,16777269,1,10,1,0x01,53
+patches\all.prst,Lush Aco,4,CAB,TWD 2x12,167772187,0,74,10,0x0A,27
+patches\all.prst,Lush Aco,3,NR,Gate 1,27,0,50,0,0x00,27
+patches\all.prst,Lush Aco,2,AMP,AC Pre,134217850,1,99,8,0x08,122
+patches\all.prst,Lush Aco,1,DST,Green OD,50331648,0,50,3,0x03,0
+patches\all.prst,Lush Aco,0,PRE,COMP,0,1,0,0,0x00,0
+patches\all.prst,Deep Aco,8,RVB,Plate,201326595,1,34,12,0x0C,3
+patches\all.prst,Deep Aco,7,DLY,Sweet,184549389,0,50,11,0x0B,13
+patches\all.prst,Deep Aco,6,MOD,Opto Trem,67108897,1,75,4,0x04,33
+patches\all.prst,Deep Aco,5,EQ,EQ 1,16777269,0,50,1,0x01,53
+patches\all.prst,Deep Aco,4,CAB,DarkTW 2x12,167772178,0,75,10,0x0A,18
+patches\all.prst,Deep Aco,3,NR,Gate 1,27,0,50,0,0x00,27
+patches\all.prst,Deep Aco,2,AMP,AC Pre,134217850,1,99,8,0x08,122
+patches\all.prst,Deep Aco,1,DST,Green OD,50331648,0,50,3,0x03,0
+patches\all.prst,Deep Aco,0,PRE,COMP,0,1,2,0,0x00,0
+patches\all.prst,Aco Vibe,8,RVB,Clear Sky,201326597,1,39,12,0x0C,5
+patches\all.prst,Aco Vibe,7,DLY,P-Echo,184549376,0,6,11,0x0B,0
+patches\all.prst,Aco Vibe,6,MOD,Vibe,67108895,1,92,4,0x04,31
+patches\all.prst,Aco Vibe,5,EQ,EQ 1,16777269,0,50,1,0x01,53
+patches\all.prst,Aco Vibe,4,CAB,D,167772220,0,50,10,0x0A,60
+patches\all.prst,Aco Vibe,3,NR,Gate 1,27,0,50,0,0x00,27
+patches\all.prst,Aco Vibe,2,AMP,AC Pre,134217850,1,99,8,0x08,122
+patches\all.prst,Aco Vibe,1,DST,Yellow OD,50331650,0,72,3,0x03,2
+patches\all.prst,Aco Vibe,0,PRE,COMP,0,1,12,0,0x00,0
+patches\all.prst,Dreamy Aco,8,RVB,N-Star,201326598,1,40,12,0x0C,6
+patches\all.prst,Dreamy Aco,6,DLY,M-Echo2,184549388,1,40,11,0x0B,12
+patches\all.prst,Dreamy Aco,7,MOD,Flanger,67108881,1,80,4,0x04,17
+patches\all.prst,Dreamy Aco,5,EQ,EQ 2,16777274,0,50,1,0x01,58
+patches\all.prst,Dreamy Aco,4,CAB,Jumbo,167772223,0,49,10,0x0A,63
+patches\all.prst,Dreamy Aco,3,NR,Gate 1,27,0,50,0,0x00,27
+patches\all.prst,Dreamy Aco,2,AMP,AC Pre,134217850,1,99,8,0x08,122
+patches\all.prst,Dreamy Aco,1,DST,Green OD,50331648,0,50,3,0x03,0
+patches\all.prst,Dreamy Aco,0,PRE,COMP4,1,1,25,0,0x00,1
+patches\Blink OD.prst,Blink OD,8,RVB,N-Star,201326598,1,23,12,0x0C,6
+patches\Blink OD.prst,Blink OD,7,DLY,T-Echo,184549387,1,10,11,0x0B,11
+patches\Blink OD.prst,Blink OD,6,MOD,A-Chorus,67108864,0,50,4,0x04,0
+patches\Blink OD.prst,Blink OD,5,EQ,EQ 1,16777269,0,0,1,0x01,53
+patches\Blink OD.prst,Blink OD,4,CAB,Bad-KT 1x12,167772167,1,76,10,0x0A,7
+patches\Blink OD.prst,Blink OD,3,NR,Gate 1,27,1,19,0,0x00,27
+patches\Blink OD.prst,Blink OD,2,AMP,Match OD,117440584,1,15,7,0x07,72
+patches\Blink OD.prst,Blink OD,1,DST,Green OD,50331648,0,19,3,0x03,0
+patches\Blink OD.prst,Blink OD,0,PRE,COMP,0,0,50,0,0x00,0
+patches\its gp100.prst,It's GP100,8,RVB,Hall,201326593,1,24,12,0x0C,1
+patches\its gp100.prst,It's GP100,7,DLY,P-Echo,184549376,1,10,11,0x0B,0
+patches\its gp100.prst,It's GP100,6,MOD,A-Chorus,67108864,0,50,4,0x04,0
+patches\its gp100.prst,It's GP100,5,EQ,Mess EQ,16777276,1,0,1,0x01,60
+patches\its gp100.prst,It's GP100,4,CAB,U-ban 4x12,167772204,1,72,10,0x0A,44
+patches\its gp100.prst,It's GP100,3,NR,Gate 2,29,1,21,0,0x00,29
+patches\its gp100.prst,It's GP100,2,AMP,Bog RedM,117440622,1,50,7,0x07,110
+patches\its gp100.prst,It's GP100,1,DST,Green OD,50331648,1,1,3,0x03,0
+patches\its gp100.prst,It's GP100,0,PRE,C-Wah,83886088,0,50,5,0x05,8

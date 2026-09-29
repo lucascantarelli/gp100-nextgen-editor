@@ -1,0 +1,7142 @@
+[
+ {
+  "name": "COMP",
+  "module": "PRE",
+  "code": 0,
+  "mod_nib": "0x00",
+  "idx": 0,
+  "xml_index": 0,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Sustain",
+    "idx": "0",
+    "default": "20.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Output",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "COMP4",
+  "module": "PRE",
+  "code": 1,
+  "mod_nib": "0x00",
+  "idx": 1,
+  "xml_index": 1,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Sustain",
+    "idx": "0",
+    "default": "20.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Attack",
+    "idx": "1",
+    "default": "60.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Output",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Clip",
+    "idx": "3",
+    "default": "10.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Boost",
+  "module": "PRE",
+  "code": 26,
+  "mod_nib": "0x00",
+  "idx": 26,
+  "xml_index": 2,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Gain",
+    "idx": "0",
+    "default": "20.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Switch",
+    "name": "Bright",
+    "idx": "1",
+    "default": "1",
+    "options": [
+     "On",
+     "Off"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "14 Boost",
+  "module": "PRE",
+  "code": 14,
+  "mod_nib": "0x00",
+  "idx": 14,
+  "xml_index": 3,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Gain",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "AC Sim",
+  "module": "PRE",
+  "code": 16777217,
+  "mod_nib": "0x01",
+  "idx": 1,
+  "xml_index": 4,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Body",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Top",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "VOL",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Combox",
+    "name": "Mode",
+    "idx": "3",
+    "default": "0",
+    "options": [
+     "STD",
+     "Jumbo",
+     "ENH",
+     "Piezo"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "T-Wah",
+  "module": "PRE",
+  "code": 16777231,
+  "mod_nib": "0x01",
+  "idx": 15,
+  "xml_index": 5,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Sens",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Range",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Q",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Mix",
+    "idx": "3",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Combox",
+    "name": "Mode",
+    "idx": "4",
+    "default": "0",
+    "options": [
+     "Guitar",
+     "Bass"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "A-WAH",
+  "module": "PRE",
+  "code": 16777237,
+  "mod_nib": "0x01",
+  "idx": 21,
+  "xml_index": 6,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Depth",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Rate",
+    "idx": "1",
+    "default": "0.5",
+    "min": "0.1",
+    "max": "10",
+    "step": "0.1",
+    "bind": "Sync"
+   },
+   {
+    "type": "Knob",
+    "name": "VOL",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Low",
+    "idx": "3",
+    "default": "20.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Q",
+    "idx": "4",
+    "default": "70.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "High",
+    "idx": "5",
+    "default": "60.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Switch",
+    "name": "Sync",
+    "idx": "6",
+    "default": "0",
+    "options": [
+     "On",
+     "Off"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "V-Wah",
+  "module": "PRE",
+  "code": 83886081,
+  "mod_nib": "0x05",
+  "idx": 1,
+  "xml_index": 7,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Range",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Q",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "VOL",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "C-Wah",
+  "module": "PRE",
+  "code": 83886088,
+  "mod_nib": "0x05",
+  "idx": 8,
+  "xml_index": 8,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Range",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Q",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "VOL",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "OCTA",
+  "module": "PRE",
+  "code": 16777249,
+  "mod_nib": "0x01",
+  "idx": 33,
+  "xml_index": 9,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "L-Oct",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "H-Oct",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Dry",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Pitch",
+  "module": "PRE",
+  "code": 16777251,
+  "mod_nib": "0x01",
+  "idx": 35,
+  "xml_index": 10,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "H-Pitch",
+    "idx": "0",
+    "default": "12.0",
+    "min": "0",
+    "max": "24"
+   },
+   {
+    "type": "Knob",
+    "name": "L-Pitch",
+    "idx": "1",
+    "default": "-12.0",
+    "min": "0",
+    "max": "-24"
+   },
+   {
+    "type": "Knob",
+    "name": "Dry",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "H-Vol",
+    "idx": "3",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "L-Vol",
+    "idx": "4",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "P-Bend",
+  "module": "PRE",
+  "code": 16777252,
+  "mod_nib": "0x01",
+  "idx": 36,
+  "xml_index": 11,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "H-Pitch",
+    "idx": "0",
+    "default": "12.0",
+    "min": "0",
+    "max": "12"
+   },
+   {
+    "type": "Knob",
+    "name": "L-Pitch",
+    "idx": "1",
+    "default": "0.0",
+    "min": "0",
+    "max": "-12"
+   },
+   {
+    "type": "Knob",
+    "name": "Wet",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Dry",
+    "idx": "3",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Range",
+    "idx": "4",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Hammy",
+  "module": "PRE",
+  "code": 16777289,
+  "mod_nib": "0x01",
+  "idx": 73,
+  "xml_index": 12,
+  "controls": [
+   {
+    "type": "Combox",
+    "name": "Range",
+    "idx": "0",
+    "default": "2",
+    "options": [
+     "-2 Oct",
+     "-1 Oct",
+     "+1 Oct",
+     "+2 Oct",
+     "+/-1 Oct",
+     "+/-2 Oct"
+    ]
+   },
+   {
+    "type": "Switch",
+    "name": "Harmony",
+    "idx": "1",
+    "default": "0",
+    "options": [
+     "On",
+     "Off"
+    ]
+   },
+   {
+    "type": "Knob",
+    "name": "VOL",
+    "idx": "2",
+    "default": "99",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Position",
+    "idx": "3",
+    "default": "0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Saturate",
+  "module": "PRE",
+  "code": 16777267,
+  "mod_nib": "0x01",
+  "idx": 51,
+  "xml_index": 13,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Gain",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Mix",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "VOL",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "H-Cut",
+    "idx": "3",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Step Filter",
+  "module": "PRE",
+  "code": 16777241,
+  "mod_nib": "0x01",
+  "idx": 25,
+  "xml_index": 14,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Step 1",
+    "idx": "0",
+    "default": "10.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Step 2",
+    "idx": "1",
+    "default": "30.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Step 3",
+    "idx": "2",
+    "default": "55.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Step 4",
+    "idx": "3",
+    "default": "85.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Rate",
+    "idx": "4",
+    "default": "0.5",
+    "min": "0.1",
+    "max": "10",
+    "step": "0.1",
+    "bind": "Sync"
+   },
+   {
+    "type": "Switch",
+    "name": "Sync",
+    "idx": "5",
+    "default": "0",
+    "options": [
+     "On",
+     "Off"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "Ring Mod",
+  "module": "PRE",
+  "code": 16777263,
+  "mod_nib": "0x01",
+  "idx": 47,
+  "xml_index": 15,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Mix",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Freq",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Fine",
+    "idx": "2",
+    "default": "0.0",
+    "min": "-50",
+    "max": "50"
+   },
+   {
+    "type": "Knob",
+    "name": "Tone",
+    "idx": "3",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Penesas",
+  "module": "DST",
+  "code": 50331668,
+  "mod_nib": "0x03",
+  "idx": 20,
+  "xml_index": 0,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Gain",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Tone",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "VOL",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Scream OD",
+  "module": "DST",
+  "code": 50331656,
+  "mod_nib": "0x03",
+  "idx": 8,
+  "xml_index": 1,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Gain",
+    "idx": "0",
+    "default": "30.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Tone",
+    "idx": "1",
+    "default": "60.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Switch",
+    "name": "Fat",
+    "idx": "3",
+    "default": "0",
+    "options": [
+     "On",
+     "Off"
+    ]
+   },
+   {
+    "type": "Switch",
+    "name": "Air",
+    "idx": "4",
+    "default": "1",
+    "options": [
+     "On",
+     "Off"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "Tube Clipper",
+  "module": "DST",
+  "code": 50331659,
+  "mod_nib": "0x03",
+  "idx": 11,
+  "xml_index": 2,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Gain",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Bass",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Treble",
+    "idx": "3",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "TaiChi OD",
+  "module": "DST",
+  "code": 50331664,
+  "mod_nib": "0x03",
+  "idx": 16,
+  "xml_index": 3,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Gain",
+    "idx": "0",
+    "default": "40.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Tone",
+    "idx": "1",
+    "default": "30.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Voice",
+    "idx": "3",
+    "default": "60.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Plustortion",
+  "module": "DST",
+  "code": 50331689,
+  "mod_nib": "0x03",
+  "idx": 41,
+  "xml_index": 4,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Gain",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Chief",
+  "module": "DST",
+  "code": 50331693,
+  "mod_nib": "0x03",
+  "idx": 45,
+  "xml_index": 5,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Gain",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Bass",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Middle",
+    "idx": "3",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Treble",
+    "idx": "4",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Green OD",
+  "module": "DST",
+  "code": 50331648,
+  "mod_nib": "0x03",
+  "idx": 0,
+  "xml_index": 6,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Gain",
+    "idx": "0",
+    "default": "40.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Tone",
+    "idx": "1",
+    "default": "70.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "VOL",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Yellow OD",
+  "module": "DST",
+  "code": 50331650,
+  "mod_nib": "0x03",
+  "idx": 2,
+  "xml_index": 7,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Gain",
+    "idx": "0",
+    "default": "40.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "VOL",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Super OD",
+  "module": "DST",
+  "code": 50331654,
+  "mod_nib": "0x03",
+  "idx": 6,
+  "xml_index": 8,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Gain",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Tone",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "VOL",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Blues OD",
+  "module": "DST",
+  "code": 50331657,
+  "mod_nib": "0x03",
+  "idx": 9,
+  "xml_index": 9,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Gain",
+    "idx": "0",
+    "default": "40.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Tone",
+    "idx": "1",
+    "default": "60.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "VOL",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Lazaro",
+  "module": "DST",
+  "code": 50331682,
+  "mod_nib": "0x03",
+  "idx": 34,
+  "xml_index": 10,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Sustain",
+    "idx": "0",
+    "default": "40.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Tone",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "VOL",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Red Haze",
+  "module": "DST",
+  "code": 50331684,
+  "mod_nib": "0x03",
+  "idx": 36,
+  "xml_index": 11,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Fuzz",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "VOL",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Darktale",
+  "module": "DST",
+  "code": 50331691,
+  "mod_nib": "0x03",
+  "idx": 43,
+  "xml_index": 12,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Gain",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Filter",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "VOL",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Flex OD",
+  "module": "DST",
+  "code": 50331711,
+  "mod_nib": "0x03",
+  "idx": 63,
+  "xml_index": 13,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Gain",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Tone",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "VOL",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Combox",
+    "name": "Mode",
+    "idx": "3",
+    "default": "0",
+    "options": [
+     "Normal",
+     "Scoop",
+     "Edge"
+    ]
+   },
+   {
+    "type": "Knob",
+    "name": "Blend",
+    "idx": "4",
+    "default": "50",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "SM Dist",
+  "module": "DST",
+  "code": 50331690,
+  "mod_nib": "0x03",
+  "idx": 42,
+  "xml_index": 14,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Gain",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Tone",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "VOL",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "La Charger",
+  "module": "DST",
+  "code": 50331696,
+  "mod_nib": "0x03",
+  "idx": 48,
+  "xml_index": 15,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Gain",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Tone",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "VOL",
+    "idx": "2",
+    "default": "50",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Bass Dist",
+  "module": "DST",
+  "code": 50331712,
+  "mod_nib": "0x03",
+  "idx": 64,
+  "xml_index": 16,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Gain",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Blend",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "VOL",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Bass",
+    "idx": "3",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Treble",
+    "idx": "4",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Boost",
+  "module": "DST",
+  "code": 26,
+  "mod_nib": "0x00",
+  "idx": 26,
+  "xml_index": 17,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Gain",
+    "idx": "0",
+    "default": "20.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Switch",
+    "name": "Bright",
+    "idx": "1",
+    "default": "0",
+    "options": [
+     "On",
+     "Off"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "14 Boost",
+  "module": "DST",
+  "code": 14,
+  "mod_nib": "0x00",
+  "idx": 14,
+  "xml_index": 18,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Gain",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Tweedy",
+  "module": "AMP",
+  "code": 117440513,
+  "mod_nib": "0x07",
+  "idx": 1,
+  "xml_index": 0,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "VOL",
+    "idx": "0",
+    "default": "20.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Tone",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Output",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Bellman 59N",
+  "module": "AMP",
+  "code": 117440515,
+  "mod_nib": "0x07",
+  "idx": 3,
+  "xml_index": 1,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "VOL",
+    "idx": "0",
+    "default": "20.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "PRES ",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Output",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Bass",
+    "idx": "3",
+    "default": "30.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Middle",
+    "idx": "4",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Treble",
+    "idx": "5",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Dark Twin",
+  "module": "AMP",
+  "code": 117440516,
+  "mod_nib": "0x07",
+  "idx": 4,
+  "xml_index": 2,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "VOL",
+    "idx": "0",
+    "default": "20.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Output",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Bass",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Middle",
+    "idx": "3",
+    "default": "40.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Treble",
+    "idx": "4",
+    "default": "60.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Switch",
+    "name": "Bright",
+    "idx": "5",
+    "default": "1",
+    "options": [
+     "On",
+     "Off"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "L-Star CL",
+  "module": "AMP",
+  "code": 117440537,
+  "mod_nib": "0x07",
+  "idx": 25,
+  "xml_index": 3,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Gain",
+    "idx": "0",
+    "default": "40.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "PRES",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Master",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Bass",
+    "idx": "3",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Middle",
+    "idx": "4",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Treble",
+    "idx": "5",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Foxy 30N",
+  "module": "AMP",
+  "code": 117440529,
+  "mod_nib": "0x07",
+  "idx": 17,
+  "xml_index": 4,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "VOL",
+    "idx": "0",
+    "default": "20.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Cut",
+    "idx": "1",
+    "default": "60.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Master",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Switch",
+    "name": "Bright",
+    "idx": "3",
+    "default": "0",
+    "options": [
+     "On",
+     "Off"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "BogSV CL",
+  "module": "AMP",
+  "code": 117440538,
+  "mod_nib": "0x07",
+  "idx": 26,
+  "xml_index": 5,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Gain",
+    "idx": "0",
+    "default": "20.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "PRES",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Master",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Bass",
+    "idx": "3",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Treble",
+    "idx": "4",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Switch",
+    "name": "Bright",
+    "idx": "5",
+    "default": "1",
+    "options": [
+     "On",
+     "Off"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "J-120 CL",
+  "module": "AMP",
+  "code": 117440532,
+  "mod_nib": "0x07",
+  "idx": 20,
+  "xml_index": 6,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "VOL",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Bass",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Middle",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Treble",
+    "idx": "3",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Switch",
+    "name": "Bright",
+    "idx": "4",
+    "default": "0",
+    "options": [
+     "On",
+     "Off"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "Match CL",
+  "module": "AMP",
+  "code": 117440533,
+  "mod_nib": "0x07",
+  "idx": 21,
+  "xml_index": 7,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Gain",
+    "idx": "0",
+    "default": "20.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "PRES",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Master",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Bass",
+    "idx": "3",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Middle",
+    "idx": "4",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Treble",
+    "idx": "5",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Z38 CL",
+  "module": "AMP",
+  "code": 117440539,
+  "mod_nib": "0x07",
+  "idx": 27,
+  "xml_index": 8,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Gain",
+    "idx": "0",
+    "default": "20.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Cut",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Master",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Bass",
+    "idx": "3",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Middle",
+    "idx": "4",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Treble",
+    "idx": "5",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Knights CL",
+  "module": "AMP",
+  "code": 117440543,
+  "mod_nib": "0x07",
+  "idx": 31,
+  "xml_index": 9,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Gain",
+    "idx": "0",
+    "default": "20.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "VOL",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Bass",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Middle",
+    "idx": "3",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Treble",
+    "idx": "4",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Bad-KT CL",
+  "module": "AMP",
+  "code": 117440546,
+  "mod_nib": "0x07",
+  "idx": 34,
+  "xml_index": 10,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Gain",
+    "idx": "0",
+    "default": "20.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "PRES",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Master",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "UK 45",
+  "module": "AMP",
+  "code": 117440554,
+  "mod_nib": "0x07",
+  "idx": 42,
+  "xml_index": 11,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "VOL",
+    "idx": "0",
+    "default": "30.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "PRES",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Output",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Bass",
+    "idx": "3",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Middle",
+    "idx": "4",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Treble",
+    "idx": "5",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "UK 50JP",
+  "module": "AMP",
+  "code": 117440559,
+  "mod_nib": "0x07",
+  "idx": 47,
+  "xml_index": 12,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "VOL 1",
+    "idx": "0",
+    "default": "30.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "PRES",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Output",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Bass",
+    "idx": "3",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Middle ",
+    "idx": "4",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Treble",
+    "idx": "5",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "VOL 2",
+    "idx": "6",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "UK 800",
+  "module": "AMP",
+  "code": 117440565,
+  "mod_nib": "0x07",
+  "idx": 53,
+  "xml_index": 13,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Gain",
+    "idx": "0",
+    "default": "30.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "PRES",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Master",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Bass",
+    "idx": "3",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Middle",
+    "idx": "4",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Treble",
+    "idx": "5",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Flagman",
+  "module": "AMP",
+  "code": 117440576,
+  "mod_nib": "0x07",
+  "idx": 64,
+  "xml_index": 14,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Gain",
+    "idx": "0",
+    "default": "30.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "PRES",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Master",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Bass",
+    "idx": "3",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Middle ",
+    "idx": "4",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Treble",
+    "idx": "5",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Z38 OD",
+  "module": "AMP",
+  "code": 117440585,
+  "mod_nib": "0x07",
+  "idx": 73,
+  "xml_index": 15,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Gain",
+    "idx": "0",
+    "default": "30.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Cut",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Master",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Bass",
+    "idx": "3",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Middle",
+    "idx": "4",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Treble",
+    "idx": "5",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "BogSV OD",
+  "module": "AMP",
+  "code": 117440573,
+  "mod_nib": "0x07",
+  "idx": 61,
+  "xml_index": 16,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Gain",
+    "idx": "0",
+    "default": "30.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "PRES",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Master",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Bass",
+    "idx": "3",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Middle",
+    "idx": "4",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Treble",
+    "idx": "5",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Bellman 59B",
+  "module": "AMP",
+  "code": 117440548,
+  "mod_nib": "0x07",
+  "idx": 36,
+  "xml_index": 17,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "VOL",
+    "idx": "0",
+    "default": "30.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "PRES",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Output",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Bass",
+    "idx": "3",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Middle",
+    "idx": "4",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Treble",
+    "idx": "5",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Foxy 30TB",
+  "module": "AMP",
+  "code": 117440551,
+  "mod_nib": "0x07",
+  "idx": 39,
+  "xml_index": 18,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "VOL",
+    "idx": "0",
+    "default": "30.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Cut",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Master",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Bass",
+    "idx": "3",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Treble",
+    "idx": "4",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Combox",
+    "name": "Char",
+    "idx": "5",
+    "default": null,
+    "options": [
+     "Cool",
+     "Hot"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "SUPDual OD",
+  "module": "AMP",
+  "code": 117440552,
+  "mod_nib": "0x07",
+  "idx": 40,
+  "xml_index": 19,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "VOL 1",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Tone 1",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "VOL 2",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Tone 2",
+    "idx": "3",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Output",
+    "idx": "4",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Match OD",
+  "module": "AMP",
+  "code": 117440584,
+  "mod_nib": "0x07",
+  "idx": 72,
+  "xml_index": 20,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Gain",
+    "idx": "0",
+    "default": "30.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "PRES",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Master",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Bass",
+    "idx": "3",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Middle",
+    "idx": "4",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Treble",
+    "idx": "5",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Solo100 OD",
+  "module": "AMP",
+  "code": 117440583,
+  "mod_nib": "0x07",
+  "idx": 71,
+  "xml_index": 21,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Gain",
+    "idx": "0",
+    "default": "30.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "PRES",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Master",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Bass",
+    "idx": "3",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Middle",
+    "idx": "4",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Treble",
+    "idx": "5",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "L-Star OD",
+  "module": "AMP",
+  "code": 117440586,
+  "mod_nib": "0x07",
+  "idx": 74,
+  "xml_index": 22,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Gain",
+    "idx": "0",
+    "default": "30.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "PRES",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Master",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Bass",
+    "idx": "3",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Middle",
+    "idx": "4",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Treble",
+    "idx": "5",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Bad-KT OD",
+  "module": "AMP",
+  "code": 117440587,
+  "mod_nib": "0x07",
+  "idx": 75,
+  "xml_index": 23,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Gain",
+    "idx": "0",
+    "default": "30.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "PRES",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Master",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Bass",
+    "idx": "3",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Edge",
+    "idx": "4",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Treble",
+    "idx": "5",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Mess2C+ 1",
+  "module": "AMP",
+  "code": 117440569,
+  "mod_nib": "0x07",
+  "idx": 57,
+  "xml_index": 24,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Gain",
+    "idx": "0",
+    "default": "30.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "PRES",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Master",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Bass",
+    "idx": "3",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Middle",
+    "idx": "4",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Treble",
+    "idx": "5",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Mess2C+ 2",
+  "module": "AMP",
+  "code": 117440570,
+  "mod_nib": "0x07",
+  "idx": 58,
+  "xml_index": 25,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Gain",
+    "idx": "0",
+    "default": "30.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "PRES",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Master",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Bass",
+    "idx": "3",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Middle",
+    "idx": "4",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Treble",
+    "idx": "5",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Knights OD",
+  "module": "AMP",
+  "code": 117440636,
+  "mod_nib": "0x07",
+  "idx": 124,
+  "xml_index": 26,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Gain",
+    "idx": "0",
+    "default": "30.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Bass",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Middle",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Treble",
+    "idx": "3",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "VOL",
+    "idx": "4",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Dizz VH",
+  "module": "AMP",
+  "code": 117440613,
+  "mod_nib": "0x07",
+  "idx": 101,
+  "xml_index": 27,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Gain",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "PRES",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Master",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Bass",
+    "idx": "3",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Middle",
+    "idx": "4",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Treble",
+    "idx": "5",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Eagle 120",
+  "module": "AMP",
+  "code": 117440607,
+  "mod_nib": "0x07",
+  "idx": 95,
+  "xml_index": 28,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Gain",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "PRES",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Master",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Bass",
+    "idx": "3",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Middle",
+    "idx": "4",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Treble",
+    "idx": "5",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "EV 51",
+  "module": "AMP",
+  "code": 117440602,
+  "mod_nib": "0x07",
+  "idx": 90,
+  "xml_index": 29,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Gain",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Master",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Bass",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Middle",
+    "idx": "3",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Treble",
+    "idx": "4",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "PRES",
+    "idx": "5",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Solo100 LD",
+  "module": "AMP",
+  "code": 117440601,
+  "mod_nib": "0x07",
+  "idx": 89,
+  "xml_index": 30,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Gain",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "PRES",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Master",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Bass",
+    "idx": "3",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Middle",
+    "idx": "4",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Treble",
+    "idx": "5",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Mess4 LD",
+  "module": "AMP",
+  "code": 117440597,
+  "mod_nib": "0x07",
+  "idx": 85,
+  "xml_index": 31,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Gain",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "PRES",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Master",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Bass",
+    "idx": "3",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Middle",
+    "idx": "4",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Treble",
+    "idx": "5",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Mess DualV",
+  "module": "AMP",
+  "code": 117440616,
+  "mod_nib": "0x07",
+  "idx": 104,
+  "xml_index": 32,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Gain",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "PRES",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Master",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Bass",
+    "idx": "3",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Middle",
+    "idx": "4",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Treble",
+    "idx": "5",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Power LD",
+  "module": "AMP",
+  "code": 117440611,
+  "mod_nib": "0x07",
+  "idx": 99,
+  "xml_index": 33,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Gain",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "PRES",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Master",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Bass",
+    "idx": "3",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Middle",
+    "idx": "4",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Treble",
+    "idx": "5",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Flagman+",
+  "module": "AMP",
+  "code": 117440605,
+  "mod_nib": "0x07",
+  "idx": 93,
+  "xml_index": 34,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Gain",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "PRES",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Master",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Bass",
+    "idx": "3",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Middle",
+    "idx": "4",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Treble",
+    "idx": "5",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Juice R100",
+  "module": "AMP",
+  "code": 117440595,
+  "mod_nib": "0x07",
+  "idx": 83,
+  "xml_index": 35,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Gain",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Master",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Bass",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Middle",
+    "idx": "3",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Treble",
+    "idx": "4",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Mess DualM",
+  "module": "AMP",
+  "code": 117440617,
+  "mod_nib": "0x07",
+  "idx": 105,
+  "xml_index": 36,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Gain",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "PRES",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Master",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Bass",
+    "idx": "3",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Middle",
+    "idx": "4",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Treble",
+    "idx": "5",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Bog BlueV",
+  "module": "AMP",
+  "code": 117440621,
+  "mod_nib": "0x07",
+  "idx": 109,
+  "xml_index": 37,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Gain",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "PRES",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Master",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Bass",
+    "idx": "3",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Middle",
+    "idx": "4",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Treble",
+    "idx": "5",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Bog RedM",
+  "module": "AMP",
+  "code": 117440622,
+  "mod_nib": "0x07",
+  "idx": 110,
+  "xml_index": 38,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Gain",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "PRES",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Master",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Bass",
+    "idx": "3",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Middle",
+    "idx": "4",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Treble",
+    "idx": "5",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "UK 900",
+  "module": "AMP",
+  "code": 117440590,
+  "mod_nib": "0x07",
+  "idx": 78,
+  "xml_index": 39,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Gain",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "PRES",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Master",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Bass",
+    "idx": "3",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Middle",
+    "idx": "4",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Treble",
+    "idx": "5",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Classic Bass",
+  "module": "AMP",
+  "code": 117440627,
+  "mod_nib": "0x07",
+  "idx": 115,
+  "xml_index": 40,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Gain",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Bass",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Middle",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Combox",
+    "name": "MRange",
+    "idx": "3",
+    "default": "1",
+    "options": [
+     "220Hz",
+     "450Hz",
+     "800Hz",
+     "1.6kHz",
+     "3kHz"
+    ]
+   },
+   {
+    "type": "Knob",
+    "name": "Treble",
+    "idx": "4",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Master",
+    "idx": "5",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Bass Pre",
+  "module": "AMP",
+  "code": 134217846,
+  "mod_nib": "0x08",
+  "idx": 118,
+  "xml_index": 41,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "VOL",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Switch",
+    "name": "Bright",
+    "idx": "1",
+    "default": "0",
+    "options": [
+     "On",
+     "Off"
+    ]
+   },
+   {
+    "type": "Knob",
+    "name": "Bass",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Middle",
+    "idx": "3",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Treble",
+    "idx": "4",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Mini Bass",
+  "module": "AMP",
+  "code": 134217845,
+  "mod_nib": "0x08",
+  "idx": 117,
+  "xml_index": 42,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "VOL",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Bass",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Treble",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Foxy Bass",
+  "module": "AMP",
+  "code": 117440629,
+  "mod_nib": "0x07",
+  "idx": 117,
+  "xml_index": 43,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "VOL",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Bass",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Treble",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Mess Bass",
+  "module": "AMP",
+  "code": 117440631,
+  "mod_nib": "0x07",
+  "idx": 119,
+  "xml_index": 44,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "VOL",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Master",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Bass",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Middle",
+    "idx": "3",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Treble",
+    "idx": "4",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "AC Pre",
+  "module": "AMP",
+  "code": 134217850,
+  "mod_nib": "0x08",
+  "idx": 122,
+  "xml_index": 45,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "VOL",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Tone",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Gain",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "EQ Freq",
+    "idx": "3",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "EQ Q",
+    "idx": "4",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "EQ Gain",
+    "idx": "5",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "SnapTone 1",
+  "module": "AMP",
+  "code": 251658240,
+  "mod_nib": "0x0F",
+  "idx": 0,
+  "xml_index": 46,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Gain",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "VOL",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Bass",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Middle",
+    "idx": "3",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Treble",
+    "idx": "4",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "SnapTone 2",
+  "module": "AMP",
+  "code": 251658241,
+  "mod_nib": "0x0F",
+  "idx": 1,
+  "xml_index": 47,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Gain",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "VOL",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Bass",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Middle",
+    "idx": "3",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Treble",
+    "idx": "4",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "SnapTone 3",
+  "module": "AMP",
+  "code": 251658242,
+  "mod_nib": "0x0F",
+  "idx": 2,
+  "xml_index": 48,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Gain",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "VOL",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Bass",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Middle",
+    "idx": "3",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Treble",
+    "idx": "4",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "SnapTone 4",
+  "module": "AMP",
+  "code": 251658243,
+  "mod_nib": "0x0F",
+  "idx": 3,
+  "xml_index": 49,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Gain",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "VOL",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Bass",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Middle",
+    "idx": "3",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Treble",
+    "idx": "4",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "SnapTone 5",
+  "module": "AMP",
+  "code": 251658244,
+  "mod_nib": "0x0F",
+  "idx": 4,
+  "xml_index": 50,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Gain",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "VOL",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Bass",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Middle",
+    "idx": "3",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Treble",
+    "idx": "4",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Gate 1",
+  "module": "NR",
+  "code": 27,
+  "mod_nib": "0x00",
+  "idx": 27,
+  "xml_index": 0,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Thre ",
+    "idx": "0",
+    "default": "20.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Gate 2",
+  "module": "NR",
+  "code": 29,
+  "mod_nib": "0x00",
+  "idx": 29,
+  "xml_index": 1,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Thre",
+    "idx": "0",
+    "default": "20.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Attack",
+    "idx": "1",
+    "default": "25.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Rel",
+    "idx": "2",
+    "default": "60.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "TWD 2x12",
+  "module": "CAB",
+  "code": 167772187,
+  "mod_nib": "0x0A",
+  "idx": 27,
+  "xml_index": 0,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "DarkTW 2x12",
+  "module": "CAB",
+  "code": 167772178,
+  "mod_nib": "0x0A",
+  "idx": 18,
+  "xml_index": 1,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "L-Star 2x12",
+  "module": "CAB",
+  "code": 167772185,
+  "mod_nib": "0x0A",
+  "idx": 25,
+  "xml_index": 2,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "2Rick 2x12",
+  "module": "CAB",
+  "code": 167772188,
+  "mod_nib": "0x0A",
+  "idx": 28,
+  "xml_index": 3,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "J-120 2x12",
+  "module": "CAB",
+  "code": 167772177,
+  "mod_nib": "0x0A",
+  "idx": 17,
+  "xml_index": 4,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "UK-GN 2x12",
+  "module": "CAB",
+  "code": 167772179,
+  "mod_nib": "0x0A",
+  "idx": 19,
+  "xml_index": 5,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Free 2x12",
+  "module": "CAB",
+  "code": 167772186,
+  "mod_nib": "0x0A",
+  "idx": 26,
+  "xml_index": 6,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "UK-75 4x12",
+  "module": "CAB",
+  "code": 167772208,
+  "mod_nib": "0x0A",
+  "idx": 48,
+  "xml_index": 7,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "UK-GN 4x12",
+  "module": "CAB",
+  "code": 167772194,
+  "mod_nib": "0x0A",
+  "idx": 34,
+  "xml_index": 8,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "UK-LD 4x12",
+  "module": "CAB",
+  "code": 167772191,
+  "mod_nib": "0x0A",
+  "idx": 31,
+  "xml_index": 9,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "UK-DK 4x12",
+  "module": "CAB",
+  "code": 167772203,
+  "mod_nib": "0x0A",
+  "idx": 43,
+  "xml_index": 10,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "UK-MD 4x12",
+  "module": "CAB",
+  "code": 167772193,
+  "mod_nib": "0x0A",
+  "idx": 33,
+  "xml_index": 11,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Pogner 4x12",
+  "module": "CAB",
+  "code": 167772199,
+  "mod_nib": "0x0A",
+  "idx": 39,
+  "xml_index": 12,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Dizz 4x12",
+  "module": "CAB",
+  "code": 167772206,
+  "mod_nib": "0x0A",
+  "idx": 46,
+  "xml_index": 13,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Eagle 4x12",
+  "module": "CAB",
+  "code": 167772198,
+  "mod_nib": "0x0A",
+  "idx": 38,
+  "xml_index": 14,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "EV51 4x12",
+  "module": "CAB",
+  "code": 167772192,
+  "mod_nib": "0x0A",
+  "idx": 32,
+  "xml_index": 15,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Solo 4x12",
+  "module": "CAB",
+  "code": 167772200,
+  "mod_nib": "0x0A",
+  "idx": 40,
+  "xml_index": 16,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "US 4x12",
+  "module": "CAB",
+  "code": 167772209,
+  "mod_nib": "0x0A",
+  "idx": 49,
+  "xml_index": 17,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Mess-D 4x12",
+  "module": "CAB",
+  "code": 167772196,
+  "mod_nib": "0x0A",
+  "idx": 36,
+  "xml_index": 18,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "U-ban 4x12",
+  "module": "CAB",
+  "code": 167772204,
+  "mod_nib": "0x0A",
+  "idx": 44,
+  "xml_index": 19,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Juice 4x12",
+  "module": "CAB",
+  "code": 167772201,
+  "mod_nib": "0x0A",
+  "idx": 41,
+  "xml_index": 20,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "H-Way 4x12",
+  "module": "CAB",
+  "code": 167772202,
+  "mod_nib": "0x0A",
+  "idx": 42,
+  "xml_index": 21,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "BogSV 1x12",
+  "module": "CAB",
+  "code": 167772166,
+  "mod_nib": "0x0A",
+  "idx": 6,
+  "xml_index": 22,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Dark 1x12",
+  "module": "CAB",
+  "code": 167772164,
+  "mod_nib": "0x0A",
+  "idx": 4,
+  "xml_index": 23,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Regular 1x12",
+  "module": "CAB",
+  "code": 167772173,
+  "mod_nib": "0x0A",
+  "idx": 13,
+  "xml_index": 24,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Bad-KT 1x12",
+  "module": "CAB",
+  "code": 167772167,
+  "mod_nib": "0x0A",
+  "idx": 7,
+  "xml_index": 25,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Foxy 1x12",
+  "module": "CAB",
+  "code": 167772168,
+  "mod_nib": "0x0A",
+  "idx": 8,
+  "xml_index": 26,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Studio 1x12",
+  "module": "CAB",
+  "code": 167772172,
+  "mod_nib": "0x0A",
+  "idx": 12,
+  "xml_index": 27,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "SUP 1x6",
+  "module": "CAB",
+  "code": 167772160,
+  "mod_nib": "0x0A",
+  "idx": 0,
+  "xml_index": 28,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "TWD 1x8",
+  "module": "CAB",
+  "code": 167772161,
+  "mod_nib": "0x0A",
+  "idx": 1,
+  "xml_index": 29,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "TWD-P 1x10",
+  "module": "CAB",
+  "code": 167772162,
+  "mod_nib": "0x0A",
+  "idx": 2,
+  "xml_index": 30,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Bellman 4x10",
+  "module": "CAB",
+  "code": 167772190,
+  "mod_nib": "0x0A",
+  "idx": 30,
+  "xml_index": 31,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "MessBass 2x10",
+  "module": "CAB",
+  "code": 167772213,
+  "mod_nib": "0x0A",
+  "idx": 53,
+  "xml_index": 32,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Max 4x10",
+  "module": "CAB",
+  "code": 167772217,
+  "mod_nib": "0x0A",
+  "idx": 57,
+  "xml_index": 33,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Ameg 4x10",
+  "module": "CAB",
+  "code": 167772216,
+  "mod_nib": "0x0A",
+  "idx": 56,
+  "xml_index": 34,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Ameg 8x10",
+  "module": "CAB",
+  "code": 167772219,
+  "mod_nib": "0x0A",
+  "idx": 59,
+  "xml_index": 35,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "D",
+  "module": "CAB",
+  "code": 167772220,
+  "mod_nib": "0x0A",
+  "idx": 60,
+  "xml_index": 36,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "OM",
+  "module": "CAB",
+  "code": 167772222,
+  "mod_nib": "0x0A",
+  "idx": 62,
+  "xml_index": 37,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Jumbo",
+  "module": "CAB",
+  "code": 167772223,
+  "mod_nib": "0x0A",
+  "idx": 63,
+  "xml_index": 38,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "GA",
+  "module": "CAB",
+  "code": 167772225,
+  "mod_nib": "0x0A",
+  "idx": 65,
+  "xml_index": 39,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "",
+  "module": "CAB",
+  "code": 168820736,
+  "mod_nib": "0x0A",
+  "idx": 1048576,
+  "xml_index": 40,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "",
+  "module": "CAB",
+  "code": 168820737,
+  "mod_nib": "0x0A",
+  "idx": 1048577,
+  "xml_index": 41,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "",
+  "module": "CAB",
+  "code": 168820738,
+  "mod_nib": "0x0A",
+  "idx": 1048578,
+  "xml_index": 42,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "",
+  "module": "CAB",
+  "code": 168820739,
+  "mod_nib": "0x0A",
+  "idx": 1048579,
+  "xml_index": 43,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "",
+  "module": "CAB",
+  "code": 168820740,
+  "mod_nib": "0x0A",
+  "idx": 1048580,
+  "xml_index": 44,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "",
+  "module": "CAB",
+  "code": 168820741,
+  "mod_nib": "0x0A",
+  "idx": 1048581,
+  "xml_index": 45,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "",
+  "module": "CAB",
+  "code": 168820742,
+  "mod_nib": "0x0A",
+  "idx": 1048582,
+  "xml_index": 46,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "",
+  "module": "CAB",
+  "code": 168820743,
+  "mod_nib": "0x0A",
+  "idx": 1048583,
+  "xml_index": 47,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "",
+  "module": "CAB",
+  "code": 168820744,
+  "mod_nib": "0x0A",
+  "idx": 1048584,
+  "xml_index": 48,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "",
+  "module": "CAB",
+  "code": 168820745,
+  "mod_nib": "0x0A",
+  "idx": 1048585,
+  "xml_index": 49,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "",
+  "module": "CAB",
+  "code": 168820746,
+  "mod_nib": "0x0A",
+  "idx": 1048586,
+  "xml_index": 50,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "",
+  "module": "CAB",
+  "code": 168820747,
+  "mod_nib": "0x0A",
+  "idx": 1048587,
+  "xml_index": 51,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "",
+  "module": "CAB",
+  "code": 168820748,
+  "mod_nib": "0x0A",
+  "idx": 1048588,
+  "xml_index": 52,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "",
+  "module": "CAB",
+  "code": 168820749,
+  "mod_nib": "0x0A",
+  "idx": 1048589,
+  "xml_index": 53,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "",
+  "module": "CAB",
+  "code": 168820750,
+  "mod_nib": "0x0A",
+  "idx": 1048590,
+  "xml_index": 54,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "",
+  "module": "CAB",
+  "code": 168820751,
+  "mod_nib": "0x0A",
+  "idx": 1048591,
+  "xml_index": 55,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "",
+  "module": "CAB",
+  "code": 168820752,
+  "mod_nib": "0x0A",
+  "idx": 1048592,
+  "xml_index": 56,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "",
+  "module": "CAB",
+  "code": 168820753,
+  "mod_nib": "0x0A",
+  "idx": 1048593,
+  "xml_index": 57,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "",
+  "module": "CAB",
+  "code": 168820754,
+  "mod_nib": "0x0A",
+  "idx": 1048594,
+  "xml_index": 58,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "",
+  "module": "CAB",
+  "code": 168820755,
+  "mod_nib": "0x0A",
+  "idx": 1048595,
+  "xml_index": 59,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Volume",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "EQ 1",
+  "module": "EQ",
+  "code": 16777269,
+  "mod_nib": "0x01",
+  "idx": 53,
+  "xml_index": 0,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "125Hz",
+    "idx": "0",
+    "default": "0.0",
+    "min": "-50",
+    "max": "50"
+   },
+   {
+    "type": "Knob",
+    "name": "400Hz",
+    "idx": "1",
+    "default": "0.0",
+    "min": "-50",
+    "max": "50"
+   },
+   {
+    "type": "Knob",
+    "name": "800Hz",
+    "idx": "2",
+    "default": "0.0",
+    "min": "-50",
+    "max": "50"
+   },
+   {
+    "type": "Knob",
+    "name": "1.6kHz",
+    "idx": "3",
+    "default": "0.0",
+    "min": "-50",
+    "max": "50"
+   },
+   {
+    "type": "Knob",
+    "name": "4kHz",
+    "idx": "4",
+    "default": "0.0",
+    "min": "-50",
+    "max": "50"
+   },
+   {
+    "type": "Knob",
+    "name": "VOL ",
+    "idx": "5",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "EQ 2",
+  "module": "EQ",
+  "code": 16777274,
+  "mod_nib": "0x01",
+  "idx": 58,
+  "xml_index": 1,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "50Hz",
+    "idx": "0",
+    "default": "0.0",
+    "min": "-50",
+    "max": "50"
+   },
+   {
+    "type": "Knob",
+    "name": "120Hz",
+    "idx": "1",
+    "default": "0.0",
+    "min": "-50",
+    "max": "50"
+   },
+   {
+    "type": "Knob",
+    "name": "400Hz",
+    "idx": "2",
+    "default": "0.0",
+    "min": "-50",
+    "max": "50"
+   },
+   {
+    "type": "Knob",
+    "name": "800Hz",
+    "idx": "3",
+    "default": "0.0",
+    "min": "-50",
+    "max": "50"
+   },
+   {
+    "type": "Knob",
+    "name": "2kHz",
+    "idx": "4",
+    "default": "0.0",
+    "min": "-50",
+    "max": "50"
+   },
+   {
+    "type": "Knob",
+    "name": "VOL ",
+    "idx": "5",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Mess EQ",
+  "module": "EQ",
+  "code": 16777276,
+  "mod_nib": "0x01",
+  "idx": 60,
+  "xml_index": 2,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "80Hz",
+    "idx": "0",
+    "default": "0.0",
+    "min": "-50",
+    "max": "50"
+   },
+   {
+    "type": "Knob",
+    "name": "240Hz",
+    "idx": "1",
+    "default": "0.0",
+    "min": "-50",
+    "max": "50"
+   },
+   {
+    "type": "Knob",
+    "name": "750Hz",
+    "idx": "2",
+    "default": "0.0",
+    "min": "-50",
+    "max": "50"
+   },
+   {
+    "type": "Knob",
+    "name": "2.2kHz",
+    "idx": "3",
+    "default": "0.0",
+    "min": "-50",
+    "max": "50"
+   },
+   {
+    "type": "Knob",
+    "name": "6.6kHz",
+    "idx": "4",
+    "default": "0.0",
+    "min": "-50",
+    "max": "50"
+   }
+  ]
+ },
+ {
+  "name": "A-Chorus",
+  "module": "MOD",
+  "code": 67108864,
+  "mod_nib": "0x04",
+  "idx": 0,
+  "xml_index": 0,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Depth",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Rate",
+    "idx": "1",
+    "default": "0.5",
+    "min": "0.1",
+    "max": "10",
+    "step": "0.1",
+    "bind": "Sync"
+   },
+   {
+    "type": "Knob",
+    "name": "Tone",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Switch",
+    "name": "Sync",
+    "idx": "3",
+    "default": "0",
+    "options": [
+     "On",
+     "Off"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "G-Chorus",
+  "module": "MOD",
+  "code": 67108865,
+  "mod_nib": "0x04",
+  "idx": 1,
+  "xml_index": 1,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Depth",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Rate",
+    "idx": "1",
+    "default": "0.5",
+    "min": "0.1",
+    "max": "10",
+    "step": "0.1",
+    "bind": "Sync"
+   },
+   {
+    "type": "Knob",
+    "name": "VOL",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Switch",
+    "name": "Sync",
+    "idx": "3",
+    "default": "0",
+    "options": [
+     "On",
+     "Off"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "B-Chorus",
+  "module": "MOD",
+  "code": 67108872,
+  "mod_nib": "0x04",
+  "idx": 8,
+  "xml_index": 2,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Depth",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Rate",
+    "idx": "1",
+    "default": "0.5",
+    "min": "0.1",
+    "max": "10",
+    "step": "0.1",
+    "bind": "Sync"
+   },
+   {
+    "type": "Knob",
+    "name": "Level",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Switch",
+    "name": "Sync",
+    "idx": "3",
+    "default": "0",
+    "options": [
+     "On",
+     "Off"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "Detune",
+  "module": "MOD",
+  "code": 16777257,
+  "mod_nib": "0x01",
+  "idx": 41,
+  "xml_index": 3,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Detune",
+    "idx": "0",
+    "default": "-25",
+    "min": "-50",
+    "max": "50"
+   },
+   {
+    "type": "Knob",
+    "name": "Wet",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Dry",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Flanger",
+  "module": "MOD",
+  "code": 67108881,
+  "mod_nib": "0x04",
+  "idx": 17,
+  "xml_index": 4,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Depth",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Rate",
+    "idx": "1",
+    "default": "0.5",
+    "min": "0.1",
+    "max": "10",
+    "step": "0.1",
+    "bind": "Sync"
+   },
+   {
+    "type": "Knob",
+    "name": "PreDly",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "FdBk",
+    "idx": "3",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Switch",
+    "name": "Sync",
+    "idx": "4",
+    "default": "0",
+    "options": [
+     "On",
+     "Off"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "Vibrato",
+  "module": "MOD",
+  "code": 67108885,
+  "mod_nib": "0x04",
+  "idx": 21,
+  "xml_index": 5,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Depth",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Rate",
+    "idx": "1",
+    "default": "0.5",
+    "min": "0.1",
+    "max": "10",
+    "step": "0.1",
+    "bind": "Sync"
+   },
+   {
+    "type": "Switch",
+    "name": "Sync",
+    "idx": "2",
+    "default": "0",
+    "options": [
+     "On",
+     "Off"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "Phaser",
+  "module": "MOD",
+  "code": 67108889,
+  "mod_nib": "0x04",
+  "idx": 25,
+  "xml_index": 6,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Rate",
+    "idx": "0",
+    "default": "0.5",
+    "min": "0.1",
+    "max": "10",
+    "step": "0.1",
+    "bind": "Sync"
+   },
+   {
+    "type": "Switch",
+    "name": "Sync",
+    "idx": "1",
+    "default": "0",
+    "options": [
+     "On",
+     "Off"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "Vibe",
+  "module": "MOD",
+  "code": 67108895,
+  "mod_nib": "0x04",
+  "idx": 31,
+  "xml_index": 7,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Depth",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Rate",
+    "idx": "1",
+    "default": "0.5",
+    "min": "0.1",
+    "max": "10",
+    "step": "0.1",
+    "bind": "Sync"
+   },
+   {
+    "type": "Switch",
+    "name": "Sync",
+    "idx": "2",
+    "default": "0",
+    "options": [
+     "On",
+     "Off"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "Opto Trem",
+  "module": "MOD",
+  "code": 67108897,
+  "mod_nib": "0x04",
+  "idx": 33,
+  "xml_index": 8,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Depth",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Rate",
+    "idx": "1",
+    "default": "0.5",
+    "min": "0.1",
+    "max": "10",
+    "step": "0.1",
+    "bind": "Sync"
+   },
+   {
+    "type": "Switch",
+    "name": "Sync",
+    "idx": "2",
+    "default": "0",
+    "options": [
+     "On",
+     "Off"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "Sine Trem",
+  "module": "MOD",
+  "code": 67108902,
+  "mod_nib": "0x04",
+  "idx": 38,
+  "xml_index": 9,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Depth",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Rate",
+    "idx": "1",
+    "default": "0.5",
+    "min": "0.1",
+    "max": "10",
+    "step": "0.1",
+    "bind": "Sync"
+   },
+   {
+    "type": "Knob",
+    "name": "VOL",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Switch",
+    "name": "Sync",
+    "idx": "3",
+    "default": "0",
+    "options": [
+     "On",
+     "Off"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "Triangle Trem",
+  "module": "MOD",
+  "code": 67108903,
+  "mod_nib": "0x04",
+  "idx": 39,
+  "xml_index": 10,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Depth",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Rate",
+    "idx": "1",
+    "default": "0.5",
+    "min": "0.1",
+    "max": "10",
+    "step": "0.1",
+    "bind": "Sync"
+   },
+   {
+    "type": "Knob",
+    "name": "VOL",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Switch",
+    "name": "Sync",
+    "idx": "3",
+    "default": "0",
+    "options": [
+     "On",
+     "Off"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "Bias Trem",
+  "module": "MOD",
+  "code": 67108904,
+  "mod_nib": "0x04",
+  "idx": 40,
+  "xml_index": 11,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Depth",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Rate",
+    "idx": "1",
+    "default": "0.5",
+    "min": "0.1",
+    "max": "10",
+    "step": "0.1",
+    "bind": "Sync"
+   },
+   {
+    "type": "Knob",
+    "name": "VOL",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Switch",
+    "name": "Sync",
+    "idx": "3",
+    "default": "0",
+    "options": [
+     "On",
+     "Off"
+    ]
+   },
+   {
+    "type": "Knob",
+    "name": "Bias",
+    "idx": "4",
+    "default": "0",
+    "min": "0",
+    "max": "99"
+   }
+  ]
+ },
+ {
+  "name": "Sweet",
+  "module": "DLY",
+  "code": 184549389,
+  "mod_nib": "0x0B",
+  "idx": 13,
+  "xml_index": 0,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Mix",
+    "idx": "0",
+    "default": "20.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Time",
+    "idx": "1",
+    "default": "500.0",
+    "min": "20",
+    "max": "4000",
+    "bind": "Sync"
+   },
+   {
+    "type": "Knob",
+    "name": "FdBk",
+    "idx": "2",
+    "default": "30.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Switch",
+    "name": "Sync",
+    "idx": "3",
+    "default": "0",
+    "options": [
+     "On",
+     "Off"
+    ]
+   },
+   {
+    "type": "Switch",
+    "name": "Tail",
+    "idx": "4",
+    "default": "0",
+    "options": [
+     "On",
+     "Off"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "P-Echo",
+  "module": "DLY",
+  "code": 184549376,
+  "mod_nib": "0x0B",
+  "idx": 0,
+  "xml_index": 1,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Mix",
+    "idx": "0",
+    "default": "20.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Time",
+    "idx": "1",
+    "default": "500.0",
+    "min": "20",
+    "max": "4000",
+    "bind": "Sync"
+   },
+   {
+    "type": "Knob",
+    "name": "FdBk",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Switch",
+    "name": "Sync",
+    "idx": "3",
+    "default": "0",
+    "options": [
+     "On",
+     "Off"
+    ]
+   },
+   {
+    "type": "Switch",
+    "name": "Tail",
+    "idx": "4",
+    "default": "0",
+    "options": [
+     "On",
+     "Off"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "M-Echo",
+  "module": "DLY",
+  "code": 184549378,
+  "mod_nib": "0x0B",
+  "idx": 2,
+  "xml_index": 2,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Mix",
+    "idx": "0",
+    "default": "20.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Time",
+    "idx": "1",
+    "default": "500.0",
+    "min": "20",
+    "max": "4000",
+    "bind": "Sync"
+   },
+   {
+    "type": "Knob",
+    "name": "FdBk",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Switch",
+    "name": "Sync",
+    "idx": "3",
+    "default": "0",
+    "options": [
+     "On",
+     "Off"
+    ]
+   },
+   {
+    "type": "Switch",
+    "name": "Tail",
+    "idx": "4",
+    "default": "0",
+    "options": [
+     "On",
+     "Off"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "T-Echo",
+  "module": "DLY",
+  "code": 184549387,
+  "mod_nib": "0x0B",
+  "idx": 11,
+  "xml_index": 3,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Mix",
+    "idx": "0",
+    "default": "20.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Time",
+    "idx": "1",
+    "default": "500.0",
+    "min": "20",
+    "max": "4000",
+    "bind": "Sync"
+   },
+   {
+    "type": "Knob",
+    "name": "FdBk",
+    "idx": "2",
+    "default": "30.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Switch",
+    "name": "Sync",
+    "idx": "3",
+    "default": "0",
+    "options": [
+     "On",
+     "Off"
+    ]
+   },
+   {
+    "type": "Switch",
+    "name": "Tail",
+    "idx": "4",
+    "default": "0",
+    "options": [
+     "On",
+     "Off"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "999 Echo",
+  "module": "DLY",
+  "code": 184549394,
+  "mod_nib": "0x0B",
+  "idx": 18,
+  "xml_index": 4,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Mix",
+    "idx": "0",
+    "default": "20.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Time",
+    "idx": "1",
+    "default": "500.0",
+    "min": "20",
+    "max": "4000",
+    "bind": "Sync"
+   },
+   {
+    "type": "Knob",
+    "name": "FdBk",
+    "idx": "2",
+    "default": "30.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Switch",
+    "name": "Sync",
+    "idx": "3",
+    "default": "0",
+    "options": [
+     "On",
+     "Off"
+    ]
+   },
+   {
+    "type": "Switch",
+    "name": "Tail",
+    "idx": "4",
+    "default": "0",
+    "options": [
+     "On",
+     "Off"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "Rev Echo",
+  "module": "DLY",
+  "code": 184549395,
+  "mod_nib": "0x0B",
+  "idx": 19,
+  "xml_index": 5,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Mix",
+    "idx": "0",
+    "default": "20.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "FdBk",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Time",
+    "idx": "2",
+    "default": "500.0",
+    "min": "20",
+    "max": "4000",
+    "bind": "Sync"
+   },
+   {
+    "type": "Switch",
+    "name": "Sync",
+    "idx": "3",
+    "default": "0",
+    "options": [
+     "On",
+     "Off"
+    ]
+   },
+   {
+    "type": "Switch",
+    "name": "Tail",
+    "idx": "4",
+    "default": "0",
+    "options": [
+     "On",
+     "Off"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "Slapbk",
+  "module": "DLY",
+  "code": 184549381,
+  "mod_nib": "0x0B",
+  "idx": 5,
+  "xml_index": 6,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Mix",
+    "idx": "0",
+    "default": "20.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Time",
+    "idx": "1",
+    "default": "150.0",
+    "min": "20",
+    "max": "300",
+    "bind": "Sync"
+   },
+   {
+    "type": "Knob",
+    "name": "FdBk",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Switch",
+    "name": "Tail",
+    "idx": "3",
+    "default": "0",
+    "options": [
+     "On",
+     "Off"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "Vin-Rack",
+  "module": "DLY",
+  "code": 184549396,
+  "mod_nib": "0x0B",
+  "idx": 20,
+  "xml_index": 7,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Mix",
+    "idx": "0",
+    "default": "20.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "FdBk",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Time",
+    "idx": "2",
+    "default": "500.0",
+    "min": "20",
+    "max": "4000",
+    "bind": "Sync"
+   },
+   {
+    "type": "Knob",
+    "name": "Mod",
+    "idx": "3",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Tone",
+    "idx": "4",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Switch",
+    "name": "Sync",
+    "idx": "5",
+    "default": "0",
+    "options": [
+     "On",
+     "Off"
+    ]
+   },
+   {
+    "type": "Switch",
+    "name": "Trail",
+    "idx": "6",
+    "default": "0",
+    "options": [
+     "On",
+     "Off"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "Swp Echo",
+  "module": "DLY",
+  "code": 184549382,
+  "mod_nib": "0x0B",
+  "idx": 6,
+  "xml_index": 8,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Mix",
+    "idx": "0",
+    "default": "20.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Fdbk",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Time",
+    "idx": "2",
+    "default": "500.0",
+    "min": "20",
+    "max": "4000",
+    "bind": "T-Sync"
+   },
+   {
+    "type": "Knob",
+    "name": "S-Depth",
+    "idx": "3",
+    "default": "50",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "S-Rate",
+    "idx": "4",
+    "default": "50",
+    "min": "0",
+    "max": "99",
+    "bind": "S-Sync"
+   },
+   {
+    "type": "Switch",
+    "name": "S-Sync",
+    "idx": "5",
+    "default": "0",
+    "options": [
+     "On",
+     "Off"
+    ]
+   },
+   {
+    "type": "Switch",
+    "name": "T-Sync",
+    "idx": "6",
+    "default": "0",
+    "options": [
+     "On",
+     "Off"
+    ]
+   },
+   {
+    "type": "Switch",
+    "name": "Trail",
+    "idx": "7",
+    "default": "0",
+    "options": [
+     "On",
+     "Off"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "Ping Pong",
+  "module": "DLY",
+  "code": 184549380,
+  "mod_nib": "0x0B",
+  "idx": 4,
+  "xml_index": 9,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Mix",
+    "idx": "0",
+    "default": "20.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "FdBk",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Time",
+    "idx": "2",
+    "default": "500.0",
+    "min": "20",
+    "max": "4000",
+    "bind": "Sync"
+   },
+   {
+    "type": "Switch",
+    "name": "Sync",
+    "idx": "3",
+    "default": "0",
+    "options": [
+     "On",
+     "Off"
+    ]
+   },
+   {
+    "type": "Switch",
+    "name": "Trail",
+    "idx": "4",
+    "default": "0",
+    "options": [
+     "On",
+     "Off"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "M-Echo2",
+  "module": "DLY",
+  "code": 184549388,
+  "mod_nib": "0x0B",
+  "idx": 12,
+  "xml_index": 10,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Mix",
+    "idx": "0",
+    "default": "20.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Time",
+    "idx": "1",
+    "default": "500.0",
+    "min": "20",
+    "max": "4000",
+    "bind": "Sync"
+   },
+   {
+    "type": "Knob",
+    "name": "FdBk",
+    "idx": "2",
+    "default": "30.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Tone",
+    "idx": "3",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Switch",
+    "name": "Sync",
+    "idx": "4",
+    "default": "0",
+    "options": [
+     "On",
+     "Off"
+    ]
+   },
+   {
+    "type": "Switch",
+    "name": "Trail",
+    "idx": "5",
+    "default": "0",
+    "options": [
+     "On",
+     "Off"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "Dual Echo",
+  "module": "DLY",
+  "code": 184549379,
+  "mod_nib": "0x0B",
+  "idx": 3,
+  "xml_index": 11,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Mix A",
+    "idx": "0",
+    "default": "20.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "FdBk A",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Time A",
+    "idx": "2",
+    "default": "500.0",
+    "min": "20",
+    "max": "4000",
+    "bind": "Sync A"
+   },
+   {
+    "type": "Knob",
+    "name": "Mix B",
+    "idx": "3",
+    "default": "20.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "FdBk B",
+    "idx": "4",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Time B",
+    "idx": "5",
+    "default": "400.0",
+    "min": "20",
+    "max": "4000",
+    "bind": "Sync B"
+   },
+   {
+    "type": "Switch",
+    "name": "Sync A",
+    "idx": "6",
+    "default": "0",
+    "options": [
+     "On",
+     "Off"
+    ]
+   },
+   {
+    "type": "Switch",
+    "name": "Sync B",
+    "idx": "7",
+    "default": "0",
+    "options": [
+     "On",
+     "Off"
+    ]
+   },
+   {
+    "type": "Switch",
+    "name": "Trail",
+    "idx": "8",
+    "default": "0",
+    "options": [
+     "On",
+     "Off"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "Room",
+  "module": "RVB",
+  "code": 201326592,
+  "mod_nib": "0x0C",
+  "idx": 0,
+  "xml_index": 0,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Mix",
+    "idx": "0",
+    "default": "30.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "PreDly",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "100"
+   },
+   {
+    "type": "Knob",
+    "name": "Decay",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Switch",
+    "name": "Trail",
+    "idx": "3",
+    "default": "0",
+    "options": [
+     "On",
+     "Off"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "Hall",
+  "module": "RVB",
+  "code": 201326593,
+  "mod_nib": "0x0C",
+  "idx": 1,
+  "xml_index": 1,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Mix",
+    "idx": "0",
+    "default": "30.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "PreDly",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "100"
+   },
+   {
+    "type": "Knob",
+    "name": "Decay",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Switch",
+    "name": "Trail",
+    "idx": "3",
+    "default": "0",
+    "options": [
+     "On",
+     "Off"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "Church",
+  "module": "RVB",
+  "code": 201326594,
+  "mod_nib": "0x0C",
+  "idx": 2,
+  "xml_index": 2,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Mix",
+    "idx": "0",
+    "default": "30.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "PreDly",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "100"
+   },
+   {
+    "type": "Knob",
+    "name": "Decay",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Switch",
+    "name": "Trail",
+    "idx": "3",
+    "default": "0",
+    "options": [
+     "On",
+     "Off"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "Plate",
+  "module": "RVB",
+  "code": 201326595,
+  "mod_nib": "0x0C",
+  "idx": 3,
+  "xml_index": 3,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Mix",
+    "idx": "0",
+    "default": "30.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Decay",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "H-Damp",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Switch",
+    "name": "Trail",
+    "idx": "3",
+    "default": "0",
+    "options": [
+     "On",
+     "Off"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "Spring",
+  "module": "RVB",
+  "code": 201326596,
+  "mod_nib": "0x0C",
+  "idx": 4,
+  "xml_index": 4,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Mix",
+    "idx": "0",
+    "default": "30.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Tone",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Decay",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Switch",
+    "name": "Trail",
+    "idx": "3",
+    "default": "0",
+    "options": [
+     "On",
+     "Off"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "N-Star",
+  "module": "RVB",
+  "code": 201326598,
+  "mod_nib": "0x0C",
+  "idx": 6,
+  "xml_index": 5,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Mix",
+    "idx": "0",
+    "default": "30.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Decay",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Switch",
+    "name": "Trail",
+    "idx": "2",
+    "default": "0",
+    "options": [
+     "On",
+     "Off"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "Deep Sea",
+  "module": "RVB",
+  "code": 201326599,
+  "mod_nib": "0x0C",
+  "idx": 7,
+  "xml_index": 6,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Mix",
+    "idx": "0",
+    "default": "30.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Decay",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Switch",
+    "name": "Trail",
+    "idx": "2",
+    "default": "0",
+    "options": [
+     "On",
+     "Off"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "Mod Verb",
+  "module": "RVB",
+  "code": 201326600,
+  "mod_nib": "0x0C",
+  "idx": 8,
+  "xml_index": 7,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Mix",
+    "idx": "0",
+    "default": "30.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "PreDly",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "100"
+   },
+   {
+    "type": "Knob",
+    "name": "Decay",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Lo End",
+    "idx": "3",
+    "default": "0.0",
+    "min": "-50",
+    "max": "50"
+   },
+   {
+    "type": "Knob",
+    "name": "Hi End",
+    "idx": "4",
+    "default": "0.0",
+    "min": "-50",
+    "max": "50"
+   },
+   {
+    "type": "Switch",
+    "name": "Trail",
+    "idx": "5",
+    "default": "0",
+    "options": [
+     "On",
+     "Off"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "Clear Sky",
+  "module": "RVB",
+  "code": 201326597,
+  "mod_nib": "0x0C",
+  "idx": 5,
+  "xml_index": 8,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Mix",
+    "idx": "0",
+    "default": "30.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Decay",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Switch",
+    "name": "Trail",
+    "idx": "2",
+    "default": "0",
+    "options": [
+     "On",
+     "Off"
+    ]
+   }
+  ]
+ },
+ {
+  "name": "Shimmer",
+  "module": "RVB",
+  "code": 201326601,
+  "mod_nib": "0x0C",
+  "idx": 9,
+  "xml_index": 9,
+  "controls": [
+   {
+    "type": "Knob",
+    "name": "Mix",
+    "idx": "0",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "PreDly",
+    "idx": "1",
+    "default": "50.0",
+    "min": "0",
+    "max": "100"
+   },
+   {
+    "type": "Knob",
+    "name": "Decay",
+    "idx": "2",
+    "default": "50.0",
+    "min": "0",
+    "max": "99"
+   },
+   {
+    "type": "Knob",
+    "name": "Lo End",
+    "idx": "3",
+    "default": "0.0",
+    "min": "-50",
+    "max": "50"
+   },
+   {
+    "type": "Knob",
+    "name": "Hi End",
+    "idx": "4",
+    "default": "0.0",
+    "min": "-50",
+    "max": "50"
+   },
+   {
+    "type": "Switch",
+    "name": "Trail",
+    "idx": "5",
+    "default": "0",
+    "options": [
+     "On",
+     "Off"
+    ]
+   }
+  ]
+ }
+]

@@ -1,0 +1,4 @@
+[toolchain]
+# windows-gnu: não exige Visual Studio Build Tools (linker MinGW embutido no rustup);
+# o host não tem MSVC e o `link` do PATH é o GNU coreutils do Git Bash.
+channel = "stable-x86_64-pc-windows-gnu"

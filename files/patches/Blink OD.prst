@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<GP-100>
+  <preset_info software="1.2.0" firmware="2.1" product="GP-100" count="1" platform="WINDOWS"
+               time="1790601096304"/>
+  <presets ppBank="0" ppName="Blink OD" ppVolume="55" ppID="1" ppBPM="120"
+           ppIRNum="27" ppType="6" ppAuthor="" ppNotes="" ppTypeName="Pop">
+    <Effect effectModuleName="RVB" effectName="N-Star" effectState="1" effectCode="201326598"
+            params_0="23" x="8" y="0" params_1="44" params_2="0" params_3="0"
+            params_4="26478" params_5="20256" params_6="68" params_7="24912"
+            params_8="114" params_9="12800" params_10="0" params_11="0" params_12="0"
+            params_13="0" params_14="0"/>
+    <Effect effectModuleName="DLY" effectName="T-Echo" effectState="1" effectCode="184549387"
+            params_0="10" x="7" y="0" params_1="370" params_2="15" params_3="0"
+            params_4="0" params_5="2816" params_6="14592" params_7="0" params_8="0"
+            params_9="512" params_10="50" params_11="50" params_12="0" params_13="0"
+            params_14="0"/>
+    <Effect effectModuleName="MOD" effectName="A-Chorus" effectState="0"
+            effectCode="67108864" params_0="50" x="6" y="0" params_1="0.5"
+            params_2="50" params_3="0" params_4="0" params_5="0" params_6="256"
+            params_7="256" params_8="0" params_9="0" params_10="50" params_11="1000"
+            params_12="0" params_13="0" params_14="0"/>
+    <Effect effectModuleName="EQ" effectName="EQ 1" effectState="0" effectCode="16777269"
+            params_0="0" x="5" y="0" params_1="0" params_2="0" params_3="0"
+            params_4="0" params_5="49" params_6="0" params_7="0" params_8="0"
+            params_9="0" params_10="50" params_11="50" params_12="0" params_13="0"
+            params_14="0"/>
+    <Effect effectModuleName="CAB" effectName="Bad-KT 1x12" effectState="1"
+            effectCode="167772167" params_0="76" x="4" y="0" params_1="50"
+            params_2="0" params_3="0" params_4="0" params_5="0" params_6="25600"
+            params_7="100" params_8="0" params_9="0" params_10="50" params_11="50"
+            params_12="0" params_13="0" params_14="0"/>
+    <Effect effectModuleName="NR" effectName="Gate 1" effectState="1" effectCode="27"
+            params_0="19" x="3" y="0" params_1="50" params_2="99" params_3="0"
+            params_4="256" params_5="65280" params_6="65535" params_7="65535"
+            params_8="65535" params_9="255" params_10="50" params_11="0"
+            params_12="0" params_13="0" params_14="0"/>
+    <Effect effectModuleName="AMP" effectName="Match OD" effectState="1"
+            effectCode="117440584" params_0="15" x="2" y="0" params_1="80"
+            params_2="50" params_3="60" params_4="62" params_5="60" params_6="50"
+            params_7="65535" params_8="255" params_9="0" params_10="50" params_11="257"
+            params_12="0" params_13="0" params_14="0"/>
+    <Effect effectModuleName="DST" effectName="Green OD" effectState="0"
+            effectCode="50331648" params_0="19" x="1" y="0" params_1="75"
+            params_2="50" params_3="65535" params_4="65535" params_5="65535"
+            params_6="65535" params_7="65535" params_8="65535" params_9="65535"
+            params_10="50" params_11="50" params_12="0" params_13="0" params_14="0"/>
+    <Effect effectModuleName="PRE" effectName="COMP  " effectState="0" effectCode="0"
+            params_0="50" x="0" y="0" params_1="50" params_2="0" params_3="0"
+            params_4="0" params_5="0" params_6="0" params_7="0" params_8="0"
+            params_9="0" params_10="0" params_11="0" params_12="0" params_13="0"
+            params_14="0"/>
+    <ppCtrl c11="65535" c12="1" c13="65535" c21="65535" c22="8" c23="7"/>
+    <ppEXP1 expTarget="0" expVolume="0" expVolumeMin="0" expVolumeMax="99">
+      <ppEXP1_0 expMId="65535" expCode="524295" expIndex="0" expMin="0" expMax="99"/>
+      <ppEXP1_1 expMId="65535" expCode="524295" expIndex="0" expMin="0" expMax="99"/>
+      <ppEXP1_2 expMId="65535" expCode="524295" expIndex="0" expMin="0" expMax="99"/>
+    </ppEXP1>
+  </presets>
+</GP-100>

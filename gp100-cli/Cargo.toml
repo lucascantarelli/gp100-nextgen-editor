@@ -1,0 +1,13 @@
+[package]
+name = "gp100-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "CLI do GP-100 NextGen Editor (device mock por default; --real exige dupla confirmação)"
+
+[[bin]]
+name = "gp100-cli"
+path = "src/main.rs"
+
+[dependencies]
+gp100-core = { path = "../gp100-core" }

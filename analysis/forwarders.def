@@ -1,0 +1,160 @@
+// forwarders.c — lazy stubs included into midi_proxy.c build via #include
+// (kept as separate file only for readability; concatenated by build script)
+// Each stub resolves the real function on first call.
+
+#define STUB(ret, name, args, params) \
+    __attribute__((used)) ret WINAPI stub_##name args { \
+        static FARPROC fn = NULL; \
+        if (!fn) fn = resolve(#name); \
+        return ((ret (WINAPI*)args)fn) params; \
+    }
+
+// midi in
+STUB(MMRESULT, midiInStop, (HMIDIIN h), (h))
+STUB(MMRESULT, midiInReset, (HMIDIIN h), (h))
+STUB(MMRESULT, midiInClose, (HMIDIIN h), (h))
+STUB(MMRESULT, midiInStart, (HMIDIIN h), (h))
+STUB(MMRESULT, midiInPrepareHeader, (HMIDIIN h, LPMIDIHDR p, UINT c), (h,p,c))
+STUB(MMRESULT, midiInUnprepareHeader, (HMIDIIN h, LPMIDIHDR p, UINT c), (h,p,c))
+STUB(MMRESULT, midiInGetDevCapsA, (UINT_PTR d, LPMIDIINCAPSA p, UINT c), (d,p,c))
+STUB(MMRESULT, midiInGetDevCapsW, (UINT_PTR d, LPMIDIINCAPSW p, UINT c), (d,p,c))
+STUB(UINT, midiInGetNumDevs, (void), ())
+STUB(MMRESULT, midiInGetErrorTextA, (MMRESULT e, LPSTR t, UINT c), (e,t,c))
+STUB(MMRESULT, midiInGetErrorTextW, (MMRESULT e, LPWSTR t, UINT c), (e,t,c))
+STUB(MMRESULT, midiInMessage, (HMIDIIN h, UINT m, DWORD_PTR a, DWORD_PTR b), (h,m,a,b))
+STUB(MMRESULT, midiInOpen, (LPHMIDIIN o, UINT_PTR d, DWORD_PTR cb, DWORD_PTR i, DWORD f), (o,d,cb,i,f))
+
+// midi out
+STUB(MMRESULT, midiOutClose, (HMIDIOUT h), (h))
+STUB(MMRESULT, midiOutReset, (HMIDIOUT h), (h))
+STUB(MMRESULT, midiOutPrepareHeader, (HMIDIOUT h, LPMIDIHDR p, UINT c), (h,p,c))
+STUB(MMRESULT, midiOutUnprepareHeader, (HMIDIOUT h, LPMIDIHDR p, UINT c), (h,p,c))
+STUB(MMRESULT, midiOutGetDevCapsA, (UINT_PTR d, LPMIDIOUTCAPSA p, UINT c), (d,p,c))
+STUB(MMRESULT, midiOutGetDevCapsW, (UINT_PTR d, LPMIDIOUTCAPSW p, UINT c), (d,p,c))
+STUB(UINT, midiOutGetNumDevs, (void), ())
+STUB(MMRESULT, midiOutGetErrorTextA, (MMRESULT e, LPSTR t, UINT c), (e,t,c))
+STUB(MMRESULT, midiOutGetErrorTextW, (MMRESULT e, LPWSTR t, UINT c), (e,t,c))
+STUB(MMRESULT, midiOutMessage, (HMIDIOUT h, UINT m, DWORD_PTR a, DWORD_PTR b), (h,m,a,b))
+STUB(MMRESULT, midiOutOpen, (LPHMIDIOUT o, UINT_PTR d, DWORD_PTR cb, DWORD_PTR i, DWORD f), (o,d,cb,i,f))
+STUB(MMRESULT, midiOutGetVolume, (HMIDIOUT h, LPDWORD v), (h,v))
+STUB(MMRESULT, midiOutSetVolume, (HMIDIOUT h, DWORD v), (h,v))
+STUB(MMRESULT, midiOutCachePatches, (HMIDIOUT h, UINT p, const WORD *k, UINT f), (h,p,k,f))
+STUB(MMRESULT, midiOutCacheDrumPatches, (HMIDIOUT h, UINT p, const WORD *k, UINT f), (h,p,k,f))
+
+// stream
+STUB(MMRESULT, midiStreamOpen, (LPHMIDISTRM o, LPUINT d, DWORD c, DWORD_PTR cb, DWORD_PTR i, DWORD f), (o,d,c,cb,i,f))
+STUB(MMRESULT, midiStreamClose, (HMIDISTRM h), (h))
+STUB(MMRESULT, midiStreamOut, (HMIDISTRM h, LPMIDIHDR p, UINT c), (h,p,c))
+STUB(MMRESULT, midiStreamPause, (HMIDISTRM h), (h))
+STUB(MMRESULT, midiStreamPosition, (HMIDISTRM h, LPMMTIME p, UINT c), (h,p,c))
+STUB(MMRESULT, midiStreamProperty, (HMIDISTRM h, LPBYTE p, DWORD c), (h,p,c))
+STUB(MMRESULT, midiStreamRestart, (HMIDISTRM h), (h))
+STUB(MMRESULT, midiStreamStop, (HMIDISTRM h), (h))
+
+// legacy driver
+STUB(LRESULT, CloseDriver, (HDRVR h, LPARAM a, LPARAM b), (h,a,b))
+STUB(LRESULT, DefDriverProc, (DWORD_PTR a, HDRVR h, UINT m, LPARAM c, LPARAM d), (a,h,m,c,d))
+STUB(BOOL, DriverCallback, (DWORD_PTR a, DWORD b, HDRVR h, DWORD m, DWORD_PTR c, DWORD_PTR d, DWORD_PTR e), (a,b,h,m,c,d,e))
+STUB(HDRVR, OpenDriver, (LPCWSTR a, LPCWSTR b, LPARAM c), (a,b,c))
+STUB(LRESULT, SendDriverMessage, (HDRVR h, UINT m, LPARAM a, LPARAM b), (h,m,a,b))
+
+// aux
+STUB(UINT, auxGetNumDevs, (void), ())
+STUB(MMRESULT, auxGetDevCapsA, (UINT_PTR d, LPAUXCAPSA p, UINT c), (d,p,c))
+STUB(MMRESULT, auxGetDevCapsW, (UINT_PTR d, LPAUXCAPSW p, UINT c), (d,p,c))
+STUB(MMRESULT, auxGetVolume, (UINT d, LPDWORD v), (d,v))
+STUB(MMRESULT, auxSetVolume, (UINT d, DWORD v), (d,v))
+
+// joy
+STUB(UINT, joyGetNumDevs, (void), ())
+STUB(MMRESULT, joyGetDevCapsA, (UINT_PTR d, LPJOYCAPSA p, UINT c), (d,p,c))
+STUB(MMRESULT, joyGetDevCapsW, (UINT_PTR d, LPJOYCAPSW p, UINT c), (d,p,c))
+STUB(MMRESULT, joyGetPos, (UINT d, LPJOYINFO p), (d,p))
+STUB(MMRESULT, joyGetPosEx, (UINT d, LPJOYINFOEX p), (d,p))
+STUB(MMRESULT, joyGetThreshold, (UINT d, LPUINT t), (d,t))
+STUB(MMRESULT, joyReleaseCapture, (UINT d), (d))
+STUB(MMRESULT, joySetCapture, (HWND h, UINT d, UINT r, BOOL f), (h,d,r,f))
+STUB(MMRESULT, joySetThreshold, (UINT d, UINT t), (d,t))
+
+// mci
+STUB(BOOL, mciExecute, (LPCSTR s), (s))
+STUB(MCIDEVICEID, mciGetDeviceIDA, (LPCSTR s), (s))
+STUB(MCIDEVICEID, mciGetDeviceIDW, (LPCWSTR s), (s))
+STUB(MCIDEVICEID, mciGetCreatorTask, (MCIDEVICEID d), (d))
+STUB(BOOL, mciGetErrorStringA, (MCIERROR e, LPSTR t, UINT c), (e,t,c))
+STUB(BOOL, mciGetErrorStringW, (MCIERROR e, LPWSTR t, UINT c), (e,t,c))
+STUB(MCIERROR, mciSendCommandA, (MCIDEVICEID d, UINT m, DWORD_PTR a, DWORD_PTR b), (d,m,a,b))
+STUB(MCIERROR, mciSendCommandW, (MCIDEVICEID d, UINT m, DWORD_PTR a, DWORD_PTR b), (d,m,a,b))
+STUB(MCIERROR, mciSendStringA, (LPCSTR c, LPSTR r, UINT l, HANDLE h), (c,r,l,h))
+STUB(MCIERROR, mciSendStringW, (LPCWSTR c, LPWSTR r, UINT l, HANDLE h), (c,r,l,h))
+STUB(PROC, mciSetYieldProc, (MCIDEVICEID d, PROC p, DWORD_PTR x), (d,p,x))
+
+// mixer
+STUB(UINT, mixerGetNumDevs, (void), ())
+STUB(MMRESULT, mixerGetControlDetailsA, (HMIXER h, LPMIXERCONTROLDETAILS c, DWORD f), (h,c,f))
+STUB(MMRESULT, mixerGetControlDetailsW, (HMIXER h, LPMIXERCONTROLDETAILS c, DWORD f), (h,c,f))
+STUB(MMRESULT, mixerGetDevCapsA, (UINT_PTR d, LPMIXERCAPSA p, UINT c), (d,p,c))
+STUB(MMRESULT, mixerGetDevCapsW, (UINT_PTR d, LPMIXERCAPSW p, UINT c), (d,p,c))
+STUB(MMRESULT, mixerGetID, (HMIXER h, UINT *i, DWORD f), (h,i,f))
+STUB(MMRESULT, mixerGetLineControlsA, (HMIXER h, LPMIXERLINECONTROLSA c, DWORD f), (h,c,f))
+STUB(MMRESULT, mixerGetLineControlsW, (HMIXER h, LPMIXERLINECONTROLSW c, DWORD f), (h,c,f))
+STUB(MMRESULT, mixerGetLineInfoA, (HMIXER h, LPMIXERLINEA l, DWORD f), (h,l,f))
+STUB(MMRESULT, mixerGetLineInfoW, (HMIXER h, LPMIXERLINEW l, DWORD f), (h,l,f))
+STUB(MMRESULT, mixerMessage, (HMIXER h, UINT m, DWORD_PTR a, DWORD_PTR b), (h,m,a,b))
+STUB(MMRESULT, mixerSetControlDetails, (HMIXER h, LPMIXERCONTROLDETAILS c, DWORD f), (h,c,f))
+
+// time
+STUB(MMRESULT, timeBeginPeriod, (UINT p), (p))
+STUB(MMRESULT, timeEndPeriod, (UINT p), (p))
+STUB(MMRESULT, timeGetDevCaps, (LPTIMECAPS p, UINT c), (p,c))
+STUB(MMRESULT, timeGetSystemTime, (LPMMTIME p, UINT c), (p,c))
+STUB(DWORD, timeGetTime, (void), ())
+STUB(MMRESULT, timeKillEvent, (UINT e), (e))
+STUB(MMRESULT, timeSetEvent, (UINT d, UINT r, LPTIMECALLBACK f, DWORD_PTR u, UINT e), (d,r,f,u,e))
+
+// wave in
+STUB(MMRESULT, waveInAddBuffer, (HWAVEIN h, LPWAVEHDR p, UINT c), (h,p,c))
+STUB(MMRESULT, waveInClose, (HWAVEIN h), (h))
+STUB(MMRESULT, waveInGetDevCapsA, (UINT_PTR d, LPWAVEINCAPSA p, UINT c), (d,p,c))
+STUB(MMRESULT, waveInGetDevCapsW, (UINT_PTR d, LPWAVEINCAPSW p, UINT c), (d,p,c))
+STUB(MMRESULT, waveInGetErrorTextA, (MMRESULT e, LPSTR t, UINT c), (e,t,c))
+STUB(MMRESULT, waveInGetErrorTextW, (MMRESULT e, LPWSTR t, UINT c), (e,t,c))
+STUB(UINT, waveInGetNumDevs, (void), ())
+STUB(MMRESULT, waveInGetPosition, (HWAVEIN h, LPMMTIME p, UINT c), (h,p,c))
+STUB(MMRESULT, waveInMessage, (HWAVEIN h, UINT m, DWORD_PTR a, DWORD_PTR b), (h,m,a,b))
+STUB(MMRESULT, waveInOpen, (LPHWAVEIN o, UINT_PTR d, LPCWAVEFORMATEX f, DWORD_PTR c, DWORD_PTR i, DWORD fl), (o,d,f,c,i,fl))
+STUB(MMRESULT, waveInPrepareHeader, (HWAVEIN h, LPWAVEHDR p, UINT c), (h,p,c))
+STUB(MMRESULT, waveInReset, (HWAVEIN h), (h))
+STUB(MMRESULT, waveInStart, (HWAVEIN h), (h))
+STUB(MMRESULT, waveInStop, (HWAVEIN h), (h))
+
+// wave out
+STUB(MMRESULT, waveOutBreakLoop, (HWAVEOUT h), (h))
+STUB(MMRESULT, waveOutClose, (HWAVEOUT h), (h))
+STUB(MMRESULT, waveOutGetDevCapsA, (UINT_PTR d, LPWAVEOUTCAPSA p, UINT c), (d,p,c))
+STUB(MMRESULT, waveOutGetDevCapsW, (UINT_PTR d, LPWAVEOUTCAPSW p, UINT c), (d,p,c))
+STUB(MMRESULT, waveOutGetErrorTextA, (MMRESULT e, LPSTR t, UINT c), (e,t,c))
+STUB(MMRESULT, waveOutGetErrorTextW, (MMRESULT e, LPWSTR t, UINT c), (e,t,c))
+STUB(UINT, waveOutGetNumDevs, (void), ())
+STUB(MMRESULT, waveOutGetPitch, (HWAVEOUT h, LPDWORD p), (h,p))
+STUB(MMRESULT, waveOutGetPlaybackRate, (HWAVEOUT h, LPDWORD p), (h,p))
+STUB(MMRESULT, waveOutGetPosition, (HWAVEOUT h, LPMMTIME p, UINT c), (h,p,c))
+STUB(MMRESULT, waveOutGetVolume, (HWAVEOUT h, LPDWORD v), (h,v))
+STUB(MMRESULT, waveOutMessage, (HWAVEOUT h, UINT m, DWORD_PTR a, DWORD_PTR b), (h,m,a,b))
+STUB(MMRESULT, waveOutOpen, (LPHWAVEOUT o, UINT_PTR d, LPCWAVEFORMATEX f, DWORD_PTR c, DWORD_PTR i, DWORD fl), (o,d,f,c,i,fl))
+STUB(MMRESULT, waveOutPause, (HWAVEOUT h), (h))
+STUB(MMRESULT, waveOutPrepareHeader, (HWAVEOUT h, LPWAVEHDR p, UINT c), (h,p,c))
+STUB(MMRESULT, waveOutReset, (HWAVEOUT h), (h))
+STUB(MMRESULT, waveOutRestart, (HWAVEOUT h), (h))
+STUB(MMRESULT, waveOutSetPitch, (HWAVEOUT h, DWORD p), (h,p))
+STUB(MMRESULT, waveOutSetPlaybackRate, (HWAVEOUT h, DWORD p), (h,p))
+STUB(MMRESULT, waveOutSetVolume, (HWAVEOUT h, DWORD v), (h,v))
+STUB(MMRESULT, waveOutUnprepareHeader, (HWAVEOUT h, LPWAVEHDR p, UINT c), (h,p,c))
+STUB(MMRESULT, waveOutWrite, (HWAVEOUT h, LPWAVEHDR p, UINT c), (h,p,c))
+
+// sounds
+STUB(BOOL, PlaySound, (LPCWSTR s, HMODULE m, DWORD f), (s,m,f))
+STUB(BOOL, PlaySoundA, (LPCSTR s, HMODULE m, DWORD f), (s,m,f))
+STUB(BOOL, PlaySoundW, (LPCWSTR s, HMODULE m, DWORD f), (s,m,f))
+STUB(BOOL, sndPlaySoundA, (LPCSTR s, UINT f), (s,f))
+STUB(BOOL, sndPlaySoundW, (LPCWSTR s, UINT f), (s,f))

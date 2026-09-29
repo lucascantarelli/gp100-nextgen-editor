@@ -1,0 +1,43 @@
+# ===== Rust =====
+/target
+Cargo.lock.bak
+*.pdb
+
+# ===== Python (regenerados) =====
+.venv/
+__pycache__/
+.pytest_cache/
+
+# ===== Objetos soltos de build (legado/regeneráveis) =====
+*.o
+*.obj
+
+# ===== Gerados por build_proxy.py (regenerar: uv run python analysis/build_proxy.py)
+analysis/forwarders_impl.c
+analysis/midi_proxy_build.c
+analysis/winmm.dll
+
+# ===== Material de origem NÃO distribuído (README §7 - nota legal) =====
+# Instaladores, firmware, driver, manual, tool de debug, imagens, logs.
+# EXCEÇÕES versionadas: files/patches/*.prst (gate de regressão/round-trip M0.2)
+# e o briefing original.
+files/*
+!files/patches/
+!files/prompt_inicial.md
+
+# Extrações de instaladores/driver (não distribuir - README §7) e cópia do Suite
+analysis/nsis_app/
+analysis/suite_local/
+analysis/driver_ext/
+
+# Dumps de strings/texto DERIVADOS de material proprietário (regeneráveis
+# a partir de files/app e firmware, que ficam só locais)
+analysis/exe_strings.txt
+analysis/fw_strings.txt
+analysis/manual_streams.txt
+
+# Estado interno do cliente Freebuff
+.freebuff/
+
+# Import libraries de build (legado/regeneráveis)
+*.lib

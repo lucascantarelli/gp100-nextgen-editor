@@ -1,0 +1,9 @@
+# Normaliza finais de linha: LF no repo e no checkout (evita avisos CRLF no Windows)
+* text=auto eol=lf
+
+# Binários (sem normalizacao)
+*.bin binary
+*.wav binary
+*.png binary
+*.dll binary
+*.pdf binary

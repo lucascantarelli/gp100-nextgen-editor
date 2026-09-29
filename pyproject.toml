@@ -1,0 +1,22 @@
+[project]
+name = "gp100-tools"
+version = "1.0.0"
+description = "Ferramentas de análise/RE e validação de protocolo do GP-100 NextGen Editor (proxy, decoders, golden-file)"
+requires-python = ">=3.10"
+dependencies = [
+    "capstone>=5.0",
+    "pefile>=2023.2.7",
+    "ziglang>=0.13",
+]
+
+[dependency-groups]
+test = [
+    "pytest>=8.0",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["analysis/tests"]
+addopts = "-q"
