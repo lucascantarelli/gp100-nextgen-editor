@@ -72,12 +72,20 @@ Armadilhas já mordidas — não reabrir:
 - Tipos novos quando baratos: newtype para ids (pp, slot, página) com métodos
   de conversão BE/LE concentrados no codec (ADR-1) — espalhar conversões é bug.
 
-## Testes
+## Testes (modelo híbrido, análogo ao pytest)
 
-- Teste novo acompanha código novo (padrão de DoD das issues).
-- Vetorizados com os exemplos do golden; propriedade mínima: "gerado casa com
-  o próprio exemplo do template" (M0.3).
-- Regras de framing/endianness viram doc-tests (documentação viva).
+- **Unitários** (`#[cfg(test)] mod tests` dentro de `src/`): internals e
+  peças privadas (codec/FSM). Acesso total ao módulo.
+- **Integração/contrato** (`gp100-core/tests/<assunto>.rs`): caixa-preta,
+  só API `pub` — cada arquivo é um binário de teste; helpers em
+  `tests/common/mod.rs` (≈ conftest.py; o nome `mod.rs` evita binário).
+  Rodar um arquivo: `cargo test --test model_dictionary`.
+- **Doc-tests**: exemplos de doc-comments executáveis (documentação viva).
+- Regra de decisão: usa só API pública → `tests/`; precisa de internals →
+  `src/`. Teste novo acompanha código novo (padrão de DoD das issues).
+- Vetorizados com os exemplos do golden / fixtures do P4; propriedade
+  mínima: "gerado casa com o próprio exemplo do template" (M0.3).
+- Regras de framing/endianness viram doc-tests.
 
 ## Armadilhas deste host (ver knowledge.md)
 
