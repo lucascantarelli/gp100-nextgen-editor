@@ -113,6 +113,9 @@ pub mod preset;
 /// golden — consumidor da especificação executável (M0.3).
 pub mod golden;
 
+/// codec — codificação do fio: nibble + helpers semânticos (M0.4).
+pub mod codec;
+
 #[cfg(test)]
 mod tests {
     use super::*;
