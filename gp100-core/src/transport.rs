@@ -49,6 +49,20 @@ pub enum TransportError {
         why: String,
     },
 
+    /// O device SUMIU no meio da sessão (desconexão física: USB removido,
+    /// driver reportou erro definitivo). Distinto de [`SendFailed`]
+    /// (transitório) — a FSM/H1 decide diferente para cada um.
+    /// SEMÂNTICA DE RECONECTA (decisão pré-M0.5): após `DeviceGone` o
+    /// transporte fica no estado FECHADO; chamar [`open`](DeviceTransport::open)
+    /// de novo no MESMO objeto reconecta (o handle WinMM/midir é reaberto;
+    /// não é preciso recriar o transporte). Já `open()` com o device
+    /// fisicamente AUSENTE é [`OpenFailed`] (device ausente), não este erro.
+    #[error("device sumiu no meio da sessão: {why}")]
+    DeviceGone {
+        /// Detalhe humano do motivo (código do SO/driver).
+        why: String,
+    },
+
     /// Nenhuma mensagem chegou dentro da janela pedida. A JANELA é da
     /// chamada (ADR-3 usa 3s por transação na FSM); aqui só reportamos.
     #[error("recepção excedeu {timeout_ms} ms")]
@@ -70,7 +84,10 @@ pub enum TransportError {
 ///   é [`TransportError::Closed`] (nunca panic).
 ///
 /// O ciclo de vida é do CHAMADOR (ADR-4/ADR-6: `Session::new` NÃO abre; o
-/// CLI/UI decide quando ligar e desligar o device).
+/// CLI/UI decide quando ligar e desligar o device). Desconexão física no
+/// meio da sessão = [`TransportError::DeviceGone`]; `open()` de novo no
+/// mesmo objeto RECONECTA (decisão pré-M0.5, testada em
+/// `tests/transport_trait.rs`).
 pub trait DeviceTransport {
     /// Abre o device para transação.
     ///

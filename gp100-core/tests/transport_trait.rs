@@ -10,8 +10,10 @@ use gp100_core::{SYSEX_EOX, SYSEX_HEADER};
 
 /// Implementador EXTERNO mínimo (loopback): prova que a trait é pública,
 /// object-safe e suficiente — nada de internals do crate é necessário.
+/// O `plugged` simula o device físico (desconexão no meio da sessão).
 struct LoopbackTransport {
     opened: bool,
+    plugged: bool,
     inbox: Vec<Vec<u8>>,
 }
 
@@ -19,13 +21,29 @@ impl LoopbackTransport {
     fn new(pre: Vec<Vec<u8>>) -> Self {
         Self {
             opened: false,
+            plugged: true,
             inbox: pre,
         }
+    }
+
+    /// Simula desconexão física (remoção do USB) SEM fechar o transporte.
+    fn unplug(&mut self) {
+        self.plugged = false;
+    }
+
+    /// Simula o retorno do device físico.
+    fn plug(&mut self) {
+        self.plugged = true;
     }
 }
 
 impl DeviceTransport for LoopbackTransport {
     fn open(&mut self) -> Result<(), TransportError> {
+        if !self.plugged {
+            return Err(TransportError::OpenFailed {
+                why: "device ausente".into(),
+            });
+        }
         self.opened = true;
         Ok(())
     }
@@ -42,6 +60,11 @@ impl DeviceTransport for LoopbackTransport {
         if !self.opened {
             return Err(TransportError::Closed);
         }
+        if !self.plugged {
+            return Err(TransportError::DeviceGone {
+                why: "midiOutLongMsg: device removido".into(),
+            });
+        }
         // loopback: ecoa de volta (o mock real responderia via golden)
         self.inbox.push(data.to_vec());
         Ok(())
@@ -50,6 +73,11 @@ impl DeviceTransport for LoopbackTransport {
     fn recv_raw(&mut self, timeout: Duration) -> Result<Vec<u8>, TransportError> {
         if !self.opened {
             return Err(TransportError::Closed);
+        }
+        if !self.plugged {
+            return Err(TransportError::DeviceGone {
+                why: "midiIn sem device".into(),
+            });
         }
         if self.inbox.is_empty() {
             return Err(TransportError::RecvTimeout {
@@ -112,4 +140,45 @@ fn trait_e_object_safe_para_dyn() {
     t.open().expect("abre via dyn");
     assert!(t.send_raw(&envelope()).is_ok());
     assert!(t.recv_raw(Duration::from_millis(100)).is_ok());
+}
+
+/// Desconexão física NO MEIO da sessão = `DeviceGone` (não `Closed`, não
+/// `SendFailed`); o mesmo objeto RECONECTA com `open()` (decisão pré-M0.5).
+#[test]
+fn device_gone_durante_sessao_e_reconexao_no_mesmo_objeto() {
+    let mut t = LoopbackTransport::new(vec![]);
+    t.open().expect("abre");
+    t.send_raw(&envelope()).expect("envia com device presente");
+
+    // usuário desconecta a pedal: próxima operação detecta DeviceGone
+    t.unplug();
+    assert!(matches!(
+        t.send_raw(&envelope()),
+        Err(TransportError::DeviceGone { .. })
+    ));
+    assert!(matches!(
+        t.recv_raw(Duration::from_millis(10)),
+        Err(TransportError::DeviceGone { .. })
+    ));
+
+    // SEM fechar/sem recriar: device volta, open() reconecta
+    t.plug();
+    t.open().expect("reconecta no MESMO objeto");
+    t.send_raw(&envelope()).expect("envia pós-reconexão");
+    assert_eq!(
+        t.recv_raw(Duration::from_millis(100)).expect("eco"),
+        envelope()
+    );
+}
+
+/// `open()` com o device fisicamente AUSENTE é `OpenFailed` (não
+/// `DeviceGone` — que só ocorre no MEIO de uma sessão aberta).
+#[test]
+fn open_sem_device_e_open_failed() {
+    let mut t = LoopbackTransport::new(vec![]);
+    t.unplug();
+    match t.open() {
+        Err(TransportError::OpenFailed { why }) => assert!(why.contains("ausente")),
+        other => panic!("esperava OpenFailed, veio {other:?}"),
+    }
 }
