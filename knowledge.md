@@ -13,9 +13,16 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
   Suite/app (S2: precedidos de 61 requests OUT; S4: cópia espontânea +11,4s
   após o save, janela com 0 OUT). §13.12 CORRIGIDO; D3 do ADR-6 agora
   DEFINITIVA (save fire-and-forget; ciclo de ops = S4: op0 ×2 [0;+578ms] →
-  op1 ×2 [+593ms]; fim dos writes = commit). PENDÊNCIA: os 32 ACKs tardios
-  `12001002` (idx 0x208..0x226, +11s após os 592 na S2) não têm explicação —
-  investigar se reaparecerem. Fase slice ≠ operação (IR ACKs na fatia S2).
+  op1 ×2 [+593ms]; fim dos writes = commit). QUIRK FECHADO (§13.7): os 32
+  ACKs tardios `12001002` da S2 (slot 1, idx 0x208..0x226, últimas msgs do
+  log, 0 OUT na janela) = burst de FIM DE SESSÃO como o da S4
+  (`11000008`+`12000001`) — flush do ring do proxy no close (hipótese
+  principal); não é resposta de save nem retransmissão; FSM não modela (D7).
+  §13.7 também corrigido: o frame 0x226 duplicado NÃO é `0F`×15 — payload é
+  a cauda REAL do blob; marcador de fim = a duplicação. GAPS menores: op
+  `00020000` BE confirmado contra fixture (`00010000` = 1), mas `op_payload`
+  ainda SEM teste (M0.6 replay cobre); S2 índices de chunk em páginas
+  intercaladas 0-127/256-383/512-550 (dois slots × páginas alternadas).
 - ADR-6 ✅ ACEITO (29/09, rev.3): `docs/DECISIONS.md` — assinaturas da FSM
   `Session<T: DeviceTransport>` (boot/scan_state/set_param/save_preset/
   upload_ir/list_user_irs) + regras D1–D8 (D3 definitiva: save fire-and-forget

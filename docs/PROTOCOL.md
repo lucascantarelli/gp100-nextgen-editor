@@ -373,7 +373,10 @@ Timeline da captura: 2 bursts idênticos de 5s (import mono @85-90s, estéreo
      (0-127, 256-383, 512-…) — as "lacunas" de índice são fronteira de página,
      NÃO perda
    - ACK por chunk: GP→PC `12 12 00 10 02 [slot] [idx] 01` (18B)
-   - último chunk (idx 550) = marcador de fim `0F`×15, enviado 2×
+   - último chunk (idx 550 = 0x226) é enviado 2× — o marcador de fim é a
+     DUPLICAÇÃO; CORREÇÃO 29/09: o payload NÃO é `0F`×15, é a cauda REAL do
+     blob (slot0 colapsa `b0 b0 10 20 f0 …`, slot1 `00 0a 07 06 0f …`);
+     blob = 295 chunks únicos × 15B = 4.425B
 3. `12 10 05 00 01 | 00 [slot] 00 00 01 00 00 0a` — BEGIN/reserva do slot, **8B
    cru** (correção v2 da ordem: pelo timestamp, este write vem ANTES do burst de
    chunks — é a reserva do slot de IR; o fim do upload é o último chunk `0F`×15
@@ -399,6 +402,18 @@ os samples de magnitude normal comprovam int24/int32 LE nativo.
 ARQUIVO (sessão/export), não do fio. Próximo passo: exportar biblioteca/
 preset para disco pelo próprio Suite e varrer o arquivo local (não precisa
 de hardware).
+
+**QUIRK FECHADO (29/09) — os 32 ACKs tardios da S2:** as ÚLTIMAS mensagens do
+log S2 são ACKs `12001002` de slot 1, idx `0x208..0x226` (+dup), chegando em
++159,1s — 26,5s após o fim do upload e 9,5s após o meta write, com ZERO OUT
+na janela inteira. Mesmo padrão de FIM DE SESSÃO na S4 (33 msgs IN
+`11000008`+`12000001`, últimas do log, +10,8s pós-ops, 0 OUT — ver §13.12).
+Ambas as sessões encerram com um burst IN espontâneo. Hipótese principal:
+flush dos buffers MIM_LONGDATA do proxy no fechamento do Suite (a cauda do
+ring é entregue no close/reset do midiIn); alternativa: eco de commit de
+flash do device. EM QUALQUER CASO: não é resposta do save (D3 do ADR-6
+mantida), não é retransmissão do upload, e a FSM NÃO modela — o backlog D7
+absorve; o MockDevice não emite.
 
 ### 13.8 CAÇADA AO 0x817 — RESOLVIDA (sem hardware)
 
@@ -616,7 +631,10 @@ NENHUM request (janela com 0 OUT) — push espontâneo do device/app; (3) a
 sequência de ops não é única (S4: 0,0→1,1; S2: só 0,0) — a FSM usa a da S4
 (única com meta+ops no mesmo evento) e o H1 revalida; (4) a cópia pós-save
 da S4 mostra o device repassando a tabela de slots user sozinho — o IN
-verificável "salvou?" será preciso vir de `list_user_irs`/display (H2).
+verificável "salvou?" será preciso vir de `list_user_irs`/display (H2);
+(5) AMBAS as sessões ENCERRAM com burst IN espontâneo (S2: 32 ACKs
+`12001002` idx `0x208..0x226`; S4: `11000008`+`12000001`) — quirk FECHADO
+no §13.7: flush de fim de sessão do ring do proxy (hipótese principal).
 
 **O que NÃO apareceu no save (importante):** nenhum download/write 13xx,
 nenhum endereço de destino de slot explícito, nenhuma confirmação de
