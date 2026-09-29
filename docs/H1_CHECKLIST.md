@@ -27,9 +27,10 @@ fluxo R3"*.
 - [x] **M0.7 ✅** — `gp100-cli` com `info`, `list-user-irs`, `dump-preset <pp>`
       **+ `--log` já no schema P4** (entregue na própria M0.7 — requisito
       antecipado; issue M0.7)
-- [ ] **Transporte real feature-gated** — `RealDevice` (USB-MIDI; VID_84EF / PID_0021)
-      atrás da feature `real-device` (default OFF); a CLI só aceita `--real` com
-      `--i-know-what-im-doing` (guard já existe no esqueleto — P2)
+- [x] **Transporte real feature-gated** ✅ (29/09) — `RealDevice` (midir/WinMM;
+      porta por nome "gp-100") atrás da feature `real-device` (default OFF);
+      binário de campo: `cargo build --release -p gp100-cli --features real-device`;
+      `--real` exige `--i-know-what-im-doing` (testado nas duas camadas)
 - [ ] **Log de fio no CLI** — `--log <arquivo>` grava TODOS os frames (OUT e IN)
       no MESMO schema das fixtures P4 (`{"s","dir","func","addr","data"}` em hex):
       reusa `decode_wire.py` e o replay sem adaptar nada. Decidir o nome da flag

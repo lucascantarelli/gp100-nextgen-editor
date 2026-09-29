@@ -6,6 +6,13 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
 (local, sem depender de hardware para ~95% do trabalho). Resposta ao usuário SEMPRE em PT-BR.
 
 ## Estado vivo (atualizar aqui a cada marco)
+- 29/09 — RealDevice ✅ (H1 pronto em software): `gp100-core/src/transport/real.rs`
+  (midir 0.9/WinMM, feature `real-device` via dep:midir; callback→fila
+  compartilhada, trim no 1º F7 na entrada, despacho de porta por nome
+  "gp-100", SysEx completo num send, reconexão ADR-4; Box<dyn> transport).
+  CLI: `--real` = dupla confirmação + feature (2 camadas testadas); build de
+  campo `cargo build --release -p gp100-cli --features real-device` (smoke:
+  sem device = OpenFailed limpo). Falta SÓ a pedaleira (H1_CHECKLIST).
 - 29/09 — KIT DE CAMPO DO H1 PRONTO: build release do CLI + referências do mock
   (`analysis/h1_reference/`, -text) + runbook `scripts/h1_field.sh rehearsal|field`
   (ensaio executado: 0 divergências de framing) + `docs/H1_REPORT.md` (template

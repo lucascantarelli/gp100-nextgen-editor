@@ -252,6 +252,12 @@
 
 ## FASE H — GATE DE HARDWARE (só após M0 100% — ✅ **M0 FECHADA 29/09**)
 
+> **Pré-requisito de software do H1 FECHADO (29/09):** `RealDevice` implementado
+> (`transport/real.rs`, midir/WinMM, feature `real-device` default OFF) e o CLI
+> de campo compila com `--features real-device` — `--real` abre o device com
+> dupla confirmação; escrita segue bloqueada (H2/WRITE_VERIFIED). Falta só a
+> pedaleira + owner (roteiro: `docs/H1_CHECKLIST.md`; kit: `scripts/h1_field.sh`).
+
 > ⚠️ **Paralelismo:** a **FASE M1 (Editor UI) pode começar em paralelo** — ela
 > roda contra o MOCK (política de hardware, ADR-4/ADR-5). O modo real da UI/CLI
 > só existe após H1/H2. O planejamento issue-a-issue da M1 está em
