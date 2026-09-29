@@ -95,15 +95,57 @@ em 29/09: golden e .prst).
 
 ## Testes (modelo híbrido, análogo ao pytest)
 
+### Regra de organização (EXPLÍCITA — a pergunta que sempre volta)
+
+**É correto — e esperado — existir teste dentro de `src/`.** Não é dívida
+nem inconsistência a "limpar". A divisão obrigatória:
+
+1. **Unitários → `#[cfg(test)] mod tests` DENTRO do módulo em `src/`**:
+   servem para internals e peças privadas. Um `tests/x.rs` compila como
+   crate EXTERNO e só enxerga o que é `pub` — internals são INVISÍVEIS de
+   lá; testá-los fora exigiria torná-los pub (piora a API). `#[cfg(test)]`
+   não entra no build de release (zero custo) e a CI cobre os dois lados
+   no mesmo `cargo test`.
+2. **Contratos → `gp100-core/tests/<assunto>.rs`** (caixa-preta, só API
+   `pub`): provam comportamento contra EVIDÊNCIA de campo — golden,
+   fixtures P4, round-trip R4. Cada arquivo é um binário de teste; helpers
+   em `tests/common/mod.rs` (≈ conftest.py; o nome `mod.rs` evita binário).
+   Rodar um: `cargo test --test codec_wire`.
+3. **Regra de decisão:** usa só API pública → `tests/`; precisa de
+   internals → `src/`. NÃO mover unitário para `tests/` "por organização":
+   perde o acesso sem ganhar nada. Teste novo acompanha código novo
+   (padrão de DoD das issues).
+
+### Exemplo vivo (M0.4 — codec de fio)
+
 ```text
 gp100-core/
-├── src/                        # código + testes UNITÁRIOS (internals)
-│   └── lib.rs                  #    #[cfg(test)] mod tests { ... }
-└── tests/                      # testes de CONTRATO (caixa-preta, só API pub)
+├── src/
+│   ├── lib.rs                  # SEM unitários: consts/erros/envelope — os 3
+│   │                           #   do P2 migraram p/ tests/wire_envelope.rs
+│   └── codec.rs                # 7 unitários #[cfg(test)]: primitivas
+│                               #   nibble strict, rejeição de slot,
+│                               #   vetores mínimos (Bog RedM @ 15.0)
+│                               #   — usam internals (addr4, name_field,
+│                               #   envelope), invisíveis de tests/
+└── tests/                      # caixa-preta, só API pub
     ├── common/
     │   └── mod.rs              #    ≈ conftest.py (mod.rs evita binário)
-    └── model_dictionary.rs     #    ≈ tests/test_model_dictionary.py
+    ├── codec_wire.rs           # 4 contratos vs fixtures P4 BYTE A BYTE:
+    │                           #   92 knobs + 2 saves + 1186 frames IR
+    ├── golden_consumer.rs
+    ├── model_dictionary.rs     #    ≈ tests/test_model_dictionary.py
+    ├── roundtrip_prst.rs
+    └── wire_envelope.rs        # envelope §13.1 (ex-unitários do lib.rs)
 ```
+
+- A prova PESADA contra fixture é SEMPRE contrato em `tests/` (arquivo
+  lido do repo via `CARGO_MANIFEST_DIR` → raiz; regime de bytes).
+- Dentro de `src/` fica só o vetor MÍNIMO que documenta a regra local do
+  módulo — se um unitário precisa da fixture inteira, é sinal de que é
+  contrato e deve migrar para `tests/`.
+
+### Mapa pytest → Rust
 
 | pytest | Rust |
 |---|---|
@@ -113,18 +155,10 @@ gp100-core/
 | acesso a internals | só no `#[cfg(test)] mod tests` dentro de `src/` |
 | `@pytest.mark.parametrize` | `#[test]` + loop (ou crate `rstest`) |
 
-- **Unitários** (`#[cfg(test)] mod tests` dentro de `src/`): internals e
-  peças privadas (codec/FSM). Acesso total ao módulo.
-- **Integração/contrato** (`gp100-core/tests/<assunto>.rs`): caixa-preta,
-  só API `pub` — cada arquivo é um binário de teste; helpers em
-  `tests/common/mod.rs` (≈ conftest.py; o nome `mod.rs` evita binário).
-  Rodar um arquivo: `cargo test --test model_dictionary`.
-- **Doc-tests**: exemplos de doc-comments executáveis (documentação viva).
-- Regra de decisão: usa só API pública → `tests/`; precisa de internals →
-  `src/`. Teste novo acompanha código novo (padrão de DoD das issues).
+- **Doc-tests**: exemplos de doc-comments executáveis (documentação viva);
+  regras de framing/endianness viram doc-tests.
 - Vetorizados com os exemplos do golden / fixtures do P4; propriedade
   mínima: "gerado casa com o próprio exemplo do template" (M0.3).
-- Regras de framing/endianness viram doc-tests.
 
 ## Armadilhas deste host (ver knowledge.md)
 
