@@ -193,6 +193,11 @@
 
 ### M0.6 FSM de sessão + testes de replay
 - **Responsável:** skill `core-dev` + `protocol-validate` no fim · Depende: M0.5, P4 · **Estimativa:** 4h
+- **Progresso pré-issue (29/09):** esqueleto PRONTO e CI verde —
+  `gp100-core/src/session.rs` com as assinaturas D1–D8 do ADR-6 rev.3
+  compilando (corpos `todo!("M0.6: …")` explícitos; tipos de saída mínimos;
+  ciclo de vida do chamador) + 2 contratos em `tests/session_skeleton.rs`.
+  Resta: corpos (D1–D8: match_response, backlog D7) + replay das fixtures.
 - **O quê:** `Session::{boot, scan_state, set_param, save_preset, upload_ir,
   list_user_irs}` — assinaturas e regras de dispatch D1–D8 TRAVADAS no ADR-6
   rev.3 (aceito 29/09, `docs/DECISIONS.md`); testes de replay: cada fixture de

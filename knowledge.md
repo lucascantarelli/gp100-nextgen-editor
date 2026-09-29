@@ -6,6 +6,13 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
 (local, sem depender de hardware para ~95% do trabalho). Resposta ao usuário SEMPRE em PT-BR.
 
 ## Estado vivo (atualizar aqui a cada marco)
+- Esqueleto do session PRONTO (29/09, pré-M0.6): `gp100-core/src/session.rs` —
+  assinaturas do ADR-6 rev.3 COMPILANDO com corpos `todo!("M0.6: …")`
+  explícitos (os 7 métodos da FSM panicam apontando a issue; contrato em
+  `tests/session_skeleton.rs` prova Session sobre transporte EXTERNO e
+  placeholders não-silenciosos). Tipos de saída MÍNIMOS (BootReport,
+  StatePage opaca, UserIrTable, IrUploadReport). M0.6 restante = corpos
+  (D1–D8: match_response, backlog D7) + replay byte-a-byte das fixtures.
 - Esqueleto do transport PRONTO (29/09, pré-M0.5): `gp100-core/src/transport.rs` —
   trait `DeviceTransport` verbatim do ADR-4 (open/close/send_raw/recv_raw;
   bytes crus, sync/bloqueante, ciclo de vida do CHAMADOR) + `TransportError`
