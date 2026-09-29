@@ -371,16 +371,25 @@ Timeline da captura: 2 bursts idênticos de 5s (import mono @85-90s, estéreo
    - cada BYTE do payload carrega UM NIBBLE (pares de nibbles = byte real)
    - 30 nibbles/msg = **15 bytes reais**; idx conta CHUNKS em páginas de 128
      (0-127, 256-383, 512-…) — as "lacunas" de índice são fronteira de página,
-     NÃO perda
+     NÃO perda. RAZÃO PROVÁVEL DOS GAPS (achado M0.5, 29/09, evidência:
+     replay dos chunks no gp100-core): os bytes de idx viajam CRUS no
+     payload e `idx_hi/idx_lo` na faixa 128–255 geraria um byte `F7`
+     cru no meio do SysEx — que trunca a mensagem (regra do trim no 1º
+     F7). Com páginas de 128 (base = página×256), o byte ALTO de idx só
+     assume 0x00/0x01/0x02 e o BAIXO fica contido em 0x00–0x7F — F7 é
+     IMPOSSÍVEL nos dois bytes do índice (se idx fosse contínuo,
+     0x00F7/0x01F7/0x02F7 existiriam: o replay do M0.5 bateu exatamente
+     no 0x00F7 = chunk 247 contínuo).
    - ACK por chunk: GP→PC `12 12 00 10 02 [slot] [idx] 01` (18B)
-   - último chunk (idx 550 = 0x226) é enviado 2× — o marcador de fim é a
-     DUPLICAÇÃO; CORREÇÃO 29/09: o payload NÃO é `0F`×15, é a cauda REAL do
-     blob (slot0 colapsa `b0 b0 10 20 f0 …`, slot1 `00 0a 07 06 0f …`);
+   - último chunk DA ÚLTIMA PÁGINA (idx 0x226 = 550 = 512+38; 295 = 128
+     +128+39) é enviado 2× — o marcador de fim é a DUPLICAÇÃO; CORREÇÃO
+     29/09: o payload NÃO é `0F`×15, é a cauda REAL do blob (slot0
+     colapsa `b0 b0 10 20 f0 …`, slot1 `00 0a 07 06 0f …`);
      blob = 295 chunks únicos × 15B = 4.425B
 3. `12 10 05 00 01 | 00 [slot] 00 00 01 00 00 0a` — BEGIN/reserva do slot, **8B
    cru** (correção v2 da ordem: pelo timestamp, este write vem ANTES do burst de
-   chunks — é a reserva do slot de IR; o fim do upload é o último chunk `0F`×15
-   duplicado, sem commit no fio); slot = u8 do IR de destino (`00 …` slot 0,
+   chunks — é a reserva do slot de IR; o fim do upload é a duplicação do
+   último chunk, sem commit no fio); slot = u8 do IR de destino (`00 …` slot 0,
    `00 01 …` slot 1)
 
 **Blob de IR no device (4.425B = 295 chunks × 15B):**
@@ -529,10 +538,31 @@ F7` — não precisa abrir o bloco 13xx nem conhecer offsets de página. As
 páginas `13 01 00 03` continuam necessárias para LER o estado completo
 e para o ciclo de save (sessão 4, item 11 do BLOCKERS).
 
+**Golden congela os templates de set_param POR INSTÂNCIA (achado M0.5,
+29/09 — evidência: dump dos 40 templates do golden):** o endpoint
+`12/10xx0002` tem 9 templates (t24, t32–t39), um por knob capturado, e o
+`request_payload` de cada um carrega as CONSTS do knob específico (ex.:
+t32 = `mixed(c15+v5)` com const `060e0000…` = Bog RedM LE). Consequências:
+(1) um knob NOVO não casa em nenhum template — quem valida o SHAPE
+`[code u32 LE][ctrl][00][f32 LE]` é o CODEC (`set_param_parse`, provado
+byte a byte nos 92 knobs da P4); o golden descreve as INSTÂNCIAS
+observadas, não a gramática do endereço; (2) o MockDevice (M0.5) valida
+set_param pelo codec, e só por templates para os demais endereços.
+
 ### 13.12 Registro de objetos 11xx/12xx + fluxo de save (sessões 1–4)
 
 Além do bloco 13xx (estado de preset) e do 10xx0002 (set de parâmetro), o
 Suite usa endereços de "registro de objetos":
+
+**Estrutura do .prst (achado M0.5, 29/09 — evidência: regex sobre
+all.prst + parse do preset.rs):** o container `<ppIRInfo>` com as 20
+tags `<ppIRInfo0..19>` (cada uma com ppIRNum/ppIRName/ppIRCRC) é filho
+DA RAIZ `<GP>` — irmão de `<preset_info>` e dos `<preset>`, NÃO está
+dentro de preset_info nem de um preset. Além disso, `ppIRNum` é o
+ÍNDICE GLOBAL do IR no device (ex.: 168820736+), NÃO o slot 0..19 —
+quem define o slot é a posição da tag (`ppIRInfo0` = slot 0). No
+gp100-core, `MockState::load` lê os CRCs de fábrica por posição da
+tag (código em `transport/mock.rs`).
 
 **Leituras de boot (t<15s em TODAS as sessões):**
 ```
