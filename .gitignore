@@ -41,3 +41,9 @@ analysis/manual_streams.txt
 
 # Import libraries de build (legado/regeneráveis)
 *.lib
+
+# Kit de campo H1: ensaios e saídas de campo são DESCARTÁVEIS (o que preserva
+# evidência é analysis/captures/sessionH1.jsonl + docs/H1_REPORT.md; as
+# referências do mock ficam em analysis/h1_reference/ — versionadas)
+analysis/h1_rehearsal_*/
+analysis/h1_field_*/

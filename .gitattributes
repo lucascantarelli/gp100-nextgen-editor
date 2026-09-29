@@ -26,6 +26,10 @@ files/patches/*.prst -text
 analysis/captures/*.jsonl -text
 # Classe 4 — fixtures de replay (comparação byte-a-byte no M0.6):
 analysis/fixtures/*.jsonl -text
+# Classe 5 — kit de campo do gate H1: referências do mock (framing é a prova)
+# e logs de sessão de campo (evidência append-only, fluxo R3):
+analysis/h1_reference/* -text
+analysis/h1_*/**/*.jsonl -text
 #
 # NÃO entra aqui: produto editável/regenerável (docs *.md, scripts, knob_map,
 # parameters.json — identidade semântica, não byte).

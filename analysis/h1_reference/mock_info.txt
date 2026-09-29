@@ -1,0 +1,6 @@
+device : MockDevice (default — política ADR-4/ADR-5)
+presets: 99
+pp     : 0x0000
+nome   : It's GP100
+tipo   : 4
+IRs    : 20/20 slots com CRC de fábrica
