@@ -52,7 +52,7 @@ jobs:
       # fmt/clippy do runner ficam na toolchain msvc dele e o pin do
       # rust-toolchain.toml delega para a gnu — que precisa dos dois.
       - name: Instalar toolchain Rust pinada (windows-gnu)
-        run: rustup toolchain install stable-x86_64-pc-windows-gnu --no-self-update --component rustfmt clippy
+        run: rustup toolchain install stable-x86_64-pc-windows-gnu --no-self-update --component rustfmt --component clippy
 
       - name: Cache do cargo (registry + target)
         uses: Swatinem/rust-cache@v2
