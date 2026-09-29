@@ -6,6 +6,18 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
 (local, sem depender de hardware para ~95% do trabalho). Resposta ao usuário SEMPRE em PT-BR.
 
 ## Estado vivo (atualizar aqui a cada marco)
+- M0.5 ✅ (29/09): `gp100-core/src/transport/mock.rs` — MockDevice respondendo
+  CONFORME O GOLDEN (despacho `match_request`, respostas via
+  `Template::build_response` — API nova com simetria provada nos 15 exemplos
+  IN; D5 das respostas). Estado = all.prst (99 presets; **ppIRInfo é container
+  NA RAIZ <GP>**, irmão de preset_info; ppIRNum = índice global, NÃO slot) +
+  dicionário. D1–D8: fila FIFO global, ACK por chunk, fire-and-forget (sem
+  resync pós-save), queue_push p/ push intercalado (D7), DeviceGone+reconexão.
+  ACHADOS: golden congela set_param POR INSTÂNCIA (9 templates 10xx0002 com
+  consts de knobs) → o SHAPE §13.11 é validado pelo CODEC no mock; meta6 (t6)
+  é const; scan 1302 não abre com pp; by-len decide pelo endereço da
+  RESPOSTA (t8 lê 13010004 e responde em 13010003); índices de chunk IR
+  NUNCA caem em 128-255 (F7 cru no idx — a razão provável dos gaps).
 - Esqueleto do session PRONTO (29/09, pré-M0.6): `gp100-core/src/session.rs` —
   assinaturas do ADR-6 rev.3 COMPILANDO com corpos `todo!("M0.6: …")`
   explícitos (os 7 métodos da FSM panicam apontando a issue; contrato em

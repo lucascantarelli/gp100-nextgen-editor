@@ -175,7 +175,7 @@
   quirk de re-leitura, salto de página) = M0.6. 6 unit + 4 contratos;
   fmt/clippy -D warnings/testes/CI verdes (commit 6422cd1).
 
-### M0.5 Transporte + mock device
+### M0.5 Transporte + mock device — ✅ FEITO 29/09
 - **Responsável:** skill `core-dev` (mock) · Depende: M0.4, P5 · **Estimativa:** 4–6h
 - **Progresso pré-issue (29/09):** esqueleto PRONTO e CI verde —
   `gp100-core/src/transport.rs` com a trait `DeviceTransport` (ADR-4
@@ -188,8 +188,16 @@
   (boot: tabelas/scan §13.10; página de estado; ACK de chunk; SEM resync pós-save
   — D3 do ADR-6: save é fire-and-forget; burst de fim de sessão não é emitido);
   `RealDevice` (midir/WinMM/ALSA) **atrás de feature** e desabilitado por default.
-- **DoD:** diálogo completo mock↔codec numa sessão sintética: boot → scan 198 pp →
+- **DoD:** ✅ diálogo completo mock↔codec numa sessão sintética: boot → scan 198 pp →
   set param → save → upload IR 2 slots, sem timeouts.
+  `transport/mock.rs`: estado derivado de `all.prst` (99 presets, 20 ppIRCRC de
+  fábrica do container `<ppIRInfo>` RAIZ — achado M0.5) + dicionário; despacho por
+  `match_request` (D5); respostas via **`Template::build_response`** (API nova,
+  simetria provada nos 15 exemplos IN); ACK por chunk; fire-and-forget (D3);
+  `queue_push` p/ push intercalado (D7/D8). **Achados:** golden congela
+  `set_param` por instância (9 templates 10xx0002) → shape validado pelo CODEC;
+  meta6 (t6) é const (pp não entra); scan 1302 não abre com pp; by-len decide pelo
+  endereço da RESPOSTA. `RealDevice` fica p/ pós-H (feature `real-device`).
 
 ### M0.6 FSM de sessão + testes de replay
 - **Responsável:** skill `core-dev` + `protocol-validate` no fim · Depende: M0.5, P4 · **Estimativa:** 4h

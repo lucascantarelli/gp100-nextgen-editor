@@ -4,7 +4,7 @@
 > fonte de verdade de cada assunto. Mantenha-o atualizado a cada novo documento
 > ou mudança de status — é o contrato de navegação entre agentes e humanos.
 
-**Última revisão:** 2026-09-29 (auditoria de skills; M0.1–M0.4 ✅; ADR-1..6 aceitos; §13.7/13.12 re-derivados; esqueletos do transport e session)
+**Última revisão:** 2026-09-29 (auditoria de skills; M0.1–M0.5 ✅; ADR-1..6 aceitos; §13.7/13.12 re-derivados; esqueleto do session)
 
 ---
 

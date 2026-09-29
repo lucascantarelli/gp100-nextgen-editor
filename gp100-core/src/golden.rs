@@ -455,6 +455,82 @@ impl Template {
     pub fn matches_response<'a>(&self, data: &'a [u8]) -> Option<Vec<&'a [u8]>> {
         self.response_payload.as_ref()?.extract_vars(data)
     }
+
+    /// Monta o SysEx COMPLETO da RESPOSTA (lado IN) — o simétrico de
+    /// [`Template::build_request`], consumido pelo `MockDevice` (M0.5):
+    /// o mock responde pela SPEC, nunca por hex hardcode.
+    ///
+    /// `fill(idx, count)` devolve os bytes do `idx`-ésimo segmento `var`
+    /// (com `count` bytes); `desired_len` escolhe o sub-padrão em respostas
+    /// `by-len` (ex.: ACK 4B × tabela 75B em `12001002`) — obrigatório
+    /// nesse caso.
+    ///
+    /// # Erros
+    /// [`ProtocolError::InvalidShape`] se o template não tem lado IN, o
+    /// padrão não tem segmentos (`empty`), `by-len` sem `desired_len` (ou
+    /// len inexistente), `fill` devolve tamanho errado, ou hex de
+    /// func/addr inválido.
+    pub fn build_response(
+        &self,
+        fill: &mut dyn FnMut(usize, usize) -> Vec<u8>,
+        desired_len: Option<usize>,
+    ) -> Result<Vec<u8>, ProtocolError> {
+        let pat = self.response_payload.as_ref().ok_or_else(|| {
+            shape(
+                "template com resposta (req/push)",
+                format!("tipo '{}' sem response_payload", self.template_type),
+            )
+        })?;
+        let chosen = match pat.pattern_kind {
+            PatternKind::ByLen => {
+                let len = desired_len.ok_or_else(|| {
+                    shape(
+                        "desired_len em resposta by-len",
+                        format!("lens disponíveis: {:?}", pat.lens),
+                    )
+                })?;
+                pat.by_len
+                    .get(&len.to_string())
+                    .ok_or_else(|| shape("len de sub-padrão by-len", format!("{len}")))?
+            }
+            _ => pat,
+        };
+        if matches!(chosen.pattern_kind, PatternKind::Empty) {
+            return Err(shape("resposta com payload", "padrão empty (0 bytes)"));
+        }
+        let mut data = Vec::with_capacity(chosen.expected_len().unwrap_or(0));
+        let mut var_idx = 0usize;
+        for s in &chosen.segments {
+            match s.segment_kind {
+                SegmentKind::Const => data.extend_from_slice(&hex_decode(&s.hex)?),
+                SegmentKind::Var => {
+                    let bytes = fill(var_idx, s.count);
+                    if bytes.len() != s.count {
+                        return Err(shape(
+                            format!("var {var_idx} com {count} bytes", count = s.count),
+                            format!("fill devolveu {}", bytes.len()),
+                        ));
+                    }
+                    data.extend_from_slice(&bytes);
+                    var_idx += 1;
+                }
+            }
+        }
+        let inc = self.in_.as_ref().ok_or_else(|| {
+            shape(
+                "template com lado IN",
+                format!("tipo '{}'", self.template_type),
+            )
+        })?;
+        let (func, addr) = inc.parsed()?;
+        let mut sysex = Vec::with_capacity(SYSEX_HEADER.len() + 1 + 4 + data.len() + 1);
+        sysex.extend_from_slice(&SYSEX_HEADER);
+        sysex.push(func);
+        sysex.extend_from_slice(&addr);
+        sysex.extend_from_slice(&data);
+        sysex.push(SYSEX_EOX);
+        Ok(sysex)
+    }
 }
 
 /// Forma CRUA do JSON (serde materializa isto; [`GoldenFile`] é o validado).
@@ -675,5 +751,30 @@ impl GoldenFile {
         self.for_response(func, addr)
             .into_iter()
             .find_map(|t| t.matches_response(data).map(|vars| (t, vars)))
+    }
+
+    /// Todos os templates de REQUEST cujo OUT é o endpoint TIPADO — o
+    /// despacho do `MockDevice` (M0.5): entre os candidatos, vence o PRIMEIRO
+    /// (ordem do arquivo, D2/rev.2) cujo `request_pattern` casa com o
+    /// payload do frame recebido. Ex.: em `12001002`, o req de CHUNK
+    /// (33B var) e o de TABELA (75B nibble-exp) distinguem por len+consts.
+    pub fn for_request(&self, func: u8, addr: &[u8; 4]) -> Vec<&Template> {
+        self.by_out
+            .get(&(func, *addr))
+            .map(|ids| ids.iter().map(|&i| &self.templates[i]).collect())
+            .unwrap_or_default()
+    }
+
+    /// O request recebido casa com ALGUM template cujo OUT é o endpoint?
+    /// Devolve o índice do template na ordem do arquivo (para log/erro).
+    pub fn match_request(&self, func: u8, addr: &[u8; 4], data: &[u8]) -> Option<usize> {
+        self.for_request(func, addr)
+            .into_iter()
+            .find(|t| {
+                t.request_payload
+                    .as_ref()
+                    .is_some_and(|p| p.matches_data(data))
+            })
+            .and_then(|t| self.templates.iter().position(|x| std::ptr::eq(x, t)))
     }
 }

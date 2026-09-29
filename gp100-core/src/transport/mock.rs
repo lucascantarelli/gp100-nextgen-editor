@@ -1,0 +1,479 @@
+//! mock — `MockDevice` (ROADMAP M0.5): o device simulado que responde
+//! CONFORME O GOLDEN — toda resposta passa por
+//! [`crate::golden::Template::build_response`] e, portanto, casa com o
+//! `response_pattern` do próprio template (D5 também nas respostas).
+//! Conteúdo: estado derivado de `all.prst` + dicionário onde a var é
+//! limpa (pp BE no meta6/páginas, eco de slot+idx no ACK de chunk,
+//! seleção de preset pelo write `13010000`); exemplo congelado do golden
+//! onde o corpo é evidência de captura (bodies mixed 196B de 13xx,
+//! tabela de IRs, nomes `11000008`, setlist `12001012`).
+//!
+//! **Contrato de comportamento = D1–D8 do ADR-6 rev.3:**
+//! - **D1** fila IN por endpoint tipado `(func, addr)`; `recv_raw` devolve
+//!   a mensagem mais antiga de QUALQUER endpoint (FIFO global — a ordem
+//!   real de chegada);
+//! - **D3** writes são FIRE-AND-FORGET: metadados `11xx`, `12000002`, ops
+//!   `00020000`, `set_param` 10xx0002 e begin/reserva de IR NÃO geram
+//!   resposta nem resync (burst de fim de sessão não é emitido — quirk
+//!   fechado no §13.7);
+//! - **D5** frame que não casa com nenhum `request_pattern` do endpoint =
+//!   `SendFailed` com hex curto (nunca engolir);
+//! - **D7** `queue_push`/`queue_push_template` injetam pushes não
+//!   solicitados a qualquer momento (push intercalado no meio de upload);
+//! - **D8** a fila é exclusiva da `Session` (consumidor único).
+//!
+//! **Shape gerado × layout:** as páginas 196B de 13xx são GERADAS (pp BE +
+//! corpo do exemplo congelado) — capacidades 196/32B são shape do mock, não
+//! layout decifrado (ROADMAP mantém o byte-a-byte da 13xx fora; o replay
+//! do M0.6 valida contra as fixtures reais).
+
+use std::collections::HashMap;
+use std::time::Duration;
+
+use super::{DeviceTransport, TransportError};
+use crate::golden::decode_envelope;
+use crate::golden::GoldenFile;
+use crate::model::Dictionary;
+use crate::preset::Document;
+use crate::{ProtocolError, SYSEX_EOX, SYSEX_HEADER};
+
+const ALL_PRST: &str = include_str!("../../../files/patches/all.prst");
+const PARAMETERS: &str = include_str!("../../../analysis/parameters.json");
+
+/// Estado do device simulado, derivado de `all.prst` + dicionário.
+#[derive(Debug, Clone)]
+pub struct MockState {
+    /// Nº de presets carregados do `.prst` (99 em `all.prst`).
+    pub preset_count: usize,
+    /// pp corrente (seleção via write `13010000`; default = 1º do `.prst`).
+    pub current_pp: u16,
+    /// Nome do pp corrente (do `.prst`; trocado por write `11000000`).
+    pub current_name: String,
+    /// ppType do pp corrente (do `.prst`; trocado por write `11000005`).
+    pub current_pp_type: u16,
+    /// CRC32 IEEE de fábrica dos 20 slots de IR (ppIRCRC do `.prst`).
+    pub ir_crcs: [u32; 20],
+    /// Parâmetros setados: `((nibble, ctrl), (code, value))` — last-wins.
+    pub set_params: HashMap<(u8, u8), (u32, f32)>,
+    /// nº de frames recusados por D5 (diagnóstico de divergência).
+    pub rejected: usize,
+}
+
+impl MockState {
+    /// Carrega o estado de `all.prst` (embedado). O pp corrente inicial é o
+    /// do 1º preset (`ppID` hex); os ppIRCRC de fábrica povoam os 20 slots.
+    ///
+    /// # Erros
+    /// [`ProtocolError::InvalidShape`] se o `.prst` embedado não parseia ou
+    /// nenhum preset tem ppID (impossível no build normal: R4 é travado).
+    pub fn load() -> Result<Self, ProtocolError> {
+        let doc = Document::parse(ALL_PRST.as_bytes())?;
+        let mut ir_crcs = [0u32; 20]; // Os 20 slots de IR são as tags <ppIRInfo0..19> no container
+                                      // <ppIRInfo> — irmão de <preset_info> NO NÍVEL DA RAIZ <GP>
+                                      // (achado M0.5; o ppIRInfo NÃO está dentro de preset_info nem de
+                                      // um preset). CRC: i32 decimal → u32 (ppIRCRC="-1871114785").
+        if let Some(info) = doc.root().child("ppIRInfo") {
+            for (i, tag) in info.children().iter().enumerate().take(20) {
+                if let Some(crc) = tag.attr("ppIRCRC") {
+                    if let Ok(c) = crc.parse::<i32>() {
+                        ir_crcs[i] = c as u32;
+                    }
+                }
+            }
+        }
+        let first = doc
+            .presets()
+            .next()
+            .ok_or_else(|| shape_err("preset no all.prst", "nenhum"))?;
+        let current_pp = first
+            .pp_id()
+            .and_then(|s| u16::from_str_radix(s, 16).ok())
+            .ok_or_else(|| shape_err("ppID hex no 1º preset", "ausente"))?;
+        Ok(Self {
+            preset_count: doc.presets().count(),
+            current_pp,
+            current_name: first.pp_name().unwrap_or("").to_string(),
+            current_pp_type: first.pp_type().and_then(|s| s.parse().ok()).unwrap_or(4),
+            ir_crcs,
+            set_params: HashMap::new(),
+            rejected: 0,
+        })
+    }
+}
+
+fn shape_err(expected: &str, got: &str) -> ProtocolError {
+    ProtocolError::InvalidShape {
+        expected: expected.to_string(),
+        got: got.to_string(),
+    }
+}
+
+/// O device simulado (default do ADR-4/ADR-5: sempre permite writes).
+#[derive(Debug, Clone)]
+pub struct MockDevice {
+    opened: bool,
+    state: MockState,
+    /// Dicionário (carregado 1x na criação) para validar `set_param`.
+    dict: Dictionary,
+    /// Fila IN por endpoint (D1): mensagens SysEx completas.
+    inbox: HashMap<(u8, [u8; 4]), Vec<Vec<u8>>>,
+}
+
+impl MockDevice {
+    /// Cria o mock com estado de `all.prst` + dicionário (embedados).
+    ///
+    /// # Erros
+    /// [`ProtocolError::InvalidShape`] se um embedado não parseia.
+    pub fn new() -> Result<Self, ProtocolError> {
+        Ok(Self {
+            opened: false,
+            state: MockState::load()?,
+            dict: Dictionary::from_json(PARAMETERS)?,
+            inbox: HashMap::new(),
+        })
+    }
+
+    /// O estado atual (diagnóstico/asserções de teste).
+    pub fn state(&self) -> &MockState {
+        &self.state
+    }
+
+    /// Enfileira um push não solicitado com payload VERBATIM (D7) — o
+    /// caminho do teste de push intercalado (a FSM filtra via backlog).
+    pub fn queue_push(&mut self, func: u8, addr: [u8; 4], payload: &[u8]) {
+        let msg = envelope_of(func, addr, payload);
+        self.inbox.entry((func, addr)).or_default().push(msg);
+    }
+
+    /// Enfileira um push PADRÃO, construído pelo golden (exemplo congelado
+    /// do template `push` do endpoint). `desired_len` escolhe o sub-padrão
+    /// em respostas `by-len` (ex.: 75 para a tabela de IRs em `12001002`).
+    ///
+    /// # Erros
+    /// [`ProtocolError::InvalidShape`] se não há template push no endpoint
+    /// ou a resposta não é buildável (D5: o mock nunca inventa forma).
+    pub fn queue_push_template(
+        &mut self,
+        func: u8,
+        addr: [u8; 4],
+        desired_len: Option<usize>,
+    ) -> Result<(), ProtocolError> {
+        let golden = GoldenFile::embedded()?;
+        let tpl = push_template(golden, addr)?;
+        let msg = build_from_example(tpl, desired_len, None)?;
+        self.inbox.entry((func, addr)).or_default().push(msg);
+        Ok(())
+    }
+
+    /// Processa UM frame de entrada (já decodificado): efeito de estado +
+    /// resposta a enfileirar, se houver. É o coração do despacho (D1/D3/D5).
+    fn ingest(&mut self, func: u8, addr: [u8; 4], payload: &[u8]) -> Result<(), TransportError> {
+        let golden = GoldenFile::embedded().expect("golden embutido (M0.3)");
+
+        // §13.11 set_param: o golden congela os templates POR INSTÂNCIA
+        // (9 templates 10xx0002 com consts de knobs específicos), então o
+        // SHAPE é validado pelo CODEC (prova: 92 knobs byte a byte em
+        // tests/codec_wire.rs). R1: shape ≠ semântica — o codec é a fonte.
+        if func == 0x12 && addr[0] == 0x10 && addr[2] == 0x00 && addr[3] == 0x02 {
+            return match crate::codec::set_param_parse(payload) {
+                Ok((code, ctrl, value)) => {
+                    let nib = (code >> 24) as u8;
+                    let idx = code & 0x00FF_FFFF;
+                    let _known = self.dict.algorithm(nib, idx).is_some();
+                    self.state.set_params.insert((nib, ctrl), (code, value));
+                    Ok(()) // D4: sem resposta
+                }
+                Err(e) => {
+                    self.state.rejected += 1;
+                    Err(TransportError::SendFailed { why: e.to_string() })
+                }
+            };
+        }
+        // D5: o frame DEVE casar com um request_pattern do endpoint.
+        let Some(tpl_idx) = golden.match_request(func, &addr, payload) else {
+            self.state.rejected += 1;
+            return Err(TransportError::SendFailed {
+                why: format!(
+                    "request sem template no golden (D5): func={func:02x} addr={addr:02x?} payload={:.24}",
+                    payload.iter().map(|b| format!("{b:02x}")).collect::<String>()
+                ),
+            });
+        };
+
+        // Efeitos de estado dos WRITES (D3: nenhum gera resposta).
+        match (func, addr) {
+            // seleção de preset (§13.10): payload = [pp BE]
+            (0x11, [0x13, 0x01, 0x00, 0x00]) if payload.len() == 2 => {
+                self.state.current_pp = u16::from_be_bytes([payload[0], payload[1]]);
+            }
+            // metadados do save (§13.12): nome (ASCII 12B trunc+pad)
+            (0x12, [0x11, 0x00, 0x00, 0x00]) if payload.len() == 20 => {
+                let name: String = payload[8..20]
+                    .iter()
+                    .take_while(|&&b| b != 0)
+                    .map(|&b| b as char)
+                    .collect();
+                if !name.is_empty() {
+                    self.state.current_name = name;
+                }
+            }
+            // ppType u16 BE + zeros2
+            (0x12, [0x11, 0x00, 0x05, 0x00]) if payload.len() == 4 => {
+                self.state.current_pp_type = u16::from_be_bytes([payload[0], payload[1]]);
+            }
+            // (set_param tratado ANTES do despacho — shape é do codec)
+            _ => {}
+        }
+
+        // Respostas (D1): READS func 11 respondem com o push do MESMO
+        // endereço (func 12 no fio); transações req 12-func com lado IN
+        // respondem pelo template casado.
+        let reply = if func == 0x11 {
+            let tpl = push_template(golden, addr).ok();
+            let desired = if addr == [0x12, 0x00, 0x10, 0x02] {
+                Some(75)
+            } else {
+                None
+            };
+            tpl.and_then(|t| build_from_example(t, desired, None).ok())
+        } else {
+            match (func, addr) {
+                // ACK de chunk de IR (§13.7): eco [slot][idx BE] + 01
+                (0x12, [0x12, 0x00, 0x10, 0x02]) => {
+                    let tpl = &golden.templates()[tpl_idx];
+                    let echo = payload[..3].to_vec();
+                    build_with_fill(tpl, Some(4), |i, count| {
+                        if i == 0 {
+                            let mut v = echo.clone();
+                            v.resize(count, 0);
+                            v
+                        } else {
+                            example_var(tpl, None, i - 1, count)
+                        }
+                    })
+                    .ok()
+                }
+                // meta6 (t6, const) / abertura (t7) / 13010005 (t11) /
+                // scan (t13) / páginas (t8/t15) / const (t16). INJEÇÃO DE
+                // pp CONDICIONADA À EVIDÊNCIA: só onde o PRIMEIRO segmento
+                // da resposta é var de 2B E o exemplo congelado traz
+                // 0100 (pp da S1) — t7/t8/t11. Em t13/t15 a resposta
+                // começa com CONSTS (pp não está em var0).
+                (0x12, [0x13, ..]) => {
+                    let tpl = &golden.templates()[tpl_idx];
+                    let inject_pp = tpl
+                        .response_pattern()
+                        .and_then(|p| p.segments.first())
+                        .is_some_and(|s| {
+                            s.segment_kind == crate::golden::SegmentKind::Var && s.count == 2
+                        })
+                        && example_var(tpl, None, 0, 2) == vec![0x01, 0x00];
+                    let pp = self.state.current_pp.to_be_bytes().to_vec();
+                    // by-len decide-se pelo ENDEREÇO DA RESPOSTA (IN do
+                    // template), não pelo frame recebido: t8 lê em
+                    // 13010004 e responde em 13010003 (196B/32B).
+                    let in_addr = tpl
+                        .in_
+                        .as_ref()
+                        .and_then(|e| e.parsed().ok())
+                        .map(|(_, a)| a);
+                    let desired = match in_addr {
+                        Some([0x13, 0x01, 0x00, 0x03]) | Some([0x13, 0x02, 0x00, 0x03]) => {
+                            Some(196)
+                        }
+                        _ => None,
+                    };
+                    build_with_fill(tpl, desired, |i, count| {
+                        if inject_pp && i == 0 && count == 2 {
+                            pp.clone()
+                        } else {
+                            example_var(tpl, None, i, count)
+                        }
+                    })
+                    .ok()
+                }
+                _ => None,
+            }
+        };
+
+        if let Some(msg) = reply {
+            let in_key = decode_envelope(&msg)
+                .map(|(f, a, _)| (f, a))
+                .unwrap_or((func, addr));
+            self.inbox.entry(in_key).or_default().push(msg);
+        }
+        Ok(())
+    }
+}
+
+impl DeviceTransport for MockDevice {
+    fn open(&mut self) -> Result<(), TransportError> {
+        self.opened = true;
+        Ok(())
+    }
+
+    fn close(&mut self) -> Result<(), TransportError> {
+        self.opened = false;
+        Ok(())
+    }
+
+    fn send_raw(&mut self, data: &[u8]) -> Result<(), TransportError> {
+        if !self.opened {
+            return Err(TransportError::Closed);
+        }
+        let (func, addr, payload) =
+            decode_envelope(data).map_err(|e| TransportError::SendFailed { why: e.to_string() })?;
+        self.ingest(func, addr, payload)
+    }
+
+    fn recv_raw(&mut self, timeout: Duration) -> Result<Vec<u8>, TransportError> {
+        if !self.opened {
+            return Err(TransportError::Closed);
+        }
+        // D1: FIFO global — a mensagem mais antiga de qualquer endpoint.
+        let oldest = self
+            .inbox
+            .iter()
+            .filter(|(_, q)| !q.is_empty())
+            .map(|(k, _)| *k)
+            .min();
+        if let Some(k) = oldest {
+            if let Some(q) = self.inbox.get_mut(&k) {
+                if !q.is_empty() {
+                    return Ok(q.remove(0));
+                }
+            }
+        }
+        Err(TransportError::RecvTimeout {
+            timeout_ms: timeout.as_millis() as u64,
+        })
+    }
+}
+
+/// O template `push` do endpoint (lado IN), se houver. Casa por ADDR: os
+/// pushes do golden têm IN func 12, mas os READS chegam com func 11 — a
+/// resposta deles é o push do MESMO endereço (func 12, como no fio).
+fn push_template(
+    golden: &GoldenFile,
+    addr: [u8; 4],
+) -> Result<&crate::golden::Template, ProtocolError> {
+    golden
+        .templates()
+        .iter()
+        .find(|t| {
+            t.template_type == "push"
+                && t.in_
+                    .as_ref()
+                    .is_some_and(|e| e.parsed().map(|(_, a)| a).is_ok_and(|a| a == addr))
+        })
+        .ok_or_else(|| shape_err("template push no golden", &format!("addr={addr:02x?}")))
+}
+
+/// Bytes do exemplo congelado do LADO IN (response_hex/hex).
+fn example_bytes(tpl: &crate::golden::Template) -> Vec<u8> {
+    let ex = &tpl.example;
+    let hex = ex
+        .response_hex
+        .as_deref()
+        .or(ex.hex.as_deref())
+        .unwrap_or("");
+    crate::golden::hex_decode(hex).unwrap_or_default()
+}
+
+/// O `i`-ésimo segmento var do exemplo (posicional), redimensionado para
+/// `count` (o exemplo É a evidência; state-first entra por outro caminho).
+fn example_var(
+    tpl: &crate::golden::Template,
+    len_hint: Option<usize>,
+    i: usize,
+    count: usize,
+) -> Vec<u8> {
+    let ex = example_bytes(tpl);
+    let pat = tpl.response_pattern();
+    let vars: Vec<Vec<u8>> = match pat {
+        Some(p) => p
+            .extract_vars(&ex)
+            .map(|v| v.iter().map(|s| s.to_vec()).collect())
+            .unwrap_or_default(),
+        None => Vec::new(),
+    };
+    // by-len: se o exemplo não casou (len ≠ sub do exemplo), tenta a partir
+    // dos vars concatenados do sub-padrão pedido — simplificação: devolve
+    // zeros para além do exemplo (shape do mock, documentado no módulo).
+    match vars.get(i) {
+        Some(v) => {
+            let mut b = v.clone();
+            b.resize(count, 0);
+            b
+        }
+        None => {
+            let _ = len_hint;
+            vec![0u8; count]
+        }
+    }
+}
+
+/// Constrói a resposta do template com o exemplo congelado (`fill_custom`
+/// substitui vars específicas — pp BE, echo de chunk).
+fn build_from_example(
+    tpl: &crate::golden::Template,
+    desired_len: Option<usize>,
+    fill_custom: Option<&dyn Fn(usize, usize) -> Vec<u8>>,
+) -> Result<Vec<u8>, ProtocolError> {
+    build_with_fill(tpl, desired_len, &mut |i, count| match fill_custom {
+        Some(f) => f(i, count),
+        None => example_var(tpl, desired_len, i, count),
+    })
+}
+
+/// Constrói a resposta com fill arbitrário (var indexado).
+fn build_with_fill(
+    tpl: &crate::golden::Template,
+    desired_len: Option<usize>,
+    mut fill: impl FnMut(usize, usize) -> Vec<u8>,
+) -> Result<Vec<u8>, ProtocolError> {
+    tpl.build_response(&mut fill, desired_len)
+}
+
+/// Envelope SysEx completo (helper local sobre o header do crate).
+fn envelope_of(func: u8, addr: [u8; 4], payload: &[u8]) -> Vec<u8> {
+    let mut m = Vec::with_capacity(SYSEX_HEADER.len() + 5 + payload.len() + 1);
+    m.extend_from_slice(&SYSEX_HEADER);
+    m.push(func);
+    m.extend_from_slice(&addr);
+    m.extend_from_slice(payload);
+    m.push(SYSEX_EOX);
+    m
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// O estado carrega de all.prst: 99 presets, pp/nome/tipo do 1º e
+    /// ppIRCRC de fábrica nos 20 slots de IR.
+    #[test]
+    fn estado_deriva_de_all_prst() {
+        let st = MockState::load().expect("all.prst embedado parseia (R4)");
+        assert_eq!(st.preset_count, 99);
+        assert!(!st.current_name.is_empty());
+        assert!(
+            st.ir_crcs.iter().any(|&c| c != 0),
+            "ppIRCRC de fábrica presente em algum slot"
+        );
+    }
+
+    /// O dicionário embedado carrega (185 algs) e reconhece um effectCode
+    /// real (Bog RedM, vetor da fixture knobs: 0x0700006e).
+    #[test]
+    fn dicionario_reconhece_effectcode_real() {
+        let dict = Dictionary::from_json(PARAMETERS).expect("parameters.json embedado");
+        assert_eq!(dict.len(), 185);
+        let nib = 0x07u8;
+        let idx = 0x0700_006eu32 & 0x00FF_FFFF;
+        assert!(
+            dict.algorithm(nib, idx).is_some(),
+            "Bog RedM (nibble 7) deve estar no dicionário"
+        );
+    }
+}
