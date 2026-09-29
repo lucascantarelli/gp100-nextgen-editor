@@ -561,7 +561,10 @@ slot ocupado ficam como pendência menor (não bloqueia: nome já basta p/ UI).
 
 **Status e ops globais:**
 ```
-IN  12 12000001  `01 00 00`   status "pronto" (fecha boot e ciclos de op)
+IN  12 12000001  `01 00 00`   status "pronto" — fecha o BOOT e bursts de
+                              sincronização (CORREÇÃO 29/09: NÃO é resposta
+                              de ciclo de op/save — na S2 chegou 22s ANTES das
+                              ops do save; ver ciclo re-derivado abaixo)
 OUT 12 00020000  8B, bytes [4..5] = nº da op (u16 BE):
    op 1 = entrar/em modo edição (sessões 1, 2 e 4)
    op 2 = 2ª etapa da abertura (só sessão 1)
@@ -586,15 +589,34 @@ Ocorreu ANTES da edição na sessão 1 (54.7s, ao abrir o editor) e no fluxo
 de save da sessão 4 — o Suite grava os metadados do preset atual ao abrir
 para editar (e aparentemente de novo ao salvar).
 
-**Ciclo observado no SAVE da sessão 4 (1663.6–1675.1s):**
+**Ciclo do SAVE — RE-DERIVADO do log cru (29/09, `derive_save_ops.py`; corrige
+a leitura anterior, que atribuía o burst 11xx ao save por artefato de janela):**
 ```
+S4 (save "It's GP100", ts 30241.9s+):
 1663.64s  bloco de metadados 11xx (acima)
-1663.66s  OUT 00020000 op 0  (x1; repete em 1664.23s)
+1663.66s  OUT 00020000 op 0  (x2: 2ª em +578ms)
 1664.25s  OUT 00020000 op 1  (x2)   ← saiu e reentrou no modo edição
-1675.05s  IN 11000008 x31: registros 0x010E..0x030C (todos ZEROS)
-          = device notifica re-sync da tabela de slots user
-1675.08s  IN 12000001 `01 00 00`
+          → FIM. ZERO msgs IN até o fechamento do Suite (+11s)
+
+S2 (fluxo separado — mesma análise):
+17942.0s  burst IN 11000008 ×61 + 12000001  ← 61 requests OUT 11000008 nos
+          instantes anteriores (é o SUITE lendo/sincronizando a tabela; NÃO
+          tem relação com o save que vem a seguir)
+17964.3s  OUT 00020000 op 0  (x2, 16ms de gap)  ← o "save" da S2 é SÓ ISTO
+          (zero IN; nenhum 11xx por ±118s — meta já havia sido escrita ao
+          abrir o editor, como na S1)
+18082.6s  OUT 11xx (metadados "Blink OD" — 118s DEPOIS das ops; marca outra
+          abertura/troca de editor, não o mesmo evento de save)
 ```
+**Corolários (base do D3 do ADR-6):** (1) o save NÃO gera resposta IN — é
+fire-and-forget em ambas as amostras; (2) o burst `11000008`×N + `12000001`
+é evento de SINCRONIZAÇÃO de tabela do próprio Suite/app: na S2 precedido de
+requests OUT (respostas do pairio), na S4 a cópia pós-save (+11,4s) veio sem
+NENHUM request (janela com 0 OUT) — push espontâneo do device/app; (3) a
+sequência de ops não é única (S4: 0,0→1,1; S2: só 0,0) — a FSM usa a da S4
+(única com meta+ops no mesmo evento) e o H1 revalida; (4) a cópia pós-save
+da S4 mostra o device repassando a tabela de slots user sozinho — o IN
+verificável "salvou?" será preciso vir de `list_user_irs`/display (H2).
 
 **O que NÃO apareceu no save (importante):** nenhum download/write 13xx,
 nenhum endereço de destino de slot explícito, nenhuma confirmação de

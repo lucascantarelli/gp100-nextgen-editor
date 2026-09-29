@@ -6,6 +6,23 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
 (local, sem depender de hardware para ~95% do trabalho). Resposta ao usuário SEMPRE em PT-BR.
 
 ## Estado vivo (atualizar aqui a cada marco)
+- SAVE RE-DERIVADO do log cru (29/09, `analysis/derive_save_ops.py`): o save
+  NÃO tem resposta IN (S4: zero msgs nos 11s pós-ops; S2: ops isoladas, ±118s
+  de qualquer 11xx). `12000001` NÃO fecha ciclo de op (na S2 chegou 22s ANTES
+  das ops). Bursts `11000008`×N+`12000001` = SINCRONIZAÇÃO de tabela do
+  Suite/app (S2: precedidos de 61 requests OUT; S4: cópia espontânea +11,4s
+  após o save, janela com 0 OUT). §13.12 CORRIGIDO; D3 do ADR-6 agora
+  DEFINITIVA (save fire-and-forget; ciclo de ops = S4: op0 ×2 [0;+578ms] →
+  op1 ×2 [+593ms]; fim dos writes = commit). PENDÊNCIA: os 32 ACKs tardios
+  `12001002` (idx 0x208..0x226, +11s após os 592 na S2) não têm explicação —
+  investigar se reaparecerem. Fase slice ≠ operação (IR ACKs na fatia S2).
+- ADR-6 ✅ ACEITO (29/09, rev.3): `docs/DECISIONS.md` — assinaturas da FSM
+  `Session<T: DeviceTransport>` (boot/scan_state/set_param/save_preset/
+  upload_ir/list_user_irs) + regras D1–D8 (D3 definitiva: save fire-and-forget
+  com ciclo de ops da S4; D7 backlog de IN não solicitado; D8 consumidor único
+  do IN; chain_slot × ir_slot; blob múltiplo de 15B strict) + alternativas
+  rejeitadas + watchlist do gate H1. CONTRATO do MockDevice (M0.5) e base da
+  issue M0.6 — caminho livre para abrir a issue.
 - M0.4 ✅ (29/09): `gp100-core/src/codec.rs` — codec de fio PURO e sem estado:
   nibble_expand/collapse strict (par ímpar ou nibble >0x0F = InvalidShape);
   `set_param` (§13.11: payload 20B nibble-exp [code u32 LE][ctrl][00][f32 LE],
