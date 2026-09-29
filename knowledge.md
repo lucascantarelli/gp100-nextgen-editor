@@ -6,6 +6,11 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
 (local, sem depender de hardware para ~95% do trabalho). Resposta ao usuário SEMPRE em PT-BR.
 
 ## Estado vivo (atualizar aqui a cada marco)
+- M0.3 ✅ (29/09): `gp100-core/src/golden.rs` — GoldenFile/Template/Pattern com
+  build_request (SysEx completo, vars posicionais) + matches_response (len+consts,
+  extrai vars; by-len despacha por comprimento no 12001002: ACK 4B / tabela 75B /
+  resync). Propriedade extract→build==exemplo provada nos 40 templates.
+  ⚠️ example.* do golden são PAYLOADS (não SysEx completo).
 - M0.2 ✅ (29/09): `gp100-core/src/preset.rs` — round-trip byte-idêntico dos 3 .prst
   (R4 provado em tests/roundtrip_prst.rs; layout = DADO: quebras/indents registrados).
   Efeitos em ordem x DESCENDE no arquivo (RVB->PRE); ppName com `&amp;` verbatim;

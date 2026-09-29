@@ -145,13 +145,17 @@
   `-text` no .gitattributes (mesma lição EOL do golden). Views tipadas
   PresetView/EffectView sem esconder ppCtrl/ppEXP1.
 
-### M0.3 Consumidor do golden-file
+### M0.3 Consumidor do golden-file — ✅ FEITO 29/09
 - **Responsável:** skill `core-dev` · Depende: P1, P2 · **Estimativa:** 3–4h
 - **O quê:** parser do `protocol_golden.json`; gerador de request por template
   (substitui segmentos `var`); matcher de resposta (aceita por len+const);
   API: `Template::build_request(vars) -> Sysex`, `Template::matches(data) -> Option<Vars>`.
-- **DoD:** unit tests cobrindo todos os 40 templates; propriedade "gerado casa
-  com o próprio exemplo do template".
+- **DoD:** ✅ `gp100-core/src/golden.rs` + `tests/golden_consumer.rs` (8 contratos):
+  propriedade "extract → build == exemplo byte a byte" PROVADA para os 40
+  templates; despacho by-len (ACK 4B × tabela 75B × resync no mesmo endereço
+  `12001002`); build strict; `GoldenFile::embedded()` (OnceLock);
+  `decode_envelope` com trim no 1º F7. Achado documentado: `example.*` do
+  golden são PAYLOADS (não SysEx).
 
 ### M0.4 Codec de fio
 - **Responsável:** skill `core-dev` · Depende: M0.3 · **Estimativa:** 3–4h
