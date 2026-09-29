@@ -117,13 +117,20 @@
 
 ## FASE M0 — gp100-core (só lógica, só mock)
 
-### M0.1 Modelo de dados do dicionário
+### M0.1 Modelo de dados do dicionário — ✅ FEITO 29/09
 - **Responsável:** skill `core-dev` · Depende: P1, P2 · **Estimativa:** 2–3h
 - **O quê:** structs serde (`Algorithm`, `Control`, `Dictionary`) lendo
   `parameters.json`; validação de integridade na carga (códigos únicos, ranges
   min<max); embed do JSON via `include_str!`.
-- **DoD:** carrega 185 algs/639 controles; teste rejeita dicionário corrompido;
-  acesso por `(nibble, index)` O(1).
+- **DoD:** ✅ `gp100-core/src/model.rs`: carrega 185 algs/639 controles;
+  rejeita corrompido (4 testes de rejeição); lookup O(1).
+  **Achados estruturais (R1, documentados no módulo):** identidade do alg é a
+  tripla `(module,nibble,index)` — Boost/14 Boost existem em PRE **e** DST com
+  defaults divergentes (Bright "1" vs "0"); knobs bidirecionais vêm min>max
+  (Pitch.L-Pitch 0..-24 → `Control::range()` normaliza); `observed_*`
+  ausente/NULL em 68 algs; `default` é string. Lookup: `algorithm_in_module`
+  (primária) + `algorithm` (fallback first-wins, semântica do knob_map).
+  `ProtocolError` (ADR-2) nasce aqui. 11 unit + 1 doc-test, clippy -D, CI verde.
 
 ### M0.2 Modelo `.prst` com round-trip byte-idêntico
 - **Responsável:** skill `core-dev` · Depende: M0.1 · **Estimativa:** 4–6h

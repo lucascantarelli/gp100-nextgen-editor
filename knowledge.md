@@ -6,6 +6,11 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
 (local, sem depender de hardware para ~95% do trabalho). Resposta ao usuário SEMPRE em PT-BR.
 
 ## Estado vivo (atualizar aqui a cada marco)
+- M0.1 ✅ (29/09): `gp100-core/src/model.rs` — dicionário serde (185/639) com
+  validação na carga e lookup O(1). ACHADOS (R1): identidade = (module,nibble,index)
+  (Boost/14 Boost dual-módulo PRE/DST, defaults divergentes); knobs bidirecionais
+  min>max (Pitch.L-Pitch 0..-24 → range()); observed_* ausente/NULL em 68;
+  default é string. ProtocolError (ADR-2) definido. CI verde.
 - CI GitHub Actions (29/09): gates `uv run pytest` + `cargo fmt/clippy/test` por push/PR
   (.github/workflows/ci.yml, windows-latest pela toolchain gnu pinada; badge no README).
   Golden protegido com `-text` no .gitattributes: o hash da baseline (§13) cobre os EOLs
