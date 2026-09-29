@@ -1,0 +1,29 @@
+name: "✨ Feature"
+description: "Nova funcionalidade (ideia deve caber em uma fase do ROADMAP)"
+labels: ["feature"]
+body:
+  - type: textarea
+    id: proposta
+    attributes:
+      label: "Proposta"
+      description: "O que e por quê — problema real que resolve"
+    validations:
+      required: true
+  - type: dropdown
+    id: fase
+    attributes:
+      label: "Fase do ROADMAP"
+      description: "Se não couber em nenhuma, discuta antes (VISION §9 lista as ideias)"
+      options:
+        - "M0 — gp100-core (Rust, mock)"
+        - "M1 — Editor UI (Tauri/React)"
+        - "M2 — IR lab / empacotamento"
+        - "M3 — diferenciais"
+        - "fora de escopo por agora"
+    validations:
+      required: true
+  - type: textarea
+    id: aceite
+    attributes:
+      label: "Critério de aceite sugerido"
+      description: "Como saberemos que está pronto (teste, demo, doc)"

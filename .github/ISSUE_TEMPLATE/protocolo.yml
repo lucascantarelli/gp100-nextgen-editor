@@ -1,0 +1,41 @@
+name: "🔌 Descoberta de protocolo"
+description: "Nova observação de fio/captura que pode afetar o golden-file (fluxo R2/R3 do ROADMAP)"
+labels: ["protocolo"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Regra R3:** divergência com o device real **interrompe o fluxo** — nunca
+        "consertar" o codec com palpite. O caminho é: captura nova → `build_golden`
+        → `validate_golden` 100% → bump de hash da baseline → só então código (R2).
+        Spec é insumo, não produto (R1).
+  - type: dropdown
+    id: fase
+    attributes:
+      label: "Fase afetada"
+      options:
+        - "boot/scan (§13.10)"
+        - "knob/set-param (§13.11)"
+        - "save (§13.12)"
+        - "upload de IR (§13.7)"
+        - "outra / nova"
+    validations:
+      required: true
+  - type: textarea
+    id: evidencia
+    attributes:
+      label: "Evidência"
+      description: "Hex, endereços e timestamps da captura (sessão/arquivo, janela em segundos)"
+      placeholder: "S2 @88.07s · OUT 12|12001002 · data=0000…"
+    validations:
+      required: true
+  - type: textarea
+    id: impacto
+    attributes:
+      label: "Impacto no golden / §13"
+      description: "Templates afetados, necessidade de captura nova, se quebra paridade das fixtures"
+  - type: textarea
+    id: proposta
+    attributes:
+      label: "Proposta (se houver)"
+      description: "Interpretação dos bytes e como validá-la contra o golden"

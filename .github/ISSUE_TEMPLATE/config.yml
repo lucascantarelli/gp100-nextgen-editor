@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: "Roadmap executivo"
+    url: https://github.com/lucascantarelli/gp100-nextgen-editor/blob/main/docs/ROADMAP.md
+    about: "Issues P/M0/H com responsável e critério de aceite — confira antes de abrir nova issue"
+  - name: "Guia de documentação"
+    url: https://github.com/lucascantarelli/gp100-nextgen-editor/blob/main/docs/INDEX.md
+    about: "Rotas por objetivo e fonte de verdade por assunto"

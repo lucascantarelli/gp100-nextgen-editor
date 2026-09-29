@@ -1,0 +1,47 @@
+name: "🐞 Bug"
+description: "Algo não funciona como esperado (mock, CLI, fixtures, docs)"
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Antes de abrir:** rode o gate de regressão — `uv run pytest` (deve dar 10/10)
+        e `cargo test`. A saída desses comandos acelera muito o diagnóstico.
+  - type: textarea
+    id: observado
+    attributes:
+      label: "O que aconteceu?"
+      description: "Comportamento observado × comportamento esperado"
+    validations:
+      required: true
+  - type: textarea
+    id: reproduzir
+    attributes:
+      label: "Passos para reproduzir"
+      placeholder: "1. uv run ...\n2. ..."
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: "Área"
+      options:
+        - "gp100-core (Rust)"
+        - "gp100-cli"
+        - "fixtures / capturas"
+        - "proxy winmm"
+        - "docs / protocolo"
+        - "outro"
+    validations:
+      required: true
+  - type: textarea
+    id: ambiente
+    attributes:
+      label: "Ambiente"
+      description: "OS, versões (rustc/uv/python), commit"
+      placeholder: "Windows 11 · rustc 1.98.1 (windows-gnu) · commit 234f4e6"
+  - type: textarea
+    id: logs
+    attributes:
+      label: "Logs / saída relevante"
+      render: shell
