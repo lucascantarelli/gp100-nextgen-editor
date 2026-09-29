@@ -120,6 +120,10 @@ pub mod codec;
 /// (esqueleto M0.5, ADR-4; `MockDevice`/`RealDevice` vêm na issue M0.5).
 pub mod transport;
 
+/// session — FSM de sessão (esqueleto M0.6, ADR-6 rev.3: assinaturas D1–D8
+/// travadas; implementação/replay na issue M0.6).
+pub mod session;
+
 // Os testes dos herdados do P2 (header/envelope §13.1) usam SÓ API pública,
 // então vivem como contratos caixa-preta em `tests/wire_envelope.rs` (regra
 // da skill rust-practices: unitário dentro de `src/` só para internals).
