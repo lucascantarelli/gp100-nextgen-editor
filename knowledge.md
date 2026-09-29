@@ -6,6 +6,9 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
 (local, sem depender de hardware para ~95% do trabalho). Resposta ao usuário SEMPRE em PT-BR.
 
 ## Estado vivo (atualizar aqui a cada marco)
+- 29/09 — H1_CHECKLIST.md CRIADO (`docs/`): operacional do gate H1 (só leitura;
+  níveis de comparação framing×estado; fluxo R3; watchlist). Requisito de campo
+  novo: CLI com `--log` no schema das fixtures P4 (entra na M0.7/prep-H1).
 - 29/09 — REVIEW DE DOCUMENTAÇÃO: README/VISION/ROADMAP/INDEX sincronizados ao
   estado real (M0 6/8; "próximo marco = M0" estava defasado; venv/.prst/decisões
   corrigidos) + **`docs/UI_PLAN.md` CRIADO** (planejamento completo da M1:

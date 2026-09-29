@@ -244,7 +244,9 @@
 ### H1. Primeiro contato real (somente leitura)
 - **Responsável:** owner no hardware + skill `capture-analyze` p/ divergências · Depende: M0.7 · **Estimativa:** 1h
 - **O quê:** `gp100-cli --real info` + `list-user-irs` + `dump-preset` com a
-  pedaleira; log de divergência vs mock.
+  pedaleira; log de divergência vs mock. **Operacional passo-a-passo:
+  `docs/H1_CHECKLIST.md`** (pré-requisitos, níveis de comparação
+  framing×estado, log de divergência, fluxo R3, critérios de saída).
 - **DoD:** leitura real idêntica ao mock; divergências → fluxo R3.
 
 ### H2. Escrita real dos 3 fluxos capturados
@@ -263,9 +265,10 @@
 
 ## 📋 Pendências de planejamento (documentos por criar, na ordem)
 
-- **Checklist operacional H1** (procedimento de leitura real, log de divergência
-  vs mock, fluxo R3) — criar ANTES de ligar a pedaleira; pode nascer como parte
-  da própria issue H1.
+- ~~**Checklist operacional H1**~~ ✅ **CRIADO 29/09**: `docs/H1_CHECKLIST.md`
+  (pré-requisitos, procedimento de campo, níveis framing×estado, log de
+  divergência, fluxo R3). Requisito de campo novo identificado: log de fio no
+  CLI (`--log`) no schema das fixtures P4 — entrar na M0.7/prep-H1.
 - **Planejamento fino da M2** (IR lab, SnapTone manager, banco da biblioteca
   [SQLite], empacotamento) — espelhar o formato do `docs/UI_PLAN.md` quando a
   M1.0 fechar.
