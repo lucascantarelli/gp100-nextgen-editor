@@ -6,6 +6,11 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
 (local, sem depender de hardware para ~95% do trabalho). Resposta ao usuário SEMPRE em PT-BR.
 
 ## Estado vivo (atualizar aqui a cada marco)
+- 29/09 — FECHAMENTO DO DIA: M0.4 ✅ no remoto com CI verde; ADR-6 rev.3 ACEITO
+  (D1–D8 travados, watchlist H1 completa); save RE-DERIVADO do log cru (D3
+  definitiva); quirk dos 32 ACKs tardios FECHADO (§13.7/§13.12 corrigidos);
+  op_payload travado em teste (40 testes); skills revisadas (regra de testes
+  explícita + auditoria com 5 achados). Próximo: M0.5 com contrato pronto.
 - SAVE RE-DERIVADO do log cru (29/09, `analysis/derive_save_ops.py`): o save
   NÃO tem resposta IN (S4: zero msgs nos 11s pós-ops; S2: ops isoladas, ±118s
   de qualquer 11xx). `12000001` NÃO fecha ciclo de op (na S2 chegou 22s ANTES
@@ -96,7 +101,8 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
   Mapa/89 edits: analysis/knob_map.json (gerado por validate_knob_map.py; dump_edit_writes.py = extração bruta).
   ATENÇÃO: CAB tem controle oculto (Mic, ctrl 1) que NÃO está no parameters.json — preservar params_N 0..14.
 - Sessão 4 ANALISADA (§13.12): save pela UI = writes 11xx (metadados c/ nome ASCII) + ops `00020000`
-  (op 0/1 = sair/entrar modo edição) + re-sync 11000008 (31 regs zeros) + status 12000001.
+  (op 0/1 = sair/entrar modo edição; ciclo S4 = op0 ×2 → op1 ×2 — §13.12 RE-DERIVADO:
+  o burst 11000008+12000001 é FIM DE SESSÃO/sincronização, NÃO parte do save).
   SEM readback 13xx no save; **persistência CONFIRMADA pelo usuário no display da pedaleira**
   (slot recebeu o preset com os valores editados da sessão 3 ⇒ save persiste o ESTADO AO VIVO).
   Item 11 do BLOCKERS FECHADO; WRITE_VERIFIED=true para os fluxos capturados (knob/save/IR).

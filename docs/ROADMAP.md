@@ -5,7 +5,7 @@
 > de ambiente, configuração, revisão de spec ou extração de dados. Cada item é uma
 > issue com dependências e critério de aceite (Definition of Done) testável.
 >
-> **Status:** ✅ atual · **Última revisão:** 2026-09-28 · Mapa da doc: `docs/INDEX.md`
+> **Status:** ✅ atual · **Última revisão:** 2026-09-29 · Mapa da doc: `docs/INDEX.md`
 >
 > **Princípio do não-retrocesso:** nenhum passo de implementação pode depender de
 > descoberta nova. Tudo que exigia hardware/pesquisa já está fechado e validado
@@ -178,7 +178,8 @@
 ### M0.5 Transporte + mock device
 - **Responsável:** skill `core-dev` (mock) · Depende: M0.4, P5 · **Estimativa:** 4–6h
 - **O quê:** `DeviceTransport` trait; `MockDevice` que responde conforme o golden
-  (boot: tabelas/scan §13.10; página de estado; ACK de chunk; resync de save);
+  (boot: tabelas/scan §13.10; página de estado; ACK de chunk; SEM resync pós-save
+  — D3 do ADR-6: save é fire-and-forget; burst de fim de sessão não é emitido);
   `RealDevice` (midir/WinMM/ALSA) **atrás de feature** e desabilitado por default.
 - **DoD:** diálogo completo mock↔codec numa sessão sintética: boot → scan 198 pp →
   set param → save → upload IR 2 slots, sem timeouts.
@@ -186,8 +187,9 @@
 ### M0.6 FSM de sessão + testes de replay
 - **Responsável:** skill `core-dev` + `protocol-validate` no fim · Depende: M0.5, P4 · **Estimativa:** 4h
 - **O quê:** `Session::{boot, scan_state, set_param, save_preset, upload_ir,
-  list_user_irs}`; testes de replay: cada fixture de fase reproduzida
-  byte-a-byte (o mock valida as respostas da FSM contra as capturas).
+  list_user_irs}` — assinaturas e regras de dispatch D1–D8 TRAVADAS no ADR-6
+  rev.3 (aceito 29/09, `docs/DECISIONS.md`); testes de replay: cada fixture de
+  fase reproduzida byte-a-byte (o mock valida as respostas da FSM contra as capturas).
 - **DoD:** replay 100% das 4 fases; divergência = falha de teste com diff hex.
 
 ### M0.7 gp100-cli
