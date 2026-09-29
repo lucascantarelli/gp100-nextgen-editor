@@ -74,6 +74,24 @@ Armadilhas já mordidas — não reabrir:
 
 ## Testes (modelo híbrido, análogo ao pytest)
 
+```text
+gp100-core/
+├── src/                        # código + testes UNITÁRIOS (internals)
+│   └── lib.rs                  #    #[cfg(test)] mod tests { ... }
+└── tests/                      # testes de CONTRATO (caixa-preta, só API pub)
+    ├── common/
+    │   └── mod.rs              #    ≈ conftest.py (mod.rs evita binário)
+    └── model_dictionary.rs     #    ≈ tests/test_model_dictionary.py
+```
+
+| pytest | Rust |
+|---|---|
+| `tests/test_x.py` importa o pacote | `tests/x.rs` usa `gp100_core::…` (API pub) |
+| `conftest.py` / fixtures | `tests/common/mod.rs` |
+| `pytest tests/test_x.py` | `cargo test --test x` |
+| acesso a internals | só no `#[cfg(test)] mod tests` dentro de `src/` |
+| `@pytest.mark.parametrize` | `#[test]` + loop (ou crate `rstest`) |
+
 - **Unitários** (`#[cfg(test)] mod tests` dentro de `src/`): internals e
   peças privadas (codec/FSM). Acesso total ao módulo.
 - **Integração/contrato** (`gp100-core/tests/<assunto>.rs`): caixa-preta,
