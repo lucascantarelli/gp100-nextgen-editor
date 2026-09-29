@@ -11,12 +11,13 @@ construído por engenharia reversa para substituir o "Valeton Suite" oficial
 
 **Status atual (29/09):** a engenharia reversa está **concluída e validada em campo**
 (protocolo comprovado byte-a-byte contra 4 sessões de captura) e o **`gp100-core`
-está 6/8 da Fase M0**: model (M0.1), preset round-trip (M0.2), golden consumer
-(M0.3), codec de fio (M0.4), transporte + MockDevice (M0.5) e FSM de sessão com
-**replay byte-a-byte das 4 fixtures** (M0.6) — tudo no remoto com CI verde
-(fmt/clippy/testes + pytest 10/10). Próximos: **M0.7** (gp100-cli) e **M0.8**
-(docs do core), depois o **gate H** de hardware. Planejamento issue-a-issue:
-`docs/ROADMAP.md`; planejamento da UI (M1): `docs/UI_PLAN.md`.
+está 7/8 da Fase M0**: model (M0.1), preset round-trip (M0.2), golden consumer
+(M0.3), codec de fio (M0.4), transporte + MockDevice (M0.5), FSM de sessão com
+**replay byte-a-byte das 4 fixtures** (M0.6) e o **gp100-cli com `--log` no
+schema P4** (M0.7) — tudo no remoto com CI verde (fmt/clippy/testes + pytest
+10/10). Próximo: **M0.8** (docs do core), depois o **gate H** de hardware.
+Planejamento issue-a-issue: `docs/ROADMAP.md`; planejamento da UI (M1):
+`docs/UI_PLAN.md`.
 
 > 🔒 **Política de segurança de hardware:** nenhum fluxo de escrita sai sem captura
 > validada (`WRITE_VERIFIED`), e **update de firmware está fora de escopo** (V2+, e só
@@ -155,7 +156,7 @@ uv run python analysis/validate_knob_map.py # revalida knob_map.json
 
 ## 5. Roadmap
 
-- **M0 — gp100-core (Rust) — ✅ 6/8 (29/09):** model (M0.1), preset round-trip
+- **M0 — gp100-core (Rust) — ✅ 7/8 (29/09):** model (M0.1), preset round-trip
   byte-idêntico (M0.2), golden consumer (M0.3), codec de fio (M0.4), transporte +
   MockDevice D1–D8 (M0.5) e FSM de sessão com replay byte-a-byte das 4 fixtures
   (M0.6) — CI verde. Faltam: M0.7 (gp100-cli) e M0.8 (docs do core).

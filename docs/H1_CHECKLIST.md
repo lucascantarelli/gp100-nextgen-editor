@@ -19,7 +19,9 @@ fluxo R3"*.
 ## 2. Pré-requisitos (TODOS obrigatórios antes de conectar a pedaleira)
 
 **Software** (em 29/09, ainda pendentes — executar antes do dia de campo):
-- [ ] **M0.7 ✅** — `gp100-cli` com `info`, `list-user-irs`, `dump-preset <pp>` (issue M0.7)
+- [x] **M0.7 ✅** — `gp100-cli` com `info`, `list-user-irs`, `dump-preset <pp>`
+      **+ `--log` já no schema P4** (entregue na própria M0.7 — requisito
+      antecipado; issue M0.7)
 - [ ] **Transporte real feature-gated** — `RealDevice` (USB-MIDI; VID_84EF / PID_0021)
       atrás da feature `real-device` (default OFF); a CLI só aceita `--real` com
       `--i-know-what-im-doing` (guard já existe no esqueleto — P2)

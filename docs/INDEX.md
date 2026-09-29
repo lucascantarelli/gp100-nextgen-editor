@@ -4,7 +4,7 @@
 > fonte de verdade de cada assunto. Mantenha-o atualizado a cada novo documento
 > ou mudança de status — é o contrato de navegação entre agentes e humanos.
 
-**Última revisão:** 2026-09-29 (review de documentação: README/VISION sincronizados ao estado M0 6/8; UI_PLAN.md criado — planejamento da M1; H1_CHECKLIST.md criado — operacional do gate H1; M0.1–M0.6 ✅; ADR-1..6)
+**Última revisão:** 2026-09-29 (M0.1–M0.7 ✅ — 7/8 da Fase M0, CLI com `--log` P4; UI_PLAN + H1_CHECKLIST criados; ADR-1..6; docs sincronizados)
 
 ---
 

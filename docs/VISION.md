@@ -256,13 +256,14 @@ Diretório de trabalho: `analysis/` (scripts + produtos). Ferramentas da fase RE
 
 > A fase de arqueologia terminou: dados, formato e protocolo estão fechados
 > e validados. O caminho crítico agora é 100% construção de software — e ela
-> já está a caminho: **M0 em 6/8 com CI verde (29/09)**.
+> já está a caminho: **M0 em 7/8 com CI verde (29/09)**.
 
-- **M0 — gp100-core (Rust) — ✅ 6/8 (29/09):** model (M0.1), preset round-trip
+- **M0 — gp100-core (Rust) — ✅ 7/8 (29/09):** model (M0.1), preset round-trip
   (M0.2), golden consumer (M0.3), codec de fio (M0.4), transporte + MockDevice
-  D1–D8 (M0.5), FSM de sessão com replay byte-a-byte das 4 fixtures (M0.6).
-  Faltam M0.7 (gp100-cli) e M0.8 (docs do core). **Execução issue-a-issue,
-  status e achados: `docs/ROADMAP.md`** (aqui fica só o panorama).
+  D1–D8 (M0.5), FSM de sessão com replay byte-a-byte das 4 fixtures (M0.6)
+  e gp100-cli com `--log` no schema P4 (M0.7). Falta M0.8 (docs do core).
+  **Execução issue-a-issue, status e achados: `docs/ROADMAP.md`** (aqui fica
+  só o panorama).
 - **H — gate de hardware (entre M0 e a escrita real):** H1 (leitura real) →
   H2 (escrita dos 3 fluxos capturados) → H3 (golden v1.1 se houver ajuste).
 - **M1 — Editor UI (Tauri 2 + React/TS) — ⏳ planejado (`docs/UI_PLAN.md`):**
