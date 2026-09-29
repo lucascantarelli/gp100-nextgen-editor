@@ -120,6 +120,24 @@ pub trait DeviceTransport {
     fn recv_raw(&mut self, timeout: Duration) -> Result<Vec<u8>, TransportError>;
 }
 
+/// `Box<dyn DeviceTransport>` também é um transporte (dispatch por trait
+/// object quando o backend só se decide em runtime — CLI de campo H1 e o
+/// DeviceActor da M1).
+impl<T: DeviceTransport + ?Sized> DeviceTransport for Box<T> {
+    fn open(&mut self) -> Result<(), TransportError> {
+        (**self).open()
+    }
+    fn close(&mut self) -> Result<(), TransportError> {
+        (**self).close()
+    }
+    fn send_raw(&mut self, data: &[u8]) -> Result<(), TransportError> {
+        (**self).send_raw(data)
+    }
+    fn recv_raw(&mut self, timeout: Duration) -> Result<Vec<u8>, TransportError> {
+        (**self).recv_raw(timeout)
+    }
+}
+
 /// `&mut T` também é um transporte (a Session toma empréstimo mutável;
 /// usado pelo replay da M0.6 e pela UI para manter a posse fora).
 impl<T: DeviceTransport + ?Sized> DeviceTransport for &mut T {
@@ -136,3 +154,9 @@ impl<T: DeviceTransport + ?Sized> DeviceTransport for &mut T {
         (**self).recv_raw(timeout)
     }
 }
+
+/// `real` — `RealDevice` (H1): USB-MIDI real via midir (WinMM/ALSA/CoreMIDI),
+/// ATRÁS da feature `real-device` (default OFF — política de hardware,
+/// ADR-4/ADR-5; leitura real = H1, escrita real = pós-H2 WRITE_VERIFIED).
+#[cfg(feature = "real-device")]
+pub mod real;

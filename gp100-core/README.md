@@ -34,7 +34,8 @@ codec (M0.4)      fio PURO e sem estado: envelope §13.1, trim no 1º F7,
     ↓             nibble strict, set_param / meta_block / ir_begin / ir_chunk
 transport (M0.5)  trait DeviceTransport (ADR-4, bytes crus, sync, ciclo de
     ↓             vida do CHAMADOR) + MockDevice (responde conforme o golden,
-                  D1–D8) · RealDevice fica p/ pós-H, atrás da feature real-device
+                  D1–D8) · RealDevice (H1) atrás da feature `real-device`:
+                  midir/WinMM, callback→fila, trim no 1º F7 na entrada
 session (M0.6)    FSM Session<T: DeviceTransport> (ADR-6 rev.3): boot/scan,
                   select/state_page, set_param, save_preset (fire-and-forget D3),
                   upload_ir (ACK por chunk), list_user_irs, backlog D7

@@ -9,8 +9,13 @@ description = "Núcleo do GP-100 NextGen Editor: modelo de dados, presets .prst,
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
+# transporte REAL (H1): midir = WinMM/ALSA/CoreMIDI com SysEx completo.
+# OPCIONAL: o build default (mock) não baixa nem compila nada de I/O real
+# (política de hardware, ADR-4/ADR-5).
+midir = { version = "0.9", optional = true }
 
 [features]
 default = []
 # transporte com device REAL (USB-MIDI). Mock é o default (política de hardware).
-real-device = []
+# H1 = leitura real; ESCRITA real só pós-H2 (WRITE_VERIFIED, BLOCKERS §4).
+real-device = ["dep:midir"]

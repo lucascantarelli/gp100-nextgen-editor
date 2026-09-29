@@ -60,14 +60,17 @@ SUBCOMANDOS
 OPÇÕES
   --dry-run                   imprime os frames e NÃO envia (escritas)
   --log <arquivo>             grava todos os frames (out/in) no schema P4
-  --real                      modo hardware — BLOQUEADO nesta fase (gate H)
+  --real                      modo hardware (requer --i-know-what-im-doing
+                              E o build com --features real-device)
   --i-know-what-im-doing      dupla confirmação do --real (não contorna o gate)
   --help                      esta mensagem
 
 POLÍTICA DE HARDWARE (VISION §7 / ROADMAP H1–H2 / core-dev regra 8)
-  --real é recusado SEMPRE nesta build (exit 2): o gate H não rodou e o
-  transporte real não existe. H1 = leitura real; escrita só pós-H2 com
-  WRITE_VERIFIED. Números aceitam hex (0x0100) ou decimal.
+  DUAS camadas: (1) --real exige --i-know-what-im-doing; (2) o build precisa
+  da feature `real-device` (default OFF). No build de campo, H1 = leitura
+  real (roteiro do docs/H1_CHECKLIST.md; NENHUMA escrita); escrita real só
+  pós-H2 com WRITE_VERIFIED — a guarda de --dry-run permanece sempre.
+  Números aceitam hex (0x0100) ou decimal.
 ";
 
 /// Comando requisitado na linha de comando.
@@ -102,6 +105,9 @@ struct Args {
     command: Command,
     dry_run: bool,
     log: Option<PathBuf>,
+    /// `--real` JÁ VALIDADO: exige `--i-know-what-im-doing` e um build com
+    /// a feature `real-device` (recusas feitas no parser — política).
+    real: bool,
 }
 
 /// Erro de parse (impresso com usage).
@@ -138,18 +144,26 @@ fn parse_args<I: Iterator<Item = String>>(args: I) -> Result<Args, UsageError> {
             _ => positional.push(a),
         }
     }
-    // Passo 2 — GUARDA de política (core-dev regra 8): o transporte real não
-    // existe nesta build e o gate H não rodou. A dupla confirmação
-    // (`--i-know-what-im-doing`) é necessária mas NÃO suficiente — recusar
-    // sempre; a flag só terá efeito pós-gate (aí: leitura em H1, escrita em
-    // H2 com WRITE_VERIFIED).
-    let _ = acknowledge;
+    // Passo 2 — GUARDA de política (regra 8 do core-dev, DUAS camadas):
+    // (a) `--real` exige `--i-know-what-im-doing` (dupla confirmação);
+    // (b) o build precisa da feature `real-device` (default OFF — ADR-4/ADR-5).
+    // Com as duas, o binário de campo abre o RealDevice: LEITURA real = gate
+    // H1 (roteiro do H1_CHECKLIST; só leitura); ESCRITA real segue bloqueada
+    // pela guarda de dry-run (pós-H2 WRITE_VERIFIED) — independente de mock.
+    if real && !acknowledge {
+        return Err(UsageError(
+            "modo --real exige também --i-know-what-im-doing (dupla confirmação; \
+             política de hardware VISION §7)"
+                .into(),
+        ));
+    }
+    #[cfg(not(feature = "real-device"))]
     if real {
         return Err(UsageError(
-            "modo --real BLOQUEADO nesta fase: o gate H (H1–H2) não rodou e o \
-             transporte real não existe na build. --i-know-what-im-doing não \
-             contorna isto; leitura real = pós-H1, escrita real = pós-H2 \
-             (WRITE_VERIFIED)."
+            "modo --real BLOQUEADO nesta build: compilada SEM a feature \
+             `real-device` (default OFF — política ADR-4/ADR-5). O binário de \
+             campo compila com: cargo build --release -p gp100-cli \
+             --features real-device"
                 .into(),
         ));
     }
@@ -206,6 +220,7 @@ fn parse_args<I: Iterator<Item = String>>(args: I) -> Result<Args, UsageError> {
         command,
         dry_run,
         log,
+        real,
     })
 }
 
@@ -328,26 +343,62 @@ fn main() {
         }
     };
 
-    // Passo 2 — mock por default (ADR-4/ADR-5): única fonte de device desta
-    // fase. Embedado não parsear é bug de build (R4 travado), não de uso.
-    let mut mock = match MockDevice::new() {
-        Ok(m) => m,
-        Err(e) => {
-            eprintln!("[!] mock não inicializou (embedado corrompido?): {e}");
+    // Passo 2 — transporte: MOCK por default (ADR-4/ADR-5) ou REAL com a
+    // feature + dupla confirmação (validadas no parser). Dispatch por trait
+    // object (a Session continua dona única do stream, D8). O snapshot de
+    // estado só existe no mock (o device real não tem estado local).
+    #[cfg_attr(not(feature = "real-device"), allow(unused_mut))]
+    let (mut transport, snapshot): (
+        LoggingTransport<Box<dyn DeviceTransport>>,
+        Option<MockState>,
+    ) = if args.real {
+        #[cfg(feature = "real-device")]
+        {
+            use gp100_core::transport::real::RealDevice;
+            let real = match RealDevice::new() {
+                Ok(r) => r,
+                Err(e) => {
+                    eprintln!("[!] device real não abriu: {e}");
+                    std::process::exit(EXIT_PROTOCOL_ERROR);
+                }
+            };
+            (
+                LoggingTransport {
+                    inner: Box::new(real),
+                    logger: None,
+                },
+                None,
+            )
+        }
+        #[cfg(not(feature = "real-device"))]
+        {
+            unreachable!("--real sem feature é recusado no parser")
+        }
+    } else {
+        let mut mock = match MockDevice::new() {
+            Ok(m) => m,
+            Err(e) => {
+                eprintln!("[!] mock não inicializou (embedado corrompido?): {e}");
+                std::process::exit(EXIT_PROTOCOL_ERROR);
+            }
+        };
+        if let Err(e) = mock.open() {
+            eprintln!("[!] mock.open() falhou: {e}");
             std::process::exit(EXIT_PROTOCOL_ERROR);
         }
+        let snapshot = mock.state().clone();
+        (
+            LoggingTransport {
+                inner: Box::new(mock),
+                logger: None,
+            },
+            Some(snapshot),
+        )
     };
-    if let Err(e) = mock.open() {
-        eprintln!("[!] mock.open() falhou: {e}");
-        std::process::exit(EXIT_PROTOCOL_ERROR);
-    }
-    // Snapshot do estado ANTES do movimento para a Session (`info` imprime
-    // sem tráfego de fio; MockState é Clone e público por contrato).
-    let snapshot = mock.state().clone();
 
-    // Passo 3 — logger envolve o transporte; Session sobre o transporte
-    // (D1–D8; ciclo de vida do CLI, ADR-4).
-    let logger = match &args.log {
+    // Passo 3 — logger envolve o transporte (o log vê o que o "fio" vê,
+    // idêntico no mock e no real); Session sobre o transporte (D1–D8).
+    transport.logger = match &args.log {
         Some(path) => match WireLogger::create(path) {
             Ok(l) => Some(l),
             Err(e) => {
@@ -357,32 +408,40 @@ fn main() {
         },
         None => None,
     };
-    let mut transport = LoggingTransport {
-        inner: mock,
-        logger,
-    };
     let mut session = Session::new(&mut transport);
 
     // Passo 4 — executa o subcomando (protocolo = exit 3).
-    let code = run(&mut session, &snapshot, &args);
+    let code = run(&mut session, snapshot.as_ref(), &args);
     std::process::exit(code);
 }
 
 /// Executa o subcomando e devolve o código de saída.
-fn run<T: DeviceTransport>(session: &mut Session<T>, snapshot: &MockState, args: &Args) -> i32 {
+fn run<T: DeviceTransport>(
+    session: &mut Session<T>,
+    snapshot: Option<&MockState>,
+    args: &Args,
+) -> i32 {
     match &args.command {
         Command::Info => {
-            // `info` = estado do MOCK sem tráfego de fio: o boot/scan
-            // completo (2299 transações na S1) é comportamento do SUITE,
-            // não de um comando de leitura — quem quiser o script do boot
-            // tem o replay da M0.6; o device real entra pós-H1.
-            println!("device : MockDevice (default — política ADR-4/ADR-5)");
-            println!("presets: {}", snapshot.preset_count);
-            println!("pp     : 0x{:04x}", snapshot.current_pp);
-            println!("nome   : {}", snapshot.current_name);
-            println!("tipo   : {}", snapshot.current_pp_type);
-            let ocupados = snapshot.ir_crcs.iter().filter(|&&c| c != 0).count();
-            println!("IRs    : {ocupados}/20 slots com CRC de fábrica");
+            // MOCK: `info` = estado local sem tráfego de fio (o boot/scan
+            // completo é o script do SUITE — o replay da M0.6 o prova).
+            // REAL: `info` = a leitura de campo B1 do H1_CHECKLIST (a leitura
+            // de verdade acontece nos comandos; aqui só identificamos).
+            match snapshot {
+                Some(st) => {
+                    println!("device : MockDevice (default — política ADR-4/ADR-5)");
+                    println!("presets: {}", st.preset_count);
+                    println!("pp     : 0x{:04x}", st.current_pp);
+                    println!("nome   : {}", st.current_name);
+                    println!("tipo   : {}", st.current_pp_type);
+                    let ocupados = st.ir_crcs.iter().filter(|&&c| c != 0).count();
+                    println!("IRs    : {ocupados}/20 slots com CRC de fábrica");
+                }
+                None => {
+                    println!("device : RealDevice (gate H1 — SÓ LEITURA; escrita = H2)");
+                    println!("(o estado real vem das leituras: list-user-irs / dump-preset)");
+                }
+            }
             0
         }
         Command::ListUserIrs => match session.list_user_irs() {
@@ -516,20 +575,35 @@ mod tests {
         list.iter().map(|s| s.to_string()).collect()
     }
 
-    /// `--real` sozinho é recusado (política; exit 2 no main).
+    /// Camada 1 da política: `--real` sem `--i-know-what-im-doing` é recusado
+    /// SEMPRE (dupla confirmação é pré-condição, feature ou não).
     #[test]
     fn real_sozinho_e_bloqueado() {
         let err = parse_args(args(&["--real", "info"]).into_iter()).unwrap_err();
+        assert!(err.0.contains("--i-know-what-im-doing"));
+    }
+
+    /// Camada 2 da política (só no build DEFAULT, sem a feature):
+    /// `--real --i-know-what-im-doing` ainda é recusado — a dupla confirmação
+    /// é necessária mas NÃO suficiente sem o binário de campo.
+    #[cfg(not(feature = "real-device"))]
+    #[test]
+    fn real_com_ack_sem_feature_e_bloqueado() {
+        let parsed = parse_args(args(&["--real", "--i-know-what-im-doing", "info"]).into_iter());
+        let err = parsed.unwrap_err();
         assert!(err.0.contains("BLOQUEADO"));
     }
 
-    /// `--real --i-know-what-im-doing` TAMBÉM é recusado: dupla confirmação
-    /// é necessária mas não suficiente (regra 8 do core-dev).
+    /// No build de CAMPO (feature on), `--real --i-know-what-im-doing` passa
+    /// o parser (o `RealDevice::new()` decide em runtime — device presente).
+    #[cfg(feature = "real-device")]
     #[test]
-    fn real_com_ack_tambem_bloqueado() {
-        let err = parse_args(args(&["--real", "--i-know-what-im-doing", "info"]).into_iter())
-            .unwrap_err();
-        assert!(err.0.contains("BLOQUEADO"));
+    fn real_com_ack_com_feature_passa_o_parser() {
+        let parsed = parse_args(args(&["--real", "--i-know-what-im-doing", "info"]).into_iter());
+        assert!(
+            parsed.is_ok(),
+            "feature on: parser aceita (abertura é runtime)"
+        );
     }
 
     /// O parser ACEITA escrita sem --dry-run (o bloqueio é no `run`, com a
