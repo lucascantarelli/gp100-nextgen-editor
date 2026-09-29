@@ -21,6 +21,19 @@ Use para executar as issues M0.1–M0.7 do `docs/ROADMAP.md`, UMA por vez, na or
    o CLI exige `--real --i-know-what-im-doing` (política de hardware VISION §7).
 5. **Qualidade**: `cargo clippy -- -D warnings` + `cargo test` verdes a cada issue;
    teste novo sempre acompanha código novo (padrão de DoD da issue).
+6. **Encerramento inclui CI**: commit/push e `gh run watch <id> --repo
+   lucascantarelli/gp100-nextgen-editor --exit-status` ATÉ VERDE — só então ✅ na
+   issue do ROADMAP e linha no knowledge (marco com CI vermelha não é marco).
+7. **Commit tem labelling** (padrão do histórico do repo): `assunto: resumo` em
+   PT-BR — `M0.x: …` (issue), `docs-sync: …` (documentação pós-marco), `golden:`/
+   `preset:`/`codec:` (módulo), `testes:` (movimentação/organização de testes) —
+   + footer `🤖 Generated with Codebuff` + `Co-Authored-By: Codebuff
+   <noreply@codebuff.com>` (heredoc `git commit -m "$(cat <<'EOF' …)"`).
+8. **Modo real não se adiciona fora do gate H**: `RealDevice` é bloqueado em DUAS
+   camadas (feature `real-device` default OFF e o CLI exigir `--real
+   --i-know-what-im-doing`; escrita real só pós-H2, `WRITE_VERIFIED`). Subcomando
+   novo que "precisaria" de device real = parar e registrar ADR/ROADMAP — nunca
+   feature flag ad-hoc nem bypass de camada.
 
 ## Checklist por issue (M0.x)
 1. Ler a issue no ROADMAP (DoD define "pronto", não o feeling).
@@ -29,7 +42,9 @@ Use para executar as issues M0.1–M0.7 do `docs/ROADMAP.md`, UMA por vez, na or
 4. `cargo fmt && cargo clippy -- -D warnings && cargo test` — gates e estilo
    detalhados em `.agents/skills/rust-practices/SKILL.md` (doc-comments PT-BR
    com evidência, doc-tests, `deny(missing_docs)` no core, sem unwrap na lib).
-5. Marcar ✅ na issue do ROADMAP (com data) e atualizar `knowledge.md` (1 linha).
+5. Commit/push + CI verde (`gh run watch … --exit-status`) — regras 6–8 acima
+   (labelling de commit incluído) — e SÓ ENTÃO marcar ✅ na issue do ROADMAP (com
+   data) e atualizar `knowledge.md` (1 linha).
 
 ## Estrutura alvo do workspace
 ```
@@ -47,3 +62,5 @@ rust-toolchain.toml  # stable pinado (P2)
   já tratam isso (P4); não "corrigir" no codec.
 - Terminal novo sem cargo no PATH: fix permanente `scripts/add_cargo_path.ps1`
   (1x, admin) ou `export PATH="/c/Users/Canta/.cargo/bin:$PATH"` na sessão.
+- Movimentação/organização de testes: regra explícita na skill `rust-practices`
+  (unitário `#[cfg(test)]` = só internals; contratos em `tests/`).

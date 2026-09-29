@@ -4,7 +4,7 @@
 > fonte de verdade de cada assunto. Mantenha-o atualizado a cada novo documento
 > ou mudança de status — é o contrato de navegação entre agentes e humanos.
 
-**Última revisão:** 2026-09-28 (pós-sessões de captura 1–4; RE concluída)
+**Última revisão:** 2026-09-29 (auditoria de skills; M0.1–M0.4 ✅)
 
 ---
 
@@ -51,6 +51,7 @@
 | `CAPTURE_PLAN.md` | Plano original das rotas de captura | 📜 histórico (cumprido) |
 | `ROADMAP.md` | Plano executivo: preparação (P), gp100-core (M0), gate de hardware (H) com issues e critérios de aceite | ✅ atual |
 | `DECISIONS.md` | ADR-lite com as 5 decisões estruturais do gp100-core (endian/nibble, erros, transporte, trait, WRITE_VERIFIED) | ✅ atual |
+| `skills_audit_2026-09-29.md` | Auditoria das skills: regras que eram prática implícita, agora escritas (5 achados em core-dev/docs-sync/spec-baseline) | ✅ atual |
 | `INDEX.md` | Este índice | ✅ manter atualizado |
 
 ### `analysis/` — laboratório (scripts + produtos + achados)

@@ -23,6 +23,10 @@ fonte de retrocesso (viola a regra R1).
    só no knowledge/ROADMAP.
 
 ## Regras
+- **Commit da docs-sync é PRÓPRIO e SEPARADO** do commit da mudança (padrão
+  vigente: `6422cd1` M0.4 → `d2fa925 docs-sync: M0.4 ✅ …`; `d3088c8` M0.3 →
+  `fc0b6e6 docs-sync: …`) — nunca escondido dentro do commit de código nem
+  misturado a código pendente (o push do marco pode preceder a docs).
 - knowledge.md = estado vivo curto (agentes leem inteiro a cada sessão).
 - INDEX.md = mapa de navegação (agentes escolhem rota por ele).
 - ROADMAP.md = plano e progresso (owner acompanha por ele).
