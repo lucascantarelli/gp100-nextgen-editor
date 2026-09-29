@@ -168,7 +168,15 @@ impl MockDevice {
     /// Processa UM frame de entrada (já decodificado): efeito de estado +
     /// resposta a enfileirar, se houver. É o coração do despacho (D1/D3/D5).
     fn ingest(&mut self, func: u8, addr: [u8; 4], payload: &[u8]) -> Result<(), TransportError> {
-        let golden = GoldenFile::embedded().expect("golden embutido (M0.3)");
+        // ADR-2/rust-practices: sem panic na lib — golden indisponível vira
+        // erro tipado na MESMA conversão do resto do despacho (D5).
+        let golden = match GoldenFile::embedded() {
+            Ok(g) => g,
+            Err(e) => {
+                self.state.rejected += 1;
+                return Err(TransportError::SendFailed { why: e.to_string() });
+            }
+        };
 
         // §13.11 set_param: o golden congela os templates POR INSTÂNCIA
         // (9 templates 10xx0002 com consts de knobs específicos), então o
