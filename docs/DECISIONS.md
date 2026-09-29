@@ -323,8 +323,11 @@ pacing (§13.12 re-derivado 29/09 — D3 é definitivo); layout byte-a-byte
 
 | Issue | ADRs que vincula |
 |---|---|
+| M0.1 (modelo do dicionário) | 2 |
+| M0.2 (.prst round-trip, R4) | 2 |
 | M0.3 (golden-file consumer) | 1, 2 |
 | M0.4 (codec) | 1, 2, 4 |
 | M0.5 (transporte + mock) | 2, 3, 4, 5, 6 |
 | M0.6 (FSM + replay) | 2, 3, 4, 6 |
+| M0.7 (gp100-cli) | 2, 3, 4, 5, 6 |
 | H1–H3 (gate de hardware) | 3, 5 |

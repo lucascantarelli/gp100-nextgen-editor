@@ -1,6 +1,6 @@
 # 🎛️ H1_CHECKLIST — Gate de hardware: primeiro contato real (somente leitura)
 
-> **Status:** ⏳ aguardando pré-requisitos (M0.7 + transporte real) · **Última revisão:** 2026-09-29 · **Responsáveis:** owner no hardware + skill `capture-analyze` para divergências
+> **Status:** ⏳ aguardando o transporte real (software da Fase M0 pronto: M0.7 ✅ e M0.8 ✅) · **Última revisão:** 2026-09-29 · **Responsáveis:** owner no hardware + skill `capture-analyze` para divergências
 > **Fontes:** `docs/ROADMAP.md` (issue H1, regra R3), `docs/VISION.md` §7 (brick-proof), `docs/BLOCKERS.md` §4, ADR-3/ADR-4/ADR-6 (`docs/DECISIONS.md`), `docs/PROTOCOL.md` §13, `knowledge.md` (armadilhas de captura).
 > **Regra deste gate:** **LER é seguro; ESCREVER é H2.** Nenhum byte de escrita sai
 > nesta sessão (`set-param`/`save`/`upload-ir` proibidos MESMO com dry-run) e

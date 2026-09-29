@@ -255,13 +255,14 @@ Diretório de trabalho: `analysis/` (scripts + produtos). Ferramentas da fase RE
 ## 11. ROADMAP (rev. v1.2 — execução detalhada no ROADMAP.md e no UI_PLAN.md)
 
 > A fase de arqueologia terminou: dados, formato e protocolo estão fechados
-> e validados. O caminho crítico agora é 100% construção de software — e ela
-> já está a caminho: **M0 em 7/8 com CI verde (29/09)**.
+> e validados. O caminho crítico agora é 100% construção de software — e a
+> Fase M0 está **100% concluída (8/8) com CI verde (29/09)**.
 
-- **M0 — gp100-core (Rust) — ✅ 7/8 (29/09):** model (M0.1), preset round-trip
-  (M0.2), golden consumer (M0.3), codec de fio (M0.4), transporte + MockDevice
-  D1–D8 (M0.5), FSM de sessão com replay byte-a-byte das 4 fixtures (M0.6)
-  e gp100-cli com `--log` no schema P4 (M0.7). Falta M0.8 (docs do core).
+- **M0 — gp100-core (Rust) — ✅ 100% (8/8, 29/09):** model (M0.1), preset
+  round-trip (M0.2), golden consumer (M0.3), codec de fio (M0.4), transporte
+  + MockDevice D1–D8 (M0.5), FSM de sessão com replay byte-a-byte das 4
+  fixtures (M0.6), gp100-cli com `--log` no schema P4 (M0.7) e docs do core
+  com contrato de exemplos que rodam (M0.8).
   **Execução issue-a-issue, status e achados: `docs/ROADMAP.md`** (aqui fica
   só o panorama).
 - **H — gate de hardware (entre M0 e a escrita real):** H1 (leitura real) →

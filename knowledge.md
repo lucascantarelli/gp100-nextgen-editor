@@ -6,6 +6,11 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
 (local, sem depender de hardware para ~95% do trabalho). Resposta ao usuário SEMPRE em PT-BR.
 
 ## Estado vivo (atualizar aqui a cada marco)
+- 29/09 — REVIEW FINAL DA FASE M0: ✅ APROVADA (8/8 issues com DoD cumprido;
+  78 testes Rust em 14 suites + pytest 10/10 + provas A–E 100%; bytes
+  congelados íntegros; docs 100% sincronizados — resíduos "7/8" e tabela
+  de ADRs do DECISIONS sem M0.1/M0.2/M0.7 corrigidos). M0 FECHADA; próximo
+  = M1.0 (spike Tauri) e/ou gate H1 (pedaleira, H1_CHECKLIST).
 - M0.8 ✅ (29/09) — **FASE M0 100%**: `gp100-core/README.md` (arquitetura,
   exemplos, testes, CLI) + contrato `tests/readme_examples.rs` que executa os
   exemplos da doc 1:1 (pegou import faltante no exemplo da Session); onboarding

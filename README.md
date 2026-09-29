@@ -10,14 +10,14 @@ construído por engenharia reversa para substituir o "Valeton Suite" oficial
 (Windows-only, shell CEF). **Núcleo em Rust (`gp100-core`) + UI em Tauri 2/React.**
 
 **Status atual (29/09):** a engenharia reversa está **concluída e validada em campo**
-(protocolo comprovado byte-a-byte contra 4 sessões de captura) e o **`gp100-core`
-está 7/8 da Fase M0**: model (M0.1), preset round-trip (M0.2), golden consumer
-(M0.3), codec de fio (M0.4), transporte + MockDevice (M0.5), FSM de sessão com
-**replay byte-a-byte das 4 fixtures** (M0.6) e o **gp100-cli com `--log` no
-schema P4** (M0.7) — tudo no remoto com CI verde (fmt/clippy/testes + pytest
-10/10). Próximo: **M0.8** (docs do core), depois o **gate H** de hardware.
-Planejamento issue-a-issue: `docs/ROADMAP.md`; planejamento da UI (M1):
-`docs/UI_PLAN.md`.
+(protocolo comprovado byte-a-byte contra 4 sessões de captura) e a **Fase M0
+está 100% concluída (8/8)**: model (M0.1), preset round-trip (M0.2), golden
+consumer (M0.3), codec de fio (M0.4), transporte + MockDevice (M0.5), FSM de
+sessão com **replay byte-a-byte das 4 fixtures** (M0.6), **gp100-cli com
+`--log` no schema P4** (M0.7) e documentação do core com exemplos que rodam
+(M0.8) — tudo no remoto com CI verde (78 testes Rust + pytest 10/10).
+Próximos: **M1** (UI, `docs/UI_PLAN.md`) e/ou o **gate H** de hardware
+(`docs/H1_CHECKLIST.md`). Planejamento issue-a-issue: `docs/ROADMAP.md`.
 
 > 🔒 **Política de segurança de hardware:** nenhum fluxo de escrita sai sem captura
 > validada (`WRITE_VERIFIED`), e **update de firmware está fora de escopo** (V2+, e só
@@ -158,10 +158,11 @@ uv run python analysis/validate_knob_map.py # revalida knob_map.json
 
 ## 5. Roadmap
 
-- **M0 — gp100-core (Rust) — ✅ 7/8 (29/09):** model (M0.1), preset round-trip
-  byte-idêntico (M0.2), golden consumer (M0.3), codec de fio (M0.4), transporte +
-  MockDevice D1–D8 (M0.5) e FSM de sessão com replay byte-a-byte das 4 fixtures
-  (M0.6) — CI verde. Faltam: M0.7 (gp100-cli) e M0.8 (docs do core).
+- **M0 — gp100-core (Rust) — ✅ 100% (8/8, 29/09):** model (M0.1), preset
+  round-trip byte-idêntico (M0.2), golden consumer (M0.3), codec de fio
+  (M0.4), transporte + MockDevice D1–D8 (M0.5), FSM de sessão com replay
+  byte-a-byte das 4 fixtures (M0.6), gp100-cli com `--log` no schema P4
+  (M0.7) e docs do core com contrato de exemplos (M0.8) — CI verde.
   *Aceite da fase: replay byte-a-byte das capturas 1–4 — atingido na M0.6.*
 - **H — gate de hardware (entre M0 e a escrita real):** H1 (leitura real) →
   H2 (escrita dos 3 fluxos capturados) → H3 (golden v1.1 se houver ajuste).
