@@ -1,0 +1,60 @@
+# CI — gates de qualidade do GP-100 NextGen Editor (mesmos comandos locais).
+#
+# Por que windows-latest: o rust-toolchain.toml PINA stable-x86_64-pc-windows-gnu
+# (host de dev sem MSVC). Em runner Linux o rustup não instala toolchain Windows
+# com std; aqui a fidelidade com o ambiente de desenvolvimento é total.
+#
+# Gates (skill rust-practices + P3 do ROADMAP):
+#   Python: uv sync --all-groups -> uv run pytest        (10/10: golden, hash, fixtures)
+#   Rust:   fmt --check -> clippy -D warnings -> test    (inclui doc-tests)
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pytest:
+    name: Python — golden/fixtures (uv)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Sync do ambiente (capstone, pefile, ziglang, pytest)
+        run: uv sync --all-groups
+
+      - name: Suíte de regressão (10/10 — golden, hash da baseline, knob_map, fixtures)
+        run: uv run pytest
+
+  rust:
+    name: Rust — fmt/clippy/test (windows-gnu pinado)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # respeita o rust-toolchain.toml (stable-x86_64-pc-windows-gnu)
+      - name: Instalar toolchain Rust pinada
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache do cargo (registry + target)
+        uses: Swatinem/rust-cache@v2
+
+      - name: Formatação
+        run: cargo fmt --check
+
+      - name: Clippy (warnings = erro)
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Testes (unitários + doc-tests)
+        run: cargo test
