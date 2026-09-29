@@ -279,9 +279,9 @@ Diretório de trabalho: `analysis/` (scripts + produtos). Ferramentas da fase RE
   tone match IA, A/B blind test.
 - **Dívidas técnicas de baixa prioridade** (não bloqueiam nada): layout byte-a-byte da
   página de estado 13xx ↔ params (completar com mais capturas de scan), campo 0x00BC/0x00B4
-  e alinhamento de samples do blob de IR, tabela de TIPOS da `12001002` (nomes em nibbles),
-  schema do `11000007` (50B), semântica fina de ppEXP1/ppCtrl, gaps G3–G6
-  (globals/BPM, knob físico, footswitch — `analysis/capture_gaps.md`).
+  e alinhamento de samples do blob de IR, semântica fina de ppEXP1/ppCtrl, gaps G3–G6
+  (globals/BPM, knob físico, footswitch — `analysis/capture_gaps.md`). A tabela de
+  TIPOS da `12001002` e o schema do `11000007` foram FECHADOS em §13.12 (28/09).
 
 ---
 

@@ -183,7 +183,7 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
 ## Caminhos canônicos
 - `.venv/` (raiz) — ÚNICO venv do projeto (uv); `analysis/.venv` NÃO existe mais
 - `docs/ROADMAP.md` — plano executivo vigente (issues P/M0/H com responsável e DoD)
-- `docs/DECISIONS.md` — ADR-1..5 do gp100-core (P5); mudar decisão = novo ADR
+- `docs/DECISIONS.md` — ADR-1..6 do gp100-core (P5 + ADR-6 da FSM); mudar decisão = novo ADR
 - `scripts/add_cargo_path.ps1` — fix do PATH do cargo no sistema (HKLM; idempotente)
 - `analysis/fixtures/` — fixtures de replay por fase (regenerar: `uv run python analysis/make_fixtures.py`)
 - `README.md` — porta de entrada do repo (panorama, workflows de regeneração, onboarding)

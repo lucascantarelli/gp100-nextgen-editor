@@ -69,7 +69,7 @@ boot/scan de presets (S1), upload de IRs mono+estéreo (S2), edição de knobs p
 │   ├── midi_proxy.c …         # fontes do proxy
 │   ├── suite_local/           # Suite instrumentado (GP-100.exe + winmm.dll)
 │   ├── build_golden.py        # extrai os templates → docs/protocol_golden.json
-│   ├── validate_golden.py     # 3 provas de validação (accounting + geração)
+│   ├── validate_golden.py     # 5 provas de validação (accounting + geração A–E)
 │   ├── validate_knob_map.py   # valida o envelope do knob vs dicionário/.prst
 │   ├── make_fixtures.py       # fatia as capturas → fixtures/ (replay do M0)
 │   ├── fixtures/              # boot/knobs/save/ir + manifest (paridade vs golden)
@@ -172,12 +172,11 @@ uv run python analysis/validate_knob_map.py # revalida knob_map.json
   funcional), gestor de NAM, i18n (pt-BR/en/es/zh — strings da firmware reutilizáveis),
   MSI/AppImage/dmg.
 - **M3 — Diferenciais:** biblioteca versionada git-like, live mode, cloud opt-in,
-  tone match IA, A/B blind test (lista completa em `docs/VISION.md` §9).
-
-Dívidas de baixa prioridade (não bloqueiam nada): layout byte-a-byte da página de
-estado 13xx, campo 0x00BC/0x00B4 do blob de IR, tabela de TIPOS da `12001002`,
-schema do `11000007`, semântica de ppEXP1/ppCtrl, capturas G3–G6
-(globals/BPM, knob físico, footswitch).
+  tone match IA, A/B blind test (lista completa em `docs/VISION.md` §9).Dívidas de baixa prioridade (não bloqueiam nada): layout byte-a-byte da
+página de estado 13xx, campo 0x00BC/0x00B4 do blob de IR, semântica de
+ppEXP1/ppCtrl, capturas G3–G6 (globals/BPM, knob físico, footswitch).
+(A tabela de TIPOS da `12001002` e o schema do `11000007` foram FECHADOS
+em §13.12 — não são dívidas.)
 
 ---
 
