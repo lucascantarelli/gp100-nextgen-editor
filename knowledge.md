@@ -6,6 +6,16 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
 (local, sem depender de hardware para ~95% do trabalho). Resposta ao usuário SEMPRE em PT-BR.
 
 ## Estado vivo (atualizar aqui a cada marco)
+- Esqueleto do transport PRONTO (29/09, pré-M0.5): `gp100-core/src/transport.rs` —
+  trait `DeviceTransport` verbatim do ADR-4 (open/close/send_raw/recv_raw;
+  bytes crus, sync/bloqueante, ciclo de vida do CHAMADOR) + `TransportError`
+  tipado (Closed/OpenFailed/SendFailed/DeviceGone/RecvTimeout). `DeviceGone`
+  = desconexão física NO MEIO da sessão; `open()` no MESMO objeto RECONECTA;
+  `open()` sem device = OpenFailed — decisão travada em
+  `tests/transport_trait.rs` (implementador EXTERNO loopback prova trait
+  pub/object-safe/dyn). Contrato de msg: `recv_raw` devolve UMA msg
+  `F0..1º F7` (trim no 1º F7 é do RealDevice; F7 no meio = paginação).
+  M0.5 restante = SÓ o MockDevice (D1–D8) e o RealDevice feature-gated.
 - 29/09 — FECHAMENTO DO DIA: M0.4 ✅ no remoto com CI verde; ADR-6 rev.3 ACEITO
   (D1–D8 travados, watchlist H1 completa); save RE-DERIVADO do log cru (D3
   definitiva); quirk dos 32 ACKs tardios FECHADO (§13.7/§13.12 corrigidos);

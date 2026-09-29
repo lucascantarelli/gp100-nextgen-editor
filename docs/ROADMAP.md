@@ -177,7 +177,14 @@
 
 ### M0.5 Transporte + mock device
 - **Responsável:** skill `core-dev` (mock) · Depende: M0.4, P5 · **Estimativa:** 4–6h
-- **O quê:** `DeviceTransport` trait; `MockDevice` que responde conforme o golden
+- **Progresso pré-issue (29/09):** esqueleto PRONTO e CI verde —
+  `gp100-core/src/transport.rs` com a trait `DeviceTransport` (ADR-4
+  verbatim) + `TransportError` tipado (Closed/OpenFailed/SendFailed/
+  **DeviceGone**/RecvTimeout, com semântica de reconexão no mesmo objeto);
+  6 contratos em `tests/transport_trait.rs` (trait pub/object-safe via
+  implementador externo). Restam: `MockDevice` (contrato D1–D8 do ADR-6)
+  e `RealDevice` feature-gated.
+- **O quê:** `DeviceTransport` trait ✅ (esqueleto); `MockDevice` que responde conforme o golden
   (boot: tabelas/scan §13.10; página de estado; ACK de chunk; SEM resync pós-save
   — D3 do ADR-6: save é fire-and-forget; burst de fim de sessão não é emitido);
   `RealDevice` (midir/WinMM/ALSA) **atrás de feature** e desabilitado por default.
