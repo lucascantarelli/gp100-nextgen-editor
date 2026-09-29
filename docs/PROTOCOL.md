@@ -485,7 +485,11 @@ OUT 13 01 00 04 <- [pp u16BE] [PG u16BE] 01   avanca pagina (5B, ambos u16BE)
 **Larguras exatas confirmadas pela validação do golden-file** (sessão 1,
 198 presets × 9 páginas = 1.782 requests de página regenerados byte-a-byte
 por `analysis/validate_golden.py`): quirk de boot = o preset atual (pp 0x0100
-no exemplo) recebe select+open DUPLICADOS (re-leitura); há 1 sonda do banco 2
+no exemplo) recebe select+open DUPLICADOS (re-leitura): 2 selects respondem
+meta6 cada (e 1 resposta de tabela T1 chega TARDIA entre elas — backlog),
+depois 2 opens respondem PÁGINA 0 duas vezes em `13010003` (não é um 3º
+meta6); as 9 páginas seguem: req pg0..7 → pág1..8, pg8 → 4B em `13010005`.
+Há 1 sonda do banco 2
 (`13 02 00 00` pp 0000 + 9 páginas); a tabela de nomes `11000008` usa chave
 `[banco u8][índice u8]` e o boot varre bancos 0x00–0x02 completos (16) +
 banco 0x03 com 13 (61 leituras).

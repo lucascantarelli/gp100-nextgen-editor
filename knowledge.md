@@ -6,6 +6,21 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
 (local, sem depender de hardware para ~95% do trabalho). Resposta ao usuário SEMPRE em PT-BR.
 
 ## Estado vivo (atualizar aqui a cada marco)
+- M0.6 ✅ (29/09): `gp100-core/src/session.rs` — FSM completa (boot/scan_state/
+  set_param/save_preset/upload_ir/list_user_irs/pending_pushes) e replay
+  100% das 4 fixtures byte-a-byte (`tests/replay_fixtures.rs`: boot 2299/2299
+  OUTs, knobs 92/92, save 9/9 exatos, IR 594/594+592 ACKs; divergência de
+  framing = falha com diff hex). ACHADOS DO BOOT (provados no replay):
+  (1) ciclo do pp atual 0x0100 DUPLICADO = 2 selects → 2 meta6; 2 opens →
+  PÁGINA 0 duas vezes (NÃO é um 3º meta6); reqs pg0..7 → pág1..8; pg8 →
+  IN 13010005 (14 INs p/ 13 OUTs: 1 pág0 dup); (2) T1 tem 1 resposta de
+  tabela que chega TARDIA, DEPOIS do 1º select do scan — o backlog D7
+  absorve (fila não é por endpoint); (3) T3 nomes é FIRE-AND-FORGET:
+  61 leituras, 57 respostas — o device OMITIU 4 respostas (banco 00, idx
+  01/03/06/0a) e o Suite seguiu; esperar por-leitura = Timeout; respostas
+  de nomes = pushes de contexto (D2) → backlog (D7); (4) select da sonda
+  1302 é CONST "0000" no golden (sem pp); (5) template 11000008 é mixed
+  2 vars + const 0000 (não 4 vars). Próximo: M0.7 CLI.
 - M0.5 ✅ (29/09): `gp100-core/src/transport/mock.rs` — MockDevice respondendo
   CONFORME O GOLDEN (despacho `match_request`, respostas via
   `Template::build_response` — API nova com simetria provada nos 15 exemplos

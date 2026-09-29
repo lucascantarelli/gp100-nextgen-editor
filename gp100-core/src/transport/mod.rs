@@ -119,3 +119,20 @@ pub trait DeviceTransport {
     /// [`TransportError::Closed`] se o transporte não estiver aberto.
     fn recv_raw(&mut self, timeout: Duration) -> Result<Vec<u8>, TransportError>;
 }
+
+/// `&mut T` também é um transporte (a Session toma empréstimo mutável;
+/// usado pelo replay da M0.6 e pela UI para manter a posse fora).
+impl<T: DeviceTransport + ?Sized> DeviceTransport for &mut T {
+    fn open(&mut self) -> Result<(), TransportError> {
+        (**self).open()
+    }
+    fn close(&mut self) -> Result<(), TransportError> {
+        (**self).close()
+    }
+    fn send_raw(&mut self, data: &[u8]) -> Result<(), TransportError> {
+        (**self).send_raw(data)
+    }
+    fn recv_raw(&mut self, timeout: Duration) -> Result<Vec<u8>, TransportError> {
+        (**self).recv_raw(timeout)
+    }
+}

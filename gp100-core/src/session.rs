@@ -26,8 +26,12 @@
 //!   do backlog via [`Session::pending_pushes`], nunca listener concorrente).
 
 use crate::golden::GoldenFile;
-use crate::transport::DeviceTransport;
+use crate::transport::{DeviceTransport, TransportError};
 use crate::ProtocolError;
+use std::time::Duration;
+
+/// Janela da transação (ADR-3): 3000 ms por request→resposta.
+const TX_TIMEOUT_MS: u64 = 3000;
 
 /// Relatório do boot+scan (§13.10): nasce MÍNIMO (deriva das vars que os
 /// templates extraem) e cresce só quando a UI pedir (ADR-6, YAGNI).
@@ -71,6 +75,13 @@ pub struct IrUploadReport {
 /// FSM de sessão — genérica sobre o transporte (ADR-4/ADR-6).
 pub struct Session<T: DeviceTransport> {
     transport: T,
+    /// pp corrente (select do boot/scan; default 0x0100 = "01 00", §13.4).
+    current_pp: u16,
+    /// Inventário de presets na ordem de scan (default 0..198). O replay da
+    /// S1 prova a ordem da captura; o device real tem o próprio.
+    pps: Option<Vec<u16>>,
+    /// Backlog de IN não solicitado (D7), na ordem de chegada (hex cru).
+    backlog: Vec<Vec<u8>>,
 }
 
 impl<T: DeviceTransport> Session<T> {
@@ -79,25 +90,206 @@ impl<T: DeviceTransport> Session<T> {
     /// `GoldenFile::embedded()` (1 parse por processo) nos métodos — não é
     /// campo (rev.2: valor único `&'static` em campo é ruído de API).
     pub fn new(transport: T) -> Self {
-        Self { transport }
+        Self {
+            transport,
+            current_pp: 0x0100,
+            pps: None,
+            backlog: Vec::new(),
+        }
     }
 
-    /// Boot + scan (§13.10): replay da sequência capturada via
-    /// `GoldenFile::build_request` + `match_response` por transação.
+    /// Define o inventário de pps do scan (ordem = ordem de seleção do
+    /// boot; default 0..198). A ordem da S1 é provada pelo replay.
+    pub fn set_inventory(&mut self, pps: Vec<u16>) {
+        self.pps = Some(pps);
+    }
+
+    /// Referência ao inventário em uso (default 0..198).
+    fn inventory(&self) -> Vec<u16> {
+        self.pps.clone().unwrap_or_else(|| (0u16..198).collect())
+    }
+
+    /// Boot + scan (§13.10): o script completo do Suite ao ligar, gerado
+    /// pelas MESMAS regras da prova C do `validate_golden.py` (2299/2299):
+    /// T1) tabela de IRs `11/12001002`: 20 páginas ×2 leituras; T2)
+    /// `11/12001012`: índices 0..4; T3) nomes `11/11000008`: bancos 0x00–
+    /// 0x02 completos (16) + 0x03 com 13; T4) keepalive `12/00020001` ×2;
+    /// T5) scan: para cada pp (ordem do inventário; o ATUAL 0x0100 com
+    /// select+open DUPLICADOS — quirk de boot): select `11/13010000` [pp],
+    /// open `12/13010002` [pp]01, 9 páginas `12/13010004` [pp][PG]01;
+    /// T6) sonda do banco 02: select 0000 + open 000001 + 9 páginas.
+    ///
+    /// INTERLEAVE (D2): cada transação espera a PRÓPRIA resposta (D1) e
+    /// pushes de boot não solicitados (dump 13000000, meta6 13010001,
+    /// páginas 13010003, setlist 12001012, nomes 11000008) vão para o
+    /// BACKLOG (D7), não confundem as transações.
     ///
     /// # Erros
     /// [`ProtocolError::Timeout`] (D6), [`ProtocolError::InvalidShape`]
-    /// (D5) — e [`ProtocolError::UnexpectedAck`] se o IN não casar com o
-    /// que a transação pediu (D1/D3).
+    /// (D5) — e [`ProtocolError::UnexpectedAck`] (diff hex da resposta).
     pub fn boot(&mut self) -> Result<BootReport, ProtocolError> {
-        let _ = GoldenFile::embedded(); // amarra a dependência (M0.6 implmenta)
-        todo!("M0.6: boot+scan §13.10 (replay boot.jsonl, caso congelado vs geral via var_count)")
+        let golden = GoldenFile::embedded()?;
+        let mut tx = 0usize;
+
+        // ORDEM REAL do boot S1 (prova C / replay): T1 → scan (T5) →
+        // sonda 1302 (T6) → setlist (T2) → nomes (T3) → keepalives ×2.
+        // T1: 20 páginas ×2 (regra da prova C)
+        for p in 0u8..0x14 {
+            for _ in 0..2 {
+                self.tx_req(golden, 0x11, &[0x12, 0x00, 0x10, 0x02], &[p])?;
+                tx += 1;
+            }
+        }
+        // T5: scan — pareamento REAL (replay S1): select `13010000` →
+        // meta6 `13010001`; open `13010002` [pp]01 → página 0 em `13010003`;
+        // req `13010004` [pp][PG]01 (PG 0..7) → página PG+1 (196B/32B);
+        // PG 8 → `13010005` (4B). O preset ATUAL 0x0100 tem select e open
+        // DUPLICADOS (quirk §13.4: 2 selects + 2 opens; página 0 extra).
+        for pp in self.inventory() {
+            let pp_be = pp.to_be_bytes();
+            let doubled = pp == 0x0100;
+            if doubled {
+                self.tx_req_in(
+                    golden,
+                    0x11,
+                    &[0x13, 0x01, 0x00, 0x00],
+                    &pp_be,
+                    &[0x13, 0x01, 0x00, 0x01],
+                )?;
+                tx += 1;
+            }
+            self.tx_req_in(
+                golden,
+                0x11,
+                &[0x13, 0x01, 0x00, 0x00],
+                &pp_be,
+                &[0x13, 0x01, 0x00, 0x01],
+            )?;
+            tx += 1;
+            self.tx_req_in(
+                golden,
+                0x12,
+                &[0x13, 0x01, 0x00, 0x02],
+                &pp_be,
+                &[0x13, 0x01, 0x00, 0x03],
+            )?;
+            tx += 1;
+            if doubled {
+                // ...e open duplicado: a página 0 chega DE NOVO em
+                // `13010003` (captura S1 rows 89–93: open open → pág0 pág0;
+                // NÃO é meta6 — era este o desalinhamento do replay)
+                self.tx_req_in(
+                    golden,
+                    0x12,
+                    &[0x13, 0x01, 0x00, 0x02],
+                    &pp_be,
+                    &[0x13, 0x01, 0x00, 0x03],
+                )?;
+                tx += 1;
+            }
+            for pg in 0u16..9u16 {
+                // t8: var2 (pp) + const 00 + var1 (PG baixo) + const 01
+                let vars = [pp_be[0], pp_be[1], pg as u8];
+                if pg < 8 {
+                    self.tx_req_in(
+                        golden,
+                        0x12,
+                        &[0x13, 0x01, 0x00, 0x04],
+                        &vars,
+                        &[0x13, 0x01, 0x00, 0x03],
+                    )?;
+                } else {
+                    self.tx_req_in(
+                        golden,
+                        0x12,
+                        &[0x13, 0x01, 0x00, 0x04],
+                        &vars,
+                        &[0x13, 0x01, 0x00, 0x05],
+                    )?;
+                }
+                tx += 1;
+            }
+            self.current_pp = pp;
+        }
+        // T6: sonda do banco 02 (mesmo pareamento; 13020001/13020003/13020005).
+        // O select é CONST "0000" no golden (sem var de pp — é a sonda do
+        // banco 02, não um select de preset).
+        self.tx_req_in(
+            golden,
+            0x11,
+            &[0x13, 0x02, 0x00, 0x00],
+            &[],
+            &[0x13, 0x02, 0x00, 0x01],
+        )?;
+        tx += 1;
+        self.tx_req_in(
+            golden,
+            0x12,
+            &[0x13, 0x02, 0x00, 0x02],
+            &[],
+            &[0x13, 0x02, 0x00, 0x03],
+        )?;
+        tx += 1;
+        for pg in 0u16..9u16 {
+            // t15: const 000000 + var1 (PG baixo) + const 01
+            let vars = [pg as u8];
+            if pg < 8 {
+                self.tx_req_in(
+                    golden,
+                    0x12,
+                    &[0x13, 0x02, 0x00, 0x04],
+                    &vars,
+                    &[0x13, 0x02, 0x00, 0x03],
+                )?;
+            } else {
+                self.tx_req_in(
+                    golden,
+                    0x12,
+                    &[0x13, 0x02, 0x00, 0x04],
+                    &vars,
+                    &[0x13, 0x02, 0x00, 0x05],
+                )?;
+            }
+            tx += 1;
+        }
+        // T2: setlist 5 entradas
+        for i in 0u8..5 {
+            self.tx_req(golden, 0x11, &[0x12, 0x00, 0x10, 0x12], &[i])?;
+            tx += 1;
+        }
+        // T3: nomes — FIRE-AND-FORGET (D4; captura S1: 61 leituras, só 57
+        // respostas — o device omitiu 4 do banco 00 [idx 01,03,06,0a] e o
+        // Suite seguiu): respostas = pushes de contexto (D2) → backlog (D7);
+        // esperar por-leitura estouraria Timeout (D6). Vars = [banco, idx]:
+        // o template é mixed 2 vars + const 0000 (o golden completa a cauda).
+        for bank in 0u8..3 {
+            for idx in 0u8..16 {
+                self.send_build(golden, 0x11, &[0x11, 0x00, 0x00, 0x08], &[bank, idx])?;
+                tx += 1;
+            }
+        }
+        for idx in 0u8..13 {
+            self.send_build(golden, 0x11, &[0x11, 0x00, 0x00, 0x08], &[3, idx])?;
+            tx += 1;
+        }
+        // T4: keepalive ×2 (D4)
+        for _ in 0..2 {
+            self.send_build(golden, 0x12, &[0x00, 0x02, 0x00, 0x01], &[])?;
+        }
+        Ok(BootReport { transactions: tx })
     }
 
     /// Página de estado do pp corrente (família 13xx; dispatch por CONTEXTO,
     /// regra D2). Layout byte-a-byte da 13xx segue FORA (ROADMAP).
     pub fn scan_state(&mut self) -> Result<StatePage, ProtocolError> {
-        todo!("M0.6: página de estado 13xx (D2: contexto decide semântica)")
+        let golden = GoldenFile::embedded()?;
+        let pp_be = self.current_pp.to_be_bytes();
+        // t8 é mixed 3 vars (pp 2B + PG): página 0 do pp corrente
+        let vars = [pp_be[0], pp_be[1], 0x00];
+        let req = golden.build_request(0x12, &[0x13, 0x01, 0x00, 0x04], &vars)?;
+        self.transport.send_raw(&req).map_err(tx_err)?;
+        let payload = self.wait_for(0x12, &[0x13, 0x01, 0x00, 0x03])?;
+        Ok(StatePage { raw: payload })
     }
 
     /// Knob da UI (§13.11): `codec::set_param` fire-and-forget, SEM
@@ -111,8 +303,8 @@ impl<T: DeviceTransport> Session<T> {
         ctrl: u8,
         value: f32,
     ) -> Result<(), ProtocolError> {
-        let _ = (chain_slot, code, ctrl, value);
-        todo!("M0.6: set_param §13.11 via codec::set_param (D4: sem drain)")
+        let sysex = crate::codec::set_param(chain_slot, code, ctrl, value)?;
+        self.transport.send_raw(&sysex).map_err(tx_err)
     }
 
     /// Save (§13.12 RE-DERIVADO — D3): envia `codec::meta_block(pp, pp_type,
@@ -122,8 +314,29 @@ impl<T: DeviceTransport> Session<T> {
     /// BLOCKERS 11); "salvou?" em H2 = display/`list_user_irs`, NUNCA
     /// interpretar burst 11xx tardio como confirmação.
     pub fn save_preset(&mut self, pp: u16, pp_type: u16, name: &str) -> Result<(), ProtocolError> {
-        let _ = (pp, pp_type, name);
-        todo!("M0.6: meta_block + ciclo de ops da S4 (D3: fire-and-forget, sem drain)")
+        let mut sysexes: Vec<Vec<u8>> = Vec::new();
+        for (addr, payload) in crate::codec::meta_block(pp, pp_type, name)? {
+            let mut m = Vec::from(crate::SYSEX_HEADER);
+            m.push(0x12);
+            m.extend_from_slice(&addr);
+            m.extend_from_slice(&payload);
+            m.push(crate::SYSEX_EOX);
+            sysexes.push(m);
+        }
+        // ciclo de ops da S4 (§13.12 re-derivado, D3): op0 com o meta,
+        // op0 de novo, op1 ×2 — fim dos writes = commit, ZERO IN esperado
+        for op in [0u8, 0, 1, 1] {
+            let mut m = Vec::from(crate::SYSEX_HEADER);
+            m.push(0x12);
+            m.extend_from_slice(&[0x00, 0x02, 0x00, 0x00]);
+            m.extend_from_slice(&crate::codec::op_payload(op));
+            m.push(crate::SYSEX_EOX);
+            sysexes.push(m);
+        }
+        for s in &sysexes {
+            self.transport.send_raw(s).map_err(tx_err)?;
+        }
+        Ok(())
     }
 
     /// IR (§13.7): `ir_begin(ir_slot)` + chunks 15B/33B esperando o ACK
@@ -132,22 +345,189 @@ impl<T: DeviceTransport> Session<T> {
     /// codec. `ir_slot` = 0..=19; `blob` tem de ser múltiplo de 15B (strict,
     /// rev.2: pedaço final é REJEITADO, não padado).
     pub fn upload_ir(&mut self, ir_slot: u8, blob: &[u8]) -> Result<IrUploadReport, ProtocolError> {
-        let _ = (ir_slot, blob);
-        todo!("M0.6: begin + chunks + ACK por chunk (D1/D6) + último chunk duplicado")
+        if ir_slot >= 20 {
+            return Err(ProtocolError::InvalidShape {
+                expected: "ir_slot 0..=19".into(),
+                got: format!("{ir_slot}"),
+            });
+        }
+        if !blob.len().is_multiple_of(15) {
+            return Err(ProtocolError::InvalidShape {
+                expected: "blob múltiplo de 15B (strict, rev.2)".into(),
+                got: format!("{} bytes", blob.len()),
+            });
+        }
+        self.transport
+            .send_raw(&crate::codec::ir_begin(ir_slot)?)
+            .map_err(tx_err)?;
+        let chunks = blob.as_chunks::<15>().0;
+        let mut acks = 0usize;
+        for (i, chunk) in chunks.iter().enumerate() {
+            // idx em PÁGINAS de 128 (§13.7): base = página×256 — F7 nunca
+            // aparece no índice (razão provável dos gaps, provada na M0.5)
+            let idx = ((i / 128) as u16) * 256 + (i % 128) as u16;
+            let sysex = crate::codec::ir_chunk(ir_slot, idx, chunk)?;
+            self.transport.send_raw(&sysex).map_err(tx_err)?;
+            // D1: ACK [slot][idx BE][01] no endpoint 12/12001002, com
+            // filtro D7 (pushes de outros endpoints vão para o backlog)
+            let payload = self.wait_for(0x12, &[0x12, 0x00, 0x10, 0x02])?;
+            let expect = crate::codec::ir_chunk_ack_payload(ir_slot, idx);
+            if payload.as_slice() != expect {
+                return Err(ProtocolError::UnexpectedAck {
+                    addr: "12/12001002".into(),
+                    got: format!(
+                        "esperado {}, chegou {}",
+                        hex_short(&expect),
+                        hex_short(&payload)
+                    ),
+                });
+            }
+            acks += 1;
+        }
+        // marcador de fim: o ÚLTIMO chunk é enviado 2× NO TOTAL (a captura
+        // tem 296 sends/ACKs por slot = 295 únicos + 1 repetição do idx
+        // 0x226 — §13.7 corrigido); payload real, 1 envio extra, 1 ACK
+        let last: &[u8] = &chunks[chunks.len() - 1];
+        let last_idx = ((chunks.len() - 1) / 128) as u16 * 256 + ((chunks.len() - 1) % 128) as u16;
+        let sysex = crate::codec::ir_chunk(ir_slot, last_idx, last)?;
+        self.transport.send_raw(&sysex).map_err(tx_err)?;
+        let payload = self.wait_for(0x12, &[0x12, 0x00, 0x10, 0x02])?;
+        let expect = crate::codec::ir_chunk_ack_payload(ir_slot, last_idx);
+        if payload.as_slice() != expect {
+            return Err(ProtocolError::UnexpectedAck {
+                addr: "12/12001002".into(),
+                got: format!(
+                    "esperado {}, chegou {}",
+                    hex_short(&expect),
+                    hex_short(&payload)
+                ),
+            });
+        }
+        acks += 1;
+        Ok(IrUploadReport {
+            slot: ir_slot,
+            chunks: chunks.len(),
+            acks,
+        })
     }
 
     /// Tabela dos 20 User IRs: req em `12001002`; o by-len de
     /// `match_response` garante que a resposta lida é a TABELA (75B
     /// nibble-exp), não um ACK (4B) — D1.
     pub fn list_user_irs(&mut self) -> Result<UserIrTable, ProtocolError> {
-        todo!("M0.6: req 12001002 + decode nome+CRC (§13.12; CRC de ocupado é pendência)")
+        let mut slots = Vec::new();
+        for page in 0u8..0x14 {
+            let payload = self.tx_req(
+                GoldenFile::embedded()?,
+                0x11,
+                &[0x12, 0x00, 0x10, 0x02],
+                &[page],
+            )?;
+            // §13.12: [0]=pág/slot; [1..33] nome nibble-exp (0xFF = vazio)
+            let name = crate::codec::nibble_collapse(&payload[1..33])?;
+            let empty = name.iter().all(|&b| b == 0xFF);
+            let s: String = if empty {
+                String::new()
+            } else {
+                name.iter()
+                    .take_while(|&&b| b != 0 && b != 0xFF)
+                    .map(|&b| b as char)
+                    .collect()
+            };
+            slots.push((payload[0], s));
+        }
+        Ok(UserIrTable { slots })
     }
 
     /// Pushes de IN não solicitado acumulados no backlog (D7), para
     /// observação (D8: poll, nunca listener concorrente). A drenagem do
     /// backlog é da operação seguinte compatível.
     pub fn pending_pushes(&mut self) -> Result<Vec<Vec<u8>>, ProtocolError> {
-        todo!("M0.6: accessor do backlog D7 (D8: poll)")
+        Ok(std::mem::take(&mut self.backlog))
+    }
+
+    /// Uma transação: build_request (desambiguação por var_count) → send →
+    /// espera a resposta no endpoint de RESPOSTA (D1/D7). Devolve o payload.
+    fn tx_req(
+        &mut self,
+        golden: &GoldenFile,
+        func_out: u8,
+        addr: &[u8; 4],
+        vars: &[u8],
+    ) -> Result<Vec<u8>, ProtocolError> {
+        self.tx_req_in(golden, func_out, addr, vars, addr)
+    }
+
+    /// Igual a [`Session::tx_req`], com endpoint de RESPOSTA explícito —
+    /// o fio NÃO responde no mesmo endereço (replay S1): select/open
+    /// `13010002` respondem meta6 em `13010001`; página `13010004` (PG 0..7)
+    /// responde página em `13010003` (by-len 196/32); PG 8 responde em
+    /// `13010005`; select `13010000` (família 1302) responde meta6 em
+    /// `13020001`; read `13020004` responde em `13020003`; PG 8 em `13020005`.
+    fn tx_req_in(
+        &mut self,
+        golden: &GoldenFile,
+        func_out: u8,
+        addr: &[u8; 4],
+        vars: &[u8],
+        in_addr: &[u8; 4],
+    ) -> Result<Vec<u8>, ProtocolError> {
+        let req = golden.build_request(func_out, addr, vars)?;
+        self.transport.send_raw(&req).map_err(tx_err)?;
+        self.wait_for(0x12, in_addr)
+    }
+
+    /// Só envia (write fire-and-forget, D4).
+    fn send_build(
+        &mut self,
+        golden: &GoldenFile,
+        func: u8,
+        addr: &[u8; 4],
+        vars: &[u8],
+    ) -> Result<(), ProtocolError> {
+        let req = golden.build_request(func, addr, vars)?;
+        self.transport.send_raw(&req).map_err(tx_err)
+    }
+
+    /// Espera uma mensagem no endpoint `(func, addr)` e devolve o PAYLOAD
+    /// (D1/D7): msgs de outros endpoints vão para o backlog; no endpoint
+    /// certo, sem match no golden = InvalidShape (D5); nada na janela ADR-3
+    /// = Timeout (D6).
+    fn wait_for(&mut self, func: u8, addr: &[u8; 4]) -> Result<Vec<u8>, ProtocolError> {
+        loop {
+            let msg = self
+                .transport
+                .recv_raw(Duration::from_millis(TX_TIMEOUT_MS))
+                .map_err(|e| match e {
+                    TransportError::RecvTimeout { timeout_ms } => ProtocolError::Timeout {
+                        timeout_ms,
+                        addr: format!("{func:02x}/{}", addr_hex(addr)),
+                    },
+                    other => ProtocolError::InvalidShape {
+                        expected: "transporte saudável".into(),
+                        got: other.to_string(),
+                    },
+                })?;
+            let (f, a, payload) = crate::golden::decode_envelope(&msg)?;
+            if std::env::var_os("GP100_TRACE").is_some() {
+                eprintln!(
+                    "wait_for {func:02x}/{} <- {f:02x}/{} ({}B)",
+                    addr_hex(addr),
+                    addr_hex(&a),
+                    payload.len()
+                );
+            }
+            if f == func && a == *addr {
+                GoldenFile::embedded()?
+                    .match_response(f, &a, payload)
+                    .ok_or_else(|| ProtocolError::InvalidShape {
+                        expected: format!("resposta do golden em {f:02x}/{}", addr_hex(&a)),
+                        got: hex_short(payload),
+                    })?;
+                return Ok(payload.to_vec());
+            }
+            self.backlog.push(msg); // D7
+        }
     }
 
     /// Devolve o transporte (close()/reuso é do chamador) — `Session` não
@@ -155,4 +535,33 @@ impl<T: DeviceTransport> Session<T> {
     pub fn into_transport(self) -> T {
         self.transport
     }
+}
+
+/// Mapeia erro de transporte para erro de transação (D6/D5).
+fn tx_err(e: TransportError) -> ProtocolError {
+    match e {
+        TransportError::SendFailed { why } => ProtocolError::InvalidShape {
+            expected: "frame aceito pelo device".into(),
+            got: why,
+        },
+        other => ProtocolError::InvalidShape {
+            expected: "transporte saudável".into(),
+            got: other.to_string(),
+        },
+    }
+}
+
+/// Hex curto (até 12 bytes) para diffs de divergência.
+fn hex_short(data: &[u8]) -> String {
+    let s: String = data.iter().take(12).map(|b| format!("{b:02x}")).collect();
+    if data.len() > 12 {
+        format!("{s}…(+{})", data.len() - 12)
+    } else {
+        s
+    }
+}
+
+/// Addr 4B em hex (mensagens de erro).
+fn addr_hex(addr: &[u8; 4]) -> String {
+    addr.iter().map(|b| format!("{b:02x}")).collect()
 }

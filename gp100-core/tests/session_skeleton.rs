@@ -1,8 +1,8 @@
-//! Testes de CONTRATO do esqueleto do session (M0.6, ADR-6 rev.3): a FSM
-//! deve ser CONSTRUÍVEL sobre um transporte EXTERNO (ciclo de vida do
-//! chamador) e os métodos ainda-não-implementados devem ser placeholders
-//! EXPLÍCITOS (`todo!("M0.6: …")` — nunca `unimplemented!` genérico nem
-//! corpo silencioso).
+//! Testes de CONTRATO do session (M0.6, ADR-6 rev.3): a FSM constrói sobre
+//! um transporte EXTERNO (ciclo de vida do chamador) e os 7 métodos da FSM
+//! estão IMPLEMENTADOS (nenhum `todo!` sobreviveu — era o contrato do
+//! esqueleto; a implementação é provada pelo replay em
+//! `tests/replay_fixtures.rs`).
 
 use std::time::Duration;
 
@@ -42,45 +42,33 @@ fn session_nao_dona_do_ciclo_de_vida() {
     back.close().expect("o chamador fecha DEPOIS");
 }
 
-/// Os métodos da FSM ainda não implementados devem PANICAR com a mensagem
-/// explícita "M0.6" (contrato do esqueleto: nada de corpo silencioso que
-/// fingiria sucesso — a issue M0.6 torna cada um verde no replay).
+/// M0.6 completo: os 7 métodos da FSM não são mais placeholders — cada um
+/// executa de verdade (aqui: fire-and-forget no NullTransport = Ok; os
+/// que esperam resposta estouram Timeout tipado do ADR-3, não panic).
 #[test]
-fn metodos_sao_placeholders_explicitos_m06() {
-    let mut session = Session::new(NullTransport);
-
-    let msgs: Vec<String> = [
-        std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| session.boot())).err(),
-        std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| session.scan_state())).err(),
-        std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            session.set_param(1, 0x0700_006e, 0, 15.0)
-        }))
-        .err(),
-        std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            session.save_preset(0, 4, "It's GP100")
-        }))
-        .err(),
-        std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            session.upload_ir(0, &[0u8; 15])
-        }))
-        .err(),
-        std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| session.list_user_irs())).err(),
-        std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| session.pending_pushes())).err(),
-    ]
-    .into_iter()
-    .map(|e| {
-        let e = e.expect("todo! panica");
-        e.downcast_ref::<String>()
-            .cloned()
-            .or_else(|| e.downcast_ref::<&str>().map(|s| s.to_string()))
-            .expect("mensagem de panic é String/&str")
-    })
-    .collect();
-
-    assert_eq!(msgs.len(), 7, "os 7 métodos da FSM estão em todo!");
-    for m in &msgs {
-        // todo!() prefixa com "not yet implemented: " — o que importa é a
-        // mensagem apontar a issue M0.6 (nunca placeholder genérico)
-        assert!(m.contains("M0.6"), "placeholder deve apontar a issue: {m}");
-    }
+fn metodos_implementados_sem_todo() {
+    let mut s = Session::new(NullTransport);
+    s.set_param(1, 0x0300_0001, 0, 42.0)
+        .expect("set_param (D4)");
+    s.save_preset(0, 4, "It's GP100").expect("save (D3)");
+    // upload_ir executa begin+chunk e estoura Timeout esperando o ACK (D1/D6)
+    assert!(matches!(
+        s.upload_ir(0, &[0x5Au8; 15]),
+        Err(gp100_core::ProtocolError::Timeout { .. })
+    ));
+    assert!(s.pending_pushes().expect("backlog vazio").is_empty());
+    // transações com resposta estouram Timeout do ADR-3 no NullTransport
+    // (D6) — não panic nem erro de transporte cru
+    assert!(matches!(
+        s.boot(),
+        Err(gp100_core::ProtocolError::Timeout { .. })
+    ));
+    assert!(matches!(
+        s.scan_state(),
+        Err(gp100_core::ProtocolError::Timeout { .. })
+    ));
+    assert!(matches!(
+        s.list_user_irs(),
+        Err(gp100_core::ProtocolError::Timeout { .. })
+    ));
 }

@@ -199,18 +199,26 @@
   meta6 (t6) é const (pp não entra); scan 1302 não abre com pp; by-len decide pelo
   endereço da RESPOSTA. `RealDevice` fica p/ pós-H (feature `real-device`).
 
-### M0.6 FSM de sessão + testes de replay
+### M0.6 FSM de sessão + testes de replay — ✅ FEITO 29/09
 - **Responsável:** skill `core-dev` + `protocol-validate` no fim · Depende: M0.5, P4 · **Estimativa:** 4h
-- **Progresso pré-issue (29/09):** esqueleto PRONTO e CI verde —
-  `gp100-core/src/session.rs` com as assinaturas D1–D8 do ADR-6 rev.3
-  compilando (corpos `todo!("M0.6: …")` explícitos; tipos de saída mínimos;
-  ciclo de vida do chamador) + 2 contratos em `tests/session_skeleton.rs`.
-  Resta: corpos (D1–D8: match_response, backlog D7) + replay das fixtures.
 - **O quê:** `Session::{boot, scan_state, set_param, save_preset, upload_ir,
-  list_user_irs}` — assinaturas e regras de dispatch D1–D8 TRAVADAS no ADR-6
-  rev.3 (aceito 29/09, `docs/DECISIONS.md`); testes de replay: cada fixture de
-  fase reproduzida byte-a-byte (o mock valida as respostas da FSM contra as capturas).
-- **DoD:** replay 100% das 4 fases; divergência = falha de teste com diff hex.
+  list_user_irs}` ✅ implementados sobre o golden com as regras D1–D8 do
+  ADR-6 rev.3 (transação dona do endpoint; espera em LOOP FILTRANTE com
+  backlog de pushes; save fire-and-forget; sem retry; InvalidShape tipado);
+  testes de replay em `tests/replay_fixtures.rs` (ReplayTransport compara
+  func+addr+payload hex dos OUTs com a captura e devolve os INs na ordem).
+- **DoD:** ✅ replay 100% das 4 fixtures — boot 2299/2299 OUTs byte-a-byte
+  (framing; páginas geradas e dados de chunk do blob divergem por desenho,
+  filtrados com tag), knobs 92/92 e save 9/9 byte-a-byte EXATOS, IR
+  594/594 OUTs + 592 ACKs no framing. Divergência = falha com diff hex.
+  **Achados (provados no replay):** ciclo do pp atual 0x0100 = 2 selects →
+  2 meta6, 2 opens → PÁGINA 0 duas vezes (não 3º meta6), reqs pg0..7 →
+  pág1..8, pg8 → IN 13010005; T3 nomes é FIRE-AND-FORGET (61 leituras, 57
+  respostas — device omitiu 4 do banco 00 [idx 01/03/06/0a]; D4/D7);
+  select da sonda 1302 é CONST "0000" (sem pp); template 11000008 é mixed
+  2 vars + const 0000; T1 tem 1 resposta de tabela que chega TARDIA (após
+  o 1º select do scan) — backlog D7 absorve. `GP100_TRACE=1` dumpa o
+  wait_for (diagnóstico).
 
 ### M0.7 gp100-cli
 - **Responsável:** skill `core-dev` · Depende: M0.6 · **Estimativa:** 2–3h

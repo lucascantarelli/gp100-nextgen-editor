@@ -225,16 +225,15 @@ fn upload_ir_2_slots_com_ack_por_chunk_e_final_duplicado() {
         }
 
         // O ÚLTIMO chunk da última página (idx 0x0226 = 550) é enviado 2×
-        // — o marcador de fim é a DUPLICAÇÃO em si, com o payload REAL da
-        // cauda (§13.7 corrigido): 2 envios, 2 ACKs.
+        // NO TOTAL — o marcador de fim é a DUPLICAÇÃO em si, com o payload
+        // REAL da cauda (§13.7 corrigido): 1 envio extra do último chunk,
+        // 1 ACK extra (a captura tem 296 sends/ACKs por slot).
         let last: &[u8] = &chunks[chunks.len() - 1];
-        for _ in 0..2 {
-            let sysex = ir_chunk(slot, 0x226, last).expect("marcador");
-            m.send_raw(&sysex).expect("marcador aceito");
-            let ack = m.recv_raw(T).expect("ACK do marcador");
-            let (_, _, p) = decode_envelope(&ack).expect("envelope");
-            assert_eq!(p, &[slot, 0x02, 0x26, 0x01]);
-        }
+        let sysex = ir_chunk(slot, 0x226, last).expect("marcador");
+        m.send_raw(&sysex).expect("marcador aceito");
+        let ack = m.recv_raw(T).expect("ACK do marcador");
+        let (_, _, p) = decode_envelope(&ack).expect("envelope");
+        assert_eq!(p, &[slot, 0x02, 0x26, 0x01]);
     }
     assert_eq!(m.state().set_params.len(), 0); // upload não toca set_param
 }
@@ -344,17 +343,15 @@ fn dialogo_completo_da_sessao_sintetica_sem_timeouts() {
         v.extend_from_slice(&payload);
         v.push(gp100_core::SYSEX_EOX);
         m.send_raw(&v).expect("meta");
-    } // IR slot 0: 1 chunk + o ÚLTIMO chunk duplicado (marcador de fim =
-      // a duplicação em si, payload real — §13.7 corrigido)
+    } // IR slot 0: 1 chunk + o ÚLTIMO repetido 1× (2 sends no total — o
+      // marcador de fim é a duplicação em si, §13.7 corrigido)
     m.send_raw(&ir_begin(0).expect("begin")).expect("begin");
     m.send_raw(&ir_chunk(0, 0, &[0x22u8; 15]).expect("chunk"))
         .expect("chunk");
     m.recv_raw(T).expect("ACK");
-    for _ in 0..2 {
-        m.send_raw(&ir_chunk(0, 0, &[0x22u8; 15]).expect("último dup"))
-            .expect("dup");
-        m.recv_raw(T).expect("ACK dup");
-    }
+    m.send_raw(&ir_chunk(0, 0, &[0x22u8; 15]).expect("último dup"))
+        .expect("dup");
+    m.recv_raw(T).expect("ACK dup");
     // IR slot 1
     m.send_raw(&ir_begin(1).expect("begin")).expect("begin");
     m.send_raw(&ir_chunk(1, 0, &[0x33u8; 15]).expect("chunk"))
