@@ -73,6 +73,12 @@
 Instaladores, firmware V2.1, manual, driver, DebugView, screenshots,
 `patches/*.prst` (biblioteca) e `prompt_inicial.md` (briefing original).
 
+### Raiz do repo — governança
+`SECURITY.md` (política de segurança/secrets/material proprietário),
+`.github/ISSUE_TEMPLATE/` (bug, feature, descoberta de protocolo) +
+`.github/PULL_REQUEST_TEMPLATE.md` (checklist do gate + R1–R4),
+`.gitignore`/`.gitattributes` (o que nunca entra — README §7).
+
 ### Infra do agente
 `knowledge.md` (estado vivo + armadilhas), `.codebuffignore`,
 `.agents/skills/{proxy-build,capture-analyze,new-session,spec-baseline,protocol-validate,core-dev,docs-sync,rust-practices}/SKILL.md`,
