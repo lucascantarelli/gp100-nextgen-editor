@@ -188,6 +188,25 @@ impl Pattern {
         }
     }
 
+    /// Nº de bytes VARIÁVEIS que o padrão consome ao construir (`None` se o
+    /// padrão não é buildável — `by-len`/`variable-len`, só de resposta).
+    ///
+    /// É a CHAVE DE DESAMBIGUAÇÃO entre templates que compartilham o mesmo
+    /// endpoint OUT (ver [`GoldenFile::request_template`]).
+    pub fn var_count(&self) -> Option<usize> {
+        match self.pattern_kind {
+            PatternKind::Empty => Some(0),
+            PatternKind::Const | PatternKind::Var | PatternKind::Mixed => Some(
+                self.segments
+                    .iter()
+                    .filter(|s| s.segment_kind == SegmentKind::Var)
+                    .map(|s| s.count)
+                    .sum(),
+            ),
+            PatternKind::ByLen | PatternKind::VariableLen => None,
+        }
+    }
+
     /// `true` se `data` satisfaz o padrão (comprimento + segmentos const).
     pub fn matches_data(&self, data: &[u8]) -> bool {
         self.extract_vars(data).is_some()
@@ -274,6 +293,35 @@ pub struct Endpoint {
     pub func: String,
     /// ADDR em hex (8 dígitos, u32 BE no fio).
     pub addr: String,
+}
+
+impl Endpoint {
+    /// Par tipado `(func u8, addr 4B BE)` — a forma que o FIO entrega.
+    ///
+    /// # Erros
+    /// [`ProtocolError::InvalidShape`] se hex inválido (a carga do golden
+    /// valida; não deve ocorrer).
+    pub fn parsed(&self) -> Result<(u8, [u8; 4]), ProtocolError> {
+        parse_endpoint(&self.func, &self.addr)
+    }
+}
+
+/// Converte `func`/`addr` hex do golden para a forma tipada do fio.
+fn parse_endpoint(func: &str, addr: &str) -> Result<(u8, [u8; 4]), ProtocolError> {
+    let f = hex_decode(func)?;
+    let a = hex_decode(addr)?;
+    if f.len() != 1 || a.len() != 4 {
+        return Err(shape(
+            "func com 1 byte e addr com 4 bytes (hex)",
+            format!("func={func} addr={addr}"),
+        ));
+    }
+    Ok((f[0], [a[0], a[1], a[2], a[3]]))
+}
+
+/// Addr 4B em hex minúsculo (mensagens de erro).
+fn addr_hex(addr: &[u8; 4]) -> String {
+    addr.iter().map(|b| format!("{b:02x}")).collect()
 }
 
 /// Exemplo real capturado (hex do PAYLOAD — sem envelope; convenção do
@@ -384,12 +432,18 @@ impl Template {
                 format!("{} bytes sobrando", cursor.len()),
             ));
         }
-        let func = hex_decode(self.func_out().unwrap_or_default())?;
-        let addr = hex_decode(self.addr_out().unwrap_or_default())?;
-        let mut sysex =
-            Vec::with_capacity(SYSEX_HEADER.len() + func.len() + addr.len() + data.len() + 1);
+        // Endpoint tipado (parse validado na carga; sem hex de strings por
+        // chamada — a FSM constrói requests em loop).
+        let out = self.out.as_ref().ok_or_else(|| {
+            shape(
+                "template com lado OUT",
+                format!("tipo '{}'", self.template_type),
+            )
+        })?;
+        let (func, addr) = out.parsed()?;
+        let mut sysex = Vec::with_capacity(SYSEX_HEADER.len() + 1 + 4 + data.len() + 1);
         sysex.extend_from_slice(&SYSEX_HEADER);
-        sysex.extend_from_slice(&func);
+        sysex.push(func);
         sysex.extend_from_slice(&addr);
         sysex.extend_from_slice(&data);
         sysex.push(SYSEX_EOX);
@@ -413,13 +467,20 @@ struct RawGolden {
     transactions: Vec<Template>,
 }
 
-/// O golden-file validado: 40 templates consultáveis por endpoint.
+/// O golden-file validado, com índices O(1) por endpoint TIPADO.
 #[derive(Debug, Clone)]
 pub struct GoldenFile {
     /// Metadados de proveniência.
     meta: serde_json::Value,
     /// Templates na ordem do arquivo.
     templates: Vec<Template>,
+    /// (func, addr) OUT -> posições dos templates `req`/`write` com esse
+    /// endpoint. PODE ter 2 entradas (caso congelado + geral do boot) —
+    /// desambiguar por `var_count` (ver [`GoldenFile::request_template`]).
+    by_out: HashMap<(u8, [u8; 4]), Vec<usize>>,
+    /// (func, addr) IN -> posições dos templates `req`/`push` (multi por
+    /// by-len; ordem do arquivo preservada).
+    by_in: HashMap<(u8, [u8; 4]), Vec<usize>>,
 }
 
 static GOLDEN: OnceLock<Result<GoldenFile, Arc<ProtocolError>>> = OnceLock::new();
@@ -427,8 +488,12 @@ static GOLDEN: OnceLock<Result<GoldenFile, Arc<ProtocolError>>> = OnceLock::new(
 impl GoldenFile {
     /// Carrega e valida o golden de um JSON em memória.
     ///
+    /// Valida, além do schema: hex de func/addr (1B/4B), coerência de lados
+    /// por tipo (`req`=OUT+IN, `write`=só OUT, `push`=só IN) e presença dos
+    /// padrões de payload correspondentes.
+    ///
     /// # Erros
-    /// [`ProtocolError::InvalidShape`] se o schema não casar.
+    /// [`ProtocolError::InvalidShape`] com evidência da violação.
     pub fn from_json(json: &str) -> Result<Self, ProtocolError> {
         let raw: RawGolden = serde_json::from_str(json).map_err(|e| {
             shape(
@@ -439,9 +504,71 @@ impl GoldenFile {
         if raw.transactions.is_empty() {
             return Err(shape("templates de transação", "arquivo sem transações"));
         }
+
+        // Passo 1 — coerência estrutural por tipo + parse dos endpoints
+        // (hex válido é invariante da carga, não do dispatch).
+        let mut by_out: HashMap<(u8, [u8; 4]), Vec<usize>> = HashMap::new();
+        let mut by_in: HashMap<(u8, [u8; 4]), Vec<usize>> = HashMap::new();
+        for (i, t) in raw.transactions.iter().enumerate() {
+            let ty = t.template_type.as_str();
+            let where_ = format!("template {i} ({ty})");
+            match ty {
+                "req" => {
+                    let out = t
+                        .out
+                        .as_ref()
+                        .ok_or_else(|| shape("req com lado OUT", where_.clone()))?;
+                    let inc = t
+                        .in_
+                        .as_ref()
+                        .ok_or_else(|| shape("req com lado IN", where_.clone()))?;
+                    if t.request_payload.is_none() {
+                        return Err(shape("req com request_payload", where_));
+                    }
+                    if t.response_payload.is_none() {
+                        return Err(shape("req com response_payload", where_));
+                    }
+                    by_out.entry(out.parsed()?).or_default().push(i);
+                    by_in.entry(inc.parsed()?).or_default().push(i);
+                }
+                "write" => {
+                    let out = t
+                        .out
+                        .as_ref()
+                        .ok_or_else(|| shape("write com lado OUT", where_.clone()))?;
+                    if t.in_.is_some() {
+                        return Err(shape("write SEM lado IN", where_.clone()));
+                    }
+                    if t.request_payload.is_none() {
+                        return Err(shape("write com request_payload", where_));
+                    }
+                    if t.response_payload.is_some() {
+                        return Err(shape("write SEM response_payload", where_));
+                    }
+                    by_out.entry(out.parsed()?).or_default().push(i);
+                }
+                "push" => {
+                    let inc = t
+                        .in_
+                        .as_ref()
+                        .ok_or_else(|| shape("push com lado IN", where_.clone()))?;
+                    if t.out.is_some() {
+                        return Err(shape("push SEM lado OUT", where_.clone()));
+                    }
+                    if t.response_payload.is_none() {
+                        return Err(shape("push com response_payload", where_));
+                    }
+                    by_in.entry(inc.parsed()?).or_default().push(i);
+                }
+                other => return Err(shape("tipo req/write/push", format!("{where_}: '{other}'"))),
+            }
+        }
+
         Ok(GoldenFile {
             meta: raw.meta,
             templates: raw.transactions,
+            by_out,
+            by_in,
         })
     }
 
@@ -467,31 +594,82 @@ impl GoldenFile {
         &self.templates
     }
 
-    /// O template cujo OUT é `(func, addr)` — requests (11xx/12xx de leitura)
-    /// e writes. Vários writes compartilham endereço? No golden atual não
-    /// (endereços de write distintos por semântica); devolve o primeiro.
-    pub fn for_request(&self, func: &str, addr: &str) -> Option<&Template> {
-        self.templates.iter().find(|t| {
-            t.template_type != "push" && t.func_out() == Some(func) && t.addr_out() == Some(addr)
-        })
+    /// O template de REQUEST (`req`/`write`) para o endpoint TIPADO
+    /// `(func u8, addr 4B BE)` — a forma que a FSM tem em mãos.
+    ///
+    /// # Desambiguação
+    /// Três endpoints do golden têm DOIS templates (caso CONGELADO do boot —
+    /// payload const — e caso GERAL — pp variável). A chave é o nº de vars:
+    /// `var_count == vars.len()` escolhe o certo; sem duplicata, 0 vars
+    /// devolve o único. Erro se nenhum/nenhum único casar.
+    pub fn request_template(
+        &self,
+        func: u8,
+        addr: &[u8; 4],
+        vars: usize,
+    ) -> Result<&Template, ProtocolError> {
+        let idx = self.by_out.get(&(func, *addr)).ok_or_else(|| {
+            shape(
+                "endpoint de request no golden",
+                format!("func={func:02x} addr={}", addr_hex(addr)),
+            )
+        })?;
+        let mut found = idx.iter().filter(|&&i| {
+            self.templates[i]
+                .request_pattern()
+                .and_then(|p| p.var_count())
+                == Some(vars)
+        });
+        let first = found.next().ok_or_else(|| {
+            shape(
+                format!(
+                    "template com {vars} bytes de var em {func:02x}/{}",
+                    addr_hex(addr)
+                ),
+                "nenhum candidato",
+            )
+        })?;
+        if found.next().is_some() {
+            return Err(shape(
+                "desambiguação única por var_count",
+                format!(
+                    "2+ templates com {vars} vars em {func:02x}/{}",
+                    addr_hex(addr)
+                ),
+            ));
+        }
+        Ok(&self.templates[*first])
     }
 
-    /// TODOS os templates cujo IN é `(func, addr)` — respostas podem ter
-    /// múltiplos formatos (`by-len`: ACK 4B × tabela 75B em `12001002`).
-    pub fn for_response(&self, func: &str, addr: &str) -> Vec<&Template> {
-        self.templates
-            .iter()
-            .filter(|t| t.func_in() == Some(func) && t.addr_in() == Some(addr))
-            .collect()
+    /// Atalho ergonômico da FSM: resolve o template pelos TIPOS e já monta
+    /// o SysEx completo. Equivale a `request_template(func, addr,
+    /// vars.len())?.build_request(vars)`.
+    pub fn build_request(
+        &self,
+        func: u8,
+        addr: &[u8; 4],
+        vars: &[u8],
+    ) -> Result<Vec<u8>, ProtocolError> {
+        self.request_template(func, addr, vars.len())?
+            .build_request(vars)
     }
 
-    /// Despacha uma resposta: procura entre os candidatos de `(func, addr)`
-    /// aquele cujo padrão casa com `data`; devolve o template + as vars.
-    /// `data` é o payload BRUTO (use [`decode_envelope`] para separar).
+    /// TODOS os templates cujo IN é o endpoint TIPADO — respostas podem ter
+    /// múltiplos formatos (by-len: ACK 4B × tabela 75B em `12001002`).
+    pub fn for_response(&self, func: u8, addr: &[u8; 4]) -> Vec<&Template> {
+        self.by_in
+            .get(&(func, *addr))
+            .map(|ids| ids.iter().map(|&i| &self.templates[i]).collect())
+            .unwrap_or_default()
+    }
+
+    /// Despacha uma resposta: entre os candidatos do endpoint TIPADO, o
+    /// primeiro cujo padrão casa com `data`. `data` é o payload BRUTO
+    /// (use [`decode_envelope`] para separar do envelope).
     pub fn match_response<'a>(
         &'a self,
-        func: &str,
-        addr: &str,
+        func: u8,
+        addr: &[u8; 4],
         data: &'a [u8],
     ) -> Option<(&'a Template, Vec<&'a [u8]>)> {
         self.for_response(func, addr)
