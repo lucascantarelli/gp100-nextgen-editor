@@ -69,7 +69,7 @@ pub const SYSEX_EOX: u8 = 0xF7;
 ///
 /// Erros de I/O do transporte ficarão num `TransportError` separado (M0.5,
 /// ADR-4); variantes novas entram aqui por decisão registrada (novo ADR).
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, Clone, thiserror::Error)]
 pub enum ProtocolError {
     /// Mensagem fora do formato esperado: comprimento errado, segmentos
     /// `const` divergentes, payload incoerente. Cobrí inclusive o
@@ -109,6 +109,9 @@ pub mod model;
 
 /// preset — arquivo `.prst` com round-trip byte-idêntico (M0.2, regra R4).
 pub mod preset;
+
+/// golden — consumidor da especificação executável (M0.3).
+pub mod golden;
 
 #[cfg(test)]
 mod tests {
