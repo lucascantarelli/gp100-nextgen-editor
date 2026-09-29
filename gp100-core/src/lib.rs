@@ -64,6 +64,49 @@ pub const SYSEX_HEADER: [u8; 8] = [0xF0, 0x21, 0x25, 0x7F, 0x47, 0x50, 0x2D, 0x6
 /// nas fixtures do P4 consumidas pelos testes de replay.
 pub const SYSEX_EOX: u8 = 0xF7;
 
+/// Erro de PROTOCOLO tipado (ADR-2 de `docs/DECISIONS.md`): toda falha de
+/// framing/timeout/FSM desta crate é esta enum — nunca `unwrap`/`panic!`.
+///
+/// Erros de I/O do transporte ficarão num `TransportError` separado (M0.5,
+/// ADR-4); variantes novas entram aqui por decisão registrada (novo ADR).
+#[derive(Debug, thiserror::Error)]
+pub enum ProtocolError {
+    /// Mensagem fora do formato esperado: comprimento errado, segmentos
+    /// `const` divergentes, payload incoerente. Cobrí inclusive o
+    /// truncamento do ring buffer do proxy (SEM-HDR) — que é **dado
+    /// conhecido** das capturas, não bug de decode (fixtures já excluem).
+    #[error("shape inválido: esperado {expected}, obtido {got}")]
+    InvalidShape {
+        /// Descrição do formato esperado (human-readable, com evidência).
+        expected: String,
+        /// O que de fato chegou (hex/len/mensagem de parser).
+        got: String,
+    },
+
+    /// Resposta não chegou dentro da janela da transação (ADR-3: 3000 ms
+    /// por transação, mesmo valor do pairing do golden).
+    #[error("timeout de {timeout_ms} ms na transação {addr}")]
+    Timeout {
+        /// Janela aplicada, em milissegundos (diagnóstico).
+        timeout_ms: u64,
+        /// Endereço (func+addr) da transação que estourou.
+        addr: String,
+    },
+
+    /// Resposta/ACK chegou com conteúdo fora do esperado pela FSM (M0.6):
+    /// ecos errados, status incoerente, ACK de chunk inválido (§13.7).
+    #[error("ack inesperado na transação {addr}: {got}")]
+    UnexpectedAck {
+        /// Endereço (func+addr) da transação.
+        addr: String,
+        /// O que de fato chegou (hex curto).
+        got: String,
+    },
+}
+
+/// model — dicionário de algoritmos/controles (M0.1).
+pub mod model;
+
 #[cfg(test)]
 mod tests {
     use super::*;
