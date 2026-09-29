@@ -16,9 +16,12 @@ import xml.etree.ElementTree as ET
 from collections import defaultdict
 
 HDR = "f021257f47502d64"
-CAP = os.path.join("analysis", "captures", "session3.jsonl")
-PARAMS = os.path.join("analysis", "parameters.json")
-PATCHES = r"D:\GP-100 app\files\patches"
+# Caminhos relativos à RAIZ do repo (independem do cwd e de máquina — CI incluído)
+HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(HERE)
+CAP = os.path.join(ROOT, "analysis", "captures", "session3.jsonl")
+PARAMS = os.path.join(ROOT, "analysis", "parameters.json")
+PATCHES = os.path.join(ROOT, "files", "patches")
 SLOTS = {1: "PRE", 2: "DST", 3: "AMP", 4: "NR", 5: "CAB",
          6: "EQ", 7: "MOD", 8: "DLY", 9: "RVB"}
 

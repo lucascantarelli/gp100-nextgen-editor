@@ -7,3 +7,7 @@
 *.png binary
 *.dll binary
 *.pdf binary
+
+# Especificação executável: BYTES CONGELADOS — o hash da baseline (PROTOCOL.md §13)
+# cobre os EOLs; -text impede qualquer conversão, no disco e no checkout.
+docs/protocol_golden.json -text

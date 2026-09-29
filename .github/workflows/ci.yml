@@ -48,8 +48,9 @@ jobs:
       # dentro do repo o shim resolve o pin ainda ausente e morre com
       # "target tuple in channel name". O rustup do runner (pré-instalado) resolve
       # o mesmo nome de toolchain sem sonda; shims seguintes passam a achar o pin.
+      # perfil DEFAULT (não minimal): rustfmt e clippy precisam vir junto
       - name: Instalar toolchain Rust pinada (windows-gnu)
-        run: rustup toolchain install stable-x86_64-pc-windows-gnu --profile minimal --no-self-update
+        run: rustup toolchain install stable-x86_64-pc-windows-gnu --no-self-update
 
       - name: Cache do cargo (registry + target)
         uses: Swatinem/rust-cache@v2

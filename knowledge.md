@@ -6,6 +6,11 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
 (local, sem depender de hardware para ~95% do trabalho). Resposta ao usuário SEMPRE em PT-BR.
 
 ## Estado vivo (atualizar aqui a cada marco)
+- CI GitHub Actions (29/09): gates `uv run pytest` + `cargo fmt/clippy/test` por push/PR
+  (.github/workflows/ci.yml, windows-latest pela toolchain gnu pinada; badge no README).
+  Golden protegido com `-text` no .gitattributes: o hash da baseline (§13) cobre os EOLs
+  e o blob no repo é byte-idêntico ao congelado (CRLF) — renormalizado no commit da CI.
+  validate_knob_map.py: caminho absoluto `D:\GP-100 app` → relativo à raiz (CI incluída).
 - PATH do cargo RESOLVIDO (29/09): `scripts/add_cargo_path.ps1` (admin, 1x) adicionou
   `C:\Users\Canta\.cargo\bin` ao PATH de MÁQUINA (HKLM; preserva REG_EXPAND_SZ +
   broadcast WM_SETTINGCHANGE). Terminal novo acha cargo SEM export; workaround de
