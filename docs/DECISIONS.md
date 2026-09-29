@@ -304,7 +304,16 @@ só quando a UI pedir (YAGNI).
    H2 exigir mais velocidade, é captura nova (R2/R3).
 6. **WRITE_VERIFIED (ADR-5) atômico por operação**: `save_preset` checa a
    flag ANTES do 1º write do `meta_block` — recusa parcial no meio deixaria
-   meta pela metade no device.**Fora do ADR (fica no módulo/teste):** detalhes hex-exatos do ciclo de ops e
+   meta pela metade no device.
+7. **Hipótese do flush de fim de sessão (quirk §13.7 fechado 29/09):** AMBAS
+   as capturas encerram com burst IN espontâneo (S2: 32 ACKs `12001002`
+   tardios; S4: `11000008`+`12000001`) — hipótese principal: flush do ring
+   MIM_LONGDATA do proxy no fechamento do Suite; alternativa: eco de commit
+   de flash do device. VALIDAR NO H1: rodar com o proxy logando em paralelo
+   e confirmar que o burst coincide com o FECHAMENTO do Suite (timestamp
+   cruzado com o close do app), não com o fim de uma operação. Se vier do
+   device (antes do close), o RealDevice precisa tolerá-lo via backlog D7 —
+   e o fechamento de sessão no gp100-cli NÃO deve tratá-lo como erro.**Fora do ADR (fica no módulo/teste):** detalhes hex-exatos do ciclo de ops e
 pacing (§13.12 re-derivado 29/09 — D3 é definitivo); layout byte-a-byte
  da página 13xx (ROADMAP: fora de escopo); retransmissões (D6).
 
