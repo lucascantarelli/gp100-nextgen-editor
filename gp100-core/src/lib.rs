@@ -116,6 +116,10 @@ pub mod golden;
 /// codec — codificação do fio: nibble + helpers semânticos (M0.4).
 pub mod codec;
 
+/// transport — fronteira de I/O com o device: trait `DeviceTransport`
+/// (esqueleto M0.5, ADR-4; `MockDevice`/`RealDevice` vêm na issue M0.5).
+pub mod transport;
+
 // Os testes dos herdados do P2 (header/envelope §13.1) usam SÓ API pública,
 // então vivem como contratos caixa-preta em `tests/wire_envelope.rs` (regra
 // da skill rust-practices: unitário dentro de `src/` só para internals).
