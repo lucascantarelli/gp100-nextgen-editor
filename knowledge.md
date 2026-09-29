@@ -6,6 +6,13 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
 (local, sem depender de hardware para ~95% do trabalho). Resposta ao usuário SEMPRE em PT-BR.
 
 ## Estado vivo (atualizar aqui a cada marco)
+- M0.7 ✅ (29/09): `gp100-cli` — 5 subcomandos contra o mock + `--log` no schema
+  P4 (requisito do H1) + `--real` bloqueado (exit 2; dupla confirmação não
+  contorna o gate). Extensões: `Session::{select_preset, state_page}`; MOCK
+  completado p/ o pareamento D1 do replay S1: select→meta6 com o pp, página
+  ecoa [pp][PG], PG8 → `13010005` (4B), tabela ecoa a página pedida — o SMOKE
+  do CLI expôs que a M0.5 só provava TAMANHO das respostas do mock. Parser
+  zero-dep (clap adiado p/ M1, ADR-lite lá). 74 testes.
 - 29/09 — H1_CHECKLIST.md CRIADO (`docs/`): operacional do gate H1 (só leitura;
   níveis de comparação framing×estado; fluxo R3; watchlist). Requisito de campo
   novo: CLI com `--log` no schema das fixtures P4 (entra na M0.7/prep-H1).

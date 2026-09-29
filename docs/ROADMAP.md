@@ -220,12 +220,24 @@
   o 1º select do scan) — backlog D7 absorve. `GP100_TRACE=1` dumpa o
   wait_for (diagnóstico).
 
-### M0.7 gp100-cli
+### M0.7 gp100-cli — ✅ FEITO 29/09
 - **Responsável:** skill `core-dev` · Depende: M0.6 · **Estimativa:** 2–3h
-- **O quê:** subcomandos contra o MOCK por default: `info`, `list-user-irs`,
-  `dump-preset <pp>`, `set-param --dry-run`, `save --dry-run`; `--real` existe mas
-  imprime aviso e exige `--i-know-what-im-doing` (política de hardware).
-- **DoD:** todos os subcomandos funcionam no mock; `--help` documenta a política.
+- **O quê:** ✅ os 5 subcomandos contra o MOCK (`info`, `list-user-irs`,
+  `dump-preset <pp>`, `set-param --dry-run`, `save --dry-run`) + `--log <arq>`
+  gravando TODOS os frames no MESMO schema das fixtures P4 (requisito do
+  `docs/H1_CHECKLIST.md`) + política de hardware em camada única efetiva:
+  `--real` é recusado SEMPRE nesta fase (exit 2), mesmo com
+  `--i-know-what-im-doing`; escrita efetiva = pós-H2 (WRITE_VERIFIED).
+  Parser zero-dep decidido na issue (clap adiado — superfície pequena;
+  reabrir na M1 com ADR-lite). **Extensões no core:**
+  `Session::{select_preset, state_page}` (rotas §13.10 do replay) e MOCK
+  completado para o pareamento D1 provado pela captura: select→meta6 com o
+  pp (199↔199), página ecoa [pp][PG], PG8 → 4B em `13010005`, tabela ecoa
+  a página pedida — gaps que o SMOKE do CLI expôs (a M0.5 só provava
+  TAMANHO das respostas). 9 testes do CLI (parser/política/logger P4) +
+  2 do mock atualizados à evidência; 74 testes, clippy/fmt/pytest verdes.
+- **DoD:** ✅ todos os subcomandos funcionam no mock (smoke do binário);
+  `--help`/usage documenta a política (stderr + exit 2 nas violações).
 
 ### M0.8 Documentação do core
 - **Responsável:** agente principal (Buffy) + `docs-sync` do INDEX · Depende: M0.7 · **Estimativa:** 1h
