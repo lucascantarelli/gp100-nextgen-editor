@@ -279,17 +279,57 @@ impl<T: DeviceTransport> Session<T> {
         Ok(BootReport { transactions: tx })
     }
 
-    /// Página de estado do pp corrente (família 13xx; dispatch por CONTEXTO,
-    /// regra D2). Layout byte-a-byte da 13xx segue FORA (ROADMAP).
-    pub fn scan_state(&mut self) -> Result<StatePage, ProtocolError> {
+    /// O pp corrente (atualizado por [`Session::select_preset`] e pelo
+    /// scan do [`Session::boot`]).
+    pub fn current_pp(&self) -> u16 {
+        self.current_pp
+    }
+
+    /// Seleciona um preset no device (§13.10): select `11/13010000 [pp]`
+    /// esperando o meta6 push `12/13010001` (D1; o MESMO endpoint tem o
+    /// push espontâneo do boot — D2 resolve pelo contexto do pedido, como
+    /// no ciclo do scan provado pelo replay). Atualiza o pp corrente.
+    pub fn select_preset(&mut self, pp: u16) -> Result<(), ProtocolError> {
+        let golden = GoldenFile::embedded()?;
+        let pp_be = pp.to_be_bytes();
+        self.tx_req_in(
+            golden,
+            0x11,
+            &[0x13, 0x01, 0x00, 0x00],
+            &pp_be,
+            &[0x13, 0x01, 0x00, 0x01],
+        )?;
+        self.current_pp = pp;
+        Ok(())
+    }
+
+    /// Uma página (0..=8) do preset selecionado (§13.10): req
+    /// `12/13010004 [pp][PG]01` — PG 0..7 respondem em `13010003` (by-len
+    /// 196/32B), PG 8 em `13010005` (4B). Layout byte-a-byte da 13xx segue
+    /// FORA (ROADMAP): a página devolve os bytes crus em [`StatePage`].
+    pub fn state_page(&mut self, page: u8) -> Result<StatePage, ProtocolError> {
+        if page > 8 {
+            return Err(ProtocolError::InvalidShape {
+                expected: "página 0..=8 (§13.10)".into(),
+                got: format!("{page}"),
+            });
+        }
         let golden = GoldenFile::embedded()?;
         let pp_be = self.current_pp.to_be_bytes();
-        // t8 é mixed 3 vars (pp 2B + PG): página 0 do pp corrente
-        let vars = [pp_be[0], pp_be[1], 0x00];
-        let req = golden.build_request(0x12, &[0x13, 0x01, 0x00, 0x04], &vars)?;
-        self.transport.send_raw(&req).map_err(tx_err)?;
-        let payload = self.wait_for(0x12, &[0x13, 0x01, 0x00, 0x03])?;
+        let vars = [pp_be[0], pp_be[1], page];
+        let in_addr: &[u8; 4] = if page < 8 {
+            &[0x13, 0x01, 0x00, 0x03]
+        } else {
+            &[0x13, 0x01, 0x00, 0x05]
+        };
+        let payload = self.tx_req_in(golden, 0x12, &[0x13, 0x01, 0x00, 0x04], &vars, in_addr)?;
         Ok(StatePage { raw: payload })
+    }
+
+    /// Página 0 do pp corrente (API da M0.6; equivalente a
+    /// [`Session::state_page`]`(0)` — mantida para os contratos existentes).
+    pub fn scan_state(&mut self) -> Result<StatePage, ProtocolError> {
+        self.state_page(0)
     }
 
     /// Knob da UI (§13.11): `codec::set_param` fire-and-forget, SEM

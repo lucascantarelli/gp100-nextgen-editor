@@ -233,17 +233,50 @@ impl MockDevice {
             _ => {}
         }
 
-        // Respostas (D1): READS func 11 respondem com o push do MESMO
-        // endereço (func 12 no fio); transações req 12-func com lado IN
-        // respondem pelo template casado.
-        let reply = if func == 0x11 {
+        // Respostas (D1): o SELECT de preset (write 11/13010000) responde
+        // com o meta6 push em `13010001` levando o pp SELECIONADO —
+        // pareamento 199↔199 provado no replay S1 (e na sonda 1302); READS
+        // func 11 respondem com o push do MESMO endereço (func 12 no fio);
+        // transações req 12-func com lado IN respondem pelo template casado.
+        let reply = if func == 0x11 && addr == [0x13, 0x01, 0x00, 0x00] && payload.len() == 2 {
+            let pp = payload[..2].to_vec();
+            push_template(golden, [0x13, 0x01, 0x00, 0x01])
+                .ok()
+                .and_then(|t| {
+                    build_with_fill(t, None, |i, count| {
+                        if i == 0 && count == 2 {
+                            pp.clone()
+                        } else {
+                            example_var(t, None, i, count)
+                        }
+                    })
+                    .ok()
+                })
+        } else if func == 0x11 {
             let tpl = push_template(golden, addr).ok();
             let desired = if addr == [0x12, 0x00, 0x10, 0x02] {
                 Some(75)
             } else {
                 None
-            };
-            tpl.and_then(|t| build_from_example(t, desired, None).ok())
+            }; // Tabela de IRs (t2/t3): o IN ecoa a PÁGINA pedida no byte[0]
+               // (captura S1 rows 78–84: IN `13 0f…` para a leitura `[13]`).
+               // Vale para o var inteiro (ACK 1B ou tabela 75B): byte 0 = página.
+            let page = payload.first().copied();
+            let is_table = addr == [0x12, 0x00, 0x10, 0x02];
+            tpl.and_then(|t| {
+                build_with_fill(t, desired, |i, count| {
+                    if is_table && i == 0 {
+                        let mut v = example_var(t, None, 0, count);
+                        if let (Some(p), Some(b0)) = (page, v.first_mut()) {
+                            *b0 = p;
+                        }
+                        v
+                    } else {
+                        example_var(t, None, i, count)
+                    }
+                })
+                .ok()
+            })
         } else {
             match (func, addr) {
                 // ACK de chunk de IR (§13.7): eco [slot][idx BE] + 01
@@ -269,13 +302,19 @@ impl MockDevice {
                 // começa com CONSTS (pp não está em var0).
                 (0x12, [0x13, ..]) => {
                     let tpl = &golden.templates()[tpl_idx];
-                    let inject_pp = tpl
+                    let inject_pp_mixed = tpl
                         .response_pattern()
                         .and_then(|p| p.segments.first())
                         .is_some_and(|s| {
                             s.segment_kind == crate::golden::SegmentKind::Var && s.count == 2
                         })
                         && example_var(tpl, None, 0, 2) == vec![0x01, 0x00];
+                    // t8 (páginas do preset, by-len): o pp está na var 0 do
+                    // sub-padrão 196/32B ([var 2][const…]) — o exemplo
+                    // congelado traz o 0100 da S1. A checagem `mixed` acima
+                    // NÃO pega by-len (segments raiz vazio) — injetar pela
+                    // rota conhecida (§13.10; evidência S1 rows 90+).
+                    let is_page = addr == [0x13, 0x01, 0x00, 0x04];
                     let pp = self.state.current_pp.to_be_bytes().to_vec();
                     // by-len decide-se pelo ENDEREÇO DA RESPOSTA (IN do
                     // template), não pelo frame recebido: t8 lê em
@@ -291,14 +330,59 @@ impl MockDevice {
                         }
                         _ => None,
                     };
-                    build_with_fill(tpl, desired, |i, count| {
-                        if inject_pp && i == 0 && count == 2 {
-                            pp.clone()
-                        } else {
-                            example_var(tpl, None, i, count)
-                        }
-                    })
-                    .ok()
+                    // PG pedido (byte [3] do request: pp(2)+PG(2)+01) entra
+                    // no var1[0] da página 196B — evidência S1 rows 93–107
+                    // (byte[3] = 00..07 por página). Na 32B (pg 8) o PG é
+                    // CONST do padrão (`0008`) e fica como está.
+                    let inject_pg = is_page && desired == Some(196);
+                    let requested_pg = payload.get(3).copied();
+                    // PG 8 (§13.10): a resposta NÃO é página 196B — é 4B em
+                    // `13010005` (t11 = [var 2][const 0009], pp no var0;
+                    // evidência S1 rows 107–109). A t8 by-len não tem sub-
+                    // padrão 4B: a rota é o template do endpoint 13010005.
+                    let pg8 = if is_page && payload.get(3) == Some(&0x08) {
+                        golden
+                            .templates()
+                            .iter()
+                            .find(|t| {
+                                t.template_type == "req"
+                                    && t.in_.as_ref().is_some_and(|e| {
+                                        e.parsed()
+                                            .map(|(_, a)| a)
+                                            .is_ok_and(|a| a == [0x13, 0x01, 0x00, 0x05])
+                                    })
+                            })
+                            .and_then(|t11| {
+                                build_with_fill(t11, None, |i, count| {
+                                    if i == 0 && count == 2 {
+                                        pp.clone()
+                                    } else {
+                                        example_var(t11, None, i, count)
+                                    }
+                                })
+                                .ok()
+                            })
+                    } else {
+                        None
+                    };
+                    if pg8.is_some() {
+                        pg8
+                    } else {
+                        build_with_fill(tpl, desired, |i, count| {
+                            if (inject_pp_mixed || is_page) && i == 0 && count == 2 {
+                                pp.clone()
+                            } else if inject_pg && i == 1 {
+                                let mut v = example_var(tpl, None, 1, count);
+                                if let (Some(pg), Some(b0)) = (requested_pg, v.first_mut()) {
+                                    *b0 = pg;
+                                }
+                                v
+                            } else {
+                                example_var(tpl, None, i, count)
+                            }
+                        })
+                        .ok()
+                    }
                 }
                 _ => None,
             }

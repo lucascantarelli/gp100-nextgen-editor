@@ -11,3 +11,6 @@ path = "src/main.rs"
 
 [dependencies]
 gp100-core = { path = "../gp100-core" }
+
+[dev-dependencies]
+serde_json.workspace = true

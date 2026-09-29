@@ -79,7 +79,9 @@ fn scan_de_presets_responde_com_pp_do_estado() {
     let mut m = open_mock();
     let golden = GoldenFile::embedded().expect("golden");
 
-    // select pp 0x002A (write 11/13010000, [pp BE]) — sem resposta (D3)
+    // select pp 0x002A (write 11/13010000, [pp BE]) — responde o meta6 push
+    // em `13010001` levando o pp SELECIONADO (pareamento 199↔199 provado no
+    // replay S1, M0.6/M0.7; não é "write mudo")
     let req = golden
         .request_template(0x11, &[0x13, 0x01, 0x00, 0x00], 2)
         .expect("t9")
@@ -87,6 +89,18 @@ fn scan_de_presets_responde_com_pp_do_estado() {
         .expect("req select");
     m.send_raw(&req).expect("select");
     assert_eq!(m.state().current_pp, 0x002A, "estado muda com o select");
+    let msg = m.recv_raw(T).expect("meta6 do select");
+    let (_, addr, p) = decode_envelope(&msg).expect("envelope");
+    assert_eq!(
+        addr,
+        [0x13, 0x01, 0x00, 0x01],
+        "meta6 no endpoint de resposta"
+    );
+    assert_eq!(
+        &p[..2],
+        &[0x00, 0x2A],
+        "meta6 do select leva o pp escolhido"
+    );
 
     // abertura congelada (t6: const 010001 em 13010002) → meta6 CONST do
     // golden (idêntico nas 4 sessões — o pp NÃO entra aqui; evidência S1)
@@ -324,6 +338,10 @@ fn dialogo_completo_da_sessao_sintetica_sem_timeouts() {
         let pp_be = i.to_be_bytes();
         let sel = sel_tpl.build_request(&pp_be).expect("select");
         m.send_raw(&sel).expect("select");
+        // o select responde o meta6 com o pp (pareamento D1 do replay S1)
+        let msg = m.recv_raw(T).expect("meta6 do select");
+        let (_, _, mp) = decode_envelope(&msg).expect("envelope");
+        assert_eq!(&mp[..2], &pp_be, "meta6 ecoa o pp do select");
         let scan = scan_tpl.build_request(&[]).expect("scan");
         m.send_raw(&scan).expect("scan");
         let msg = m.recv_raw(T).expect("página do scan");
