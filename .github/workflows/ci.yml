@@ -43,9 +43,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # respeita o rust-toolchain.toml (stable-x86_64-pc-windows-gnu)
-      - name: Instalar toolchain Rust pinada
-        uses: dtolnay/rust-toolchain@stable
+      # Instala EXPLICITAMENTE a toolchain do rust-toolchain.toml (windows-gnu).
+      # Por que não dtolnay/rust-toolchain: ela sonda `rustc -vV` antes de instalar;
+      # dentro do repo o shim resolve o pin ainda ausente e morre com
+      # "target tuple in channel name". O rustup do runner (pré-instalado) resolve
+      # o mesmo nome de toolchain sem sonda; shims seguintes passam a achar o pin.
+      - name: Instalar toolchain Rust pinada (windows-gnu)
+        run: rustup toolchain install stable-x86_64-pc-windows-gnu --profile minimal --no-self-update
 
       - name: Cache do cargo (registry + target)
         uses: Swatinem/rust-cache@v2
