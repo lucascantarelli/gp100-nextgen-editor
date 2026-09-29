@@ -107,6 +107,9 @@ pub enum ProtocolError {
 /// model — dicionário de algoritmos/controles (M0.1).
 pub mod model;
 
+/// preset — arquivo `.prst` com round-trip byte-idêntico (M0.2, regra R4).
+pub mod preset;
+
 #[cfg(test)]
 mod tests {
     use super::*;
