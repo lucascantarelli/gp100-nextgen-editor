@@ -7,6 +7,7 @@ name = "gp100-cli"
 version = "0.1.0"
 dependencies = [
  "gp100-core",
+ "serde_json",
 ]
 
 [[package]]
