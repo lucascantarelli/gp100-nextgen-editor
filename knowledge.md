@@ -6,6 +6,12 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
 (local, sem depender de hardware para ~95% do trabalho). Resposta ao usuário SEMPRE em PT-BR.
 
 ## Estado vivo (atualizar aqui a cada marco)
+- 29/09 — REVIEW DE DOCUMENTAÇÃO: README/VISION/ROADMAP/INDEX sincronizados ao
+  estado real (M0 6/8; "próximo marco = M0" estava defasado; venv/.prst/decisões
+  corrigidos) + **`docs/UI_PLAN.md` CRIADO** (planejamento completo da M1:
+  escopo, arquitetura DeviceActor, IPC, telas, política de hardware, testes,
+  riscos M1.0–M1.6). Pendências de planejamento registradas no ROADMAP:
+  checklist H1, plano fino M2, ADR-7+ pós-spike.
 - M0.6 ✅ (29/09): `gp100-core/src/session.rs` — FSM completa (boot/scan_state/
   set_param/save_preset/upload_ir/list_user_irs/pending_pushes) e replay
   100% das 4 fixtures byte-a-byte (`tests/replay_fixtures.rs`: boot 2299/2299

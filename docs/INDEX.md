@@ -4,7 +4,7 @@
 > fonte de verdade de cada assunto. Mantenha-o atualizado a cada novo documento
 > ou mudança de status — é o contrato de navegação entre agentes e humanos.
 
-**Última revisão:** 2026-09-29 (auditoria de skills; M0.1–M0.6 ✅; ADR-1..6 aceitos; §13.7/13.12 re-derivados; FSM da Session implementada com replay 100% das 4 fixtures)
+**Última revisão:** 2026-09-29 (review de documentação: README/VISION sincronizados ao estado M0 6/8; UI_PLAN.md criado — planejamento completo da M1; M0.1–M0.6 ✅; ADR-1..6)
 
 ---
 
@@ -13,7 +13,7 @@
 | Objetivo | Rota de leitura |
 |---|---|
 | **Entender o projeto** | `README.md` → `docs/VISION.md` |
-| **Executar o plano de desenvolvimento** | `docs/ROADMAP.md` (issues P/M0/H em ordem, com DoD) |
+| **Executar o plano de desenvolvimento** | `docs/ROADMAP.md` (P/M0/H em ordem, com DoD) + `docs/UI_PLAN.md` (M1, issues M1.0–M1.6) |
 | **Implementar o protocolo (gp100-core)** | `docs/protocol_golden.json` (especificação executável) + `docs/PROTOCOL.md` §13 (narrativa) |
 | **Decidir arquitetura/estrutura no core (M0)** | `docs/DECISIONS.md` (ADR-1..6 aceitos) |
 | **Escrever/revisar código Rust (M0)** | `.agents/skills/rust-practices/SKILL.md` (gates fmt/clippy/test + estilo de docs) |
@@ -50,6 +50,7 @@
 | `BLOCKERS.md` | Matriz de 12 subsistemas; 11 resolvidos, firmware-update diferido | ✅ atual |
 | `CAPTURE_PLAN.md` | Plano original das rotas de captura | 📜 histórico (cumprido) |
 | `ROADMAP.md` | Plano executivo: preparação (P), gp100-core (M0), gate de hardware (H) com issues e critérios de aceite | ✅ atual |
+| `UI_PLAN.md` | Planejamento issue-a-issue da Fase M1 (Editor UI Tauri/React): escopo, arquitetura DeviceActor, superfície IPC, telas, política de hardware, testes, riscos | ⏳ planejado (M1.0–M1.6) |
 | `DECISIONS.md` | ADR-lite com as decisões estruturais do gp100-core: ADR-1..5 (endian/nibble, erros, transporte, trait, WRITE_VERIFIED) + ADR-6 (FSM `Session`, dispatch do IN ambíguo, save fire-and-forget) | ✅ atual |
 | `skills_audit_2026-09-29.md` | Auditoria das skills: regras que eram prática implícita, agora escritas (5 achados em core-dev/docs-sync/spec-baseline) | ✅ atual |
 | `INDEX.md` | Este índice | ✅ manter atualizado |

@@ -233,7 +233,13 @@
   atualizar `docs/INDEX.md` (novo inventário) e `knowledge.md` (estado vivo).
 - **DoD:** um contribuidor novo compila, testa e entende o core em <15min.
 
-## FASE H — GATE DE HARDWARE (só após M0 100%)
+## FASE H — GATE DE HARDWARE (escrita real só após M0 100%)
+
+> ⚠️ **Paralelismo:** a **FASE M1 (Editor UI) pode começar em paralelo** — ela
+> roda contra o MOCK (política de hardware, ADR-4/ADR-5). O modo real da UI/CLI
+> só existe após H1/H2. O planejamento issue-a-issue da M1 está em
+> **`docs/UI_PLAN.md`** (M1.0–M1.6 com DoD, arquitetura DeviceActor, política
+> de escrita na UI e estratégia de testes).
 
 ### H1. Primeiro contato real (somente leitura)
 - **Responsável:** owner no hardware + skill `capture-analyze` p/ divergências · Depende: M0.7 · **Estimativa:** 1h
@@ -254,6 +260,18 @@
 - **DoD:** baseline atualizada + validate 100%.
 
 ---
+
+## 📋 Pendências de planejamento (documentos por criar, na ordem)
+
+- **Checklist operacional H1** (procedimento de leitura real, log de divergência
+  vs mock, fluxo R3) — criar ANTES de ligar a pedaleira; pode nascer como parte
+  da própria issue H1.
+- **Planejamento fino da M2** (IR lab, SnapTone manager, banco da biblioteca
+  [SQLite], empacotamento) — espelhar o formato do `docs/UI_PLAN.md` quando a
+  M1.0 fechar.
+- **M3** fica no nível de panorama (VISION §9) até o gate H passar.
+- **ADR-7+** à medida que os spikes fecharem as decisões em aberto do
+  `docs/UI_PLAN.md` §9.
 
 ## ❌ Deliberadamente FORA de escopo agora (não reabrir)
 - Firmware update (política V2+) · layout byte-a-byte da página 13xx (só mock precisa

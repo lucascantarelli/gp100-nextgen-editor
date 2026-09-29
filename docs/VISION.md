@@ -1,9 +1,10 @@
 # Documento de Visão e Estratégia de Engenharia
 ## Projeto: GP-100 NextGen Editor — Suíte multiplataforma para a pedaleira Valeton GP-100
 
-> ✅ **Status: atual (rev. v1.1).** §3 e §10 registram a RE concluída com as
-> evidências das capturas 1–4; §11 é o roadmap vigente. Mapa geral da
-> documentação: `docs/INDEX.md`.
+> ✅ **Status: atual (rev. v1.2, 29/09).** §3 e §10 registram a RE concluída com as
+> evidências das capturas 1–4; §10.6 (round-trip Rust) já executado na M0.2; §11
+> é o roadmap vigente — execução issue-a-issue em `docs/ROADMAP.md` (P/M0/H) e
+> `docs/UI_PLAN.md` (M1). Mapa geral: `docs/INDEX.md`.
 **Versão:** 1.1 · **Data:** 2026-09-28 (rev. pós-sessões de captura 1–4: fases R1–R4 concluídas, roadmap reescrito) · **Classificação:** Interno / Engenharia
 **Autor:** Buffy — Arquitetura & Engenharia Reversa
 
@@ -244,25 +245,33 @@ Diretório de trabalho: `analysis/` (scripts + produtos). Ferramentas da fase RE
 3. ✅ Dicionário `parameters.json` obtido do `algorithm.xml` (via mais confiável que Ghidra) e validado em 3 vias; auditoria Ghidra opcional em `README_GHIDRA.md`.
 4. ✅ Manual extraído (`manual_streams.txt`) para cross-check.
 5. ✅ `params_0..14` pareados com o dicionário + validados no fio (float32, §13.11).
-6. ⏳ **Única pendente → é o próximo passo**: protótipo do modelo de dados Rust com round-trip XML dos 3 .prst (teste byte-idêntico).
+6. ✅ **Concluída na M0.2 (29/09)**: modelo serde do `.prst` com round-trip
+   XML byte-idêntico dos 3 arquivos (`tests/roundtrip_prst.rs`, 8 contratos;
+   layout tratado como DADO). Era a última pendência desta lista.
 7. ✅ Capturas reais executadas (sessões 1–4, proxy winmm) — protocolo validado em campo, item 11 do BLOCKERS fechado.
 
 ---
 
-## 11. ROADMAP (reescrevido na v1.1 a partir do estado atual)
+## 11. ROADMAP (rev. v1.2 — execução detalhada no ROADMAP.md e no UI_PLAN.md)
 
 > A fase de arqueologia terminou: dados, formato e protocolo estão fechados
-> e validados. O caminho crítico agora é 100% construção de software.
+> e validados. O caminho crítico agora é 100% construção de software — e ela
+> já está a caminho: **M0 em 6/8 com CI verde (29/09)**.
 
-- **M0 — gp100-core (Rust):** workspace `gp100-core` + `gp100-cli`; consumidor do
-  `protocol_golden.json` (gerador de requests + matcher de respostas); modelo serde
-  do `.prst` com round-trip byte-idêntico testado contra os 99 presets do `all.prst`;
-  transporte com `DeviceTransport` (mock + USB-MIDI real via midir/ALSA).
-  **Critério de aceite:** replay byte-a-byte das capturas 1–4 como testes de regressão.
-- **M1 — Editor UI (Tauri 2 + React/TS):** biblioteca (import `all.prst`), editor de
-  cadeia 9 slots, knobs com ranges reais do dicionário, diff/undo; device mock primeiro,
-  hardware depois (set/save/IR já verificados em campo). `WRITE_VERIFIED=true` para os
-  3 fluxos capturados; todo fluxo novo nasce atrás de feature-flag até ter captura própria.
+- **M0 — gp100-core (Rust) — ✅ 6/8 (29/09):** model (M0.1), preset round-trip
+  (M0.2), golden consumer (M0.3), codec de fio (M0.4), transporte + MockDevice
+  D1–D8 (M0.5), FSM de sessão com replay byte-a-byte das 4 fixtures (M0.6).
+  Faltam M0.7 (gp100-cli) e M0.8 (docs do core). **Execução issue-a-issue,
+  status e achados: `docs/ROADMAP.md`** (aqui fica só o panorama).
+- **H — gate de hardware (entre M0 e a escrita real):** H1 (leitura real) →
+  H2 (escrita dos 3 fluxos capturados) → H3 (golden v1.1 se houver ajuste).
+- **M1 — Editor UI (Tauri 2 + React/TS) — ⏳ planejado (`docs/UI_PLAN.md`):**
+  biblioteca (import `all.prst`), editor de cadeia 9 slots, knobs com ranges
+  reais do dicionário, diff/undo; device mock primeiro, hardware depois
+  (set/save/IR já verificados em campo). `WRITE_VERIFIED=true` para os
+  3 fluxos capturados; todo fluxo novo nasce atrás de feature-flag até ter
+  captura própria. **Pode começar em paralelo (mock); o modo real só após
+  H1/H2** — issues M1.0–M1.6 com DoD no `docs/UI_PLAN.md`.
 - **M2 — IR lab + SnapTone manager + empacotamento:** laboratório de IRs (upload §13.7
   já funcional; visualização/normalização local), gestor de NAM (5 slots), i18n (reusar
   strings EN/CN da firmware + pt-BR), pacotes MSI/AppImage/dmg.

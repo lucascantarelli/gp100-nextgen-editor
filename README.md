@@ -9,10 +9,14 @@ Aplicativo multiplataforma (Windows/Linux/macOS) para a pedaleira **Valeton GP-1
 construído por engenharia reversa para substituir o "Valeton Suite" oficial
 (Windows-only, shell CEF). **Núcleo em Rust (`gp100-core`) + UI em Tauri 2/React.**
 
-**Status atual:** a fase de engenharia reversa está **concluída e validada em campo** —
-modelo de dados, formato de presets e o protocolo completo de fio (ler, editar, salvar,
-upload de IR) estão decodificados, documentados e comprovados byte-a-byte contra 4
-sessões de captura reais. O próximo marco é a implementação do `gp100-core` (roadmap M0).
+**Status atual (29/09):** a engenharia reversa está **concluída e validada em campo**
+(protocolo comprovado byte-a-byte contra 4 sessões de captura) e o **`gp100-core`
+está 6/8 da Fase M0**: model (M0.1), preset round-trip (M0.2), golden consumer
+(M0.3), codec de fio (M0.4), transporte + MockDevice (M0.5) e FSM de sessão com
+**replay byte-a-byte das 4 fixtures** (M0.6) — tudo no remoto com CI verde
+(fmt/clippy/testes + pytest 10/10). Próximos: **M0.7** (gp100-cli) e **M0.8**
+(docs do core), depois o **gate H** de hardware. Planejamento issue-a-issue:
+`docs/ROADMAP.md`; planejamento da UI (M1): `docs/UI_PLAN.md`.
 
 > 🔒 **Política de segurança de hardware:** nenhum fluxo de escrita sai sem captura
 > validada (`WRITE_VERIFIED`), e **update de firmware está fora de escopo** (V2+, e só
@@ -42,11 +46,18 @@ boot/scan de presets (S1), upload de IRs mono+estéreo (S2), edição de knobs p
 ## 2. Estrutura do repositório
 
 ```
+├── gp100-core/                # lib Rust: model, preset, golden, codec,
+│   │                          #   transport (mock), session — Fase M0
+│   └── tests/                 # contratos caixa-preta (fixtures P4, replay)
+├── gp100-cli/                 # bin Rust (M0.7): info/list-user-irs/… via mock
 ├── docs/
-│   ├── VISION.md              # visão, arquitetura, stack, features (rev. v1.1)
+│   ├── INDEX.md               # mapa da documentação (comece por aqui)
+│   ├── VISION.md              # visão, arquitetura, stack, features (rev. v1.2)
+│   ├── ROADMAP.md             # plano executivo P/M0/H com issues e DoD
+│   ├── UI_PLAN.md             # planejamento issue-a-issue da UI (M1)
 │   ├── PROTOCOL.md            # referência do protocolo (§1–12 arquivo, §13 fio)
-│   ├── protocol_golden.json   # especificação executável (40 templates)
-│   ├── DECISIONS.md           # ADR-lite: 5 decisões estruturais do gp100-core
+│   ├── protocol_golden.json   # especificação executável (40 templates, baseline)
+│   ├── DECISIONS.md           # ADR-lite: 6 decisões estruturais do gp100-core
 │   ├── BLOCKERS.md            # matriz de riscos/bloqueios (11/12 resolvidos)
 │   └── CAPTURE_PLAN.md        # plano das capturas (histórico)
 ├── analysis/                  # laboratório de RE
@@ -65,11 +76,12 @@ boot/scan de presets (S1), upload de IRs mono+estéreo (S2), edição de knobs p
 │   ├── decode_wire.py …       # decoders de captura
 │   ├── FINDINGS_*.md          # achados da RE estática do exe (capstone)
 │   ├── nsis_app/              # extração do instalador (read-only, não indexar)
-│   └── .venv/                 # Python do projeto (capstone+pefile)
+│   └── captures/              # session1–4.jsonl + ir_slot*.bin (append-only)
 ├── files/                     # artefatos oficiais de entrada (firmware, instaladores,
 │   └── patches/*.prst         #   patches: all.prst = 99 presets)
 ├── scripts/
 │   └── add_cargo_path.ps1     # fix do PATH do cargo no sistema (HKLM, idempotente)
+├── .venv/                     # Python do projeto (uv, VENV ÚNICO na raiz)
 ├── knowledge.md               # memória operacional do agente (estado vivo, armadilhas)
 └── .agents/skills/            # workflows sob demanda (proxy-build, capture-analyze…)
 ```
@@ -143,13 +155,19 @@ uv run python analysis/validate_knob_map.py # revalida knob_map.json
 
 ## 5. Roadmap
 
-- **M0 — gp100-core (Rust):** workspace `gp100-core` + `gp100-cli`; consumidor do
-  golden-file (gerador de requests + matcher de respostas); modelo serde do `.prst`
-  com round-trip byte-idêntico testado contra os 99 presets; trait `DeviceTransport`
-  (mock + USB-MIDI real via midir/ALSA). *Aceite: replay byte-a-byte das capturas 1–4.*
+- **M0 — gp100-core (Rust) — ✅ 6/8 (29/09):** model (M0.1), preset round-trip
+  byte-idêntico (M0.2), golden consumer (M0.3), codec de fio (M0.4), transporte +
+  MockDevice D1–D8 (M0.5) e FSM de sessão com replay byte-a-byte das 4 fixtures
+  (M0.6) — CI verde. Faltam: M0.7 (gp100-cli) e M0.8 (docs do core).
+  *Aceite da fase: replay byte-a-byte das capturas 1–4 — atingido na M0.6.*
+- **H — gate de hardware (entre M0 e a escrita real):** H1 (leitura real) →
+  H2 (escrita dos 3 fluxos capturados) → H3 (golden v1.1 se houver ajuste).
+  Detalhes no ROADMAP. A M1 pode começar em paralelo (mock), mas o modo real
+  da UI/CLI só existe após H1/H2.
 - **M1 — Editor UI (Tauri 2 + React/TS):** biblioteca (import `all.prst`), editor de
   cadeia, knobs com ranges reais, diff/undo; device mock primeiro, hardware depois
   (set/save/IR já verificados em campo; `WRITE_VERIFIED=true` só para fluxos capturados).
+  **Planejamento issue-a-issue: `docs/UI_PLAN.md` (M1.0–M1.6 com DoD).**
 - **M2 — IR lab + SnapTone manager + empacotamento:** laboratório de IRs (upload já
   funcional), gestor de NAM, i18n (pt-BR/en/es/zh — strings da firmware reutilizáveis),
   MSI/AppImage/dmg.
@@ -182,11 +200,11 @@ schema do `11000007`, semântica de ppEXP1/ppCtrl, capturas G3–G6
 - Descobertas de protocolo vão para o `PROTOCOL.md` com evidência — nunca só conversa
 - Não commite sem pedido; `analysis/nsis_app/` e `files/` são material de origem
 
-**Boas primeiras tarefas:**
-- M0: o modelo serde do `.prst` + teste de round-trip contra `all.prst`
-- M0: o parser do `protocol_golden.json` e o gerador de SysEx a partir dos segmentos
-- Suíte de regressão (pytest) que roda `validate_golden.py` + `validate_knob_map.py`
-- Mock device em Python (responde como a GP-100 usando o golden-file)
+**Boas primeiras tarefas (estado 29/09 — as antigas já foram todas feitas):**
+- M0.7: os subcomandos do `gp100-cli` contra o mock (ver `docs/ROADMAP.md`)
+- M0.8: README do workspace do core + revisão do onboarding
+- M1.0: spike Tauri (UI falando com o mock — ver `docs/UI_PLAN.md`)
+- Gates H1–H3 (requerem a pedaleira + owner)
 
 ---
 
