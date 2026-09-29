@@ -6,6 +6,10 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
 (local, sem depender de hardware para ~95% do trabalho). Resposta ao usuário SEMPRE em PT-BR.
 
 ## Estado vivo (atualizar aqui a cada marco)
+- M0.2 ✅ (29/09): `gp100-core/src/preset.rs` — round-trip byte-idêntico dos 3 .prst
+  (R4 provado em tests/roundtrip_prst.rs; layout = DADO: quebras/indents registrados).
+  Efeitos em ordem x DESCENDE no arquivo (RVB->PRE); ppName com `&amp;` verbatim;
+  set_attr estrito. **.prst também é `-text` no .gitattributes** (CI pegou EOL de novo).
 - M0.1 ✅ (29/09): `gp100-core/src/model.rs` — dicionário serde (185/639) com
   validação na carga e lookup O(1). ACHADOS (R1): identidade = (module,nibble,index)
   (Boost/14 Boost dual-módulo PRE/DST, defaults divergentes); knobs bidirecionais

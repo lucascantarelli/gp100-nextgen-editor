@@ -132,13 +132,18 @@
   (primária) + `algorithm` (fallback first-wins, semântica do knob_map).
   `ProtocolError` (ADR-2) nasce aqui. 11 unit + 1 doc-test, clippy -D, CI verde.
 
-### M0.2 Modelo `.prst` com round-trip byte-idêntico
+### M0.2 Modelo `.prst` com round-trip byte-idêntico — ✅ FEITO 29/09
 - **Responsável:** skill `core-dev` · Depende: M0.1 · **Estimativa:** 4–6h
 - **O quê:** modelo completo do XML (preset_info, presets/pp*, Effect params_0..14,
   ppCtrl, ppEXP1, ppIRInfo) com preservação de atributos desconhecidos; writer que
   reproduz byte-a-byte o arquivo original.
-- **DoD:** round-trip idêntico nos 3 `.prst` (all.prst = 99 presets) — teste
-  obrigatório, é a "regra sagrada" da VISION §5.
+- **DoD:** ✅ `gp100-core/src/preset.rs`: parser/writer que trata LAYOUT COMO DADO
+  (ordem de attrs, quebras dentro das tags e indents são registrados e reproduzidos;
+  sem algoritmo de wrap adivinhado — R1). Round-trip byte-idêntico provado nos 3
+  `.prst` (`tests/roundtrip_prst.rs`: 8 contratos — all.prst=99 presets, double-parse,
+  edição estável, `Dub&amp;Vibe` verbatim, strict de dialecto). `.prst` agora com
+  `-text` no .gitattributes (mesma lição EOL do golden). Views tipadas
+  PresetView/EffectView sem esconder ppCtrl/ppEXP1.
 
 ### M0.3 Consumidor do golden-file
 - **Responsável:** skill `core-dev` · Depende: P1, P2 · **Estimativa:** 3–4h
