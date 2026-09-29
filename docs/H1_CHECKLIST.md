@@ -1,6 +1,11 @@
 # 🎛️ H1_CHECKLIST — Gate de hardware: primeiro contato real (somente leitura)
 
 > **Status:** ⏳ aguardando o transporte real (software da Fase M0 pronto: M0.7 ✅ e M0.8 ✅) · **Última revisão:** 2026-09-29 · **Responsáveis:** owner no hardware + skill `capture-analyze` para divergências
+>
+> **Kit de campo PRONTO (29/09):** build release do CLI · referências do mock em
+> `analysis/h1_reference/` · runbook `scripts/h1_field.sh rehearsal|field` (ensaio
+> executado, 0 divergências de framing) · relatório `docs/H1_REPORT.md` com o
+> **plano de backup fixo** (§7) — decidido ANTES de ligar a pedaleira.
 > **Fontes:** `docs/ROADMAP.md` (issue H1, regra R3), `docs/VISION.md` §7 (brick-proof), `docs/BLOCKERS.md` §4, ADR-3/ADR-4/ADR-6 (`docs/DECISIONS.md`), `docs/PROTOCOL.md` §13, `knowledge.md` (armadilhas de captura).
 > **Regra deste gate:** **LER é seguro; ESCREVER é H2.** Nenhum byte de escrita sai
 > nesta sessão (`set-param`/`save`/`upload-ir` proibidos MESMO com dry-run) e
@@ -67,8 +72,10 @@ automático, D6)
 
 **Fase C — comparação (no PC, logo após a sessão)**
 - [ ] Rodar os decoders na `sessionH1.jsonl` (mesmos scripts das capturas do Suite)
+- [ ] Comparar o FRAMING de cada log vs `analysis/h1_reference/` (runbook:
+      `scripts/h1_field.sh` — nível 1; conteúdo divergente = nível 2, esperado)
 - [ ] Classificar cada divergência nos níveis do §4 e lançar na tabela do §5
-- [ ] Preencher `docs/H1_REPORT.md` e arquivar (§7)
+- [ ] Preencher `docs/H1_REPORT.md` e arquivar (§7; plano de backup no §7 dele)
 
 **PROIBIDO nesta sessão:** qualquer escrita (mesmo dry-run — é H2), update de
 firmware, e "testinhas" fora do roteiro. Curiosidade custa pedaleira.
