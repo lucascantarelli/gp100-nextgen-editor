@@ -11,6 +11,12 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
   extrai vars; by-len despacha por comprimento no 12001002: ACK 4B / tabela 75B /
   resync). Propriedade extract→build==exemplo provada nos 40 templates.
   ⚠️ example.* do golden são PAYLOADS (não SysEx completo).
+  API v2 (revisão pós-M0.3): endpoints TIPADOS (u8,[u8;4]) com índices O(1);
+  3 endpoints OUT têm DOIS templates (caso congelado do boot × geral:
+  13010002/13010004/13020004) → request_template(func,addr,vars) desambigua
+  por var_count; GoldenFile::build_request(func,addr,vars) = rota da FSM.
+  IN compartilhado com bytes ambíguos (13010001 push×req): dispatch = ordem
+  do arquivo; FSM resolve pelo contexto do que pediu (M0.6).
 - M0.2 ✅ (29/09): `gp100-core/src/preset.rs` — round-trip byte-idêntico dos 3 .prst
   (R4 provado em tests/roundtrip_prst.rs; layout = DADO: quebras/indents registrados).
   Efeitos em ordem x DESCENDE no arquivo (RVB->PRE); ppName com `&amp;` verbatim;
