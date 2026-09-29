@@ -1,6 +1,6 @@
 ---
 name: rust-practices
-description: Boas práticas de Rust para gp100-core/gp100-cli — gates de qualidade (fmt/clippy/test/doc-tests), estilo de documentação PT-BR, erros tipados, testes vetorizados e política de features.
+description: Boas práticas de Rust para gp100-core/gp100-cli — gates de qualidade (fmt/clippy/test/doc-tests), política de CI, estilo de documentação PT-BR, erros tipados, testes vetorizados e política de features.
 metadata:
   category: development
 ---
@@ -15,13 +15,35 @@ pré-assinados de `docs/DECISIONS.md` — em conflito, valem R1–R4 e os ADRs.
 
 ```bash
 # Se o terminal novo não achar cargo: fix permanente = scripts/add_cargo_path.ps1
-# (uma vez, como admin); workaround de sessão = export abaixo.
+# (feito em 29/09 — vale para QUALQUER terminal novo); workaround de sessão =
+# export abaixo, só para sessões abertas antes do fix.
 export PATH="/c/Users/Canta/.cargo/bin:$PATH"
 cargo fmt --check
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test          # inclui os DOC-TESTS (exemplos de doc-comments compilam e rodam)
 cargo build
 ```
+
+## CI (GitHub Actions) — mesma régua do local
+
+O CI (`.github/workflows/ci.yml`) roda os MESMOS gates por push/PR em runner
+`windows-latest` (o pin gnu do `rust-toolchain.toml` não compila no Linux).
+Armadilhas já mordidas — não reabrir:
+
+- **Runner `windows-latest` é obrigatório** por causa do pin gnu; não
+  "simplificar" para ubuntu.
+- Instalar a toolchain pinada com `rustup toolchain install <pin> --component
+  rustfmt --component clippy`. **`--component` é REPETÍVEL**: escrever
+  `--component rustfmt clippy` faz o rustup ler `clippy` como uma toolchain
+  (`invalid toolchain name: 'clippy'`).
+- O perfil do rustup (default ou minimal) **não inclui** componentes; os
+  fmt/clippy pré-instalados no runner pertencem à toolchain **msvc** dele e não
+  servem ao pin gnu — sem o `--component` explícito, `cargo fmt` falha com
+  "'cargo-fmt.exe' is not installed for the toolchain ...".
+- `dtolnay/rust-toolchain` sonda `rustc -vV` **antes** de instalar e morre no
+  shim do rustup (canal pinado ainda inexistente no runner: "target tuple in
+  channel name") — usar install explícito.
+- CI vermelho nunca é contornado: sem relaxar `-D warnings`, sem pular job.
 
 ## Estilo de documentação (obrigatório)
 
@@ -62,6 +84,6 @@ cargo build
 - Toolchain PINADA `stable-x86_64-pc-windows-gnu` em `rust-toolchain.toml` — o
   host NÃO tem MSVC Build Tools e o `link` do PATH é o GNU coreutils; não
   trocar de alvo nem apagar o arquivo.
-- PATH do cargo: se terminal novo não rodar `cargo`, fix permanente =
-  `scripts/add_cargo_path.ps1` como admin (uma vez); workaround de sessão =
+- PATH do cargo: resolvido no sistema em 29/09 (`scripts/add_cargo_path.ps1`);
+  workaround de sessão só para terminais abertos antes do fix:
   `export PATH="/c/Users/Canta/.cargo/bin:$PATH"`.
