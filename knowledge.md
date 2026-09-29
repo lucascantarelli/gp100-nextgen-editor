@@ -214,6 +214,9 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
 ## Convenções
 - Código Rust segue `.agents/skills/rust-practices/SKILL.md` (gates fmt/clippy/test
   com doc-tests; doc-comments PT-BR com evidência; sem unwrap na lib; `deny(missing_docs)`).
+- Commits: `docs-sync` tem commit PRÓPRIO e SEPARADO do código (skill `docs-sync`);
+  NUNCA misturar ROADMAP/knowledge/INDEX no commit da issue — relembrado no core
+  review 29/09 (6609485 misturou; padrão correto = 6422cd1 → d2fa925).
 - Ferramentas novas de análise = script em `analysis/` (não heredocs longos).
 - Descobertas de protocolo vão para docs/PROTOCOL.md com evidência (VA/hex da captura), nunca só conversa.
 - Não commitar sem pedido; não tocar em `analysis/nsis_app/` (é material extraído, read-only).

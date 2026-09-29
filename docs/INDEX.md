@@ -36,7 +36,7 @@
 | Envelope do knob / save / IR no fio | §13.11 / §13.12 / §13.7 | leituras antigas do §13.4 (marcadas) |
 | Estado do projeto / próximos passos | `docs/BLOCKERS.md` + `knowledge.md` (estado vivo) | `docs/CAPTURE_PLAN.md` (histórico) |
 | Mapa knob→fio | `analysis/knob_map.json` (regenerável) | — |
-| Decisões de implementação do core | `docs/DECISIONS.md` (ADR-1..5) | reabrir debate ad-hoc |
+| Decisões de implementação do core | `docs/DECISIONS.md` (ADR-1..6) | reabrir debate ad-hoc |
 | Armadilhas Windows/ambiente | `knowledge.md` | — |
 
 ## 3. Inventário de documentos
