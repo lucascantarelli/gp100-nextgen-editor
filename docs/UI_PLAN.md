@@ -1,6 +1,6 @@
 # 🧭 UI_PLAN — Planejamento da Fase M1 (Editor UI)
 
-> **Status:** ⏳ planejado · **Última revisão:** 2026-09-29 · **Pré-requisitos:** M0.7 ✅ (CLI) concluído; M0.8 (docs do core) pendente; gate **H1** para o modo `--real` de leitura
+> **Status:** ⏳ planejado · **Última revisão:** 2026-09-29 · **Pré-requisitos:** ✅ Fase M0 concluída (M0.7 CLI + M0.8 docs) · gate **H1** só para o modo `--real` de leitura
 > **Fontes de verdade deste plano:** `docs/VISION.md` §5–§9 (arquitetura/stack/UX/features), `docs/DECISIONS.md` ADR-1..6, `docs/ROADMAP.md` (M0/H e regras R1–R4), `docs/BLOCKERS.md` itens 4/11 (editor + escrita validada), API da `Session` (ADR-6).
 >
 > Este documento é o **planejamento issue-a-issue da M1**. O panorama de produto

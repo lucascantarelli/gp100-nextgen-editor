@@ -239,13 +239,18 @@
 - **DoD:** ✅ todos os subcomandos funcionam no mock (smoke do binário);
   `--help`/usage documenta a política (stderr + exit 2 nas violações).
 
-### M0.8 Documentação do core
+### M0.8 Documentação do core — ✅ FEITO 29/09 · **FASE M0 100%**
 - **Responsável:** agente principal (Buffy) + `docs-sync` do INDEX · Depende: M0.7 · **Estimativa:** 1h
-- **O quê:** README do workspace (arquitetura, exemplos, como rodar testes),
-  atualizar `docs/INDEX.md` (novo inventário) e `knowledge.md` (estado vivo).
-- **DoD:** um contribuidor novo compila, testa e entende o core em <15min.
+- **O quê:** ✅ `gp100-core/README.md` (arquitetura por fases, fontes de
+  verdade, como construir/testar, exemplos por camada, CLI, modelo de testes,
+  erros/convenções) + **contrato `tests/readme_examples.rs`** que executa os
+  exemplos da doc 1:1 (doc que mente quebra o `cargo test` — pegou na revisão
+  um import faltante no exemplo da Session). Onboarding do README raiz
+  revisado (INDEX primeiro; hands-on de 10 min com o CLI).
+- **DoD:** ✅ um contribuidor novo compila, testa e entende o core em <15min
+  (README raiz → INDEX → README do core → hands-on).
 
-## FASE H — GATE DE HARDWARE (escrita real só após M0 100%)
+## FASE H — GATE DE HARDWARE (só após M0 100% — ✅ **M0 FECHADA 29/09**)
 
 > ⚠️ **Paralelismo:** a **FASE M1 (Editor UI) pode começar em paralelo** — ela
 > roda contra o MOCK (política de hardware, ADR-4/ADR-5). O modo real da UI/CLI

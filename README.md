@@ -48,9 +48,11 @@ boot/scan de presets (S1), upload de IRs mono+estéreo (S2), edição de knobs p
 
 ```
 ├── gp100-core/                # lib Rust: model, preset, golden, codec,
-│   │                          #   transport (mock), session — Fase M0
+│   │                          #   transport (mock), session — Fase M0 ✅
+│   ├── README.md              # arquitetura do core + exemplos que rodam
 │   └── tests/                 # contratos caixa-preta (fixtures P4, replay)
-├── gp100-cli/                 # bin Rust (M0.7): info/list-user-irs/… via mock
+├── gp100-cli/                 # bin Rust (M0.7 ✅): info/list-user-irs/… via mock
+│                              #   + --log no schema P4 (insumo do gate H1)
 ├── docs/
 │   ├── INDEX.md               # mapa da documentação (comece por aqui)
 │   ├── VISION.md              # visão, arquitetura, stack, features (rev. v1.2)
@@ -184,11 +186,22 @@ em §13.12 — não são dívidas.)
 ## 6. Roteiro para novos contribuidores
 
 **Onboarding (leia nesta ordem):**
-1. `docs/VISION.md` — o produto que estamos construindo e por quê
-2. `docs/PROTOCOL.md` §13 — o protocolo de fio (a narrativa)
-3. `docs/protocol_golden.json` — a mesma coisa, byte-a-byte (a especificação executável)
-4. `docs/BLOCKERS.md` — o que está resolvido e o que é risco
-5. `knowledge.md` — armadilhas de ambiente que já morderam alguém
+1. `docs/INDEX.md` — o mapa da documentação (rotas por objetivo, fontes de verdade)
+2. `docs/VISION.md` — o produto que estamos construindo e por quê
+3. `docs/PROTOCOL.md` §13 — o protocolo de fio (a narrativa)
+4. `docs/protocol_golden.json` — a mesma coisa, byte-a-byte (a especificação executável)
+5. `gp100-core/README.md` — **a arquitetura do código com exemplos que RODAM**
+   (contrato `tests/readme_examples.rs` garante que a doc não mente)
+6. `docs/BLOCKERS.md` — o que está resolvido e o que é risco
+7. `knowledge.md` — armadilhas de ambiente que já morderam alguém
+
+**Primeiro hands-on (10 min):**
+```bash
+cargo build --workspace
+cargo run -p gp100-cli -- info
+cargo run -p gp100-cli -- dump-preset 0x0007
+cargo test --workspace
+```
 
 **Regras da casa:**
 - **Preserve o round-trip**: qualquer preset aberto→salvo sem mudanças deve gerar
@@ -200,11 +213,11 @@ em §13.12 — não são dívidas.)
 - Descobertas de protocolo vão para o `PROTOCOL.md` com evidência — nunca só conversa
 - Não commite sem pedido; `analysis/nsis_app/` e `files/` são material de origem
 
-**Boas primeiras tarefas (estado 29/09 — as antigas já foram todas feitas):**
-- M0.7: os subcomandos do `gp100-cli` contra o mock (ver `docs/ROADMAP.md`)
-- M0.8: README do workspace do core + revisão do onboarding
+**Boas primeiras tarefas (estado 29/09 — M0 concluída):**
 - M1.0: spike Tauri (UI falando com o mock — ver `docs/UI_PLAN.md`)
-- Gates H1–H3 (requerem a pedaleira + owner)
+- M1.1–M1.6: conexão/boot, biblioteca, editor, fluxos de escrita (UI_PLAN)
+- Gate H1 em campo: `gp100-cli --real` com o roteiro do `docs/H1_CHECKLIST.md`
+  (requer a pedaleira + owner)
 
 ---
 

@@ -6,6 +6,11 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
 (local, sem depender de hardware para ~95% do trabalho). Resposta ao usuário SEMPRE em PT-BR.
 
 ## Estado vivo (atualizar aqui a cada marco)
+- M0.8 ✅ (29/09) — **FASE M0 100%**: `gp100-core/README.md` (arquitetura,
+  exemplos, testes, CLI) + contrato `tests/readme_examples.rs` que executa os
+  exemplos da doc 1:1 (pegou import faltante no exemplo da Session); onboarding
+  do README raiz revisado (INDEX primeiro + hands-on de 10 min). Próximo:
+  M1.0 (spike Tauri, docs/UI_PLAN.md) e/ou gate H1 (docs/H1_CHECKLIST.md).
 - M0.7 ✅ (29/09): `gp100-cli` — 5 subcomandos contra o mock + `--log` no schema
   P4 (requisito do H1) + `--real` bloqueado (exit 2; dupla confirmação não
   contorna o gate). Extensões: `Session::{select_preset, state_page}`; MOCK
