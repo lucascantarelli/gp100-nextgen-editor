@@ -8,8 +8,24 @@
 *.dll binary
 *.pdf binary
 
-# Especificação executável e patches de referência: BYTES CONGELADOS — o
-# round-trip byte-idêntico (R4) e o hash da baseline (§13) cobrem os EOLs;
-# -text impede qualquer conversão, no disco e no checkout.
+# ═══════════════════════════════════════════════════════════════════
+# REGIME DE BYTES CONGELADOS (política)
+#
+# TODO arquivo cuja identidade é BYTE-A-BYTE entra nesta lista com -text
+# ANTES do primeiro commit dele. EOL faz parte dos bytes: conversão de EOL
+# quebra hash de baseline (§13 — mordida do golden 29/09) e round-trip
+# (R4 — mordida dos .prst 29/09). Verificação: comparar
+#   git show :<caminho> | sha256sum   ×   sha256sum <caminho>
+# e, ao editar esta lista, rodar `git add --renormalize .`.
+#
+# Classe 1 — especificação executável:
 docs/protocol_golden.json -text
+# Classe 2 — patches de referência (round-trip R4):
 files/patches/*.prst -text
+# Classe 3 — evidência de campo (capturas; ir_slot*.bin já coberto por *.bin):
+analysis/captures/*.jsonl -text
+# Classe 4 — fixtures de replay (comparação byte-a-byte no M0.6):
+analysis/fixtures/*.jsonl -text
+#
+# NÃO entra aqui: produto editável/regenerável (docs *.md, scripts, knob_map,
+# parameters.json — identidade semântica, não byte).

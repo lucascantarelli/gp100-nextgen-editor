@@ -72,6 +72,27 @@ Armadilhas já mordidas — não reabrir:
 - Tipos novos quando baratos: newtype para ids (pp, slot, página) com métodos
   de conversão BE/LE concentrados no codec (ADR-1) — espalhar conversões é bug.
 
+## Regime de bytes (`.gitattributes -text`)
+
+Arquivo cuja identidade é **byte-a-byte** (hash de baseline, round-trip R4,
+comparação de replay) entra no `.gitattributes` com **`-text` ANTES do
+primeiro commit** — EOL faz parte dos bytes, e a normalização de EOL do git
+quebra a identidade silenciosamente (disco CRLF × blob LF; mordido 2x na CI
+em 29/09: golden e .prst).
+
+- Classes na lista (ver seção comentada no `.gitattributes`):
+  1. especificação executável (`docs/protocol_golden.json`);
+  2. patches de referência (`files/patches/*.prst`, R4);
+  3. evidência de campo (`analysis/captures/*.jsonl`, `ir_slot*.bin`);
+  4. fixtures de replay (`analysis/fixtures/*.jsonl` — o replay do M0.6
+     compara byte a byte).
+- **NÃO** entra: produto editável/regenerável (docs, scripts, knob_map,
+  parameters.json — identidade semântica, não byte).
+- Ao tocar na lista: `git add --renormalize .` e conferir
+  `git show :<caminho> | sha256sum` × `sha256sum <caminho>`.
+- Teste que depende de bytes de arquivo (R4/replay) deve ler o arquivo **do
+  repo** (checkout limpo) — nunca de cópia local fora do git.
+
 ## Testes (modelo híbrido, análogo ao pytest)
 
 ```text
