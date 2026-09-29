@@ -157,14 +157,23 @@
   `decode_envelope` com trim no 1º F7. Achado documentado: `example.*` do
   golden são PAYLOADS (não SysEx).
 
-### M0.4 Codec de fio
+### M0.4 Codec de fio — ✅ FEITO 29/09
 - **Responsável:** skill `core-dev` · Depende: M0.3 · **Estimativa:** 3–4h
 - **O quê:** envelope SysEx (`F0 21 25 7F 47 50 2D 64 | FUNC | ADDR | DATA | F7`),
   trim no 1º F7, detecção de truncamento (SEM-HDR), nibble expand/collapse,
   helpers semânticos: `set_param(slot, effect_code, ctrl, value)` (§13.11),
   `meta_block(pp, ppType, name)` (§13.12), `ir_begin(slot)`, `ir_chunk(slot, idx, data)`
   (§13.7), decodificador de página de User IR (§13.12, nome+CRC).
-- **DoD:** testes vetorizados com os exemplos do golden; erros de shape tipados.
+- **DoD:** ✅ `gp100-core/src/codec.rs`: primitivas nibble expand/collapse STRICT
+  (par ímpar ou nibble >0x0F → `InvalidShape`) + helpers semânticos PROVADOS byte a
+  byte contra as fixtures P4 em `tests/codec_wire.rs`: 92 knobs (§13.11), 2 saves
+  (§13.12), 1186 frames IR (§13.7, último chunk dup 0x0226 slot 1) + roundtrip de
+  nibble em chunk real; erros de shape tipados (ProtocolError); `WireWrite =
+  ([u8;4], Vec<u8>)` = forma canônica dos blocos que a FSM envia. Trim no 1º F7 e
+  SEM-HDR já vivem no golden (M0.3); página de User IR 13xx deliberadamente FORA
+  (o mock do M0.5 precisa só do shape); regras de SEQUÊNCIA da FSM (ordem de writes,
+  quirk de re-leitura, salto de página) = M0.6. 6 unit + 4 contratos;
+  fmt/clippy -D warnings/testes/CI verdes (commit 6422cd1).
 
 ### M0.5 Transporte + mock device
 - **Responsável:** skill `core-dev` (mock) · Depende: M0.4, P5 · **Estimativa:** 4–6h

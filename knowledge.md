@@ -6,6 +6,19 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
 (local, sem depender de hardware para ~95% do trabalho). Resposta ao usuário SEMPRE em PT-BR.
 
 ## Estado vivo (atualizar aqui a cada marco)
+- M0.4 ✅ (29/09): `gp100-core/src/codec.rs` — codec de fio PURO e sem estado:
+  nibble_expand/collapse strict (par ímpar ou nibble >0x0F = InvalidShape);
+  `set_param` (§13.11: payload 20B nibble-exp [code u32 LE][ctrl][00][f32 LE],
+  addr `10 [slot 1..9] 00 02`); `meta_block` (§13.12: 5 writes na ordem capturada
+  11000000/11000004/11000005/11000007/12000002, nome ASCII 12B trunc+pad);
+  `op_payload` (00020000, op u16 BE em [4..5]); `ir_begin`/`ir_chunk`/
+  `ir_chunk_ack` (§13.7: begin cru `00 [slot] 00 00 01 00 00 0a` ANTES dos chunks;
+  chunk 33B [slot][idx u16 BE]+30 nibbles=15B reais; ACK [slot][idx][01]).
+  Contratos (`tests/codec_wire.rs`) reproduzem as fixtures P4 byte a byte:
+  92 knobs + 2 saves + 1186 frames IR (último chunk dup 0x0226 slot 1).
+  `pub type WireWrite = ([u8;4], Vec<u8>)` = forma canônica dos blocos.
+  Fixture guarda PAYLOAD puro (cortes rebuilt[13..33]/[13..46]); regras de
+  SEQUÊNCIA da FSM (ordem/quirk/salto) = M0.6; página IR 13xx fora (deliberado).
 - M0.3 ✅ (29/09): `gp100-core/src/golden.rs` — GoldenFile/Template/Pattern com
   build_request (SysEx completo, vars posicionais) + matches_response (len+consts,
   extrai vars; by-len despacha por comprimento no 12001002: ACK 4B / tabela 75B /
@@ -48,10 +61,7 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
 - P2 ✅ (28/09): Rust instalado (rustup 1.29.1 / rustc 1.98.1 via winget+elevação).
   Toolchain PINADO windows-gnu em rust-toolchain.toml (host sem MSVC; `link` do PATH
   é o GNU coreutils). Workspace gp100-core+gp100-cli criado; clippy -D warnings + fmt +
-  testes verdes; CLI já bloqueia --real. ⚠️ PATH: adicionar C:\Users\Canta\.cargo\bin.
-- P3 ✅ (28/09): suíte de regressão `analysis/tests/test_protocol.py` — `uv run pytest`
-  = 9/9 (~4s): golden 5 provas com critérios objetivos + hash da baseline + knob_map 13/14
-  (exceção CAB/Mic). Gate de qualquer PR que toque spec/decoders.
+  testes verdes;  CLI já bloqueia --real. ⚠️ PATH: adicionar C:\Users\Canta\.cargo\bin.
 - **Plano de execução vigente: docs/ROADMAP.md** — Fase P (congelar spec P1, workspace P2,
   regressão P3, fixtures P4, ADR P5) → M0 (core só com mock) → Gate H (hardware).
   Seguir a ordem das issues; descoberta nova entra pelo fluxo R3 do roadmap, nunca por patch ad-hoc.
