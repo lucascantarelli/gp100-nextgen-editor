@@ -1,0 +1,107 @@
+# DEPENDABOT — PRs automáticos de upgrade de dependências.
+#
+# Complementa o security.yml noturno: a varredura DETETA (cargo/pnpm audit
+# → issue ACHADOS), o Dependabot REMEDIA (PR de upgrade pronto p/ review).
+# Upgrades continuam sendo decisão do owner (A-1/A-3 foram manuais); aqui
+# só muda a MECÂNICA: o PR abre pronto, com CI disparada (pull_request,
+# 14 jobs, cache quente) e o security noturno revalida os lockfiles.
+#
+# 4 ecossistemas = 4 lockfiles/manifests:
+#   - github-actions "/"  → pins das actions nos 3 workflows (checkout@v7…)
+#   - npm "/ui"           → pnpm-lock.yaml do front
+#   - cargo "/"           → Cargo.lock do workspace raiz (core+cli)
+#   - cargo "/src-tauri"  → Cargo.lock PRÓPRIO do gp100-ui (workspace
+#     separado por ADR-7 — sem esta entrada, o lockfile da UI nunca
+#     seria atualizado e a auditoria noturna dele não teria remediação)
+#
+# Cadência SEMANAL (segunda 09:00 UTC = 06:00 BRT, antes do expediente —
+# mesma janela do security noturno). Vulnerabilidades sérias NÃO esperam
+# a segunda: o security noturno as acusa em <24h e o upgrade pode ser
+# despachado na hora (merge do PR do Dependabot ou manual).
+#
+# Groups: 1 PR por ecossistema/semana (dev-deps do npm agrupadas; cargo
+# agrupa tudo — no lockfile Rust dev/prod não são PRs separados). Volume
+# baixo sem esconder mudanças: cada ecossistema segue isolado.
+#
+# Labels PROVISIONADAS antecipadamente via `gh label create --force`
+# (dependencies, rust, npm, github-actions): o Dependabot NÃO cria labels
+# e um PR com label inexistente falha o update — mesma lição do
+# achados-security no security.yml.
+#
+# open-pull-requests-limit 5: com os groups o teto é teórico; evita fila
+# infinita se passar semanas sem review.
+
+version: 2
+updates:
+  # ── Actions dos workflows (ci.yml, security.yml, release.yml) ──
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - github-actions
+    groups:
+      actions:
+        applies-to: version-updates
+        patterns:
+          - "*"
+
+  # ── Front (React 19/Vite 8/Vitest 5/ESLint 10 — ui/pnpm-lock.yaml) ──
+  - package-ecosystem: npm
+    directory: "/ui"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - npm
+    commit-message:
+      prefix: deps
+      prefix-development: deps-dev
+    groups:
+      dev-deps:
+        applies-to: version-updates
+        dependency-type: development
+      prod-deps:
+        applies-to: version-updates
+        dependency-type: production
+
+  # ── Workspace raiz (gp100-core + gp100-cli — Cargo.lock da raiz) ──
+  - package-ecosystem: cargo
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - rust
+    groups:
+      crates:
+        applies-to: version-updates
+        patterns:
+          - "*"
+
+  # ── gp100-ui (workspace PRÓPRIO do Tauri, ADR-7 — Cargo.lock próprio) ──
+  - package-ecosystem: cargo
+    directory: "/src-tauri"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - rust
+    groups:
+      crates:
+        applies-to: version-updates
+        patterns:
+          - "*"
