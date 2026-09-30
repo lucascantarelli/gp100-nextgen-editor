@@ -142,7 +142,7 @@ Diretório de trabalho: `analysis/` (scripts + produtos). Ferramentas da fase RE
 
 ```
 ┌────────────────────────────────────────────────────────────┐
-│ UI (React 18 + TS, Vite) — temas dark/light, GPU-friendly  │
+│ UI (React 19 + TS, Vite 8) — temas dark/light, GPU-friendly │
 │  · Signal Chain 2D (drag-and-drop real)                    │
 │  ·knobs/curvas SVG, EQ interativo, medidores via WebAudio  │
 └───────────────▲────────────────────────────────────────────┘

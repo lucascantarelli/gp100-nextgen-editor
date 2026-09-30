@@ -30,7 +30,7 @@ React/TS** que fala com a GP-100 **exclusivamente através do `gp100-core`**
 
 ```
 ┌──────────────────────────────────────────────────────────┐
-│ ui/ — React 18 + TS + Vite (dark/light, i18n)            │
+│ ui/ — React 19 + TS + Vite 8 (dark/light, i18n)          │
 │   Zustand (estado de sessão) + bindings ts-rs do core    │
 └──────────────▲───────────────────────────────────────────┘
                │ IPC Tauri (commands + events de progresso/push)
@@ -112,6 +112,12 @@ Aplicação direta de VISION §7.2 + BLOCKERS §4 + ADR-5/ADR-6:
 | Issue | Entrega | DoD |
 |---|---|---|
 | **M1.0** Spike Tauri | workspace `src-tauri` + `ui/`; 1 command `device_info` contra o mock; CI estendida (pnpm lint/test) | `pnpm tauri dev` mostra info do mock; CI verde com os 3 gates |
+
+**Ferramentas fixadas no M1.0:** React 19, Vite 8, Vitest 5, ESLint 10,
+TypeScript 6.0 (TS 7 aguarda suporte do typescript-eslint ≥7.1), Node 22 +
+pnpm 11 (lockfile congelado; upgrade deliberado).
+UI segue o design system `docs/UI_DESIGN.md` (paleta palco Valeton, escala
+de Fibonacci, WCAG 2.2 AA) com gate próprio no CI (job `ui`).
 | **M1.1** Conexão + boot | DeviceActor + commands `device_*` + ConnectionBar + progresso | boot contra o mock com barra; pushes visíveis em log da UI |
 | **M1.2** Biblioteca | import de `all.prst` (parser do core), lista/busca/favoritos | 99 presets listados com nome/tipo; abrir carrega no editor |
 | **M1.3** Editor | ChainEditor + ParamPanel (knobs/dicionário) + `set_param` | knobs limitados pelos ranges; bypass/troca refletem no estado |

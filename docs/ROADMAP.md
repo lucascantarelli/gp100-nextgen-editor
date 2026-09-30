@@ -250,6 +250,45 @@
 - **DoD:** ✅ um contribuidor novo compila, testa e entende o core em <15min
   (README raiz → INDEX → README do core → hands-on).
 
+## FASE ACHADOS — CORREÇÕES E MELHORIAS (PRIORIDADE MÁXIMA)
+
+> **Regra (decisão do owner, 29/09):** achados de reviews/auditorias, warns de
+> versão e vulnerabilidades de deps **entram nesta fase com prioridade MAIOR
+> que qualquer issue de fase (P/M/H/M1+)** e são resolvidos ANTES de abrir a
+> próxima issue de roadmap. Encontrou → registra aqui com ID (A-xx) + prova →
+> corrige → commit próprio → CI verde.
+
+### A-1. Vulnerabilidades npm do front (vitest/@vitest/mocker) — ✅ FEITO 29/09
+- **Origem:** `pnpm audit` (2 moderadas, GHSA-82fw-gwwq-j7x9) · **Prioridade:** máxima
+- **O quê:** ✅ upgrade das 7 dev-deps atrasadas (vitest 3→5, vite 7→8, eslint
+  plugins, jsdom, globals) + `@types/node`; audit **0 vulnerabilidades**;
+  gates do front verdes (10/10 testes, lint, build tsc+vite).
+  **TypeScript fixado em 6.0** (o TS 7.0 quebra o typescript-eslint 8.x —
+  exceção documentada; subir os dois juntos quando o plugin suportar ≥7.1).
+
+### A-2. Fundação de UI do M1.0 (front + design system + CI) — ✅ FEITO 29/09
+- **Origem:** revisão de estado · **Prioridade:** máxima
+- **O quê:** ✅ front `ui/` (React 19 + Vite 8 + Vitest 5 + ESLint 10 + TS 6.0) com
+  design system da paleta palco Valeton (`docs/UI_DESIGN.md`: tokens de
+  Fibonacci, contraste AA medido, identidade "pedalboard ao vivo"), skill
+  `ui-ux-practices`, testes de token/a11y/estado e job `ui` na CI.
+
+### A-4. Completar o spike M1.0 — workspace `src-tauri` + `device_info` — ⏳ ABERTA (PRÓXIMA)
+- **Origem:** auditoria `ls src-tauri` (ausente) · **Prioridade:** máxima
+- **O quê:** criar `src-tauri/` (crate `gp100-ui`, Tauri 2) com o command
+  `device_info` contra o MockDevice (arquitetura §2 do `UI_PLAN`: DeviceActor
+  entra na M1.1 — aqui é a prova do IPC) e o front `ui/` consumindo via
+  `invoke` com fallback mockado (já implementado).
+- **DoD:** `pnpm tauri dev` abre a janela mostrando pp/nome/tipo do mock;
+  `cargo test` cobre o command; CI (4 jobs) verde.
+- **Depois dela:** M1.1 (DeviceActor + boot).
+
+### A-3. Toolchain/versões base — ✅ FEITO 29/09
+- **Origem:** `cargo update --dry-run` + `pnpm outdated` · **Prioridade:** máxima
+- **O quê:** ✅ Rust stable 1.98.1 (atual), crates sem updates pendentes no
+  lockfile (midir 0.9.1, serde 1.0.229, thiserror 2.0.21 atuais); front nas
+  releases atuais pós A-1. CI valida Windows (2 jobs) + Linux + macOS + UI.
+
 ## FASE H — GATE DE HARDWARE (só após M0 100% — ✅ **M0 FECHADA 29/09**)
 
 > **Pré-requisito de software do H1 FECHADO (29/09):** `RealDevice` implementado
@@ -262,7 +301,8 @@
 > roda contra o MOCK (política de hardware, ADR-4/ADR-5). O modo real da UI/CLI
 > só existe após H1/H2. O planejamento issue-a-issue da M1 está em
 > **`docs/UI_PLAN.md`** (M1.0–M1.6 com DoD, arquitetura DeviceActor, política
-> de escrita na UI e estratégia de testes).
+> de escrita na UI e estratégia de testes). **MAIS UMA VEZ: achados da FASE
+> ACHADOS (A-xx) têm prioridade máxima e precedem qualquer M1.x.**
 
 ### H1. Primeiro contato real (somente leitura)
 - **Responsável:** owner no hardware + skill `capture-analyze` p/ divergências · Depende: M0.7 · **Estimativa:** 1h

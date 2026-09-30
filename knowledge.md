@@ -258,3 +258,21 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
 - Ferramentas novas de análise = script em `analysis/` (não heredocs longos).
 - Descobertas de protocolo vão para docs/PROTOCOL.md com evidência (VA/hex da captura), nunca só conversa.
 - Não commitar sem pedido; não tocar em `analysis/nsis_app/` (é material extraído, read-only).
+
+## UI e estado (29/09 — M1.0 em curso)
+- **Fase ACHADOS (A-xx) no ROADMAP**: achados de review/warns/vulns têm
+  PRIORIDADE MÁXIMA e precedem issues de fase (decisão do owner).
+- Paleta da UI = "palco": preto-quente #141210 + âmbar Valeton #ffa938;
+  variantes de tema nas cores de produto (vermelho/lavanda). Rácios WCAG
+  medidos em docs/UI_DESIGN.md §2 (token novo = rácio novo medido).
+- Identidade "pedalboard AO VIVO" (UI_DESIGN §6): cadeia em 1 clique, edição
+  direta (D4), LED pulsando `.live-dot`, regra dos 2 cliques.
+- Front fixado: React 19, Vite 8, Vitest 5, ESLint 10, **TypeScript 6.0**
+  (TS 7 nativo quebra typescript-eslint 8.x — só subir junto do plugin ≥7.1),
+  Node 22+pnpm 11. `@types/node` é dev-dep obrigatória (Vitest 5 + node: no
+  teste de tokens).
+- pnpm 11: allowlist de build scripts vai em `pnpm-workspace.yaml`
+  (`allowBuilds`), NÃO no package.json (`pnpm.onlyBuiltDependencies` é legado).
+- CI: pytest + rust (win-gnu) + rust-portable (linux/macos) + ui (ubuntu).
+  Rust stable do RUNNER nas checagens de portabilidade (pin gnu não existe
+  como host fora do Windows).
