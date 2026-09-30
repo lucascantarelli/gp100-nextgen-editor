@@ -114,6 +114,14 @@ body {
     animation: none;
   }
 }
+.idle-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  opacity: 0.6;
+}
 
 /* reduced motion (§4) */
 @media (prefers-reduced-motion: reduce) {

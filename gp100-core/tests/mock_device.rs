@@ -102,21 +102,25 @@ fn scan_de_presets_responde_com_pp_do_estado() {
         "meta6 do select leva o pp escolhido"
     );
 
-    // abertura congelada (t6: const 010001 em 13010002) → meta6 CONST do
-    // golden (idêntico nas 4 sessões — o pp NÃO entra aqui; evidência S1)
+    // abertura (t7: const 010001 em 13010002) → PÁGINA 0 (196B) — evidência
+    // da captura S1 rows 89–93 (replay byte-a-byte M0.6: "open open → pág0
+    // pág0; NÃO é meta6"). O t7 do golden pareava a abertura com o meta6 do
+    // select (mis-pairing inofensivo enquanto o boot só rodava no transporte
+    // de replay; o mock do M1.1 segue a captura).
     let req = golden
         .request_template(0x12, &[0x13, 0x01, 0x00, 0x02], 0)
-        .expect("t6 (0 vars = congelado)")
+        .expect("t7 (0 vars = congelado)")
         .build_request(&[])
-        .expect("req t6");
+        .expect("req t7");
     m.send_raw(&req).expect("abre");
-    let msg = m.recv_raw(T).expect("meta6");
-    let (_, _, p) = decode_envelope(&msg).expect("envelope");
+    let msg = m.recv_raw(T).expect("página 0 da abertura");
+    let (_, addr, p) = decode_envelope(&msg).expect("envelope");
     assert_eq!(
-        p,
-        &[0x01, 0x00, 0x0C, 0x1C, 0x01, 0x40],
-        "meta6 = exemplo congelado"
+        addr,
+        [0x13, 0x01, 0x00, 0x03],
+        "abertura responde no endpoint da página"
     );
+    assert_eq!(p.len(), 196, "página 0 = shape 196B");
 
     // scan (t13: const 000001 em 13020002) → página 196B. EVIDÊNCIA: a
     // resposta do scan NÃO começa com pp (exemplo congelado começa com

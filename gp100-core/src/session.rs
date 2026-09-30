@@ -33,6 +33,47 @@ use std::time::Duration;
 /// Janela da transação (ADR-3): 3000 ms por request→resposta.
 const TX_TIMEOUT_MS: u64 = 3000;
 
+/// Onde o script de boot está (M1.1: barra de progresso da UI —
+/// docs/UI_PLAN.md §2). Ordem REAL do boot S1 (prova C do replay):
+/// Tables → Scan → Probe → Setlist → Names → Keepalive.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BootStage {
+    /// T1 — tabelas de User IRs `11/12001002` (20 páginas ×2 leituras).
+    Tables,
+    /// T5 — scan dos presets (select+open+9 páginas por pp; o pp corrente
+    /// com select/open DUPLICADOS — quirk §13.4).
+    Scan,
+    /// T6 — sonda do banco 02 (select const + open + 9 páginas).
+    Probe,
+    /// T2 — setlist `11/12001012` (5 leituras).
+    Setlist,
+    /// T3 — nomes `11/11000008` (fire-and-forget, D4; 61 leituras).
+    Names,
+    /// T4 — keepalives `12/00020001` ×2 (D4).
+    Keepalive,
+}
+
+/// Instantâneo de progresso do boot (emitido pelo callback de
+/// [`Session::boot_with_progress`] a cada transação completada).
+#[derive(Debug, Clone, Copy)]
+pub struct BootProgress {
+    /// Etapa corrente do script (§13.10).
+    pub stage: BootStage,
+    /// Transações completas ATÉ agora (inclui as etapas anteriores).
+    pub done: usize,
+    /// Total esperado de transações do script completo (função do
+    /// inventário; captura S1 = 2299 com o pp corrente duplicado).
+    pub total: usize,
+    /// pp corrente APÓS a transação (o scan avança o seleção — §13.10),
+    /// para a UI mostrar qual preset está sendo levantado.
+    pub current_pp: u16,
+}
+
+/// Callback de progresso do boot (M1.1): observacional — NÃO altera a
+/// sequência de fio (replay byte-a-byte continua válido; ver
+/// `tests/replay_fixtures.rs::boot_progress_nao_degrada_o_replay`).
+pub type BootProgressFn<'a> = dyn FnMut(BootProgress) + 'a;
+
 /// Relatório do boot+scan (§13.10): nasce MÍNIMO (deriva das vars que os
 /// templates extraem) e cresce só quando a UI pedir (ADR-6, YAGNI).
 #[derive(Debug, Clone)]
@@ -109,12 +150,38 @@ impl<T: DeviceTransport> Session<T> {
         self.pps.clone().unwrap_or_else(|| (0u16..198).collect())
     }
 
-    /// Boot + scan (§13.10): o script completo do Suite ao ligar, gerado
-    /// pelas MESMAS regras da prova C do `validate_golden.py` (2299/2299):
-    /// T1) tabela de IRs `11/12001002`: 20 páginas ×2 leituras; T2)
-    /// `11/12001012`: índices 0..4; T3) nomes `11/11000008`: bancos 0x00–
-    /// 0x02 completos (16) + 0x03 com 13; T4) keepalive `12/00020001` ×2;
-    /// T5) scan: para cada pp (ordem do inventário; o ATUAL 0x0100 com
+    /// Boot + scan (§13.10) SEM progresso — a forma canônica do ADR-6
+    /// (assinatura/sequência intocadas; os contratos de replay a consomem).
+    /// Para barra de progresso na UI, use [`Session::boot_with_progress`].
+    ///
+    /// # Erros
+    /// [`ProtocolError::Timeout`] (D6), [`ProtocolError::InvalidShape`]
+    /// (D5) — e [`ProtocolError::UnexpectedAck`] (diff hex da resposta).
+    pub fn boot(&mut self) -> Result<BootReport, ProtocolError> {
+        self.boot_inner(None)
+    }
+
+    /// Boot + scan (§13.10) com hook de progresso (M1.1): chama `on_progress`
+    /// a cada transação completada com [`BootProgress`] { stage, done, total }.
+    /// O total é função do inventário (pp corrente duplicado soma +2 — quirk
+    /// §13.4); `done` cresce monótono até `total` na última transação.
+    ///
+    /// # Erros
+    /// Os mesmos de [`Session::boot`] (o hook é observacional — nada muda no
+    /// fio: D1–D8 intocados).
+    pub fn boot_with_progress(
+        &mut self,
+        on_progress: Option<&mut BootProgressFn<'_>>,
+    ) -> Result<BootReport, ProtocolError> {
+        self.boot_inner(on_progress)
+    }
+
+    /// Corpo do boot + scan (§13.10): o script completo do Suite ao ligar,
+    /// gerado pelas MESMAS regras da prova C do `validate_golden.py`
+    /// (2299/2299): T1) tabela de IRs `11/12001002`: 20 páginas ×2 leituras;
+    /// T2) `11/12001012`: índices 0..4; T3) nomes `11/11000008`: bancos
+    /// 0x00–0x02 completos (16) + 0x03 com 13; T4) keepalive `12/00020001`
+    /// ×2; T5) scan: para cada pp (ordem do inventário; o ATUAL 0x0100 com
     /// select+open DUPLICADOS — quirk de boot): select `11/13010000` [pp],
     /// open `12/13010002` [pp]01, 9 páginas `12/13010004` [pp][PG]01;
     /// T6) sonda do banco 02: select 0000 + open 000001 + 9 páginas.
@@ -122,14 +189,33 @@ impl<T: DeviceTransport> Session<T> {
     /// INTERLEAVE (D2): cada transação espera a PRÓPRIA resposta (D1) e
     /// pushes de boot não solicitados (dump 13000000, meta6 13010001,
     /// páginas 13010003, setlist 12001012, nomes 11000008) vão para o
-    /// BACKLOG (D7), não confundem as transações.
-    ///
-    /// # Erros
-    /// [`ProtocolError::Timeout`] (D6), [`ProtocolError::InvalidShape`]
-    /// (D5) — e [`ProtocolError::UnexpectedAck`] (diff hex da resposta).
-    pub fn boot(&mut self) -> Result<BootReport, ProtocolError> {
+    /// BACKLOG (D7), não confundem as transações. `progress` é
+    /// observacional: um `beat!` por transação, nada no fio.
+    fn boot_inner(
+        &mut self,
+        mut progress: Option<&mut BootProgressFn<'_>>,
+    ) -> Result<BootReport, ProtocolError> {
         let golden = GoldenFile::embedded()?;
         let mut tx = 0usize;
+        // Total esperado: T1(40) + scan(11/pp +2 se pp corrente duplicado)
+        // + sonda(11) + setlist(5) + nomes(61) + keepalive(2). O replay da
+        // captura (198 pps, 0x0100 duplicado) fecha em 2299 = prova C.
+        let pps = self.inventory();
+        let doubled = pps.iter().filter(|&&p| p == 0x0100).count();
+        let total = 40 + pps.len() * 11 + doubled * 2 + 11 + 5 + 61 + 2;
+        let mut stage = BootStage::Tables;
+        macro_rules! beat {
+            () => {
+                if let Some(cb) = progress.as_mut() {
+                    cb(BootProgress {
+                        stage,
+                        done: tx,
+                        total,
+                        current_pp: self.current_pp,
+                    });
+                }
+            };
+        }
 
         // ORDEM REAL do boot S1 (prova C / replay): T1 → scan (T5) →
         // sonda 1302 (T6) → setlist (T2) → nomes (T3) → keepalives ×2.
@@ -138,8 +224,10 @@ impl<T: DeviceTransport> Session<T> {
             for _ in 0..2 {
                 self.tx_req(golden, 0x11, &[0x12, 0x00, 0x10, 0x02], &[p])?;
                 tx += 1;
+                beat!();
             }
         }
+        stage = BootStage::Scan;
         // T5: scan — pareamento REAL (replay S1): select `13010000` →
         // meta6 `13010001`; open `13010002` [pp]01 → página 0 em `13010003`;
         // req `13010004` [pp][PG]01 (PG 0..7) → página PG+1 (196B/32B);
@@ -157,6 +245,7 @@ impl<T: DeviceTransport> Session<T> {
                     &[0x13, 0x01, 0x00, 0x01],
                 )?;
                 tx += 1;
+                beat!();
             }
             self.tx_req_in(
                 golden,
@@ -166,6 +255,7 @@ impl<T: DeviceTransport> Session<T> {
                 &[0x13, 0x01, 0x00, 0x01],
             )?;
             tx += 1;
+            beat!();
             self.tx_req_in(
                 golden,
                 0x12,
@@ -174,6 +264,7 @@ impl<T: DeviceTransport> Session<T> {
                 &[0x13, 0x01, 0x00, 0x03],
             )?;
             tx += 1;
+            beat!();
             if doubled {
                 // ...e open duplicado: a página 0 chega DE NOVO em
                 // `13010003` (captura S1 rows 89–93: open open → pág0 pág0;
@@ -186,6 +277,7 @@ impl<T: DeviceTransport> Session<T> {
                     &[0x13, 0x01, 0x00, 0x03],
                 )?;
                 tx += 1;
+                beat!();
             }
             for pg in 0u16..9u16 {
                 // t8: var2 (pp) + const 00 + var1 (PG baixo) + const 01
@@ -208,9 +300,11 @@ impl<T: DeviceTransport> Session<T> {
                     )?;
                 }
                 tx += 1;
+                beat!();
             }
             self.current_pp = pp;
         }
+        stage = BootStage::Probe;
         // T6: sonda do banco 02 (mesmo pareamento; 13020001/13020003/13020005).
         // O select é CONST "0000" no golden (sem var de pp — é a sonda do
         // banco 02, não um select de preset).
@@ -222,6 +316,7 @@ impl<T: DeviceTransport> Session<T> {
             &[0x13, 0x02, 0x00, 0x01],
         )?;
         tx += 1;
+        beat!();
         self.tx_req_in(
             golden,
             0x12,
@@ -230,6 +325,7 @@ impl<T: DeviceTransport> Session<T> {
             &[0x13, 0x02, 0x00, 0x03],
         )?;
         tx += 1;
+        beat!();
         for pg in 0u16..9u16 {
             // t15: const 000000 + var1 (PG baixo) + const 01
             let vars = [pg as u8];
@@ -251,12 +347,16 @@ impl<T: DeviceTransport> Session<T> {
                 )?;
             }
             tx += 1;
+            beat!();
         }
+        stage = BootStage::Setlist;
         // T2: setlist 5 entradas
         for i in 0u8..5 {
             self.tx_req(golden, 0x11, &[0x12, 0x00, 0x10, 0x12], &[i])?;
             tx += 1;
+            beat!();
         }
+        stage = BootStage::Names;
         // T3: nomes — FIRE-AND-FORGET (D4; captura S1: 61 leituras, só 57
         // respostas — o device omitiu 4 do banco 00 [idx 01,03,06,0a] e o
         // Suite seguiu): respostas = pushes de contexto (D2) → backlog (D7);
@@ -266,15 +366,20 @@ impl<T: DeviceTransport> Session<T> {
             for idx in 0u8..16 {
                 self.send_build(golden, 0x11, &[0x11, 0x00, 0x00, 0x08], &[bank, idx])?;
                 tx += 1;
+                beat!();
             }
         }
         for idx in 0u8..13 {
             self.send_build(golden, 0x11, &[0x11, 0x00, 0x00, 0x08], &[3, idx])?;
             tx += 1;
+            beat!();
         }
-        // T4: keepalive ×2 (D4)
+        stage = BootStage::Keepalive;
+        // T4: keepalive ×2 (D4) — contam como transação para o progresso.
         for _ in 0..2 {
             self.send_build(golden, 0x12, &[0x00, 0x02, 0x00, 0x01], &[])?;
+            tx += 1;
+            beat!();
         }
         Ok(BootReport { transactions: tx })
     }

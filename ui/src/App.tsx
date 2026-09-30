@@ -1,39 +1,60 @@
 /**
- * App do M1.0 (spike): prova o caminho IPC end-to-end (React → invoke →
- * Rust → MockDevice → back) com os padrões da skill ui-ux-practices:
- * estados de tela canônicos, foco visível, feedback <100ms, tokens da
- * escala Fibonacci, i18n-ready (strings centralizadas abaixo p/ migrar a
- * locales/ na M1.5) e a11y (dl/dt/dd p/ pares rótulo-valor, role="status").
+ * App da M1.1 (docs/UI_PLAN.md §6, issue "Conexão + boot"): ConnectionBar
+ * com boot + barra de progresso (eventos `device://progress`), painel de
+ * info do device (mock) e PushLog (DoD: "pushes visíveis em log da UI").
+ * Padrões da skill ui-ux-practices: estados de tela canônicos (ScreenState),
+ * erro sempre com retry, foco visível, feedback <100ms, tokens Fibonacci,
+ * i18n-ready e a11y (dl/dt/dd, role="status", aria-valuenow na barra).
  *
  * Linguagem visual "pedalboard ao vivo no palco" (docs/UI_DESIGN.md §2):
- * barra superior com LED pulsando quando conectado; painéis = módulos de
- * pedal; ações primárias em âmbar Valeton. Tema de accent (preto/vermelho/
- * lavanda, cores de produto) escolhível — aqui segue prefers do SO na M1.0.
+ * LED pulsando quando conectado; ações primárias em âmbar Valeton.
  */
 import type { CSSProperties } from "react";
 import { useDevice } from "./hooks/useDevice";
+import { useBoot } from "./hooks/useBoot";
+import { usePushLog } from "./hooks/usePushLog";
+import { ConnectionBar } from "./components/ConnectionBar";
+import { PushLog } from "./components/PushLog";
 
 export default function App() {
   const { state, refresh } = useDevice();
+  const boot = useBoot();
+  const { log, clear } = usePushLog();
+
+  const booting = boot.state.kind === "loading";
 
   return (
     <main style={styles.page}>
       <header style={styles.header}>
         <div style={styles.brandRow}>
-          <span
-            style={styles.logoDot}
-            aria-hidden="true"
-            data-theme-mark="true"
-          />
+          <span style={styles.logoDot} aria-hidden="true" />
           <h1 style={styles.title}>GP-100 NextGen Editor</h1>
         </div>
         <p style={styles.subtitle}>
-          M1.0 · spike — backend <strong>mock</strong> (política de hardware:
-          nenhum byte vai ao device na Fase M)
+          M1.1 · conexão + boot — backend <strong>mock</strong> (política de
+          hardware: nenhum byte vai ao device na Fase M)
         </p>
       </header>
 
-      <section aria-label="Conexão" style={styles.panel}>
+      <ConnectionBar
+        info={state.kind === "ready" ? state.data : null}
+        bootState={booting ? "booting" : boot.state.kind === "ready" ? "done" : boot.state.kind === "error" ? "error" : "idle"}
+        progress={boot.progress}
+        stage={boot.stage}
+        bootPp={boot.bootPp}
+        onBoot={boot.startBoot}
+      />
+
+      {boot.state.kind === "error" && (
+        <div role="alert" style={styles.error}>
+          <strong>Erro no boot:</strong> {boot.state.message}
+          <button type="button" onClick={boot.state.retry} style={styles.button}>
+            Tentar de novo
+          </button>
+        </div>
+      )}
+
+      <section aria-label="Device" style={styles.panel}>
         {state.kind === "idle" && <p>Nada feito ainda.</p>}
         {state.kind === "loading" && (
           <p role="status" aria-live="polite">
@@ -49,40 +70,40 @@ export default function App() {
           </div>
         )}
         {state.kind === "ready" && (
-          <>
-            <div style={styles.liveRow} role="status">
-              <span className="live-dot" aria-hidden="true" />
-              <span>Device conectado — pedalboard ao vivo</span>
-            </div>
-            <dl style={styles.grid}>
-              <dt style={styles.dt}>Backend</dt>
-              <dd style={styles.dd}>{state.data.backend}</dd>
+          <dl style={styles.grid}>
+            <dt style={styles.dt}>Backend</dt>
+            <dd style={styles.dd}>{state.data.backend}</dd>
 
-              <dt style={styles.dt}>Presets</dt>
-              <dd style={styles.ddMono}>{state.data.presetCount}</dd>
+            <dt style={styles.dt}>Presets</dt>
+            <dd style={styles.ddMono}>{state.data.presetCount}</dd>
 
-              <dt style={styles.dt}>pp corrente</dt>
-              <dd style={styles.ddMono}>
-                0x{state.data.currentPp.toString(16).padStart(4, "0")}
-              </dd>
+            <dt style={styles.dt}>Nome</dt>
+            <dd style={styles.dd}>{state.data.currentName}</dd>
 
-              <dt style={styles.dt}>Nome</dt>
-              <dd style={styles.dd}>{state.data.currentName}</dd>
+            <dt style={styles.dt}>Tipo (ppType)</dt>
+            <dd style={styles.ddMono}>{state.data.currentPpType}</dd>
 
-              <dt style={styles.dt}>Tipo (ppType)</dt>
-              <dd style={styles.ddMono}>{state.data.currentPpType}</dd>
+            <dt style={styles.dt}>IRs com CRC</dt>
+            <dd style={styles.ddMono}>
+              {state.data.irSlotsWithCrc}/20
+            </dd>
 
-              <dt style={styles.dt}>IRs com CRC</dt>
-              <dd style={styles.ddMono}>
-                {state.data.irSlotsWithCrc}/20
-              </dd>
-            </dl>
-          </>
+            <dt style={styles.dt}>Boot</dt>
+            <dd style={styles.dd}>
+              {boot.state.kind === "ready"
+                ? `completo — ${boot.state.data.transactions} transações`
+                : booting
+                  ? "em curso…"
+                  : "não executado (mock já responde sem boot)"}
+            </dd>
+          </dl>
         )}
         <button type="button" onClick={refresh} style={styles.button}>
           Atualizar
         </button>
       </section>
+
+      <PushLog log={log} onClear={clear} />
 
       <footer style={styles.footer}>
         <span style={styles.footerHint}>
@@ -134,13 +155,6 @@ const styles: Record<string, CSSProperties> = {
     flexDirection: "column",
     gap: "var(--space-12)",
     boxShadow: "0 var(--space-4) var(--space-20) rgba(0,0,0,0.35)",
-  },
-  liveRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: "var(--space-8)",
-    color: "var(--ok)",
-    fontSize: "var(--text-sm)",
   },
   grid: {
     display: "grid",

@@ -138,6 +138,35 @@ impl MockDevice {
         &self.state
     }
 
+    /// Drena a inbox de respostas/pushes NÃO consumidos (ordem FIFO global
+    /// — a mais antiga de qualquer endpoint primeiro, mesma regra do
+    /// `recv_raw`): observação de pushes pendentes pós-operação (D7 na
+    /// perspectiva do DEVICE; o dono do `Session` enxerga o seu backlog
+    /// via `pending_pushes`). Usado pelo DeviceActor (M1.1) para reemitir
+    /// pushes como eventos da UI.
+    pub fn drain_inbox(&mut self) -> Vec<Vec<u8>> {
+        let mut out = Vec::new();
+        loop {
+            let oldest = self
+                .inbox
+                .iter()
+                .filter(|(_, q)| !q.is_empty())
+                .map(|(k, _)| *k)
+                .min();
+            match oldest {
+                Some(k) => {
+                    if let Some(q) = self.inbox.get_mut(&k) {
+                        if !q.is_empty() {
+                            out.push(q.remove(0));
+                        }
+                    }
+                }
+                None => break,
+            }
+        }
+        out
+    }
+
     /// Enfileira um push não solicitado com payload VERBATIM (D7) — o
     /// caminho do teste de push intercalado (a FSM filtra via backlog).
     pub fn queue_push(&mut self, func: u8, addr: [u8; 4], payload: &[u8]) {
@@ -238,7 +267,14 @@ impl MockDevice {
         // pareamento 199↔199 provado no replay S1 (e na sonda 1302); READS
         // func 11 respondem com o push do MESMO endereço (func 12 no fio);
         // transações req 12-func com lado IN respondem pelo template casado.
-        let reply = if func == 0x11 && addr == [0x13, 0x01, 0x00, 0x00] && payload.len() == 2 {
+        // Sonda do banco 02 (T6 do boot §13.10): select CONST `0000` (t14;
+        // sem pp) → o meta6 PUSH da sonda (t12 @ `13020001`, const
+        // `00000c1c0140` — o device não ecoa pp porque o select não tem pp).
+        let reply = if func == 0x11 && addr == [0x13, 0x02, 0x00, 0x00] && payload == [0x00, 0x00] {
+            push_template(golden, [0x13, 0x02, 0x00, 0x01])
+                .ok()
+                .and_then(|t| build_from_example(t, None, None).ok())
+        } else if func == 0x11 && addr == [0x13, 0x01, 0x00, 0x00] && payload.len() == 2 {
             let pp = payload[..2].to_vec();
             push_template(golden, [0x13, 0x01, 0x00, 0x01])
                 .ok()
@@ -294,28 +330,21 @@ impl MockDevice {
                     })
                     .ok()
                 }
-                // meta6 (t6, const) / abertura (t7) / 13010005 (t11) /
-                // scan (t13) / páginas (t8/t15) / const (t16). INJEÇÃO DE
-                // pp CONDICIONADA À EVIDÊNCIA: só onde o PRIMEIRO segmento
-                // da resposta é var de 2B E o exemplo congelado traz
-                // 0100 (pp da S1) — t7/t8/t11. Em t13/t15 a resposta
-                // começa com CONSTS (pp não está em var0).
+                // meta6 (t6, const) / abertura (t7/t13) / 13010005 (t11/
+                // t16) / páginas (t8/t15, by-len).
+                //
+                // Regra do arm: o shape vem SEMPRE do template (mock não
+                // inventa forma, D5) e o conteúdo por EVIDÊNCIA:
+                //   abertura → o device responde com a PÁGINA 0 (196B) no
+                //     endpoint de página — ordem da captura S1 rows 89–93
+                //     (open open → pág0 pág0); o golden t7 pareou a abertura
+                //     com o meta6 do select (mis-pairing inofensivo até
+                //     aqui: o boot só tinha rodado no transporte de replay);
+                //   páginas → by-len 196/32 pelo in_addr do template, com
+                //     eco do pp/PG do REQUEST (evidência S1 rows 93–107);
+                //   PG 8 → 4B em `1301/1302 0005` (t11/t16, pp no var0).
                 (0x12, [0x13, ..]) => {
                     let tpl = &golden.templates()[tpl_idx];
-                    let inject_pp_mixed = tpl
-                        .response_pattern()
-                        .and_then(|p| p.segments.first())
-                        .is_some_and(|s| {
-                            s.segment_kind == crate::golden::SegmentKind::Var && s.count == 2
-                        })
-                        && example_var(tpl, None, 0, 2) == vec![0x01, 0x00];
-                    // t8 (páginas do preset, by-len): o pp está na var 0 do
-                    // sub-padrão 196/32B ([var 2][const…]) — o exemplo
-                    // congelado traz o 0100 da S1. A checagem `mixed` acima
-                    // NÃO pega by-len (segments raiz vazio) — injetar pela
-                    // rota conhecida (§13.10; evidência S1 rows 90+).
-                    let is_page = addr == [0x13, 0x01, 0x00, 0x04];
-                    let pp = self.state.current_pp.to_be_bytes().to_vec();
                     // by-len decide-se pelo ENDEREÇO DA RESPOSTA (IN do
                     // template), não pelo frame recebido: t8 lê em
                     // 13010004 e responde em 13010003 (196B/32B).
@@ -330,16 +359,24 @@ impl MockDevice {
                         }
                         _ => None,
                     };
-                    // PG pedido (byte [3] do request: pp(2)+PG(2)+01) entra
-                    // no var1[0] da página 196B — evidência S1 rows 93–107
-                    // (byte[3] = 00..07 por página). Na 32B (pg 8) o PG é
-                    // CONST do padrão (`0008`) e fica como está.
-                    let inject_pg = is_page && desired == Some(196);
+                    // Eco do pp VEM DO REQUEST (payload[0..2]): o scan abre/
+                    // pagina o pp pedido — o state.current_pp ainda é o
+                    // ANTERIOR durante o scan. Fallback = corrente.
+                    let echo_pp = payload
+                        .get(0..2)
+                        .map(|s| s.to_vec())
+                        .unwrap_or_else(|| self.state.current_pp.to_be_bytes().to_vec());
                     let requested_pg = payload.get(3).copied();
+                    let is_page =
+                        matches!(addr, [0x13, 0x01, 0x00, 0x04] | [0x13, 0x02, 0x00, 0x04]);
                     // PG 8 (§13.10): a resposta NÃO é página 196B — é 4B em
-                    // `13010005` (t11 = [var 2][const 0009], pp no var0;
-                    // evidência S1 rows 107–109). A t8 by-len não tem sub-
-                    // padrão 4B: a rota é o template do endpoint 13010005.
+                    // `1301/1302 0005` (t11/t16, pp no var0; evidência S1
+                    // rows 107–109). A by-len não tem sub-padrão 4B.
+                    let pg8_in: [u8; 4] = if addr[1] == 0x02 {
+                        [0x13, 0x02, 0x00, 0x05]
+                    } else {
+                        [0x13, 0x01, 0x00, 0x05]
+                    };
                     let pg8 = if is_page && payload.get(3) == Some(&0x08) {
                         golden
                             .templates()
@@ -347,15 +384,13 @@ impl MockDevice {
                             .find(|t| {
                                 t.template_type == "req"
                                     && t.in_.as_ref().is_some_and(|e| {
-                                        e.parsed()
-                                            .map(|(_, a)| a)
-                                            .is_ok_and(|a| a == [0x13, 0x01, 0x00, 0x05])
+                                        e.parsed().map(|(_, a)| a).is_ok_and(|a| a == pg8_in)
                                     })
                             })
                             .and_then(|t11| {
                                 build_with_fill(t11, None, |i, count| {
                                     if i == 0 && count == 2 {
-                                        pp.clone()
+                                        echo_pp.clone()
                                     } else {
                                         example_var(t11, None, i, count)
                                     }
@@ -365,23 +400,65 @@ impl MockDevice {
                     } else {
                         None
                     };
-                    if pg8.is_some() {
-                        pg8
+                    if let Some(msg) = pg8 {
+                        Some(msg)
                     } else {
-                        build_with_fill(tpl, desired, |i, count| {
-                            if (inject_pp_mixed || is_page) && i == 0 && count == 2 {
-                                pp.clone()
-                            } else if inject_pg && i == 1 {
-                                let mut v = example_var(tpl, None, 1, count);
-                                if let (Some(pg), Some(b0)) = (requested_pg, v.first_mut()) {
-                                    *b0 = pg;
-                                }
-                                v
+                        let is_open =
+                            matches!(addr, [0x13, 0x01, 0x00, 0x02] | [0x13, 0x02, 0x00, 0x02])
+                                && payload.len() == 3;
+                        if is_open {
+                            let want_in: [u8; 4] = if addr[1] == 0x02 {
+                                [0x13, 0x02, 0x00, 0x03]
                             } else {
-                                example_var(tpl, None, i, count)
-                            }
-                        })
-                        .ok()
+                                [0x13, 0x01, 0x00, 0x03]
+                            };
+                            let tpl_page = golden
+                                .templates()
+                                .iter()
+                                .find(|t| {
+                                    t.template_type == "req"
+                                        && t.in_.as_ref().is_some_and(|e| {
+                                            e.parsed().map(|(_, a)| a).is_ok_and(|a| a == want_in)
+                                        })
+                                })
+                                .ok_or(TransportError::SendFailed {
+                                    why: "template da página (t8/t15) ausente no golden".into(),
+                                })?;
+                            let page = build_with_fill(tpl_page, Some(196), |i, count| {
+                                if i == 0 && count == 2 {
+                                    echo_pp.clone()
+                                } else if i == 1 && count == 1 {
+                                    vec![0] // PG 0 da abertura
+                                } else {
+                                    // vars de página não observadas no boot
+                                    // capturado — zeros (shape correto; o
+                                    // conteúdo não é evidência)
+                                    vec![0u8; count]
+                                }
+                            })
+                            .map_err(|e: ProtocolError| {
+                                TransportError::SendFailed { why: e.to_string() }
+                            })?;
+                            Some(page)
+                        } else {
+                            // Páginas (t8/t15, by-len): eco do request onde
+                            // evidente (var0 2B = pp; var1 1B = PG) e exemplo
+                            // da resposta para o resto — shape sempre correto
+                            // (zeros onde não observado; by-len casa por forma).
+                            build_with_fill(tpl, desired, |i, count| {
+                                if i == 0 && count == 2 {
+                                    echo_pp.clone()
+                                } else if is_page && i == 1 && count == 1 {
+                                    vec![requested_pg.unwrap_or(0)]
+                                } else {
+                                    example_var(tpl, desired, i, count)
+                                }
+                            })
+                            .map(Some)
+                            .map_err(|e: ProtocolError| {
+                                TransportError::SendFailed { why: e.to_string() }
+                            })?
+                        }
                     }
                 }
                 _ => None,
