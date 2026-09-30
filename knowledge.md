@@ -283,7 +283,8 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
 - **Tauri 2 NÃO suporta windows-gnu**: build script do `tauri` morre com
   STATUS_ACCESS_VIOLATION (0xC0000005) no gnu, mesmo com dlltool resolvido
   (llvm-dlltool via -C dlltool=). Crate gp100-ui FORA do workspace
-  (`exclude`), pin MSVC próprio em src-tauri/rust-toolchain.toml.
+  (`exclude`), `rust-toolchain.toml` próprio (canal "stable" portável —
+  ADR-8; o alvo MSVC vem de RUSTUP_TOOLCHAIN na CI e do default do host).
 - Estrutura canônica Tauri: commands em SUBMÓDULO (commands.rs) —
   generate_handler! no mesmo módulo do #[tauri::command] colide os macros
   ocultos __cmd__<name> (E0255).
@@ -302,6 +303,28 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
   (outcome), NUNCA grep de log (grep pegou crash de toolchain como "achado"
   → issue falso-positiva #1, fechada com documentação). RUSTUP_TOOLCHAIN=stable
   no job: o pin gnu da raiz quebra qualquer cargo no Linux (lição ADR-7 de novo).
+- **Dependabot (30/09)**: `.github/dependabot.yml` — 3 entries SEMANAIS
+  (github-actions `/`, npm `/ui`, cargo `/src-tauri`; segunda 09:00 UTC =
+  06:00 BRT), groups p/ 1 PR/ecossistema/semana, limit 5. Labels
+  provisionadas ANTES via `gh label create --force` (dependencies, rust,
+  npm, github-actions) — o Dependabot NÃO cria label e update com label
+  inexistente falha (mesma lição do achados-security).
+- **Dependabot × rust-toolchain.toml (ADR-8)**: o updater roda em container
+  LINUX e não expõe RUSTUP_TOOLCHAIN — canal com triple Windows
+  (`stable-x86_64-pc-windows-gnu/msvc`) nem parseia no rustup de lá
+  ("target tuple in channel name") e TODA dependência falha com
+  `dependency_file_not_resolvable` (provado nas runs 36702829331/…9326).
+  Fix: src-tauri usa `channel = "stable"` (portável — resolve p/ o triple
+  do host; alvo exato vem de RUSTUP_TOOLCHAIN na CI). Entry `cargo /`
+  (raiz) NÃO existe — DELIBERADO: o pin gnu é load-bearing no host (sem
+  VS Build Tools) e fica; lockfile raiz segue com `cargo update`
+  deliberado (padrão A-1/A-3) + security noturno deteta vulns.
+  Detalhe: deps de PATH atravessam a fronteira — o midir do core entrou
+  no grafo do src-tauri e o PR da entry src-tauri editou
+  `gp100-core/Cargo.toml` (a CI de 14 jobs provará o bump).
+- Validação de dependabot.yml local: `uv run --with pyyaml python -c ...`
+  (PyYAML NÃO está no venv do projeto — usar overlay do uv, sem tocar no
+  pyproject.toml).
 - **release.yml (tag v*)**: CLI de campo gnu (gates + smoke 2/3 + zip com kit
   H1 + SHA256) e instalador NSIS via `tauri build` (MSVC). Artefatos sempre
   publicados como artifacts; GitHub Release só em tag.

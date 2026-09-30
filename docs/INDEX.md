@@ -4,7 +4,7 @@
 > fonte de verdade de cada assunto. Mantenha-o atualizado a cada novo documento
 > ou mudança de status — é o contrato de navegação entre agentes e humanos.
 
-**Última revisão:** 2026-09-30 (**M0 100% · M1.0 ✅** — front `ui/` + backend `src-tauri` na CI multi-OS; ADR-1..7; FASE ACHADOS A-1..A-4 ✅ no ROADMAP)
+**Última revisão:** 2026-09-30 (**M0 100% · M1.0 ✅** — front `ui/` + backend `src-tauri` na CI multi-OS; ADR-1..8; Dependabot ativo (npm/actions/cargo src-tauri); FASE ACHADOS A-1..A-4 ✅ no ROADMAP)
 
 ---
 
@@ -16,7 +16,7 @@
 | **Executar o plano de desenvolvimento** | `docs/ROADMAP.md` (P/M0/H em ordem, com DoD; **FASE ACHADOS = prioridade máxima**) + `docs/UI_PLAN.md` (M1, issues M1.0–M1.6) |
 | **Levar o gp100-core à pedaleira (gate H1)** | `docs/H1_CHECKLIST.md` (checklist) + `docs/H1_REPORT.md` (relatório/plano de backup) + `scripts/h1_field.sh` (runbook: rehearsal/field) |
 | **Implementar o protocolo (gp100-core)** | `docs/protocol_golden.json` (especificação executável) + `docs/PROTOCOL.md` §13 (narrativa) |
-| **Decidir arquitetura/estrutura no core (M0)** | `docs/DECISIONS.md` (ADR-1..6 aceitos) |
+| **Decidir arquitetura/estrutura no core (M0)** | `docs/DECISIONS.md` (ADR-1..8 aceitos) |
 | **Escrever/revisar código Rust (M0)** | `.agents/skills/rust-practices/SKILL.md` (gates fmt/clippy/test + estilo de docs) |
 | **Modificar o protocolo / analisar nova captura** | `.agents/skills/capture-analyze/SKILL.md` → decoders → `build_golden.py` → `validate_golden.py` |
 | **Compilar o proxy / nova captura em campo** | `.agents/skills/proxy-build/SKILL.md` + `.agents/skills/new-session/SKILL.md` |
@@ -37,7 +37,7 @@
 | Envelope do knob / save / IR no fio | §13.11 / §13.12 / §13.7 | leituras antigas do §13.4 (marcadas) |
 | Estado do projeto / próximos passos | `docs/BLOCKERS.md` + `knowledge.md` (estado vivo) | `docs/CAPTURE_PLAN.md` (histórico) |
 | Mapa knob→fio | `analysis/knob_map.json` (regenerável) | — |
-| Decisões de implementação do core | `docs/DECISIONS.md` (ADR-1..6) | reabrir debate ad-hoc |
+| Decisões de implementação do core | `docs/DECISIONS.md` (ADR-1..8) | reabrir debate ad-hoc |
 | Armadilhas Windows/ambiente | `knowledge.md` | — |
 
 ## 3. Inventário de documentos
@@ -55,7 +55,7 @@
 | `UI_DESIGN.md` | Design system da UI: paleta palco Valeton (âmbar/preto/vermelho/lavanda com rácios WCAG medidos), escala de Fibonacci, tipografia, motion, identidade "pedalboard ao vivo", checklist de review | ✅ atual (M1.0) |
 | `H1_CHECKLIST.md` | Checklist operacional do gate H1 (primeiro contato real, só leitura): pré-requisitos, procedimento de campo, níveis de comparação (framing × estado), log de divergência, fluxo R3 | ⏳ aguardando pedaleira + owner — RealDevice ✅ e kit de campo prontos |
 | `H1_REPORT.md` | Relatório do gate H1 (template): execução por etapa, log de divergência, fluxo R3 e PLANO DE BACKUP fixo decidido antes de ligar | 📝 template |
-| `DECISIONS.md` | ADR-lite com as decisões estruturais do gp100-core: ADR-1..5 (endian/nibble, erros, transporte, trait, WRITE_VERIFIED) + ADR-6 (FSM `Session`, dispatch do IN ambíguo, save fire-and-forget) | ✅ atual |
+| `DECISIONS.md` | ADR-lite com as decisões estruturais do gp100-core: ADR-1..5 (endian/nibble, erros, transporte, trait, WRITE_VERIFIED) + ADR-6 (FSM `Session`, dispatch do IN ambíguo, save fire-and-forget) + ADR-7 (gp100-ui fora do workspace gnu) + ADR-8 (toolchains portáveis p/ o Dependabot; lockfile raiz fora do escopo dele) | ✅ atual |
 | `skills_audit_2026-09-29.md` | Auditoria das skills: regras que eram prática implícita, agora escritas (5 achados em core-dev/docs-sync/spec-baseline) | ✅ atual |
 | `INDEX.md` | Este índice | ✅ manter atualizado |
 
