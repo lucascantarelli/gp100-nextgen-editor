@@ -165,16 +165,18 @@ jobs:
       fail-fast: false
       matrix: ${{ fromJSON(needs.plan.outputs.rust-matrix) }}
     runs-on: ${{ matrix.os }}
-    env:
-      # Regra por OS (a composite instala a toolchain; esta env garante que
-      # TODO cargo desta job a use): gnu na raiz (campo/dev), msvc no
-      # src-tauri (ADR-7), stable nativa fora do Windows (ADR-8).
-      RUSTUP_TOOLCHAIN: ${{ runner.os == 'Windows' && (matrix.workdir == 'src-tauri' && 'stable-x86_64-pc-windows-msvc' || 'stable-x86_64-pc-windows-gnu') || 'stable' }}
     defaults:
       run:
         working-directory: ${{ matrix.workdir }}
     steps:
       - uses: actions/checkout@v7
+
+      # Regra por OS (a composite instala a toolchain; esta env garante que
+      # TODO cargo do job a use — runner.os só existe em STEP, daí o
+      # GITHUB_ENV): gnu na raiz (campo/dev), msvc no src-tauri (ADR-7),
+      # stable nativa fora do Windows (ADR-8).
+      - name: Definir RUSTUP_TOOLCHAIN por OS/projeto
+        run: echo "RUSTUP_TOOLCHAIN=${{ runner.os == 'Windows' && (matrix.workdir == 'src-tauri' && 'stable-x86_64-pc-windows-msvc' || 'stable-x86_64-pc-windows-gnu') || 'stable' }}" >> "$GITHUB_ENV"
 
       - name: Toolchain + cache do cargo
         uses: ./.github/actions/setup-rust
@@ -381,8 +383,9 @@ jobs:
       || (github.event_name == 'workflow_dispatch' && inputs.force-release)
     runs-on: ubuntu-24.04
     outputs:
-      tag: ${{ steps.ver.outputs.tag }}
-      released: ${{ steps.ver.outputs.released }}
+      version: ${{ steps.ver.outputs.next-version }}
+      released: ${{ steps.ver.outputs.release }}
+      bump: ${{ steps.ver.outputs.bump }}
     steps:
       - uses: actions/checkout@v7
         with:
