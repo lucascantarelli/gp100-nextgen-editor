@@ -12,7 +12,7 @@ thiserror.workspace = true
 # transporte REAL (H1): midir = WinMM/ALSA/CoreMIDI com SysEx completo.
 # OPCIONAL: o build default (mock) não baixa nem compila nada de I/O real
 # (política de hardware, ADR-4/ADR-5).
-midir = { version = "0.9", optional = true }
+midir = { version = "0.11", optional = true }
 
 [features]
 default = []
