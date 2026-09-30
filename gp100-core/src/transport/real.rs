@@ -27,6 +27,18 @@
 //!   recria IN+OUT; soltar as conexões (RAII) fecha as portas.
 //! - **Sem filtro de mensagens:** o midir por default ignora NADA (docs 0.9) e
 //!   o nosso protocolo é 100% SysEx — qualquer filtro futuro é bug silencioso.
+//!
+//! **Limitações conhecidas (revisão de revalidação, 29/09 — documentadas, não
+//! corrigidas por serem indistinguíveis sem campo):**
+//! - Desconexão física NO MEIO da sessão NÃO vira [`TransportError::DeviceGone`]
+//!   dedicado: no TX ela aparece como `SendFailed` (erro do WinMM), no RX como
+//!   `RecvTimeout` (fila vazia ≠ silêncio do device). Mapear para `DeviceGone`
+//!   agora seria chute (R1); o H1 é read-only e o checklist já trata timeout
+//!   pós-repetição como logística/R3. Observado o comportamento real em campo,
+//!   o mapeamento vira patch com evidência.
+//! - `recv_raw` faz poll de 2ms: latência de entrega por mensagem ≤2ms (SysEx
+//!   chega no ritmo do device); se o live mode (M3) exigir menos, revisitar
+//!   com evento/waker — novo ADR na ocasião.
 
 use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};

@@ -31,10 +31,10 @@ fluxo R3"*.
       porta por nome "gp-100") atrás da feature `real-device` (default OFF);
       binário de campo: `cargo build --release -p gp100-cli --features real-device`;
       `--real` exige `--i-know-what-im-doing` (testado nas duas camadas)
-- [ ] **Log de fio no CLI** — `--log <arquivo>` grava TODOS os frames (OUT e IN)
-      no MESMO schema das fixtures P4 (`{"s","dir","func","addr","data"}` em hex):
-      reusa `decode_wire.py` e o replay sem adaptar nada. Decidir o nome da flag
-      em M0.7/prep-H1 — sem isso, a comparação é manual e o R3 perde evidência
+- [x] **Log de fio no CLI** ✅ (entregue na M0.7) — `--log <arquivo>` grava TODOS
+      os frames (OUT e IN) no MESMO schema das fixtures P4
+      (`{"s","dir","func","addr","data"}` em hex): reusa `decode_wire.py` e o
+      replay sem adaptar nada
 - [ ] **CI verde no commit usado em campo** (regra 6 do `core-dev`: marco com CI
       vermelha não é marco) + gates locais fmt/clippy/test
 
