@@ -11,7 +11,10 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
   (M0.x/M1.x/ROADMAP/DoD) de todos os comentários de código, READMEs curtos em
   core/cli/app, CI com caminhos novos + fix da matriz vazia. Provas locais: fmt/
   clippy/test 15 suítes ✓, pytest 10/10 ✓, front lint+vitest+build ✓, actionlint ✓.
-  Commit/push PENDENTES na virada da sessão.
+  COMMITADO E PUSHED (1a8e08e refactor + acc9f9a docs-sync + d69186b fix re.M +
+  3fe8294 docs-sync); CI verde (run 36765355879) — os skips estavam CORRETOS
+  (push só de CI/docs não mapeia projeto). Materialização completa das matrizes
+  ainda não provada pós-re.M (próximo push de packages/ ou o play).
 - 30/09 — **midir PINADO em 0.10 (experimento 0.11 FECHADO)**: o 0.11 puxa crates
   `windows-*` com raw-dylib e é IMPOSSÍVEL no host de campo hoje — dlltool GNU
   moderno (2.44+) rejeita a machine que o rustc passa (`Machine 'x86_64_w64_mingw32'
@@ -19,8 +22,8 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
   e o llvm-dlltool do rustup compila mas o loader rejeita o import (segfault no
   load). Configuração final do host que builda o 0.10: llvm-dlltool COPIADO como
   `~/.cargo/bin/dlltool.exe` + `~/.cargo/bin` PREPENDIDO no PATH (o winget WinLibs
-  sombreia por append — ver lições). PR #3 (0.11) descartado até rustc/binutils
-  convergirem.
+  sombreava por append — foi desinstalado; ver lições). PR #3 (0.11) descartado até
+  rustc/binutils convergirem.
 - 30/09 — **TS 7 travado no Dependabot (entry npm)**: typescript-eslint 8.x suporta
   só TS <6.1 (`Error: typescript-eslint does not support TS 7.0.` na importação do
   flat config — lint morre ANTES de lintar; o build passa pois vite só transpila).
@@ -407,8 +410,17 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
   (`export PATH="$PATH:x"` NÃO vence — o dlltool quebrado 2.47 venceu o
   llvm-dlltool e dava `os error 1006` nos `kernel32.dll_imports.lib`); a
   configuração que funciona é PREPEND (`export PATH="/c/Users/Canta/.cargo/bin:
-  $PATH"`). Defender: exclusões deixadas (processo dlltool.exe + pasta target/)
-  — exoneradas como causa do 1006; removíveis se quiser.
+  $PATH"`). Defender EXONERADO como causa do 1006 — as exclusões de teste
+  (processo dlltool.exe + pasta target/) foram REMOVIDAS; nada ficou.
+- **Estado final dos MinGW no host (30/09)**: o WinLibs do winget foi
+  DESINSTALADO (pacote inútil — dlltool quebrado e sombreava o PATH; uninstall
+  do winget limpou o PATH do usuário sozinho). O mingw-builds 16.1 do choco
+  (`C:\ProgramData\mingw64\mingw64\bin`, no PATH da MÁQUINA) FICOU, mas seu
+  dlltool 2.46 é TÃO quebrado para o rustc quanto o do WinLibs — não use para
+  import libs raw-dylib. Serve como GCC/binutils MANUAL: `gcc`, `objdump`,
+  `x86_64-w64-mingw32-gcc` (útil p/ inspecionar DLLs e toolchains de C). O
+  dlltool que o rustc encontra segue sendo o llvm-dlltool copiado em
+  `~/.cargo/bin/dlltool.exe` (PREPEND no PATH vence o mingw64 da máquina).
 - **Cargo PATH no Git Bash ad-hoc**: `export PATH="/c/Users/Canta/.cargo/bin:$PATH"
   (o scripts/add_cargo_path.ps1 fixa no sistema, mas shells novos da sessão podem
   não herdar). Duas regras: PREPEND (winget/choco adicionam dirs ao PATH do
