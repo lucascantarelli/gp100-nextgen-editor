@@ -378,14 +378,19 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
 ## Pipeline único — lições de CI (30/09)
 - **MATRIZ VAZIA CRASHA A RUN INTEIRA (não use nunca)**: job com
   `strategy.matrix: ${{ fromJSON(...) }}` e matriz `"include":[]` NÃO materializa
-  nenhum job e a RUN TERMINA `failure` sem NENHUM job failed (provado na run
-  36747668222: gate ✓ + plan ✓ + 5 skipped + rust/front invisíveis = failure).
-  É o comportamento do runner (community discussion 27096). FIX no pipeline.yml:
-  o `plan` emite BOOLEANOS (`run-rust/run-front/run-spec/run-tag/run-release`) e
-  os jobs ganham `if:`; matrizes dinâmicas só onde o plan garante ≥1 item;
-  tag-release/release-* usam matriz FIXA de 1 item. Job filtrado aparece como
-  "skipped" (0 min) e a run fica verde — era o que o owner queria ("job que não
-  roda não aparece") sem o crash.
+  nenhum job e a RUN TERMINA `failure` sem NENHUM job failed (comportamento do
+  runner, community discussion 27096). FIX no pipeline.yml: o `plan` emite
+  BOOLEANOS (`run-rust/run-front/run-spec/run-tag/run-release`) e os jobs ganham
+  `if:`; matrizes dinâmicas só onde o plan garante ≥1 item; tag-release/release-*
+  usam matriz FIXA de 1 item. Job filtrado = "skipped" (0 min), run verde.
+- **CAUSA-RAIZ da failure 36747668222 era DUPLA**: além do crash da matriz vazia,
+  o filtro de mudanças do plan usava `re.search(pat, changed)` SEM `re.M` — o
+  `^` só casa no início da STRING INTEIRA e CHANGED é multi-linha: NENHUM
+  projeto "mudava" (matrizes vazias sempre que o 1º arquivo do diff não batia).
+  A refatoração packages/ expôs o bug (run 36764807538: push de packages/
+  inteiro → tudo skipped). Fix: `re.I | re.M` + simulação local do diff antes
+  de subir (o log do runner NÃO mostra o VALOR dos outputs do plan — validar
+  localmente com o mesmo diff é o único caminho).
 - **actionlint é o gate local do workflow** (`/tmp/actionlint` valida workflow +
   composite actions de uma vez); lição de schema: outputs de job NÃO podem ter
   chave duplicada (case-insensitive) — pegou `run-spec` duplicado no plan.
