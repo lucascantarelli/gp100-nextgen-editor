@@ -1,0 +1,84 @@
+name: version-bump
+description: >
+  Calcula a próxima versão SEMVER pelos conventional commits desde a última
+  tag v*: feat→minor, fix/perf/revert/deps→patch, BREAKING CHANGE/!→major;
+  docs/chore/ci/test/refactor não bumpam. Aplica em Cargo.toml (raiz +
+  src-tauri) e version.json (fonte única do front/release). Saída:
+  next-version, release (true/false), bump.
+inputs:
+  default-bump:
+    description: "Bump se não houver commits relevantes (none não cria tag)"
+    required: false
+    default: "none"
+outputs:
+  next-version:
+    description: "Versão calculada (sem o prefixo v)"
+    value: ${{ steps.calc.outputs.next }}
+  release:
+    description: "true se há bump a aplicar"
+    value: ${{ steps.calc.outputs.release }}
+  bump:
+    description: "patch | minor | major | none"
+    value: ${{ steps.calc.outputs.bump }}
+runs:
+  using: composite
+  steps:
+    - name: Calcular próxima versão
+      id: calc
+      shell: bash
+      env:
+        DEFAULT_BUMP: ${{ inputs.default-bump }}
+      run: |
+        set -euo pipefail
+        LAST=$(git describe --tags --match 'v*' --abbrev=0 2>/dev/null || echo "")
+        if [ -z "$LAST" ]; then
+          echo "nenhuma tag v* — primeira versão"
+          CUR="0.0.0"
+          RANGE="HEAD"
+        else
+          CUR="${LAST#v}"
+          RANGE="$LAST..HEAD"
+        fi
+        MAJOR=$(echo "$CUR" | cut -d. -f1); MINOR=$(echo "$CUR" | cut -d. -f2); PATCH=$(echo "$CUR" | cut -d. -f3)
+        BUMP="none"
+        if git log --format='%s' "$RANGE" | grep -qiE '^[a-z]+(\([^)]*\))?!:' || git log --format='%B' "$RANGE" | grep -qi '^BREAKING CHANGE:'; then
+          BUMP="major"
+        elif git log --format='%s' "$RANGE" | grep -qiE '^feat(\(|:)' && [ "$BUMP" = "none" ]; then
+          BUMP="minor"
+        elif git log --format='%s' "$RANGE" | grep -qiE '^(fix|perf|revert|deps)(\(|:)' && [ "$BUMP" = "none" ]; then
+          BUMP="patch"
+        elif [ "$DEFAULT_BUMP" != "none" ] && [ "$BUMP" = "none" ]; then
+          BUMP="$DEFAULT_BUMP"
+        fi
+        echo "última: $CUR | bump: $BUMP"
+        if [ "$BUMP" = "none" ]; then
+          echo "release=false" >> "$GITHUB_OUTPUT"
+          echo "bump=none" >> "$GITHUB_OUTPUT"
+          echo "next=$CUR" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+        case "$BUMP" in
+          major) MAJOR=$((MAJOR+1)); MINOR=0; PATCH=0 ;;
+          minor) MINOR=$((MINOR+1)); PATCH=0 ;;
+          patch) PATCH=$((PATCH+1)) ;;
+        esac
+        NEXT="$MAJOR.$MINOR.$PATCH"
+        echo "release=true" >> "$GITHUB_OUTPUT"
+        echo "bump=$BUMP" >> "$GITHUB_OUTPUT"
+        echo "next=$NEXT" >> "$GITHUB_OUTPUT"
+
+    - name: Aplicar versão nos manifests
+      if: steps.calc.outputs.release == 'true'
+      shell: bash
+      env:
+        NEXT: ${{ steps.calc.outputs.next }}
+      run: |
+        set -euo pipefail
+        for f in Cargo.toml src-tauri/Cargo.toml version.json; do
+          if [ "$f" = "version.json" ]; then
+            printf '{\n  "version": "%s"\n}\n' "$NEXT" > version.json
+          else
+            sed -i -E "0,/^version = \".*\"/s//version = \"$NEXT\"/" "$f"
+          fi
+        done
+        echo "aplicado $NEXT em Cargo.toml, src-tauri/Cargo.toml, version.json"

@@ -1,6 +1,6 @@
 # GP-100 NextGen Editor
 
-[![CI](https://github.com/lucascantarelli/gp100-nextgen-editor/actions/workflows/ci.yml/badge.svg)](https://github.com/lucascantarelli/gp100-nextgen-editor/actions/workflows/ci.yml)
+[![pipeline](https://github.com/lucascantarelli/gp100-nextgen-editor/actions/workflows/pipeline.yml/badge.svg)](https://github.com/lucascantarelli/gp100-nextgen-editor/actions/workflows/pipeline.yml)
 
 > 📇 **Mapa da documentação:** `docs/INDEX.md` — rotas por objetivo, fonte de
 > verdade por assunto e inventário anotado. Comece por lá se está lost.
@@ -103,7 +103,9 @@ Windows + Git Bash (desenvolvido em `D:\GP-100 app`). Requisitos:
   `scripts/add_cargo_path.ps1` (uma vez, como admin). Gates de código Rust:
   `.agents/skills/rust-practices/SKILL.md`
 - **CI (GitHub Actions):** os mesmos gates (`uv run pytest` + `cargo fmt/clippy/test`)
-  rodam a cada push e PR, em runner Windows com a toolchain pinada (`.github/workflows/ci.yml`)
+  rodam a cada push e PR (pipeline único: `.github/workflows/pipeline.yml` —
+  matrix 3-OS, security noturno, versionamento semver automático e release
+  por tag; passos reutilizáveis em `.github/actions/*`)
 - Agente/IA: ver `knowledge.md` (armadilhas) e `.agents/skills/` (workflows:
   proxy-build, capture-analyze, new-session, spec-baseline, protocol-validate,
   core-dev, docs-sync, rust-practices)

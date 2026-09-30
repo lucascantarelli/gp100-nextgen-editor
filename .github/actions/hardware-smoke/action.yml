@@ -1,0 +1,25 @@
+name: hardware-smoke
+description: >
+  Smoke da política de hardware (WinMM) no binário de campo: `--real` sem
+  ack = exit 2; com ack e sem device = exit 3 (OpenFailed). Só faz sentido
+  no runner Windows; o binário deve estar em <profile>/gp100-cli.exe.
+inputs:
+  profile:
+    description: "Perfil do cargo (debug ou release)"
+    required: false
+    default: "debug"
+runs:
+  using: composite
+  steps:
+    - name: Smoke da política de hardware (Windows)
+      shell: bash
+      run: |
+        set +e
+        ./target/${{ inputs.profile }}/gp100-cli.exe --real info > /dev/null 2>&1
+        code1=$?
+        ./target/${{ inputs.profile }}/gp100-cli.exe --real --i-know-what-im-doing info > /dev/null 2>&1
+        code2=$?
+        set -e
+        if [ "$code1" -ne 2 ]; then echo "ERRO: --real sem ack devia dar exit 2, veio $code1"; exit 1; fi
+        if [ "$code2" -ne 3 ]; then echo "ERRO: --real + ack sem device devia dar exit 3 (OpenFailed), veio $code2"; exit 1; fi
+        echo "política OK: recusas nos exit codes 2/3"

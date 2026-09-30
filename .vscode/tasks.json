@@ -1,0 +1,99 @@
+{
+  // Tasks do GP-100 NextGen Editor (Windows + Git Bash do host, gnu pinado
+  // na raiz — ADR-7/ADR-8: o shell do Tauri usa MSVC explícito).
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "ui: dev server (vite — UI no browser)",
+      "type": "shell",
+      "command": "pnpm",
+      "args": ["dev"],
+      "options": { "cwd": "${workspaceFolder}/ui" },
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated" },
+      "detail": "http://localhost:5173 — fallback mock: a UI roda SEM o shell Tauri (ipc/local). Melhor caminho para ver o visual da interface."
+    },
+    {
+      "label": "ui: build (tsc + vite)",
+      "type": "shell",
+      "command": "pnpm",
+      "args": ["build"],
+      "options": { "cwd": "${workspaceFolder}/ui" },
+      "group": "build",
+      "problemMatcher": ["$tsc"]
+    },
+    {
+      "label": "ui: testes (vitest run)",
+      "type": "shell",
+      "command": "pnpm",
+      "args": ["test"],
+      "options": { "cwd": "${workspaceFolder}/ui" },
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "ui: lint (eslint)",
+      "type": "shell",
+      "command": "pnpm",
+      "args": ["lint"],
+      "options": { "cwd": "${workspaceFolder}/ui" },
+      "problemMatcher": ["$eslint-stylish"]
+    },
+    {
+      "label": "ui: watch testes (vitest)",
+      "type": "shell",
+      "command": "pnpm",
+      "args": ["test:watch"],
+      "options": { "cwd": "${workspaceFolder}/ui" },
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "rust: core+cli — fmt/clippy/test (toolchain gnu da raiz)",
+      "type": "shell",
+      "command": "cargo",
+      "args": ["test", "--workspace"],
+      "options": { "cwd": "${workspaceFolder}", "env": {} },
+      "group": "test",
+      "problemMatcher": ["$rustc"]
+    },
+    {
+      "label": "rust: gp100-ui — clippy (MSVC do src-tauri)",
+      "type": "shell",
+      "command": "cargo",
+      "args": ["clippy", "-p", "gp100-ui", "--all-targets", "--", "-D", "warnings"],
+      "options": {
+        "cwd": "${workspaceFolder}/src-tauri",
+        // ADR-7: o crate do Tauri exige MSVC; o host não tem VS Build Tools
+        // — esta task só funciona APÓS instalar MSVC (ver ADR-7/launch.json).
+        "env": { "RUSTUP_TOOLCHAIN": "stable-x86_64-pc-windows-msvc" }
+      },
+      "problemMatcher": ["$rustc"],
+      "detail": "Requer VS Build Tools (MSVC) no host — sem eles, use a CI/preview browser."
+    },
+    {
+      "label": "tauri: dev (shell nativo + hot reload)",
+      "type": "shell",
+      "command": "${workspaceFolder}/ui/node_modules/.bin/tauri.cmd",
+      "args": ["dev"],
+      "options": {
+        "cwd": "${workspaceFolder}/src-tauri",
+        "env": { "RUSTUP_TOOLCHAIN": "stable-x86_64-pc-windows-msvc" }
+      },
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated" },
+      "detail": "Sobe a janela desktop real (WebView2). Requer MSVC no host (ADR-7) — instala VS Build Tools; sem isso use a task vite + browser."
+    },
+    {
+      "label": "cli: build de campo (real-device)",
+      "type": "shell",
+      "command": "cargo",
+      "args": ["build", "--release", "-p", "gp100-cli", "--features", "real-device"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": ["$rustc"],
+      "detail": "Binário de campo gnu: target/release/gp100-cli.exe (--real --i-know-what-im-doing)"
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  // Extensões do projeto (VS Code sugere na abertura do workspace).
+  "recommendations": [
+    "rust-lang.rust-analyzer",
+    "dbaeumer.vscode-eslint",
+    "vitest.explorer",
+    "tauri-apps.tauri-vscode",
+    "vadimcn.vscode-lldb",
+    "ms-vscode.cpptools"
+  ]
+}

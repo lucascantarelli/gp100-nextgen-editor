@@ -1,0 +1,42 @@
+{
+  // Rust: o rustfmt do editor usa a toolchain do rust-toolchain.toml (gnu
+  // na raiz; MSVC em src-tauri tem o próprio). rust-analyzer nos dois
+  // workspaces (raiz = core/cli; src-tauri = workspace próprio).
+  "rust-analyzer.linkedProjects": [
+    "Cargo.toml",
+    "src-tauri/Cargo.toml"
+  ],
+  "rust-analyzer.check.command": "clippy",
+  "rust-analyzer.check.extraArgs": ["--all-targets"],
+  "[rust]": {
+    "editor.defaultFormatter": "rust-lang.rust-analyzer",
+    "editor.formatOnSave": true
+  },
+  // Front: ESLint 10 flat config com regras do ui/ (tokens, R1 no ipc).
+  "eslint.workingDirectories": [{ "pattern": "ui/" }],
+  "eslint.useFlatConfig": true,
+  "[typescript]": {
+    "editor.defaultFormatter": "dbaeumer.vscode-eslint",
+    "editor.codeActionsOnSave": { "source.fixAll.eslint": "explicit" }
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "dbaeumer.vscode-eslint",
+    "editor.codeActionsOnSave": { "source.fixAll.eslint": "explicit" }
+  },
+  "typescript.tsdk": "ui/node_modules/typescript/lib",
+  "files.exclude": {
+    "ui/dist": true,
+    "src-tauri/target": true,
+    "target": true
+  },
+  "files.associations": {
+    "*.prst": "xml"
+  },
+  "search.exclude": {
+    "**/target": true,
+    "ui/dist": true,
+    "analysis/nsis_app": true,
+    "pnpm-lock.yaml": true,
+    "Cargo.lock": true
+  }
+}

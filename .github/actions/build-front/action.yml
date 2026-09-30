@@ -1,0 +1,22 @@
+name: build-front
+description: >
+  Front ui/ completo: deps congeladas + lint + vitest + build (tsc + vite).
+  Usado pelo job ui (validação) e pelo ui-rust/release (generate_context!
+  embute ui/dist). Pré-requisito: setup-node-pnpm já rodou.
+runs:
+  using: composite
+  steps:
+    - name: Lint (R1 no front — invoke só em ipc/)
+      shell: bash
+      working-directory: ui
+      run: pnpm lint
+
+    - name: Testes (tokens/contraste/a11y/estados)
+      shell: bash
+      working-directory: ui
+      run: pnpm test
+
+    - name: Build (tsc + vite)
+      shell: bash
+      working-directory: ui
+      run: pnpm build

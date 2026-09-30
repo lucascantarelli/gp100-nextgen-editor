@@ -1,0 +1,33 @@
+name: setup-node-pnpm
+description: >
+  Node 22 + pnpm 11 com cache do store (padrão do front ui/ — usado pelos
+  jobs ui, ui-rust e release-installer).
+inputs:
+  install:
+    description: 'Rodar `pnpm install --frozen-lockfile` após o setup'
+    required: false
+    default: "true"
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v7
+      with:
+        node-version: 22
+
+    - name: Instalar pnpm 11
+      shell: bash
+      run: npm install -g pnpm@11
+
+    - name: Cache do store pnpm
+      if: inputs.install == 'true'
+      uses: actions/setup-node@v7
+      with:
+        node-version: 22
+        cache: pnpm
+        cache-dependency-path: ui/pnpm-lock.yaml
+
+    - name: Instalar deps (lockfile congelado)
+      if: inputs.install == 'true'
+      shell: bash
+      working-directory: ui
+      run: pnpm install --frozen-lockfile

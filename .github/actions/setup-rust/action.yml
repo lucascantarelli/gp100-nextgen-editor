@@ -1,0 +1,35 @@
+name: setup-rust
+description: >
+  Instala o Rust (GNU pinado no Windows, stable no Linux/macOS) e o cache do
+  cargo. Um único lugar decide COMO cada OS compila (mesmas regras da CI
+  desde a M0); mudou a regra, muda aqui.
+inputs:
+  workdir:
+    description: "Workspace cargo a cachear (raiz ou src-tauri)"
+    required: false
+    default: "."
+  cache-key:
+    description: "Sufixo do cache (por job — evita colisão de lockfile)"
+    required: false
+    default: "shared"
+runs:
+  using: composite
+  steps:
+    - name: Toolchain por OS
+      shell: bash
+      run: |
+        if [ "$RUNNER_OS" = "Windows" ]; then
+          if [ "${{ inputs.workdir }}" = "src-tauri" ]; then
+            rustup toolchain install stable-x86_64-pc-windows-msvc --no-self-update --component rustfmt --component clippy
+          else
+            rustup toolchain install stable-x86_64-pc-windows-gnu --no-self-update --component rustfmt --component clippy
+          fi
+        else
+          rustup update stable --no-self-update
+        fi
+
+    - name: Cache do cargo
+      uses: Swatinem/rust-cache@v2
+      with:
+        workspaces: ${{ inputs.workdir }}
+        key: ${{ inputs.cache-key }}

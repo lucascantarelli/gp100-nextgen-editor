@@ -1,0 +1,541 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# PIPELINE — workflow ÚNICO do GP-100 NextGen Editor (validação + security +
+# versionamento + release). Passos reutilizáveis vivem em .github/actions/*
+# (composite actions): setup-rust, setup-node-pnpm, build-front,
+# hardware-smoke, version-bump. Um lugar por regra; o workflow só ORQUESTRA.
+#
+# Regras de execução por ref (decisão do owner, 30/09):
+#   push main        → gate+spec+matrix 3-OS → VERSIONAMENTO AUTOMÁTICO
+#                      (conventional commits: feat→minor, fix/deps→patch,
+#                      breaking→major; chore/docs/ci não bumpam) → tag vNext
+#                      → release (o push da tag re-executa este pipeline).
+#   push develop     → gate+spec+matrix 3-OS (pré-integração completa).
+#   PR → main|develop→ gate+spec+matrix 3-OS (pré-merge completo). PR com a
+#                      label "ci-lite" roda SÓ o Windows (WIP barato).
+#   tag v*           → gate+spec rápidos + RELEASE (CLI de campo zip+SHA256
+#                      e instalador NSIS; jobs reconfirmam os gates — a tag
+#                      nunca publica sem main verde).
+#   schedule 06:30   → security (cargo audit ×2 + pnpm audit + issue ACHADOS
+#                      única, label achados-security — detecção por OUTCOME
+#                      das steps, NUNCA grep de log).
+#
+# Boas práticas aplicadas: matriz DINÂMICA (job plan decide full/lite —
+# fromJSON), concurrency por ref (tags/schedule nunca cancelam), cache por
+# projeto, permissões mínimas, jobs independentes entre si, release só por
+# tag e versionamento idempotente (chore(release) não re-bumpa — sem loop).
+# ═══════════════════════════════════════════════════════════════════════════
+
+name: pipeline
+
+on:
+  push:
+    branches: [main, develop]
+    tags: ["v*"]
+  pull_request:
+    branches: [main, develop]
+  schedule:
+    - cron: "30 6 * * *" # 06:30 UTC = 03:30 BRT (antes do expediente)
+  workflow_dispatch:
+    inputs:
+      run-security:
+        description: "Executar também o job de security (auditorias)"
+        type: boolean
+        default: false
+      force-release:
+        description: "Forçar versionamento na main (patch mesmo sem feat/fix)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write # tags + GitHub Release
+  issues: write # issue ACHADOS do security
+
+concurrency:
+  group: pipeline-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name != 'schedule' && !startsWith(github.ref, 'refs/tags/v') }}
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # ── PLANO: decide o modo (full/lite) e gera as matrizes dinâmicas ──
+  plan:
+    name: Plano (modo + matrizes)
+    runs-on: ubuntu-24.04
+    outputs:
+      mode: ${{ steps.set.outputs.mode }}
+      rust-matrix: ${{ steps.set.outputs.rust-matrix }}
+      front-matrix: ${{ steps.set.outputs.front-matrix }}
+    steps:
+      - name: Decidir modo e matrizes
+        id: set
+        run: |
+          MODE="full"
+          if [ "${{ github.event_name }}" = "pull_request" ] && \
+             printf '%s' "${{ toJson(github.event.pull_request.labels.*.name) }}" | grep -qi 'ci-lite'; then
+            MODE="lite"
+          fi
+          if [ "$MODE" = "full" ]; then
+            RUST='[
+              {"os":"windows-latest","project":"core","workdir":"."},
+              {"os":"ubuntu-24.04","project":"core","workdir":"."},
+              {"os":"macos-26","project":"core","workdir":"."},
+              {"os":"windows-latest","project":"cli","workdir":"."},
+              {"os":"ubuntu-24.04","project":"cli","workdir":"."},
+              {"os":"macos-26","project":"cli","workdir":"."},
+              {"os":"windows-latest","project":"ui-rust","workdir":"src-tauri"},
+              {"os":"ubuntu-24.04","project":"ui-rust","workdir":"src-tauri"},
+              {"os":"macos-26","project":"ui-rust","workdir":"src-tauri"}]'
+            FRONT='[{"os":"windows-latest"},{"os":"ubuntu-24.04"},{"os":"macos-26"}]'
+          else
+            RUST='[
+              {"os":"windows-latest","project":"core","workdir":"."},
+              {"os":"windows-latest","project":"cli","workdir":"."},
+              {"os":"windows-latest","project":"ui-rust","workdir":"src-tauri"}]'
+            FRONT='[{"os":"windows-latest"}]'
+          fi
+          {
+            echo "mode=$MODE"
+            echo "rust-matrix=$(echo "$RUST" | jq -c .)"
+            echo "front-matrix=$(echo "$FRONT" | jq -c .)"
+          } >> "$GITHUB_OUTPUT"
+
+  # ── GATE rápido (segundos): formatação + lint de mensagem de commit ──
+  gate:
+    name: Gate — fmt + conventional commits
+    runs-on: ubuntu-24.04
+    env:
+      RUSTUP_TOOLCHAIN: stable
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2 # HEAD + pai: lint dos commits empurrados
+
+      - name: Toolchain stable do runner
+        run: rustup update stable --no-self-update
+
+      - name: Cache do cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: .
+          key: gate
+
+      - name: Formatação (workspace gnu da raiz)
+        run: cargo fmt --check
+
+      # No PR o checkout é um merge commit ("Merge branch …") — o lint só
+      # roda em PUSH (main/develop); no PR a qualidade dos subjects é
+      # garantida pelo review e pelo versionamento da main.
+      - name: Conventional commits (push)
+        if: github.event_name == 'push' && !startsWith(github.ref, 'refs/tags/v')
+        run: |
+          FAIL=0
+          for s in $(git log --format='%s' HEAD~1..HEAD 2>/dev/null || git log --format='%s' -1); do
+            if echo "$s" | grep -qE '^[a-z][a-z0-9-]*(\([^\)]+\))?!?: .+'; then
+              echo "OK: $s"
+            else
+              echo "FORA DO PADRÃO: $s  (esperado: tipo(escopo)?: assunto — ex.: feat(ui): …)"
+              FAIL=1
+            fi
+          done
+          exit $FAIL
+
+  # ── SPEC: trava da ESPECIFICAÇÃO (golden/fixtures) — pytest 10/10 ──
+  spec:
+    name: Python — trava da especificação
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: Instalar uv
+        uses: astral-sh/setup-uv@v10.2.0
+        with:
+          enable-cache: true
+      - name: Sync do ambiente (capstone, pefile, ziglang, pytest)
+        run: uv sync --all-groups
+      - name: Suíte de regressão (golden, hash da baseline, knob_map, fixtures)
+        run: uv run pytest
+
+  # ── RUST: gp100-core / gp100-cli / gp100-ui — matriz DINÂMICA por OS ──
+  rust:
+    name: ${{ matrix.project }} (${{ matrix.os }})
+    needs: plan
+    # Schedule = só security; tag = os jobs de release reconfirmam os gates.
+    if: github.event_name != 'schedule' && !startsWith(github.ref, 'refs/tags/v')
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.rust-matrix) }}
+    runs-on: ${{ matrix.os }}
+    env:
+      # Regra por OS (a composite instala a toolchain; esta env garante que
+      # TODO cargo desta job a use): gnu na raiz (campo/dev), msvc no
+      # src-tauri (ADR-7), stable nativa fora do Windows (ADR-8).
+      RUSTUP_TOOLCHAIN: ${{ runner.os == 'Windows' && (matrix.workdir == 'src-tauri' && 'stable-x86_64-pc-windows-msvc' || 'stable-x86_64-pc-windows-gnu') || 'stable' }}
+    defaults:
+      run:
+        working-directory: ${{ matrix.workdir }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Toolchain + cache do cargo
+        uses: ./.github/actions/setup-rust
+        with:
+          workdir: ${{ matrix.workdir }}
+          cache-key: ${{ matrix.project }}-${{ matrix.os }}
+
+      # midir → ALSA no Linux: alsa-sys compila C (pkg-config + asoundlib).
+      - name: Deps de sistema do ALSA (Linux — cli)
+        if: matrix.project == 'cli' && runner.os == 'Linux'
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y pkg-config libasound2-dev
+
+      - name: Clippy (warnings = erro)
+        if: matrix.project == 'core'
+        run: |
+          cargo clippy -p gp100-core --all-targets -- -D warnings
+          cargo test -p gp100-core
+
+      - name: Clippy + testes (default + real-device)
+        if: matrix.project == 'cli'
+        run: |
+          cargo clippy -p gp100-cli --all-targets -- -D warnings
+          cargo clippy -p gp100-cli --all-targets --features real-device -- -D warnings
+          cargo test -p gp100-cli
+
+      - name: Build do binário de campo (real-device)
+        if: matrix.project == 'cli'
+        run: cargo build -p gp100-cli --features real-device
+
+      # Smoke da política SÓ no Windows (WinMM é o stack do campo).
+      - name: Smoke da política de hardware
+        if: matrix.project == 'cli' && runner.os == 'Windows'
+        uses: ./.github/actions/hardware-smoke
+        with:
+          profile: debug
+
+      # ── gp100-ui: front buildado ANTES (generate_context! embute ui/dist) ──
+      - name: Setup do front (Node/pnpm)
+        if: matrix.project == 'ui-rust'
+        uses: ./.github/actions/setup-node-pnpm
+
+      - name: Front (lint + test + build)
+        if: matrix.project == 'ui-rust'
+        uses: ./.github/actions/build-front
+
+      - name: Deps de sistema do Tauri (Linux — gtk/webkit)
+        if: matrix.project == 'ui-rust' && runner.os == 'Linux'
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev
+
+      - name: Formatação do crate (Ubuntu — como na M0/M1)
+        if: matrix.project == 'ui-rust' && runner.os == 'Linux'
+        run: cargo fmt -- --check
+
+      - name: Clippy + testes + build do shell (gp100-ui)
+        if: matrix.project == 'ui-rust'
+        run: |
+          cargo clippy -p gp100-ui --all-targets -- -D warnings
+          cargo test -p gp100-ui
+          cargo build -p gp100-ui
+
+  # ── FRONT (ui/): matrix própria — lint/vitest/build ──
+  front:
+    name: ui — front (${{ matrix.os }})
+    needs: plan
+    if: github.event_name != 'schedule' && !startsWith(github.ref, 'refs/tags/v')
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.front-matrix) }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Setup (Node 22 + pnpm 11)
+        uses: ./.github/actions/setup-node-pnpm
+      - name: Lint + testes + build
+        uses: ./.github/actions/build-front
+
+  # ── SECURITY: auditorias noturnas → issue ACHADOS (única, por outcome) ──
+  security:
+    name: Security — audits (RustSec + npm)
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.run-security)
+    runs-on: ubuntu-24.04
+    env:
+      # O pin gnu da raiz quebra qualquer cargo no Linux (lição ADR-7).
+      RUSTUP_TOOLCHAIN: stable
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Instalar cargo-audit (binário pré-compilado)
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-audit
+
+      - name: cargo audit (RustSec — workspace da raiz)
+        id: cargo_audit
+        continue-on-error: true
+        run: cargo audit --file Cargo.lock 2>&1 | tee /tmp/cargo-audit.txt
+
+      - name: cargo audit — gp100-ui (lockfile próprio, ADR-7)
+        id: cargo_audit_ui
+        continue-on-error: true
+        working-directory: src-tauri
+        run: cargo audit --file Cargo.lock 2>&1 | tee /tmp/cargo-audit-ui.txt
+
+      - name: Setup (Node 22 + pnpm 11)
+        uses: ./.github/actions/setup-node-pnpm
+
+      - name: pnpm audit (runtime do front — --prod ignora dev-deps)
+        id: pnpm_audit
+        continue-on-error: true
+        working-directory: ui
+        run: pnpm audit --prod 2>&1 | tee /tmp/pnpm-audit.txt
+
+      - name: Relatório de versões (INFORMATIVO — não falha)
+        if: always()
+        working-directory: ui
+        run: pnpm outdated 2>&1 | tee /tmp/pnpm-outdated.txt || true
+
+      - name: Achado = issue na FASE ACHADOS
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Achado = exit code ≠ 0 de QUALQUER auditoria (vulns OU falha da
+          # própria ferramenta — direção fail-safe: melhor alarme do que
+          # silêncio). Logs anexados na issue para o diagnóstico.
+          set +e
+          FLAG=0
+          [ "${{ steps.cargo_audit.outcome }}" = "failure" ] && FLAG=1
+          [ "${{ steps.cargo_audit_ui.outcome }}" = "failure" ] && FLAG=1
+          [ "${{ steps.pnpm_audit.outcome }}" = "failure" ] && FLAG=1
+          if [ "$FLAG" -eq 0 ]; then
+            echo "sem achados — nada a registrar"
+            exit 0
+          fi
+          esc() { sed -e 's/`/\\`/g' -e 's/\$/\\$/g' "$1" 2>/dev/null | head -80; }
+          CA=$(esc /tmp/cargo-audit.txt); CUI=$(esc /tmp/cargo-audit-ui.txt)
+          PA=$(esc /tmp/pnpm-audit.txt); PO=$(esc /tmp/pnpm-outdated.txt)
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          BODY=$(cat <<MD
+          ## 🔒 Achado de segurança (varredura noturna)
+
+          **Regra:** FASE ACHADOS do \`docs/ROADMAP.md\` — prioridade MÁXIMA,
+          resolve antes de qualquer issue de fase. Corrigido = fechar esta
+          issue + linha A-xx no ROADMAP com a prova.
+
+          <details><summary>cargo audit (workspace)</summary>
+
+          \`\`\`
+          $CA
+          \`\`\`
+
+          </details>
+
+          <details><summary>cargo audit (gp100-ui)</summary>
+
+          \`\`\`
+          $CUI
+          \`\`\`
+
+          </details>
+
+          <details><summary>pnpm audit (runtime)</summary>
+
+          \`\`\`
+          $PA
+          \`\`\`
+
+          </details>
+
+          <details><summary>pnpm outdated (informativo)</summary>
+
+          \`\`\`
+          $PO
+          \`\`\`
+
+          </details>
+
+          _Issue automática do pipeline — job: $RUN_URL_
+          MD
+          )
+          EXISTING=$(gh issue list --label achados-security --state open --json number --jq '.[0].number' 2>/dev/null)
+          gh label create achados-security --color D93F0B --description "Achado de segurança (varredura noturna)" --force 2>/dev/null || true
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" --body "Novo achado na varredura de $(date -u +%F) — job: $RUN_URL"
+            echo "issue #$EXISTING atualizada"
+          else
+            gh issue create \
+              --title "🔒 ACHADOS: achado de segurança na varredura noturna ($(date -u +%F))" \
+              --label "achados-security" \
+              --body "$BODY"
+            echo "issue criada"
+          fi
+
+  # ── VERSIONAMENTO: main verde → semver pelos conventional commits ──
+  version:
+    name: Versionamento (semver automático)
+    needs: [gate, spec, rust, front]
+    if: >-
+      github.event_name == 'push' && github.ref == 'refs/heads/main'
+      || (github.event_name == 'workflow_dispatch' && inputs.force-release)
+    runs-on: ubuntu-24.04
+    outputs:
+      tag: ${{ steps.ver.outputs.tag }}
+      released: ${{ steps.ver.outputs.released }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # git describe precisa do histórico + tags
+
+      - name: Buscar tags
+        run: git fetch --tags --force
+
+      - name: Calcular e aplicar versão
+        id: ver
+        uses: ./.github/actions/version-bump
+
+      - name: Commit + tag de release
+        if: steps.ver.outputs.release == 'true'
+        env:
+          TAG: v${{ steps.ver.outputs.next-version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Cargo.toml src-tauri/Cargo.toml version.json
+          git commit -m "chore(release): $TAG (bump automático por conventional commits)"
+          git tag "$TAG"
+          git push origin HEAD "${TAG}"
+          echo "tag $TAG publicada — pipeline re-executa no ref da tag para o release"
+
+  # ── RELEASE: CLI de campo (Windows, gnu pinado) — só em tag v* ──
+  release-cli:
+    name: Release — CLI de campo (Windows, gnu)
+    needs: [gate, spec]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: windows-latest
+    env:
+      RUSTUP_TOOLCHAIN: stable-x86_64-pc-windows-gnu
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Toolchain + cache
+        uses: ./.github/actions/setup-rust
+        with:
+          workdir: .
+          cache-key: release-cli
+
+      - name: Gates (tag só sai de main verde — reconfirmação barata)
+        run: |
+          cargo fmt --check
+          cargo clippy --workspace --all-targets -- -D warnings
+          cargo test
+
+      - name: Build release do binário de campo
+        run: cargo build --release -p gp100-cli --features real-device
+
+      - name: Smoke da política de hardware
+        uses: ./.github/actions/hardware-smoke
+        with:
+          profile: release
+
+      - name: Empacotar (zip + SHA256 + notas)
+        shell: bash
+        run: |
+          STAGE="gp100-cli-${GITHUB_REF_NAME}"
+          mkdir -p "$STAGE"
+          cp target/release/gp100-cli.exe "$STAGE/"
+          cp docs/H1_CHECKLIST.md docs/H1_REPORT.md scripts/h1_field.sh "$STAGE/"
+          cat > "$STAGE/LEIA-ME.txt" <<MD
+          GP-100 NextGen Editor — CLI de campo ${GITHUB_REF_NAME}
+
+          Uso do gate H1: docs/H1_CHECKLIST.md (roteiro) + h1_field.sh (runbook).
+          Relatorio da sessao: docs/H1_REPORT.md.
+
+          Politica de hardware: leitura real exige --real --i-know-what-im-doing
+          (build com feature real-device). ESCRITA permanece bloqueada ate o
+          gate H2 (WRITE_VERIFIED).
+          MD
+          zip -q -r "$STAGE.zip" "$STAGE" 2>/dev/null || 7z a -tzip -bso0 "$STAGE.zip" "$STAGE"
+          sha256sum "$STAGE.zip" > "$STAGE.zip.sha256"
+          cat > RELEASE_NOTES.md <<MD
+          ## gp100-cli de campo ${GITHUB_REF_NAME}
+
+          - Binário Windows (windows-gnu pinado, release) com feature \`real-device\`.
+          - Smoke da política executado no build (recusas 2/3 sem device).
+          - SHA256 em \`${STAGE}.zip.sha256\`; kit de campo (checklist + runbook + relatório) dentro do zip.
+          - Instalador do app (NSIS) no mesmo release, artefato \`gp100-ui-installer\`.
+          MD
+          echo "ASSET=$STAGE.zip" >> "$GITHUB_ENV"
+          echo "ASSET_SHA=$STAGE.zip.sha256" >> "$GITHUB_ENV"
+
+      - name: Upload do artefato (sempre — inspeção pré-release)
+        uses: actions/upload-artifact@v7
+        with:
+          name: gp100-cli-windows
+          path: |
+            ${{ env.ASSET }}
+            ${{ env.ASSET_SHA }}
+
+      - name: Publicar na GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          files: |
+            ${{ env.ASSET }}
+            ${{ env.ASSET_SHA }}
+          body_path: RELEASE_NOTES.md
+          fail_on_unmatched_files: true
+
+  # ── RELEASE: instalador do app (NSIS via Tauri, MSVC) — só em tag v* ──
+  release-installer:
+    name: Release — instalador NSIS (Tauri, MSVC)
+    needs: [gate, spec]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: windows-latest
+    env:
+      RUSTUP_TOOLCHAIN: stable-x86_64-pc-windows-msvc
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup do front (Node 22 + pnpm 11)
+        uses: ./.github/actions/setup-node-pnpm
+
+      - name: Front (lint + test + build — ui/dist alimenta o bundle)
+        uses: ./.github/actions/build-front
+
+      - name: Toolchain + cache (MSVC do src-tauri — ADR-7)
+        uses: ./.github/actions/setup-rust
+        with:
+          workdir: src-tauri
+          cache-key: release-installer
+
+      # O tauri-cli acha o conf DESCENDO do cwd; exige workspace (o próprio
+      # de src-tauri) e usa o shim do ui/ (raiz não é pacote pnpm).
+      - name: Build do bundle (instalador NSIS)
+        working-directory: src-tauri
+        run: ../ui/node_modules/.bin/tauri.cmd build
+
+      - name: Localizar e empacotar (SHA256)
+        shell: bash
+        run: |
+          SETUP=$(ls src-tauri/target/release/bundle/nsis/*-setup.exe | head -1)
+          echo "instalador: $SETUP"
+          sha256sum "$SETUP" > "$SETUP.sha256"
+          echo "SETUP=$SETUP" >> "$GITHUB_ENV"
+          echo "SETUP_SHA=$SETUP.sha256" >> "$GITHUB_ENV"
+
+      - name: Upload do artefato (sempre — inspeção pré-release)
+        uses: actions/upload-artifact@v7
+        with:
+          name: gp100-ui-installer
+          path: |
+            ${{ env.SETUP }}
+            ${{ env.SETUP_SHA }}
+
+      - name: Publicar na GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          files: |
+            ${{ env.SETUP }}
+            ${{ env.SETUP_SHA }}
+          fail_on_unmatched_files: true
