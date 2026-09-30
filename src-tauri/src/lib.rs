@@ -26,9 +26,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
         .manage(commands::AppState {
             device: std::sync::Mutex::new(mock),
         })
-        .invoke_handler(tauri::generate_handler![
-            commands::device_info,
-        ])
+        .invoke_handler(tauri::generate_handler![commands::device_info])
         .run(tauri::generate_context!())?;
     Ok(())
 }
