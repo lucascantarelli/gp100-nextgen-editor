@@ -1,5 +1,7 @@
 # ===== Rust =====
 /target
+src-tauri/target/
+src-tauri/gen/
 Cargo.lock.bak
 *.pdb
 

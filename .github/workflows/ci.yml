@@ -170,6 +170,71 @@ jobs:
       - name: Build (tsc + vite)
         run: pnpm build
 
+  # ── gp100-ui: backend desktop Tauri 2 (FORA do workspace gnu — ADR-7) ──
+  # Windows: toolchain MSVC do src-tauri/rust-toolchain.toml (o Tauri 2 não
+  # suporta gnu; o runner traz VS Build Tools). linux/macos: stable nativa.
+  # O generate_context! EMBUTE os assets de ui/dist — o front é buildado antes.
+  ui-rust:
+    name: gp100-ui — clippy/test/tauri (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    env:
+      # Explícito nos dois lados (string vazia SETARIA a var e quebraria o
+      # rustup no Windows): MSVC no runner Windows (= pin local), stable
+      # nativa onde o triple MSVC não existe.
+      RUSTUP_TOOLCHAIN: ${{ matrix.os == 'windows-latest' && 'stable-x86_64-pc-windows-msvc' || 'stable' }}
+    defaults:
+      run:
+        working-directory: src-tauri
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Instalar pnpm 11
+        run: npm install -g pnpm@11
+
+      - name: Front (deps + build — ui/dist alimenta o generate_context!)
+        run: |
+          cd ../ui
+          pnpm install --frozen-lockfile
+          pnpm build
+
+      # Windows: o pin MSVC instala sozinho via rust-toolchain.toml; clippy
+      # não vem no perfil default da toolchain — adicionado explicitamente.
+      - name: Componentes clippy/rustfmt (Windows)
+        if: matrix.os == 'windows-latest'
+        run: rustup component add rustfmt clippy
+
+      - name: Deps de sistema do Tauri (Linux — gtk/webkit)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev
+
+      - name: Cache do cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Formatação
+        if: matrix.os == 'ubuntu-latest'
+        run: cargo fmt --check
+
+      - name: Clippy (warnings = erro)
+        run: cargo clippy -p gp100-ui --all-targets -- -D warnings
+
+      - name: Testes (commands/DTOs contra o mock)
+        run: cargo test -p gp100-ui
+
+      - name: Build do shell (prova do Tauri no OS)
+        run: cargo build -p gp100-ui
+
   # ── pytest: trava da ESPECIFICAÇÃO, não do app (ver §P3 do ROADMAP) ──
   # Valida que os arquivos de REFERÊNCIA (golden, fixtures, knob_map, hash da
   # baseline v1.0) continuam íntegros e autoconsistentes. Enquanto o golden for

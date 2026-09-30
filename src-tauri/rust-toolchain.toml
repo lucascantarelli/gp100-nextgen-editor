@@ -1,0 +1,8 @@
+# Toolchain DO CRATE gp100-ui — SOBREPÕE o pin do workspace raiz.
+# Por quê (ADR-7): Tauri 2 exige MSVC no Windows; o workspace (core/CLI de
+# campo) é pinado em windows-gnu. O channel com TRIPLE COMPLETO garante o
+# host MSVC mesmo que o default do rustup seja gnu. Na CI, as pernas
+# linux/macos do job gp100-ui sobrepõem com RUSTUP_TOOLCHAIN=stable (o triple
+# Windows não existe lá); a perna Windows usa este pin.
+[toolchain]
+channel = "stable-x86_64-pc-windows-msvc"

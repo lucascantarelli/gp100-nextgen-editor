@@ -1,6 +1,11 @@
 [workspace]
 resolver = "2"
 members = ["gp100-core", "gp100-cli"]
+exclude = ["src-tauri"]
+# gp100-ui (src-tauri) fica FORA do workspace: o Tauri 2 exige toolchain
+# MSVC no Windows e o workspace é pinado em windows-gnu (host/campo de dev).
+# Build de dev/campo da UI: `cargo +stable-msvc build -p gp100-ui` — validado
+# na CI (job gp100-ui no runner Windows com MSVC). Ver ADR-7 (DECISIONS.md).
 
 [workspace.package]
 version = "0.1.0"

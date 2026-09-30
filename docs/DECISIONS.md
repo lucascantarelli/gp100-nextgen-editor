@@ -319,6 +319,49 @@ pacing (§13.12 re-derivado 29/09 — D3 é definitivo); layout byte-a-byte
 
 ---
 
+## ADR-7 — `gp100-ui` fora do workspace gnu; toolchain MSVC para o backend da UI
+
+> **Status:** ✅ aceito (M1.0/A-4, 30/09) · **Vincula:** UI_PLAN §2/§9 (decisão
+> de estrutura de pastas/stack), ROADMAP A-4
+
+**Contexto.** O spike M1.0 cria o backend desktop `gp100-ui` (src-tauri,
+Tauri 2). O workspace é pinado em `stable-x86_64-pc-windows-gnu`
+(rust-toolchain.toml da raiz — host e build de campo do CLI sem MSVC). A
+compilação do Tauri 2 nesse pin falha de forma irrecuperável no host: o build
+script do `tauri` morre com `STATUS_ACCESS_VIOLATION` (0xC0000005) no gnu,
+mesmo com `dlltool` resolvido via `llvm-dlltool`. É limitação CONHECIDA do
+Tauri no Windows: a linha de suporte oficial é **MSVC** (pré-requisito
+documentado desde o Tauri 1; relatos gnu = bugs com workaround de instalador,
+não suporte).
+
+**Decisão.**
+1. `gp100-ui` fica **FORA do workspace** (`exclude = ["src-tauri"]` na
+   raiz): o core e o CLI de campo permanecem gnu; a UI não contamina o pin.
+2. `src-tauri/rust-toolchain.toml` próprio com
+   `channel = "stable-x86_64-pc-windows-msvc"` — dentro da pasta, o cargo
+   usa MSVC sem flags (e sem exigir nada do resto do repo).
+3. A CI **é a prova de build**: job `gp100-ui` na matrix 3 OSes — o runner
+   Windows traz MSVC nativo; linux/macos sobrepõem `RUSTUP_TOOLCHAIN=stable`
+   (o triple MSVC não existe lá). O crate ainda não compila no host de dev
+   (sem VS Build Tools instalado) — instalar MSVC no host é decisão do owner
+   (`rustup toolchain install stable-x86_64-pc-windows-msvc` + VS Build
+   Tools); até lá, dev da UI = CI verde + `pnpm dev` no browser (fallback
+   mock do ipc).
+4. Deps do crate são **pinadas por cópia** (versões iguais às do workspace;
+   `workspace = true` não atravessa a fronteira do `exclude`). Drift de
+   versão é pego no review e pelo `cargo update` deliberado.
+
+**Consequências.**
+- (+) Core/CLI de campo intocados (R4 do toolchain gnu preservado); UI sobre
+  a stack oficialmente suportada do Tauri.
+- (+) CI valida a UI nos 3 OSes como qualquer outro projeto.
+- (−) Dois lockfiles Rust (raiz + src-tauri) — aceito; upgrades são
+  deliberados e separados.
+- (−) Dev Windows da UI sem MSVC local não compila o shell — mitigado pelo
+  fallback mock do front (`pnpm dev`/vitest) e pela CI.
+
+---
+
 ## Aplicação
 
 | Issue | ADRs que vincula |
@@ -330,4 +373,5 @@ pacing (§13.12 re-derivado 29/09 — D3 é definitivo); layout byte-a-byte
 | M0.5 (transporte + mock) | 2, 3, 4, 5, 6 |
 | M0.6 (FSM + replay) | 2, 3, 4, 6 |
 | M0.7 (gp100-cli) | 2, 3, 4, 5, 6 |
+| M1.0/A-4 (gp100-ui, spike) | 7 |
 | H1–H3 (gate de hardware) | 3, 5 |
