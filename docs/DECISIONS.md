@@ -362,6 +362,62 @@ não suporte).
 
 ---
 
+## ADR-8 — Toolchains portáveis para o Dependabot; entry `cargo /` não cobre o workspace raiz
+
+> **Status:** ✅ aceito (30/09, owner) · **Origem:** ativação do Dependabot
+> (complemento do security noturno) · **Vincula:** ADR-7 (workspace próprio
+> do gp100-ui)
+
+**Contexto.** O Dependabot (`dependabot.yml`, 3 ecossistemas) abre PRs de
+upgrade; seu updater roda em container **Linux** e não expõe
+`RUSTUP_TOOLCHAIN` — todo cargo ali respeita os `rust-toolchain.toml` do
+repo. Canais com TRIPLE de Windows (`stable-x86_64-pc-windows-gnu` na raiz,
+`stable-x86_64-pc-windows-msvc` no src-tauri) nem parseiam no Linux
+(rustup: `target tuple in channel name`) — as 2 entradas cargo do primeiro
+deploy falharam com `dependency_file_not_resolvable` em TODA dependência
+(provado 30/09, runs 36702829331/36702829326). É a mesma dependência de
+host que a CI já contorna com `RUSTUP_TOOLCHAIN` por perna.
+
+**Decisão.**
+1. `src-tauri/rust-toolchain.toml` usa canal SEM triple (`channel =
+   "stable"`) — portável: resolve para o triple do host. O alvo EXATO no
+   Windows já vem de `RUSTUP_TOOLCHAIN` nos workflows (job `gp100-ui`) e o
+   default do host já é `stable-x86_64-pc-windows-msvc`. Nada muda na
+   prática: o pin MSVC explícito era redundante (CI pina a perna; host
+   Windows ainda não compila o shell — ADR-7, falta VS Build Tools).
+2. O pin gnu da RAIZ **permanece** (load-bearing: host sem VS Build
+   Tools — sem ele o cargo local cai no default msvc e o link quebra;
+   decisão P2 do owner). Consequência deliberada: **a entry `cargo /`
+   (lockfile da raiz, core+cli) NÃO existe no dependabot.yml** — o PR
+   automático cobre só src-tauri, npm e github-actions. O lockfile da
+   raiz segue com `cargo update` DELIBERADO (padrão A-1/A-3) e o
+   security noturno DETETA vulnerabilidades (cargo audit já cobre o
+   Cargo.lock da raiz — a remediação manual é acionada pela issue
+   ACHADOS).
+3. Labels do Dependabot (`dependencies`, `rust`, `npm`, `github-actions`)
+   são provisionadas ANTES via `gh label create --force` — o Dependabot
+   não cria labels e update com label inexistente falha (mesma lição do
+   `achados-security`).
+
+**Alternativas rejeitadas.**
+- *Portabilizar o pin da raiz também* (`channel = "stable"`): resolvia as
+  4 entries, mas transferia o controle da toolchain do repo para o
+  `rustup default` do host — exatamente o que o pin P2 existe para
+  evitar.
+- *Fixar versão exata em vez de "stable"* no src-tauri: o Dependabot
+  também não lê canais com triple (o problema é o PARSE do rustup, não a
+  mobilidade do canal) e create uma segunda coisa para sincronizar.
+
+**Consequências.**
+- (+) Dependabot funcional onde opera (src-tauri + npm + actions), CI
+  dispara em cada PR (14 jobs, cache quente).
+- (+) Zero mudança de comportamento local/CI: RUSTUP_TOOLCHAIN nos
+  workflows é a fonte da verdade das pernas.
+- (−) Upgrades do core/CLI continuam manuais/deliberados — aceito: é o
+  padrão do projeto (A-1/A-3) e a detecção noturna cobre o risco.
+
+---
+
 ## Aplicação
 
 | Issue | ADRs que vincula |
@@ -374,4 +430,5 @@ não suporte).
 | M0.6 (FSM + replay) | 2, 3, 4, 6 |
 | M0.7 (gp100-cli) | 2, 3, 4, 5, 6 |
 | M1.0/A-4 (gp100-ui, spike) | 7 |
+| Dependabot (src-tauri + npm + actions) | 7, 8 |
 | H1–H3 (gate de hardware) | 3, 5 |

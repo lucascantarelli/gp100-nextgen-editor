@@ -7,9 +7,10 @@
 //! a feature `real-device` (espelhada do core) entra como build de campo
 //! pós-H1.
 //!
-//! **Windows:** o crate é compilado com toolchain **MSVC** (pin local em
-//! `rust-toolchain.toml`; ADR-7) — o Tauri 2 não suporta windows-gnu, que
-//! morre com STATUS_ACCESS_VIOLATION no build script.
+//! **Windows:** o crate é compilado com toolchain **MSVC** (RUSTUP_TOOLCHAIN
+//! nos workflows; canal "stable" portável em `rust-toolchain.toml`;
+//! ADR-7/ADR-8) — o Tauri 2 não suporta windows-gnu, que morre com
+//! STATUS_ACCESS_VIOLATION no build script.
 
 mod commands;
 

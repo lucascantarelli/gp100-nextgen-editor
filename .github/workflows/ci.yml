@@ -205,8 +205,8 @@ jobs:
           pnpm install --frozen-lockfile
           pnpm build
 
-      # Windows: o pin MSVC instala sozinho via rust-toolchain.toml; clippy
-      # não vem no perfil default da toolchain — adicionado explicitamente.
+      # Windows: instala a stable (canal do rust-toolchain.toml, ADR-8) +
+      # clippy/rustfmt — o Tauri exige MSVC e o runner traz VS Build Tools.
       - name: Componentes clippy/rustfmt (Windows)
         if: matrix.os == 'windows-latest'
         run: rustup component add rustfmt clippy
