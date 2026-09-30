@@ -130,8 +130,11 @@ jobs:
           sys_out = []
           changed = os.environ.get("CHANGED", "ALL")
           is_all = changed == "ALL"
+          # re.M OBRIGATÓRIO: CHANGED é multi-linha; sem ele o ^ só casa no
+          # início da string e NENHUM projeto "muda" (provado na run 36764807538:
+          # push de packages/ inteiro → tudo skipped).
           def has(pat):
-              return is_all or re.search(pat, changed, re.I) is not None
+              return is_all or re.search(pat, changed, re.I | re.M) is not None
           core   = has(r'^(Cargo\.toml$|Cargo\.lock$|rust-toolchain\.toml$|packages/core/|packages/cli/)')
           uirust = has(r'^(packages/app/|packages/core/|Cargo\.toml$|rust-toolchain\.toml$)')
           front  = has(r'^packages/app/ui/')
