@@ -1,0 +1,155 @@
+# Segurança NOTURNA — auditoria de dependências (Rust + npm) + trava da spec.
+#
+# O que faz (todas as noites, 06:30 UTC; e sob demanda via workflow_dispatch):
+#   1. pytest (a trava da ESPECIFICAÇÃO — hash do golden, paridade, fixtures);
+#   2. cargo audit (RustSec Advisory DB — crates do workspace);
+#   3. pnpm audit --prod (advisories npm das deps de RUNTIME do front);
+#   4. pnpm outdated (relatório INFORMATIVO de versões — não falha o job;
+#      upgrades são decisão deliberada, como nos achados A-1/A-3).
+#
+# Se QUALQUER auditoria achar algo (cargo audit ≠ 0, pnpm audit ≠ 0), o job
+# "achados" cria/atualiza a issue na FASE ACHADOS do ROADMAP (prioridade
+# máxima — regra do owner) com o log completo e o comando de investigação.
+# A issue é ÚNICA (label "achados-security") — reaberta/ atualizada a cada
+# achado novo para não virar spam.
+
+name: security
+
+on:
+  schedule:
+    - cron: "30 6 * * *" # 06:30 UTC = 03:30 BRT (antes do expediente)
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: security-nightly
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    name: Auditoria (RustSec + npm + spec)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Instalar uv
+        uses: astral-sh/setup-uv@v10
+        with:
+          enable-cache: true
+
+      - name: Trava da especificação (pytest 10/10)
+        run: |
+          uv sync --all-groups
+          uv run pytest
+
+      # Binário pré-compilado (sem compilar a árvore gnu no runner) —
+      # audit só lê Cargo.lock, não precisa do target.
+      - name: Instalar cargo-audit (taiki-e/install-action)
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-audit
+
+      - name: cargo audit (RustSec — workspace + lockfile)
+        id: cargo_audit
+        continue-on-error: true
+        run: cargo audit --file Cargo.lock 2>&1 | tee /tmp/cargo-audit.txt
+
+      - name: cargo audit — gp100-ui (lockfile próprio, ADR-7)
+        continue-on-error: true
+        working-directory: src-tauri
+        run: cargo audit --file Cargo.lock 2>&1 | tee /tmp/cargo-audit-ui.txt
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      - name: Instalar pnpm 11
+        run: npm install -g pnpm@11
+
+      - name: pnpm audit (runtime do front — --prod ignora dev-deps)
+        continue-on-error: true
+        working-directory: ui
+        run: pnpm audit --prod 2>&1 | tee /tmp/pnpm-audit.txt
+
+      - name: Relatório de versões (INFORMATIVO — não falha)
+        if: always()
+        working-directory: ui
+        run: pnpm outdated 2>&1 | tee /tmp/pnpm-outdated.txt || true
+
+      - name: Achado = issue na FASE ACHADOS
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set +e
+          FLAG=0
+          [ -s /tmp/cargo-audit.txt ] && grep -qE "error|vulnerability|warning" /tmp/cargo-audit.txt && FLAG=1
+          [ -s /tmp/cargo-audit-ui.txt ] && grep -qE "error|vulnerability|warning" /tmp/cargo-audit-ui.txt && FLAG=1
+          [ -s /tmp/pnpm-audit.txt ] && grep -qE "vulnerabilit|moderate|high|critical" /tmp/pnpm-audit.txt && FLAG=1
+          if [ "$FLAG" -eq 0 ]; then
+            echo "sem achados — nada a registrar"
+            exit 0
+          fi
+          # escapa ` e $ para caber em heredoc não-quotado (expansão só das vars)
+          esc() { sed -e 's/`/\\`/g' -e 's/\$/\\$/g' "$1" 2>/dev/null | head -80; }
+          CA=$(esc /tmp/cargo-audit.txt); CUI=$(esc /tmp/cargo-audit-ui.txt)
+          PA=$(esc /tmp/pnpm-audit.txt); PO=$(esc /tmp/pnpm-outdated.txt)
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          BODY=$(cat <<MD
+          ## 🔒 Achado de segurança (varredura noturna)
+
+          **Regra:** FASE ACHADOS do \`docs/ROADMAP.md\` — prioridade MÁXIMA,
+          resolve antes de qualquer issue de fase. Corrigido = fechar esta
+          issue + linha A-xx no ROADMAP com a prova.
+
+          <details><summary>cargo audit (workspace)</summary>
+
+          \`\`\`
+          $CA
+          \`\`\`
+
+          </details>
+
+          <details><summary>cargo audit (gp100-ui)</summary>
+
+          \`\`\`
+          $CUI
+          \`\`\`
+
+          </details>
+
+          <details><summary>pnpm audit (runtime)</summary>
+
+          \`\`\`
+          $PA
+          \`\`\`
+
+          </details>
+
+          <details><summary>pnpm outdated (informativo)</summary>
+
+          \`\`\`
+          $PO
+          \`\`\`
+
+          </details>
+
+          _Issue automática do workflow \`security.yml\` — job: $RUN_URL_
+          MD
+          )
+          EXISTING=$(gh issue list --label achados-security --state open --json number --jq '.[0].number' 2>/dev/null)
+          # label pode não existir ainda — cria idempotente antes do gh issue create
+          gh label create achados-security --color D93F0B --description "Achado de segurança (varredura noturna)" --force 2>/dev/null || true
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" --body "Novo achado na varredura de $(date -u +%F) — job: $RUN_URL"
+            echo "issue #$EXISTING atualizada"
+          else
+            gh issue create \
+              --title "🔒 ACHADOS: achado de segurança na varredura noturna ($(date -u +%F))" \
+              --label "achados-security" \
+              --body "$BODY"
+            echo "issue criada"
+          fi
