@@ -39,6 +39,11 @@
 //! - `recv_raw` faz poll de 2ms: latência de entrega por mensagem ≤2ms (SysEx
 //!   chega no ritmo do device); se o live mode (M3) exigir menos, revisitar
 //!   com evento/waker — novo ADR na ocasião.
+//!
+//! **Dependências de sistema por SO (feature `real-device`):** Windows = WinMM
+//! (sistema, nada extra); macOS = CoreMIDI (framework de sistema); **Linux =
+//! ALSA via `alsa-sys`, que compila C e exige `pkg-config` + `libasound2-dev`
+//! (Debian/Ubuntu) — capturado pela CI multi-OS (job gp100-cli/ubuntu).
 
 use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
