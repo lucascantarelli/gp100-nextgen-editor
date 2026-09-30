@@ -1,12 +1,24 @@
 # CI — gates de qualidade do GP-100 NextGen Editor (mesmos comandos locais).
 #
-# Por que windows-latest: o rust-toolchain.toml PINA stable-x86_64-pc-windows-gnu
-# (host de dev sem MSVC). Em runner Linux o rustup não instala toolchain Windows
-# com std; aqui a fidelidade com o ambiente de desenvolvimento é total.
+# Estrutura (decisão do owner, 29/09): UM JOB POR PROJETO, cada um em MATRIX
+# dos 3 OSes (windows/linux/macos) — sem job "de portabilidade" separado.
 #
-# Gates (skill rust-practices + P3 do ROADMAP):
-#   Python: uv sync --all-groups -> uv run pytest        (10/10: golden, hash, fixtures)
-#   Rust:   fmt --check -> clippy -D warnings -> test    (inclui doc-tests)
+#   gp100-core — fmt | clippy -D warnings | test (a "biblioteca de verdade")
+#   gp100-cli  — fmt | clippy -D warnings | test + build --features real-device
+#                (o binário de campo; smoke da política de hardware no Windows)
+#   ui         — lint | test | build (Node 22 + pnpm 11, lockfile congelado)
+#   pytest     — trava da ESPECIFICAÇÃO (golden/fixtures/baseline; não é código
+#                do app — ver docs/ROADMAP.md §P3; permanece enquanto o golden
+#                for a fonte de verdade, até o congelamento pós-H3)
+#
+# Notas de portabilidade:
+# - windows-gnu pinado no rust-toolchain.toml só EXISTE no Windows: linux/macOS
+#   sobrescrevem com RUSTUP_TOOLCHAIN=stable (job de campo continua no runner
+#   Windows, ambiente idêntico ao do dev).
+# - fmt é um gate barato e independente de OS: um job ubuntu só para ele dá
+#   sinal rápido sem queimar matrix 3×.
+# - smoke da política (--real, exit codes 2/3) só faz sentido onde há WinMM:
+#   fica no runner Windows do gp100-cli.
 
 name: CI
 
@@ -20,89 +32,110 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  pytest:
-    name: Python — golden/fixtures (uv)
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Instalar uv
-        uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
-
-      - name: Sync do ambiente (capstone, pefile, ziglang, pytest)
-        run: uv sync --all-groups
-
-      - name: Suíte de regressão (10/10 — golden, hash da baseline, knob_map, fixtures)
-        run: uv run pytest
-
-  rust:
-    name: Rust — fmt/clippy/test (windows-gnu pinado)
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      # Instala EXPLICITAMENTE a toolchain do rust-toolchain.toml (windows-gnu).
-      # Por que não dtolnay/rust-toolchain: ela sonda `rustc -vV` antes de instalar;
-      # dentro do repo o shim resolve o pin ainda ausente e morre com
-      # "target tuple in channel name". O rustup do runner (pré-instalado) resolve
-      # o mesmo nome de toolchain sem sonda; shims seguintes passam a achar o pin.
-      # componentes EXPLÍCITOS: o perfil default traz só rustc+std+cargo;
-      # fmt/clippy do runner ficam na toolchain msvc dele e o pin do
-      # rust-toolchain.toml delega para a gnu — que precisa dos dois.
-      - name: Instalar toolchain Rust pinada (windows-gnu)
-        run: rustup toolchain install stable-x86_64-pc-windows-gnu --no-self-update --component rustfmt --component clippy
-
-      - name: Cache do cargo (registry + target)
-        uses: Swatinem/rust-cache@v2
-
-      - name: Formatação
-        run: cargo fmt --check
-
-      - name: Clippy (warnings = erro)
-        run: cargo clippy --workspace --all-targets -- -D warnings
-
-      - name: Testes (unitários + doc-tests)
-        run: cargo test
-
-  # ── Portabilidade (M1.0): a lib e o CLI são cross-platform — validar em
-  # Linux e macOS também. A build DE CAMPO (windows-gnu pinada) continua no
-  # job `rust` acima; aqui provamos que o CÓDIGO é portável (clippy/testes).
-  # O pin gnu do rust-toolchain.toml não existe como toolchain host fora do
-  # Windows: usamos a stable do próprio runner para a checagem de portabilidade.
-  rust-portable:
-    name: Rust — portabilidade (linux + macOS)
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest]
-    runs-on: ${{ matrix.os }}
+  # ── Gate rápido e OS-agnóstico (falha em segundos, não em minutos) ──
+  fmt:
+    name: Rust — fmt
+    runs-on: ubuntu-latest
     env:
-      # Sobrepõe o pin windows-gnu do rust-toolchain.toml (os shims do rustup
-      # tentariam instalar toolchain Windows fora do Windows e morreriam com
-      # "target tuple in channel name"). A checagem de portabilidade roda na
-      # stable NATIVA do runner; a build de campo continua no job `rust`.
       RUSTUP_TOOLCHAIN: stable
     steps:
       - uses: actions/checkout@v4
+      - name: Toolchain stable do runner
+        run: rustup update stable --no-self-update
+      - name: Cache do cargo
+        uses: Swatinem/rust-cache@v2
+      - name: Formatação
+        run: cargo fmt --check
 
-      - name: Toolchain stable do runner (checagem de portabilidade)
+  # ── gp100-core: a biblioteca de verdade — matrix dos 3 OSes ──
+  core:
+    name: gp100-core — clippy/test (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    env:
+      RUSTUP_TOOLCHAIN: ${{ matrix.os == 'windows-latest' && 'stable-x86_64-pc-windows-gnu' || 'stable' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar toolchain pinada (windows-gnu) no Windows
+        if: matrix.os == 'windows-latest'
+        run: rustup toolchain install stable-x86_64-pc-windows-gnu --no-self-update --component rustfmt --component clippy
+
+      - name: Toolchain stable do runner (linux/macOS)
+        if: matrix.os != 'windows-latest'
         run: rustup update stable --no-self-update
 
       - name: Cache do cargo
         uses: Swatinem/rust-cache@v2
 
-      - name: Clippy (portabilidade = warnings são erro)
-        run: cargo clippy --workspace --all-targets -- -D warnings
+      - name: Clippy (warnings = erro)
+        run: cargo clippy -p gp100-core --all-targets -- -D warnings
 
-      - name: Testes (a lib e o CLI não dependem de Windows)
-        run: cargo test
+      - name: Testes (unitários + doc-tests)
+        run: cargo test -p gp100-core
 
-  # ── Front (M1.0): lint/test/build do ui/ com Node 22 + pnpm (cache).
+  # ── gp100-cli: binário de operação/campo — matrix dos 3 OSes ──
+  cli:
+    name: gp100-cli — clippy/test/real-device (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    env:
+      RUSTUP_TOOLCHAIN: ${{ matrix.os == 'windows-latest' && 'stable-x86_64-pc-windows-gnu' || 'stable' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar toolchain pinada (windows-gnu) no Windows
+        if: matrix.os == 'windows-latest'
+        run: rustup toolchain install stable-x86_64-pc-windows-gnu --no-self-update --component rustfmt --component clippy
+
+      - name: Toolchain stable do runner (linux/macOS)
+        if: matrix.os != 'windows-latest'
+        run: rustup update stable --no-self-update
+
+      - name: Cache do cargo
+        uses: Swatinem/rust-cache@v2
+
+      - name: Clippy (default + real-device, warnings = erro)
+        run: |
+          cargo clippy -p gp100-cli --all-targets -- -D warnings
+          cargo clippy -p gp100-cli --all-targets --features real-device -- -D warnings
+
+      - name: Testes (unitários + doc-tests)
+        run: cargo test -p gp100-cli
+
+      - name: Build do binário de campo (real-device)
+        run: cargo build -p gp100-cli --features real-device
+
+      # Smoke da política SÓ no Windows (WinMM é o stack do campo; nos outros
+      # OSes o midir compila, mas não há device/porta para provar o OpenFailed).
+      - name: Smoke da política de hardware (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: bash
+        run: |
+          set +e
+          ./target/debug/gp100-cli.exe --real info > /dev/null 2>&1
+          code1=$?
+          ./target/debug/gp100-cli.exe --real --i-know-what-im-doing info > /dev/null 2>&1
+          code2=$?
+          set -e
+          if [ "$code1" -ne 2 ]; then echo "ERRO: --real sem ack devia dar exit 2, veio $code1"; exit 1; fi
+          if [ "$code2" -ne 3 ]; then echo "ERRO: --real + ack sem device devia dar exit 3 (OpenFailed), veio $code2"; exit 1; fi
+          echo "política OK: recusas nos exit codes 2/3"
+
+  # ── ui: front React/TS — matrix dos 3 OSes ──
   ui:
-    name: UI — lint/test/build (pnpm)
-    runs-on: ubuntu-latest
+    name: ui — lint/test/build (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     defaults:
       run:
         working-directory: ui
@@ -119,7 +152,7 @@ jobs:
       - name: Instalar deps (lockfile congelado)
         run: pnpm install --frozen-lockfile
 
-      - name: "Lint (R1 no front: invoke só em ipc/)"
+      - name: Lint (R1 no front — invoke só em ipc/)
         run: pnpm lint
 
       - name: Testes (tokens/contraste/a11y/estados)
@@ -127,3 +160,26 @@ jobs:
 
       - name: Build (tsc + vite)
         run: pnpm build
+
+  # ── pytest: trava da ESPECIFICAÇÃO, não do app (ver §P3 do ROADMAP) ──
+  # Valida que os arquivos de REFERÊNCIA (golden, fixtures, knob_map, hash da
+  # baseline v1.0) continuam íntegros e autoconsistentes. Enquanto o golden for
+  # a fonte de verdade do protocolo (até H3), este job é obrigatório: o core
+  # CONSUME esses arquivos em runtime (mock) e os testes Rust provam o app
+  # CONTRA eles. Avaliação de remoção: revisão pós-H3 (congelamento).
+  pytest:
+    name: Python — trava da especificação (golden/fixtures)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Sync do ambiente (capstone, pefile, ziglang, pytest)
+        run: uv sync --all-groups
+
+      - name: Suíte de regressão (10/10 — golden, hash da baseline, knob_map, fixtures)
+        run: uv run pytest
