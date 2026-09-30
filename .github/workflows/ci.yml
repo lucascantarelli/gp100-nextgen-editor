@@ -113,7 +113,7 @@ jobs:
       - name: Instalar deps (lockfile congelado)
         run: pnpm install --frozen-lockfile
 
-      - name: Lint (R1 no front: invoke só em ipc/)
+      - name: "Lint (R1 no front: invoke só em ipc/)"
         run: pnpm lint
 
       - name: Testes (tokens/contraste/a11y/estados)
