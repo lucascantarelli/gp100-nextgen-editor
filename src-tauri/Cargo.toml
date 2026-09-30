@@ -1,3 +1,9 @@
+# WORKSPACE PRÓPRIO (ADR-7): o tauri-cli exige que o crate do Tauri seja
+# membro do workspace cargo no qual resolve — se apenas excluído da raiz,
+# `tauri build` morre em Option::unwrap() (rust.rs). Independente da raiz,
+# ele se resolve sozinho; o raiz também o exclui (coerência explícita).
+[workspace]
+
 [package]
 name = "gp100-ui"
 version = "0.1.0"

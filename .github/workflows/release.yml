@@ -129,19 +129,20 @@ jobs:
           pnpm install --frozen-lockfile
           pnpm build
 
-      # O CLI do Tauri procura o tauri.conf.json DESCENDO de onde roda: da
-      # raiz, ele acha src-tauri/ (irmão de ui/). Invocamos o shim do CLI já
-      # instalado como devDep do ui/ (pnpm exec da raiz não funciona: a raiz
-      # não é pacote). Compila o gp100-ui na toolchain MSVC do
-      # src-tauri/rust-toolchain.toml e baixa o NSIS; beforeBuildCommand
-      # é vazio (o front já foi buildado acima).
+      # O tauri-cli exige que o crate do Tauri seja MEMBRO de um workspace
+      # cargo (rust.rs faz unwrap() na workspace_handle — sem workspace, panic
+      # Option::None). src-tauri tem [workspace] próprio (ADR-7), então o
+      # build roda DE DENTRO dele: acha o próprio tauri.conf.json, compila o
+      # gp100-ui na toolchain MSVC do pin local e baixa o NSIS;
+      # beforeBuildCommand é vazio (o front já foi buildado acima).
       - name: Build do bundle (instalador NSIS)
-        run: ui/node_modules/.bin/tauri.cmd build
+        working-directory: src-tauri
+        run: ../ui/node_modules/.bin/tauri.cmd build
 
       - name: Localizar e empacotar (SHA256)
         shell: bash
         run: |
-          SETUP=$(ls ../src-tauri/target/release/bundle/nsis/*-setup.exe | head -1)
+          SETUP=$(ls src-tauri/target/release/bundle/nsis/*-setup.exe | head -1)
           echo "instalador: $SETUP"
           sha256sum "$SETUP" > "$SETUP.sha256"
           echo "SETUP=$SETUP" >> "$GITHUB_ENV"
