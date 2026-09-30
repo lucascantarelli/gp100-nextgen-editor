@@ -32,6 +32,10 @@ jobs:
   audit:
     name: Auditoria (RustSec + npm + spec)
     runs-on: ubuntu-24.04
+    env:
+      # O rust-toolchain.toml da raiz pinA windows-gnu: no Linux, todo cargo
+      # (incl. cargo-audit) precisa da stable nativa (mesma lição do ADR-7).
+      RUSTUP_TOOLCHAIN: stable
     steps:
       - uses: actions/checkout@v7
 
@@ -58,6 +62,7 @@ jobs:
         run: cargo audit --file Cargo.lock 2>&1 | tee /tmp/cargo-audit.txt
 
       - name: cargo audit — gp100-ui (lockfile próprio, ADR-7)
+        id: cargo_audit_ui
         continue-on-error: true
         working-directory: src-tauri
         run: cargo audit --file Cargo.lock 2>&1 | tee /tmp/cargo-audit-ui.txt
@@ -70,6 +75,7 @@ jobs:
         run: npm install -g pnpm@11
 
       - name: pnpm audit (runtime do front — --prod ignora dev-deps)
+        id: pnpm_audit
         continue-on-error: true
         working-directory: ui
         run: pnpm audit --prod 2>&1 | tee /tmp/pnpm-audit.txt
@@ -84,11 +90,14 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          # Achado = exit code ≠ 0 de QUALQUER auditoria (vulns OU falha da
+          # própria ferramenta — direção fail-safe: melhor alarme do que
+          # silêncio). Logs anexados na issue para o diagnóstico.
           set +e
           FLAG=0
-          [ -s /tmp/cargo-audit.txt ] && grep -qE "error|vulnerability|warning" /tmp/cargo-audit.txt && FLAG=1
-          [ -s /tmp/cargo-audit-ui.txt ] && grep -qE "error|vulnerability|warning" /tmp/cargo-audit-ui.txt && FLAG=1
-          [ -s /tmp/pnpm-audit.txt ] && grep -qE "vulnerabilit|moderate|high|critical" /tmp/pnpm-audit.txt && FLAG=1
+          [ "${{ steps.cargo_audit.outcome }}" = "failure" ] && FLAG=1
+          [ "${{ steps.cargo_audit_ui.outcome }}" = "failure" ] && FLAG=1
+          [ "${{ steps.pnpm_audit.outcome }}" = "failure" ] && FLAG=1
           if [ "$FLAG" -eq 0 ]; then
             echo "sem achados — nada a registrar"
             exit 0
