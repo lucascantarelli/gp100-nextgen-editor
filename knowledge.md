@@ -6,6 +6,27 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
 (local, sem depender de hardware para ~95% do trabalho). Resposta ao usuário SEMPRE em PT-BR.
 
 ## Estado vivo (atualizar aqui a cada marco)
+- 30/09 — **REFATORAÇÃO ESTRUTURAL packages/ ✅ + pipeline único reescrito**: monorepo
+  `packages/{core,cli,app/{ui,api}}` (ver seção Monorepo abaixo), limpeza de gestão
+  (M0.x/M1.x/ROADMAP/DoD) de todos os comentários de código, READMEs curtos em
+  core/cli/app, CI com caminhos novos + fix da matriz vazia. Provas locais: fmt/
+  clippy/test 15 suítes ✓, pytest 10/10 ✓, front lint+vitest+build ✓, actionlint ✓.
+  Commit/push PENDENTES na virada da sessão.
+- 30/09 — **midir PINADO em 0.10 (experimento 0.11 FECHADO)**: o 0.11 puxa crates
+  `windows-*` com raw-dylib e é IMPOSSÍVEL no host de campo hoje — dlltool GNU
+  moderno (2.44+) rejeita a machine que o rustc passa (`Machine 'x86_64_w64_mingw32'
+  not supported`; provado em WinLibs 2.47 E mingw-builds 2.46 com um .def simples)
+  e o llvm-dlltool do rustup compila mas o loader rejeita o import (segfault no
+  load). Configuração final do host que builda o 0.10: llvm-dlltool COPIADO como
+  `~/.cargo/bin/dlltool.exe` + `~/.cargo/bin` PREPENDIDO no PATH (o winget WinLibs
+  sombreia por append — ver lições). PR #3 (0.11) descartado até rustc/binutils
+  convergirem.
+- 30/09 — **TS 7 travado no Dependabot (entry npm)**: typescript-eslint 8.x suporta
+  só TS <6.1 (`Error: typescript-eslint does not support TS 7.0.` na importação do
+  flat config — lint morre ANTES de lintar; o build passa pois vite só transpila).
+  PR #2 (typescript 7.0.2) fechou em failure nos 3 OS; `ignore: typescript >=7`
+  no dependabot.yml impede a reincidência semanal. Reabrir quando o peer range do
+  typescript-eslint cobrir TS 7.
 - 29/09 — RealDevice ✅ (H1 pronto em software): `gp100-core/src/transport/real.rs`
   (midir 0.9/WinMM, feature `real-device` via dep:midir; callback→fila
   compartilhada, trim no 1º F7 na entrada, despacho de porta por nome
@@ -334,15 +355,71 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
   trait `Emitter` (`use tauri::Emitter`) — `core:default` já cobre
   `listen` no front; `.idle-dot` adicionada ao design.css.
 
-## Infra CI (30/09 — security + release)
+## Monorepo packages/ (30/09 — refatoração estrutural)
+- **Mapa de renomeação** (menções antigas em entradas históricas abaixo = caminhos da época):
+  `gp100-core/` → `packages/core/` · `gp100-cli/` → `packages/cli/` · `ui/` →
+  `packages/app/ui/` · `src-tauri/` → `packages/app/api/` (pedido do owner: "api é a API
+  Rust do projeto"). Nomes de CRATES não mudaram (gp100-core/gp100-cli/gp100-ui =
+  identidade de API em lockfiles/CLI/docs). Root limpo: só configs + docs/analysis/files/scripts.
+- **Workspaces Cargo**: raiz = `members = ["packages/core","packages/cli"]`,
+  `exclude = ["packages/app/api"]` (ADR-7 continua: Tauri exige MSVC, raiz é gnu).
+- **Landmines de caminho já re-costurados** (não re-morder): `include_str!` ganhou +1 nível
+  (core→`../../../docs/protocol_golden.json` e `../../../analysis/parameters.json`;
+  mock→`../../../../files/patches/all.prst`); testes com `CARGO_MANIFEST_DIR` dão
+  DOIS `pop()` até a raiz; path-deps `../core` (cli) e `../../core` (api);
+  `frontendDist: "../ui/dist"` segue válido (ui e api são irmãos em app/);
+  shim do tauri na CI = `packages/app/ui/node_modules/.bin/tauri.cmd` (run de
+  `packages/app/api` com `../../ui/...`); node_modules do ui foi REFEITO após o
+  mv (o store pnpm guarda caminho absoluto — mv quebra o install com
+  ERR_PNPM_ABORTED_REMOVE_MODULES_DIR; rm -rf + CI=true pnpm install resolve).
+- **CI aponta para**: `packages/app/api` (workdir ui-rust/release/audits),
+  `packages/app/ui` (pnpm), regex do plan = `packages/core/|packages/cli/|packages/app/`.
+
+## Pipeline único — lições de CI (30/09)
+- **MATRIZ VAZIA CRASHA A RUN INTEIRA (não use nunca)**: job com
+  `strategy.matrix: ${{ fromJSON(...) }}` e matriz `"include":[]` NÃO materializa
+  nenhum job e a RUN TERMINA `failure` sem NENHUM job failed (provado na run
+  36747668222: gate ✓ + plan ✓ + 5 skipped + rust/front invisíveis = failure).
+  É o comportamento do runner (community discussion 27096). FIX no pipeline.yml:
+  o `plan` emite BOOLEANOS (`run-rust/run-front/run-spec/run-tag/run-release`) e
+  os jobs ganham `if:`; matrizes dinâmicas só onde o plan garante ≥1 item;
+  tag-release/release-* usam matriz FIXA de 1 item. Job filtrado aparece como
+  "skipped" (0 min) e a run fica verde — era o que o owner queria ("job que não
+  roda não aparece") sem o crash.
+- **actionlint é o gate local do workflow** (`/tmp/actionlint` valida workflow +
+  composite actions de uma vez); lição de schema: outputs de job NÃO podem ter
+  chave duplicada (case-insensitive) — pegou `run-spec` duplicado no plan.
+- **Dependabot × TS 7 (PR #2)**: bump `typescript 6.0.3→7.0.2` matou o lint nos 3 OS
+  (tseslint 8.71 peer `<6.1.0`; erro na importação do config, antes de lintar).
+  O build passa com TS 7 — só o lint quebra; diagnóstico por reprodução local
+  (`pnpm add -D typescript@7.0.2 && pnpm lint`). Trava: `ignore:
+  - dependency-name: "typescript"\n    versions: [">=7.0.0"]` na entry npm.
+- **Dependabot × midir (PR #3)**: PR CLOSED nunca mergeado, mas CI 14/14 verde
+  (compila no runner). No host de campo o 0.11 é impossível hoje (ver entrada do
+  Estado vivo): dlltool GNU 2.44+ não gera o import lib do rustc e llvm-dlltool
+  gera um que o loader rejeita. Armadilha EXTRA descoberta: o winget WinLibs
+  entra no PATH do USUÁRIO e SOMBRIA ferramentas colocadas por append
+  (`export PATH="$PATH:x"` NÃO vence — o dlltool quebrado 2.47 venceu o
+  llvm-dlltool e dava `os error 1006` nos `kernel32.dll_imports.lib`); a
+  configuração que funciona é PREPEND (`export PATH="/c/Users/Canta/.cargo/bin:
+  $PATH"`). Defender: exclusões deixadas (processo dlltool.exe + pasta target/)
+  — exoneradas como causa do 1006; removíveis se quiser.
+- **Cargo PATH no Git Bash ad-hoc**: `export PATH="/c/Users/Canta/.cargo/bin:$PATH"
+  (o scripts/add_cargo_path.ps1 fixa no sistema, mas shells novos da sessão podem
+  não herdar). Duas regras: PREPEND (winget/choco adicionam dirs ao PATH do
+  usuário que sombreiam por append) e caminho em ESTILO POSIX (Windows `C:\...`
+  no PATH quebra a lista POSIX no `:` do drive).
+
+## Infra CI (30/09 — security + release; HOJE tudo dentro do pipeline.yml único)
 - **security.yml (noturno 06:30 UTC)**: pytest + cargo audit (2 lockfiles) +
   pnpm audit --prod + outdated informativo. Achado = **exit code das steps**
   (outcome), NUNCA grep de log (grep pegou crash de toolchain como "achado"
   → issue falso-positiva #1, fechada com documentação). RUSTUP_TOOLCHAIN=stable
   no job: o pin gnu da raiz quebra qualquer cargo no Linux (lição ADR-7 de novo).
 - **Dependabot (30/09)**: `.github/dependabot.yml` — 3 entries SEMANAIS
-  (github-actions `/`, npm `/ui`, cargo `/src-tauri`; segunda 09:00 UTC =
-  06:00 BRT), groups p/ 1 PR/ecossistema/semana, limit 5. Labels
+  (github-actions `/`, npm `/packages/app/ui`, cargo `/packages/app/api`;
+  segunda 09:00 UTC = 06:00 BRT), groups p/ 1 PR/ecossistema/semana, limit 5.
+  Entry npm tem `ignore: typescript >=7` (trava TS 7 — ver lições). Labels
   provisionadas ANTES via `gh label create --force` (dependencies, rust,
   npm, github-actions) — o Dependabot NÃO cria label e update com label
   inexistente falha (mesma lição do achados-security).
@@ -369,7 +446,7 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
   (2) exige crate MEMBRO de workspace cargo (sem [workspace] próprio → panic
   Option::unwrap em rust.rs) — src-tauri tem [workspace] próprio e o build
   roda de dentro dele; (3) `pnpm exec` da raiz do repo não funciona (raiz não
-  é pacote pnpm) — usar o shim `ui/node_modules/.bin/tauri(.cmd)`.
+  é pacote pnpm) — usar o shim `packages/app/ui/node_modules/.bin/tauri(.cmd)`.
 - **Actions node24:** checkout@v7, setup-node@v7, setup-uv@v10.2.0 (o repo
   do setup-uv NÃO publica major tag — pino sempre a versão exata!),
   upload-artifact@v7. setup-uv@v10 quebrou 2 jobs antes do pin.
