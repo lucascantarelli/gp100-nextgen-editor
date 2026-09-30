@@ -4,17 +4,21 @@
 # (composite actions): setup-rust, setup-node-pnpm, build-front,
 # hardware-smoke, version-bump. Um lugar por regra; o workflow só ORQUESTRA.
 #
-# Regras de execução por ref (decisão do owner, 30/09):
-#   push main        → gate+spec+matrix 3-OS → VERSIONAMENTO AUTOMÁTICO
-#                      (conventional commits: feat→minor, fix/deps→patch,
-#                      breaking→major; chore/docs/ci não bumpam) → tag vNext
-#                      → release (o push da tag re-executa este pipeline).
+# Regras de execução por ref (decisão do owner, 30/09 — versão "play"):
+#   push main        → gate+spec+matrix 3-OS (validação; NÃO corta tag).
 #   push develop     → gate+spec+matrix 3-OS (pré-integração completa).
 #   PR → main|develop→ gate+spec+matrix 3-OS (pré-merge completo). PR com a
 #                      label "ci-lite" roda SÓ o Windows (WIP barato).
-#   tag v*           → gate+spec rápidos + RELEASE (CLI de campo zip+SHA256
-#                      e instalador NSIS; jobs reconfirmam os gates — a tag
-#                      nunca publica sem main verde).
+#   ▶ PLAY (Actions →
+#     Run workflow)  → AÇÃO MANUAL do versionamento: valida tudo, calcula
+#                      o semver pelos conventional commits desde a última
+#                      tag (feat→minor, fix/deps→patch, breaking→major;
+#                      chore/docs/ci/test/refactor não bumpam), cria a tag
+#                      vNext e PUBLICA o release (CLI zip+SHA256 + instalador
+#                      NSIS) NA MESMA RUN. Sem bump pendente = run verde com
+#                      "nada a cortar". Input opcional `tag` publica uma tag
+#                      que já existe.
+#   tag v* (push)    → gate+spec rápidos + RELEASE (mesmos artefatos).
 #   schedule 06:30   → security (cargo audit ×2 + pnpm audit + issue ACHADOS
 #                      única, label achados-security — detecção por OUTCOME
 #                      das steps, NUNCA grep de log).
@@ -22,7 +26,8 @@
 # Boas práticas aplicadas: matriz DINÂMICA (job plan decide full/lite —
 # fromJSON), concurrency por ref (tags/schedule nunca cancelam), cache por
 # projeto, permissões mínimas, jobs independentes entre si, release só por
-# tag e versionamento idempotente (chore(release) não re-bumpa — sem loop).
+# tag (cortada no Play ou empurrada à mão) e bump idempotente
+# (chore(release) não re-bumpa — sem loop).
 # ═══════════════════════════════════════════════════════════════════════════
 
 name: pipeline
@@ -41,12 +46,8 @@ on:
         description: "Executar também o job de security (auditorias)"
         type: boolean
         default: false
-      force-release:
-        description: "Forçar versionamento na main (patch mesmo sem feat/fix)"
-        type: boolean
-        default: false
       tag:
-        description: "Tag existente p/ release (ex.: v0.1.0) — o push de tag feito pelo GITHUB_TOKEN não dispara workflow (anti-loop do GitHub); dispatch com este input resolve"
+        description: "(Opcional) Tag EXISTENTE p/ release (ex.: v0.1.0) — vazia = cortar vNext pelo semver"
         type: string
         required: false
 
@@ -391,20 +392,14 @@ jobs:
             echo "issue criada"
           fi
 
-  # ── VERSIONAMENTO (2 estágios): cálculo automático + AÇÃO MANUAL ──
-  # 1) `version` calcula a próxima versão (rápido, sem pausa);
-  # 2) `tag-release` SÓ RODA se houver bump e PAUSA no environment
-  #    "release" (reviewer = owner): a tag só sai com o Approve humano
-  #    (no run: "Review deployments" → Approve; ou Settings → Environments).
-  # Após a aprovação, os jobs release-* rodam NA MESMA RUN (o GITHUB_TOKEN
-  # não dispara workflow no push de tag — anti-loop do GitHub — e a
-  # publicação na própria run elimina o dispatch manual).
+  # ── VERSIONAMENTO: AÇÃO MANUAL = o Play (workflow_dispatch) ──
+  # O botão "Run workflow" na aba Actions é o gate: valida tudo e, só
+  # então, corta a versão/cria a tag/publica — nada sai da main sem você
+  # apertar play. Push de main/develop NÃO corta tag (só valida).
   version:
     name: Versionamento (cálculo semver)
     needs: [gate, spec, rust, front]
-    if: >-
-      github.event_name == 'push' && github.ref == 'refs/heads/main'
-      || (github.event_name == 'workflow_dispatch' && inputs.force-release)
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     outputs:
       version: ${{ steps.ver.outputs.next-version }}
@@ -429,13 +424,15 @@ jobs:
             echo "release pendente: ${{ steps.ver.outputs.release }}"
           } >> "$GITHUB_STEP_SUMMARY"
 
-  # 2) AÇÃO MANUAL: pausa aqui até o owner aprovar (environment release).
+  # 2) O play virou tag: commit de bump (se houver) + tag vNext. SEM
+  # environment/approval — a ação manual É o apertar do play; release-*
+  # publicam na MESMA run (o GITHUB_TOKEN não dispara workflow no push de
+  # tag — anti-loop do GitHub — e publicar aqui elimina passos manuais).
   tag-release:
-    name: Tag de release — aguardando aprovação
+    name: Tag de release (cortada no play)
     needs: version
     if: needs.version.outputs.released == 'true'
     runs-on: ubuntu-24.04
-    environment: release
     outputs:
       tag: ${{ steps.criar.outputs.tag }}
       released: ${{ needs.version.outputs.released }}
