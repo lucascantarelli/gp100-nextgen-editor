@@ -63,7 +63,7 @@ impl DeviceInfo {
 #[tauri::command]
 pub fn device_info(state: State<'_, AppState>) -> Result<DeviceInfo, String> {
     let device = state.device.lock().map_err(|e| e.to_string())?;
-    Ok(DeviceInfo::from_mock(&device.state()))
+    Ok(DeviceInfo::from_mock(device.state()))
 }
 
 #[cfg(test)]
@@ -75,7 +75,7 @@ mod tests {
     #[test]
     fn device_info_deriva_do_mock_real() {
         let mock = MockDevice::new().expect("mock montado (R4 travado no build)");
-        let info = DeviceInfo::from_mock(&mock.state());
+        let info = DeviceInfo::from_mock(mock.state());
         assert_eq!(info.backend, "mock");
         assert_eq!(info.preset_count, 99);
         assert_eq!(info.current_pp, 0x0000);
@@ -90,7 +90,7 @@ mod tests {
     #[test]
     fn device_info_serializa_camelcase() {
         let mock = MockDevice::new().expect("mock montado");
-        let info = DeviceInfo::from_mock(&mock.state());
+        let info = DeviceInfo::from_mock(mock.state());
         let json = serde_json::to_value(&info).expect("serializável");
         assert!(json.get("presetCount").is_some());
         assert!(json.get("currentPp").is_some());
