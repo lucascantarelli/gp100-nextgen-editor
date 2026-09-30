@@ -75,8 +75,10 @@ jobs:
              printf '%s' "${{ toJson(github.event.pull_request.labels.*.name) }}" | grep -qi 'ci-lite'; then
             MODE="lite"
           fi
+          # Matrix DINÂMICA exige OBJETO {"include": [...]} — array solto
+          # não materializa job (run falha sem jobs; 1ª execução provou).
           if [ "$MODE" = "full" ]; then
-            RUST='[
+            RUST='{"include":[
               {"os":"windows-latest","project":"core","workdir":"."},
               {"os":"ubuntu-24.04","project":"core","workdir":"."},
               {"os":"macos-26","project":"core","workdir":"."},
@@ -85,14 +87,14 @@ jobs:
               {"os":"macos-26","project":"cli","workdir":"."},
               {"os":"windows-latest","project":"ui-rust","workdir":"src-tauri"},
               {"os":"ubuntu-24.04","project":"ui-rust","workdir":"src-tauri"},
-              {"os":"macos-26","project":"ui-rust","workdir":"src-tauri"}]'
-            FRONT='[{"os":"windows-latest"},{"os":"ubuntu-24.04"},{"os":"macos-26"}]'
+              {"os":"macos-26","project":"ui-rust","workdir":"src-tauri"}]}'
+            FRONT='{"include":[{"os":"windows-latest"},{"os":"ubuntu-24.04"},{"os":"macos-26"}]}'
           else
-            RUST='[
+            RUST='{"include":[
               {"os":"windows-latest","project":"core","workdir":"."},
               {"os":"windows-latest","project":"cli","workdir":"."},
-              {"os":"windows-latest","project":"ui-rust","workdir":"src-tauri"}]'
-            FRONT='[{"os":"windows-latest"}]'
+              {"os":"windows-latest","project":"ui-rust","workdir":"src-tauri"}]}'
+            FRONT='{"include":[{"os":"windows-latest"}]}'
           fi
           {
             echo "mode=$MODE"
