@@ -5,29 +5,31 @@
 # hardware-smoke, version-bump. Um lugar por regra; o workflow só ORQUESTRA.
 #
 # Regras de execução por ref (decisão do owner, 30/09 — versão "play"):
-#   push main        → gate+spec+matrix 3-OS (validação; NÃO corta tag).
-#   push develop     → gate+spec+matrix 3-OS (pré-integração completa).
-#   PR → main|develop→ gate+spec+matrix 3-OS (pré-merge completo). PR com a
-#                      label "ci-lite" roda SÓ o Windows (WIP barato).
+#   push main        → gate+spec+matriz 3-OS FILTRADA por caminhos mudados
+#                      (validação; NÃO corta tag).
+#   push develop     → idem main (pré-integração completa).
+#   PR → main|develop→ idem; PR com a label "ci-lite" roda SÓ o Windows
+#                      (WIP barato).
 #   ▶ PLAY (Actions →
 #     Run workflow)  → AÇÃO MANUAL do versionamento: valida tudo, calcula
 #                      o semver pelos conventional commits desde a última
-#                      tag (feat→minor, fix/deps→patch, breaking→major;
-#                      chore/docs/ci/test/refactor não bumpam), cria a tag
-#                      vNext e PUBLICA o release (CLI zip+SHA256 + instalador
-#                      NSIS) NA MESMA RUN. Sem bump pendente = run verde com
-#                      "nada a cortar". Input opcional `tag` publica uma tag
-#                      que já existe.
-#   tag v* (push)    → gate+spec rápidos + RELEASE (mesmos artefatos).
-#   schedule 06:30   → security (cargo audit ×2 + pnpm audit + issue ACHADOS
-#                      única, label achados-security — detecção por OUTCOME
-#                      das steps, NUNCA grep de log).
+#                      tag (feat→minor, fix/deps→patch, breaking→major),
+#                      e SÓ CORTA a tag/publica SE houver bump pendente.
+#                      Input opcional `tag` publica uma tag que já existe.
+#   tag v* (push)    → gate+spec+matriz cheia + RELEASE (CLI zip+SHA256 e
+#                      instalador NSIS).
+#   schedule 06:30   → security (cargo audit ×2 + pnpm audit + pytest da
+#                      spec + issue ACHADOS única, por OUTCOME das steps).
 #
-# Boas práticas aplicadas: matriz DINÂMICA (job plan decide full/lite —
-# fromJSON), concurrency por ref (tags/schedule nunca cancelam), cache por
-# projeto, permissões mínimas, jobs independentes entre si, release só por
-# tag (cortada no Play ou empurrada à mão) e bump idempotente
-# (chore(release) não re-bumpa — sem loop).
+# VELOCIDADE e RUÍDO ZERO (padrão monorepo):
+#   - O job `plan` calcula os CAMINHOS mudados e só materializa os jobs
+#     afetados: matriz DINÂMICA (fromJSON) — docs-only não sobe Rust/front;
+#     mudança só no front não sobe core/cli (o ui-rust sobe: embute ui/dist).
+#   - Jobs que não vão rodar NEM APARECEM: matriz vazia não gera nó no grafo
+#     (if: false apareceria como "skipped"). version/tag/release são matrizes
+#     de 1 item decididas pelo plan (0 = invisível, 1 = roda).
+#   - concurrency por ref (schedule/tag nunca cancelam), caches por projeto,
+#     timeout-minutes em todo job (runner preso não queima minutos).
 # ═══════════════════════════════════════════════════════════════════════════
 
 name: pipeline
@@ -63,60 +65,138 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  # ── PLANO: decide o modo (full/lite) e gera as matrizes dinâmicas ──
+  # ── PLANO: mudanças → matrizes filtradas + decisões de versão/release ──
   plan:
-    name: Plano (modo + matrizes)
+    name: Plano (mudanças + matrizes + versão)
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     outputs:
-      mode: ${{ steps.set.outputs.mode }}
-      rust-matrix: ${{ steps.set.outputs.rust-matrix }}
-      front-matrix: ${{ steps.set.outputs.front-matrix }}
+      rust-matrix: ${{ steps.mat.outputs.rust-matrix }}
+      front-matrix: ${{ steps.mat.outputs.front-matrix }}
+      run-spec: ${{ steps.mat.outputs.run-spec }}
+      tag-matrix: ${{ steps.rel.outputs.tag-matrix }}
+      release-matrix: ${{ steps.rel.outputs.release-matrix }}
+      next-version: ${{ steps.calc.outputs.next-version }}
+      release: ${{ steps.calc.outputs.release }}
+      bump: ${{ steps.calc.outputs.bump }}
     steps:
-      - name: Decidir modo e matrizes
-        id: set
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # diff contra a base + git describe + tags
+
+      - name: Buscar tags
+        run: git fetch --tags --force
+
+      - name: Calcular próxima versão (semver — informative)
+        id: calc
+        uses: ./.github/actions/version-bump
+
+      - name: Detectar mudanças (base → HEAD)
+        id: changes
         run: |
-          MODE="full"
-          if [ "${{ github.event_name }}" = "pull_request" ] && \
-             printf '%s' "${{ toJson(github.event.pull_request.labels.*.name) }}" | grep -qi 'ci-lite'; then
-            MODE="lite"
-          fi
-          # Matrix DINÂMICA exige OBJETO {"include": [...]} — array solto
-          # não materializa job (run falha sem jobs; 1ª execução provou).
-          if [ "$MODE" = "full" ]; then
-            RUST='{"include":[
-              {"os":"windows-latest","project":"core","workdir":"."},
-              {"os":"ubuntu-24.04","project":"core","workdir":"."},
-              {"os":"macos-26","project":"core","workdir":"."},
-              {"os":"windows-latest","project":"cli","workdir":"."},
-              {"os":"ubuntu-24.04","project":"cli","workdir":"."},
-              {"os":"macos-26","project":"cli","workdir":"."},
-              {"os":"windows-latest","project":"ui-rust","workdir":"src-tauri"},
-              {"os":"ubuntu-24.04","project":"ui-rust","workdir":"src-tauri"},
-              {"os":"macos-26","project":"ui-rust","workdir":"src-tauri"}]}'
-            FRONT='{"include":[{"os":"windows-latest"},{"os":"ubuntu-24.04"},{"os":"macos-26"}]}'
+          PR_BASE="${{ github.event.pull_request.base.sha }}"
+          BEFORE="${{ github.event.before }}"
+          if [ -n "$PR_BASE" ]; then
+            BASE="$PR_BASE"
+          elif [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ] && git cat-file -e "$BEFORE" 2>/dev/null; then
+            BASE="$BEFORE"
           else
-            RUST='{"include":[
-              {"os":"windows-latest","project":"core","workdir":"."},
-              {"os":"windows-latest","project":"cli","workdir":"."},
-              {"os":"windows-latest","project":"ui-rust","workdir":"src-tauri"}]}'
-            FRONT='{"include":[{"os":"windows-latest"}]}'
+            BASE="" # tag push / primeira run: sem diff → ALL
+          fi
+          if [ -z "$BASE" ]; then
+            CHANGED="ALL"
+          else
+            CHANGED="$(git diff --name-only "$BASE..HEAD" || true)"
+            [ -z "$CHANGED" ] && CHANGED="(none)"
           fi
           {
-            echo "mode=$MODE"
-            echo "rust-matrix=$(echo "$RUST" | jq -c .)"
-            echo "front-matrix=$(echo "$FRONT" | jq -c .)"
-          } >> "$GITHUB_OUTPUT"
+            echo "CHANGED<<CHANGED_EOF"
+            echo "$CHANGED"
+            echo "CHANGED_EOF"
+            echo "IS_SCHEDULE=${{ github.event_name == 'schedule' }}"
+          } >> "$GITHUB_ENV"
 
-  # ── GATE rápido (segundos): formatação + lint de mensagem de commit ──
+      - name: Matrizes por projeto afetado
+        id: mat
+        env:
+          IS_LITE: ${{ github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'ci-lite') }}
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, os, re
+          sys_out = []
+          changed = os.environ.get("CHANGED", "ALL")
+          is_all = changed == "ALL"
+          def has(pat):
+              return is_all or re.search(pat, changed, re.I) is not None
+          core   = has(r'^(Cargo\.toml$|Cargo\.lock$|rust-toolchain\.toml$|gp100-core/|gp100-cli/)')
+          uirust = has(r'^(src-tauri/|gp100-core/|ui/|Cargo\.toml$|rust-toolchain\.toml$)')
+          front  = has(r'^ui/')
+          spec   = has(r'^(analysis/|docs/|pyproject\.toml$|uv\.lock$)')
+          scheduled = os.environ.get("IS_SCHEDULE") == "true"
+          lite = os.environ.get("IS_LITE") == "true"
+          oss = ["windows-latest"] if lite else ["windows-latest", "ubuntu-24.04", "macos-26"]
+          rust = []
+          if not scheduled:
+              for o in oss:
+                  if core:
+                      rust.append({"os": o, "project": "core", "workdir": "."})
+                      rust.append({"os": o, "project": "cli", "workdir": "."})
+                  if uirust:
+                      rust.append({"os": o, "project": "ui-rust", "workdir": "src-tauri"})
+          fr = [] if scheduled else [{"os": o} for o in oss if front]
+          compact = lambda d: json.dumps(d, separators=(",", ":"))
+          print(f"rust-matrix={compact({'include': rust})}")
+          print(f"front-matrix={compact({'include': fr})}")
+          print(f"run-spec={'true' if (spec and not scheduled) else 'false'}")
+          PY
+
+      - name: Decisões de tag/release (o PLAY decide)
+        id: rel
+        env:
+          NEXT: ${{ steps.calc.outputs.next-version }}
+          PENDING: ${{ steps.calc.outputs.release }}
+        run: |
+          EVENT="${{ github.event_name }}"
+          REF="${{ github.ref }}"
+          TAG_INPUT="${{ github.event.inputs.tag }}"
+          DO_TAG=false; DO_RELEASE=false
+          if [ "$EVENT" = "workflow_dispatch" ] && [ -n "$TAG_INPUT" ]; then
+            DO_RELEASE=true   # publicar tag que JÁ existe (input do play)
+          fi
+          if [[ "$REF" == refs/tags/v* ]]; then
+            DO_RELEASE=true   # push de tag local → release nativo
+          fi
+          if [ "$EVENT" = "workflow_dispatch" ] && [ -z "$TAG_INPUT" ] && [ "$PENDING" = "true" ]; then
+            DO_TAG=true; DO_RELEASE=true   # play sem input + bump pendente
+          fi
+          obj() { if [ "$1" = true ]; then echo '{"include":[{"run":true}]}'; else echo '{"include":[]}'; fi; }
+          {
+            echo "tag-matrix=$(obj "$DO_TAG")"
+            echo "release-matrix=$(obj "$DO_RELEASE")"
+          } >> "$GITHUB_OUTPUT"
+          {
+            echo "### Plano do pipeline"
+            echo ""
+            echo "| Decisão | Valor |"
+            echo "|---|---|"
+            echo "| evento | \`$EVENT\` |"
+            echo "| input tag | \`$TAG_INPUT\` |"
+            echo "| próxima versão | \`$NEXT\` (bump: \`${{ steps.calc.outputs.bump }}\`, pendente: \`$PENDING\`) |"
+            echo "| cortar tag | \`$DO_TAG\` |"
+            echo "| release | \`$DO_RELEASE\` |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # ── GATE rápido (sempre): fmt + lint de conventional commits ──
   gate:
     name: Gate — fmt + conventional commits
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     env:
       RUSTUP_TOOLCHAIN: stable
     steps:
       - uses: actions/checkout@v7
         with:
-          fetch-depth: 2 # HEAD + pai: lint dos commits empurrados
+          fetch-depth: 2
 
       - name: Toolchain stable do runner
         run: rustup update stable --no-self-update
@@ -130,14 +210,9 @@ jobs:
       - name: Formatação (workspace gnu da raiz)
         run: cargo fmt --check
 
-      # No PR o checkout é um merge commit ("Merge branch …") — o lint só
-      # roda em PUSH (main/develop); no PR a qualidade dos subjects é
-      # garantida pelo review e pelo versionamento da main.
       - name: Conventional commits (push)
         if: github.event_name == 'push' && !startsWith(github.ref, 'refs/tags/v')
         run: |
-          # Range: todos os commits do push (event.before), com fallback
-          # para o último commit (novas branches / force-push).
           BEFORE="${{ github.event.before }}"
           if [ -z "$BEFORE" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "$BEFORE" 2>/dev/null; then
             RANGE="HEAD~1..HEAD"
@@ -145,8 +220,6 @@ jobs:
             RANGE="$BEFORE..HEAD"
           fi
           FAIL=0
-          # while-read: subjects têm ESPAÇO — word-splitting em `for in $(...)`
-          # avaliava palavra por palavra (bug da 1ª execução).
           while IFS= read -r s; do
             [ -z "$s" ] && continue
             if echo "$s" | grep -qE '^[a-z][a-z0-9_-]*(\([^\)]+\))?!?: .+'; then
@@ -158,10 +231,13 @@ jobs:
           done < <(git log --format='%s' "$RANGE" 2>/dev/null)
           exit $FAIL
 
-  # ── SPEC: trava da ESPECIFICAÇÃO (golden/fixtures) — pytest 10/10 ──
+  # ── SPEC: trava da especificação (pytest) — só quando ela muda ──
   spec:
     name: Python — trava da especificação
+    needs: plan
+    if: needs.plan.outputs.run-spec == 'true'
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
       - name: Instalar uv
@@ -173,16 +249,15 @@ jobs:
       - name: Suíte de regressão (golden, hash da baseline, knob_map, fixtures)
         run: uv run pytest
 
-  # ── RUST: gp100-core / gp100-cli / gp100-ui — matriz DINÂMICA por OS ──
+  # ── RUST: core / cli / ui-rust — matriz DINÂMICA (vazia = não aparece) ──
   rust:
     name: ${{ matrix.project }} (${{ matrix.os }})
     needs: plan
-    # Schedule = só security; tag = os jobs de release reconfirmam os gates.
-    if: github.event_name != 'schedule' && !startsWith(github.ref, 'refs/tags/v')
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.plan.outputs.rust-matrix) }}
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
     defaults:
       run:
         working-directory: ${{ matrix.workdir }}
@@ -209,13 +284,13 @@ jobs:
           sudo apt-get update -y
           sudo apt-get install -y pkg-config libasound2-dev
 
-      - name: Clippy (warnings = erro)
+      - name: Clippy + testes (gp100-core)
         if: matrix.project == 'core'
         run: |
           cargo clippy -p gp100-core --all-targets -- -D warnings
           cargo test -p gp100-core
 
-      - name: Clippy + testes (default + real-device)
+      - name: Clippy + testes (gp100-cli, default + real-device)
         if: matrix.project == 'cli'
         run: |
           cargo clippy -p gp100-cli --all-targets -- -D warnings
@@ -259,15 +334,15 @@ jobs:
           cargo test -p gp100-ui
           cargo build -p gp100-ui
 
-  # ── FRONT (ui/): matrix própria — lint/vitest/build ──
+  # ── FRONT (ui/): matriz dinâmica — lint/vitest/build ──
   front:
     name: ui — front (${{ matrix.os }})
     needs: plan
-    if: github.event_name != 'schedule' && !startsWith(github.ref, 'refs/tags/v')
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.plan.outputs.front-matrix) }}
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
       - name: Setup (Node 22 + pnpm 11)
@@ -275,11 +350,197 @@ jobs:
       - name: Lint + testes + build
         uses: ./.github/actions/build-front
 
-  # ── SECURITY: auditorias noturnas → issue ACHADOS (única, por outcome) ──
+  # ── TAG: matriz de 1 decidida pelo plan (0 = job não aparece) ──
+  tag-release:
+    name: Tag de release (cortada no play)
+    needs: [plan, gate, spec, rust, front]
+    strategy:
+      matrix: ${{ fromJSON(needs.plan.outputs.tag-matrix) }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      tag: ${{ steps.criar.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Buscar tags
+        run: git fetch --tags --force
+
+      - name: Aplicar versão (determinística sobre o mesmo sha do plan)
+        id: apply
+        uses: ./.github/actions/version-bump
+
+      - name: Criar commit + tag
+        id: criar
+        env:
+          TAG: v${{ steps.apply.outputs.next-version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          # Só commita se a versão divergir dos manifests (1º corte: sem
+          # diff — a tag marca a árvore como está).
+          git add Cargo.toml src-tauri/Cargo.toml version.json
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(release): $TAG (bump automático por conventional commits)"
+            git push origin HEAD
+          fi
+          git tag --force "$TAG"
+          git push --force origin "$TAG"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "tag **$TAG** criada (play aprovado por ${{ github.actor }})" >> "$GITHUB_STEP_SUMMARY"
+
+  # ── RELEASE: CLI de campo (Windows, gnu) — matriz decidida no plan ──
+  release-cli:
+    name: Release — CLI de campo (Windows, gnu)
+    needs: [plan, gate, spec, tag-release]
+    strategy:
+      matrix: ${{ fromJSON(needs.plan.outputs.release-matrix) }}
+    runs-on: windows-latest
+    timeout-minutes: 40
+    env:
+      RUSTUP_TOOLCHAIN: stable-x86_64-pc-windows-gnu
+    steps:
+      # Tag push: compila da própria ref; play com input: da tag do input;
+      # play que cortou tag: da tag recém-criada.
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.inputs.tag || needs.tag-release.outputs.tag || github.ref }}
+
+      - name: Toolchain + cache
+        uses: ./.github/actions/setup-rust
+        with:
+          workdir: .
+          cache-key: release-cli
+
+      - name: Gates (tag só sai de main verde — reconfirmação barata)
+        run: |
+          cargo fmt --check
+          cargo clippy --workspace --all-targets -- -D warnings
+          cargo test
+
+      - name: Build release do binário de campo
+        run: cargo build --release -p gp100-cli --features real-device
+
+      - name: Smoke da política de hardware
+        uses: ./.github/actions/hardware-smoke
+        with:
+          profile: release
+
+      - name: Empacotar (zip + SHA256 + notas)
+        shell: bash
+        run: |
+          STAGE="gp100-cli-${{ github.event.inputs.tag || needs.tag-release.outputs.tag || github.ref_name }}"
+          mkdir -p "$STAGE"
+          cp target/release/gp100-cli.exe "$STAGE/"
+          cp docs/H1_CHECKLIST.md docs/H1_REPORT.md scripts/h1_field.sh "$STAGE/"
+          cat > "$STAGE/LEIA-ME.txt" <<MD
+          GP-100 NextGen Editor — CLI de campo ${GITHUB_REF_NAME}
+
+          Uso do gate H1: docs/H1_CHECKLIST.md (roteiro) + h1_field.sh (runbook).
+          Relatorio da sessao: docs/H1_REPORT.md.
+
+          Politica de hardware: leitura real exige --real --i-know-what-im-doing
+          (build com feature real-device). ESCRITA permanece bloqueada ate o
+          gate H2 (WRITE_VERIFIED).
+          MD
+          zip -q -r "$STAGE.zip" "$STAGE" 2>/dev/null || 7z a -tzip -bso0 "$STAGE.zip" "$STAGE"
+          sha256sum "$STAGE.zip" > "$STAGE.zip.sha256"
+          cat > RELEASE_NOTES.md <<MD
+          ## gp100-cli de campo ${GITHUB_REF_NAME}
+
+          - Binário Windows (windows-gnu pinado, release) com feature \`real-device\`.
+          - Smoke da política executado no build (recusas 2/3 sem device).
+          - SHA256 em \`${STAGE}.zip.sha256\`; kit de campo (checklist + runbook + relatório) dentro do zip.
+          - Instalador do app (NSIS) no mesmo release, artefato \`gp100-ui-installer\`.
+          MD
+          echo "ASSET=$STAGE.zip" >> "$GITHUB_ENV"
+          echo "ASSET_SHA=$STAGE.zip.sha256" >> "$GITHUB_ENV"
+
+      - name: Upload do artefato (sempre — inspeção pré-release)
+        uses: actions/upload-artifact@v7
+        with:
+          name: gp100-cli-windows
+          path: |
+            ${{ env.ASSET }}
+            ${{ env.ASSET_SHA }}
+
+      - name: Publicar na GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ github.event.inputs.tag || needs.tag-release.outputs.tag || github.ref_name }}
+          files: |
+            ${{ env.ASSET }}
+            ${{ env.ASSET_SHA }}
+          body_path: RELEASE_NOTES.md
+          fail_on_unmatched_files: true
+
+  # ── RELEASE: instalador do app (NSIS via Tauri, MSVC) ──
+  release-installer:
+    name: Release — instalador NSIS (Tauri, MSVC)
+    needs: [plan, gate, spec, tag-release]
+    strategy:
+      matrix: ${{ fromJSON(needs.plan.outputs.release-matrix) }}
+    runs-on: windows-latest
+    timeout-minutes: 40
+    env:
+      RUSTUP_TOOLCHAIN: stable-x86_64-pc-windows-msvc
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.inputs.tag || needs.tag-release.outputs.tag || github.ref }}
+
+      - name: Setup do front (Node 22 + pnpm 11)
+        uses: ./.github/actions/setup-node-pnpm
+
+      - name: Front (lint + test + build — ui/dist alimenta o bundle)
+        uses: ./.github/actions/build-front
+
+      - name: Toolchain + cache (MSVC do src-tauri — ADR-7)
+        uses: ./.github/actions/setup-rust
+        with:
+          workdir: src-tauri
+          cache-key: release-installer
+
+      # O tauri-cli acha o conf DESCENDO do cwd; exige workspace (o próprio
+      # de src-tauri) e usa o shim do ui/ (raiz não é pacote pnpm).
+      - name: Build do bundle (instalador NSIS)
+        working-directory: src-tauri
+        run: ../ui/node_modules/.bin/tauri.cmd build
+
+      - name: Localizar e empacotar (SHA256)
+        shell: bash
+        run: |
+          SETUP=$(ls src-tauri/target/release/bundle/nsis/*-setup.exe | head -1)
+          echo "instalador: $SETUP"
+          sha256sum "$SETUP" > "$SETUP.sha256"
+          echo "SETUP=$SETUP" >> "$GITHUB_ENV"
+          echo "SETUP_SHA=$SETUP.sha256" >> "$GITHUB_ENV"
+
+      - name: Upload do artefato (sempre — inspeção pré-release)
+        uses: actions/upload-artifact@v7
+        with:
+          name: gp100-ui-installer
+          path: |
+            ${{ env.SETUP }}
+            ${{ env.SETUP_SHA }}
+
+      - name: Publicar na GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ github.event.inputs.tag || needs.tag-release.outputs.tag || github.ref_name }}
+          files: |
+            ${{ env.SETUP }}
+            ${{ env.SETUP_SHA }}
+          fail_on_unmatched_files: true
+
+  # ── SECURITY: auditorias noturnas + trava da spec + issue ACHADOS ──
   security:
-    name: Security — audits (RustSec + npm)
+    name: Security — audits (RustSec + npm) + spec
     if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.run-security)
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
     env:
       # O pin gnu da raiz quebra qualquer cargo no Linux (lição ADR-7).
       RUSTUP_TOOLCHAIN: stable
@@ -315,6 +576,12 @@ jobs:
         if: always()
         working-directory: ui
         run: pnpm outdated 2>&1 | tee /tmp/pnpm-outdated.txt || true
+
+      - name: Trava da especificação (pytest — como no security noturno antigo)
+        if: always()
+        run: |
+          uv sync --all-groups
+          uv run pytest
 
       - name: Achado = issue na FASE ACHADOS
         if: always()
@@ -391,229 +658,3 @@ jobs:
               --body "$BODY"
             echo "issue criada"
           fi
-
-  # ── VERSIONAMENTO: AÇÃO MANUAL = o Play (workflow_dispatch) ──
-  # O botão "Run workflow" na aba Actions é o gate: valida tudo e, só
-  # então, corta a versão/cria a tag/publica — nada sai da main sem você
-  # apertar play. Push de main/develop NÃO corta tag (só valida).
-  version:
-    name: Versionamento (cálculo semver)
-    needs: [gate, spec, rust, front]
-    if: github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-24.04
-    outputs:
-      version: ${{ steps.ver.outputs.next-version }}
-      released: ${{ steps.ver.outputs.release }}
-      bump: ${{ steps.ver.outputs.bump }}
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0 # git describe precisa do histórico + tags
-
-      - name: Buscar tags
-        run: git fetch --tags --force
-
-      - name: Calcular próxima versão
-        id: ver
-        uses: ./.github/actions/version-bump
-
-      - name: Resumo do cálculo
-        run: |
-          {
-            echo "versão atual → **${{ steps.ver.outputs.next-version }}** (bump: ${{ steps.ver.outputs.bump }})"
-            echo "release pendente: ${{ steps.ver.outputs.release }}"
-          } >> "$GITHUB_STEP_SUMMARY"
-
-  # 2) O play virou tag: commit de bump (se houver) + tag vNext. SEM
-  # environment/approval — a ação manual É o apertar do play; release-*
-  # publicam na MESMA run (o GITHUB_TOKEN não dispara workflow no push de
-  # tag — anti-loop do GitHub — e publicar aqui elimina passos manuais).
-  tag-release:
-    name: Tag de release (cortada no play)
-    needs: version
-    if: needs.version.outputs.released == 'true'
-    runs-on: ubuntu-24.04
-    outputs:
-      tag: ${{ steps.criar.outputs.tag }}
-      released: ${{ needs.version.outputs.released }}
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-
-      - name: Buscar tags
-        run: git fetch --tags --force
-
-      - name: Aplicar versão (determinística sobre o mesmo sha)
-        uses: ./.github/actions/version-bump
-
-      - name: Criar commit + tag (após aprovação)
-        id: criar
-        env:
-          TAG: v${{ needs.version.outputs.version }}
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          # Só commita se a versão divergir dos manifests (1º corte v0.1.0:
-          # sem diff — a tag marca a árvore como está).
-          git add Cargo.toml src-tauri/Cargo.toml version.json
-          if ! git diff --cached --quiet; then
-            git commit -m "chore(release): $TAG (bump automático por conventional commits)"
-            git push origin HEAD
-          fi
-          git tag --force "$TAG"
-          git push --force origin "$TAG"
-          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
-          {
-            echo "tag **$TAG** criada (aprovada por ${{ github.actor }})"
-            echo "jobs release-* publicando na mesma run…"
-          } >> "$GITHUB_STEP_SUMMARY"
-
-  # ── RELEASE: CLI de campo (Windows, gnu pinado) — tag v*, dispatch com
-  # input tag, OU aprovação manual do versionamento (mesma run) ──
-  release-cli:
-    name: Release — CLI de campo (Windows, gnu)
-    needs: [gate, spec, tag-release]
-    if: >-
-      !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
-      && (startsWith(github.ref, 'refs/tags/v')
-          || (github.event_name == 'workflow_dispatch' && github.event.inputs.tag != '')
-          || needs.tag-release.outputs.released == 'true')
-    runs-on: windows-latest
-    env:
-      RUSTUP_TOOLCHAIN: stable-x86_64-pc-windows-gnu
-    steps:
-      # Tag push: compila da própria ref; dispatch: da tag do input;
-      # aprovação: da tag recém-criada pelo tag-release.
-      - uses: actions/checkout@v7
-        with:
-          ref: ${{ github.event.inputs.tag || needs.tag-release.outputs.tag || github.ref }}
-
-      - name: Toolchain + cache
-        uses: ./.github/actions/setup-rust
-        with:
-          workdir: .
-          cache-key: release-cli
-
-      - name: Gates (tag só sai de main verde — reconfirmação barata)
-        run: |
-          cargo fmt --check
-          cargo clippy --workspace --all-targets -- -D warnings
-          cargo test
-
-      - name: Build release do binário de campo
-        run: cargo build --release -p gp100-cli --features real-device
-
-      - name: Smoke da política de hardware
-        uses: ./.github/actions/hardware-smoke
-        with:
-          profile: release
-
-      - name: Empacotar (zip + SHA256 + notas)
-        shell: bash
-        run: |
-          STAGE="gp100-cli-${{ github.event.inputs.tag || needs.tag-release.outputs.tag || github.ref_name }}"
-          mkdir -p "$STAGE"
-          cp target/release/gp100-cli.exe "$STAGE/"
-          cp docs/H1_CHECKLIST.md docs/H1_REPORT.md scripts/h1_field.sh "$STAGE/"
-          cat > "$STAGE/LEIA-ME.txt" <<MD
-          GP-100 NextGen Editor — CLI de campo ${GITHUB_REF_NAME}
-
-          Uso do gate H1: docs/H1_CHECKLIST.md (roteiro) + h1_field.sh (runbook).
-          Relatorio da sessao: docs/H1_REPORT.md.
-
-          Politica de hardware: leitura real exige --real --i-know-what-im-doing
-          (build com feature real-device). ESCRITA permanece bloqueada ate o
-          gate H2 (WRITE_VERIFIED).
-          MD
-          zip -q -r "$STAGE.zip" "$STAGE" 2>/dev/null || 7z a -tzip -bso0 "$STAGE.zip" "$STAGE"
-          sha256sum "$STAGE.zip" > "$STAGE.zip.sha256"
-          cat > RELEASE_NOTES.md <<MD
-          ## gp100-cli de campo ${GITHUB_REF_NAME}
-
-          - Binário Windows (windows-gnu pinado, release) com feature \`real-device\`.
-          - Smoke da política executado no build (recusas 2/3 sem device).
-          - SHA256 em \`${STAGE}.zip.sha256\`; kit de campo (checklist + runbook + relatório) dentro do zip.
-          - Instalador do app (NSIS) no mesmo release, artefato \`gp100-ui-installer\`.
-          MD
-          echo "ASSET=$STAGE.zip" >> "$GITHUB_ENV"
-          echo "ASSET_SHA=$STAGE.zip.sha256" >> "$GITHUB_ENV"
-
-      - name: Upload do artefato (sempre — inspeção pré-release)
-        uses: actions/upload-artifact@v7
-        with:
-          name: gp100-cli-windows
-          path: |
-            ${{ env.ASSET }}
-            ${{ env.ASSET_SHA }}
-
-      - name: Publicar na GitHub Release
-        uses: softprops/action-gh-release@v3
-        with:
-          tag_name: ${{ github.event.inputs.tag || needs.tag-release.outputs.tag || github.ref_name }}
-          files: |
-            ${{ env.ASSET }}
-            ${{ env.ASSET_SHA }}
-          body_path: RELEASE_NOTES.md
-          fail_on_unmatched_files: true
-
-  # ── RELEASE: instalador do app (NSIS via Tauri, MSVC) — mesmas 3 rotas ──
-  release-installer:
-    name: Release — instalador NSIS (Tauri, MSVC)
-    needs: [gate, spec, tag-release]
-    if: >-
-      !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
-      && (startsWith(github.ref, 'refs/tags/v')
-          || (github.event_name == 'workflow_dispatch' && github.event.inputs.tag != '')
-          || needs.tag-release.outputs.released == 'true')
-    runs-on: windows-latest
-    env:
-      RUSTUP_TOOLCHAIN: stable-x86_64-pc-windows-msvc
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          ref: ${{ github.event.inputs.tag || needs.tag-release.outputs.tag || github.ref }}
-
-      - name: Setup do front (Node 22 + pnpm 11)
-        uses: ./.github/actions/setup-node-pnpm
-
-      - name: Front (lint + test + build — ui/dist alimenta o bundle)
-        uses: ./.github/actions/build-front
-
-      - name: Toolchain + cache (MSVC do src-tauri — ADR-7)
-        uses: ./.github/actions/setup-rust
-        with:
-          workdir: src-tauri
-          cache-key: release-installer
-
-      # O tauri-cli acha o conf DESCENDO do cwd; exige workspace (o próprio
-      # de src-tauri) e usa o shim do ui/ (raiz não é pacote pnpm).
-      - name: Build do bundle (instalador NSIS)
-        working-directory: src-tauri
-        run: ../ui/node_modules/.bin/tauri.cmd build
-
-      - name: Localizar e empacotar (SHA256)
-        shell: bash
-        run: |
-          SETUP=$(ls src-tauri/target/release/bundle/nsis/*-setup.exe | head -1)
-          echo "instalador: $SETUP"
-          sha256sum "$SETUP" > "$SETUP.sha256"
-          echo "SETUP=$SETUP" >> "$GITHUB_ENV"
-          echo "SETUP_SHA=$SETUP.sha256" >> "$GITHUB_ENV"
-
-      - name: Upload do artefato (sempre — inspeção pré-release)
-        uses: actions/upload-artifact@v7
-        with:
-          name: gp100-ui-installer
-          path: |
-            ${{ env.SETUP }}
-            ${{ env.SETUP_SHA }}
-
-      - name: Publicar na GitHub Release
-        uses: softprops/action-gh-release@v3
-        with:
-          tag_name: ${{ github.event.inputs.tag || needs.tag-release.outputs.tag || github.ref_name }}
-          files: |
-            ${{ env.SETUP }}
-            ${{ env.SETUP_SHA }}
-          fail_on_unmatched_files: true
