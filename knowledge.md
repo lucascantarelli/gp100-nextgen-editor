@@ -295,3 +295,26 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
   fmt do crate roda DENTRO de src-tauri (projeto solto, sem --all).
 - rustfmt rejeita vírgula final dentro de generate_handler![] (macro com
   proc-macro span — fmt local com a gnu é suficiente p/ validar).
+
+## Infra CI (30/09 — security + release)
+- **security.yml (noturno 06:30 UTC)**: pytest + cargo audit (2 lockfiles) +
+  pnpm audit --prod + outdated informativo. Achado = **exit code das steps**
+  (outcome), NUNCA grep de log (grep pegou crash de toolchain como "achado"
+  → issue falso-positiva #1, fechada com documentação). RUSTUP_TOOLCHAIN=stable
+  no job: o pin gnu da raiz quebra qualquer cargo no Linux (lição ADR-7 de novo).
+- **release.yml (tag v*)**: CLI de campo gnu (gates + smoke 2/3 + zip com kit
+  H1 + SHA256) e instalador NSIS via `tauri build` (MSVC). Artefatos sempre
+  publicados como artifacts; GitHub Release só em tag.
+- **tauri-cli (armadilhas):** (1) acha o tauri.conf.json DESCENDO do cwd;
+  (2) exige crate MEMBRO de workspace cargo (sem [workspace] próprio → panic
+  Option::unwrap em rust.rs) — src-tauri tem [workspace] próprio e o build
+  roda de dentro dele; (3) `pnpm exec` da raiz do repo não funciona (raiz não
+  é pacote pnpm) — usar o shim `ui/node_modules/.bin/tauri(.cmd)`.
+- **Actions node24:** checkout@v7, setup-node@v7, setup-uv@v10.2.0 (o repo
+  do setup-uv NÃO publica major tag — pino sempre a versão exata!),
+  upload-artifact@v7. setup-uv@v10 quebrou 2 jobs antes do pin.
+- **Labels:** ubuntu-24.04 (migração p/ 26 em 19/10/2026), macos-26
+  (arm64; macos-15-intel em aposentadoria — fonte do aviso de capacidade).
+- `zip` não existe no Git Bash do runner Windows: `7z a -tzip` fallback.
+- `gh issue create --label` falha se o label não existir: criar com --force
+  antes (idempotente).
