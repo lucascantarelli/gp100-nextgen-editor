@@ -297,6 +297,43 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
 - rustfmt rejeita vírgula final dentro de generate_handler![] (macro com
   proc-macro span — fmt local com a gnu é suficiente p/ validar).
 
+## M1.1 (30/09 — DeviceActor + boot com barra)
+- **DeviceActor (D8)**: thread ÚNICA dona da `Session<MockDevice>`; fila
+  mpsc serializa commands (sem Mutex<Session> compartilhado). Posse via
+  `Option<Session>`: `info`/drain tomam a Session com `take()`, extraem
+  via `into_transport()` e REMONTAM (backlog D7 de observação descartado).
+- **Progresso do boot SEM callbacks emprestados**: `&mut dyn FnMut` não é
+  Send — não atravessa a fila do actor. Padrão: command passa
+  `mpsc::Sender<BootProgress>` (Send); actor fecha closure em volta do
+  sender; `boot_with_progress(Some(&mut cb))` no core (hook OBSERVACIONAL:
+  `boot()` canônico do ADR-6 intocado, replay byte-a-byte segue válido).
+- **boot() NUNCA tinha rodado sobre o MockDevice** (replay transport até
+  então). Rotas que o mock precisou: t12 (meta6 da sonda @13020001, const
+  00000c1c0140 — o select da sonda é CONST 0000, 2B, não vazio), t16
+  (pg8 da sonda → 4B @13020005), abertura → PÁGINA 0 196B (S1 rows 89–93:
+  "open open → pág0 pág0" — o t7 do golden pareava open com meta6,
+  mis-pairing inofensivo enquanto o boot só rodava no replay) e eco
+  pp/PG do REQUEST nas páginas (arm 13xx: example do req de leitura é
+  vazio → fill por sub-padrão/zeros, não por example_var do request).
+- Inventário do boot: DEFAULT da Session = 0..198 (2297 tx); os 2299 da
+  captura exigem inventário da S1 (0x0100 primeiro + pp corrente
+  duplicado, quirk §13.4). 0x0100 = 256 NÃO está em 0..198.
+- **Backlog D7 no DEVICE**: nomes são fire-and-forget (D4) e o mock
+  RESPONDE a eles → 61 pushes ficam na inbox do mock pós-boot;
+  `drain_inbox()` (FIFO global) os devolve → log `device://push` da UI
+  (DoD "pushes visíveis"). boot limpo NÃO deixa inbox vazia por si só.
+- **Pegadinhas do actor**: (1) Drop em handle Clone derruba o actor
+  quando um CLONE sai de escopo (matou thread de teste) — shutdown
+  EXPLÍCITO no ciclo do run(); (2) sem chamada de produção, clippy -D
+  warnings mata `shutdown`/handle como dead code (Clone não conta); (3)
+  clippy local do src-tauri morre no linker (GNU `link` do PATH intercepta
+  o link.exe MSVC — ADR-7; CI é a prova, host só fmt + cargo check
+  parcial).
+- UI: barra com `role=progressbar` + throttle rAF (2297 beats não
+  renderizam 2297 vezes — ~30 fps); Tauri 2 emite evento com `emit` do
+  trait `Emitter` (`use tauri::Emitter`) — `core:default` já cobre
+  `listen` no front; `.idle-dot` adicionada ao design.css.
+
 ## Infra CI (30/09 — security + release)
 - **security.yml (noturno 06:30 UTC)**: pytest + cargo audit (2 lockfiles) +
   pnpm audit --prod + outdated informativo. Achado = **exit code das steps**
