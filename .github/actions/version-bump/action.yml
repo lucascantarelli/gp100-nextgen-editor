@@ -41,11 +41,15 @@ runs:
         fi
         MAJOR=$(echo "$CUR" | cut -d. -f1); MINOR=$(echo "$CUR" | cut -d. -f2); PATCH=$(echo "$CUR" | cut -d. -f3)
         BUMP="none"
-        if git log --format='%s' "$RANGE" | grep -qiE '^[a-z]+(\([^)]*\))?!:' || git log --format='%B' "$RANGE" | grep -qi '^BREAKING CHANGE:'; then
+        # ⚠️ grep SEM -q: com pipefail, o -q sai cedo no match, o git log
+        # morre de SIGPIPE (141) e a condição vira FALSA mesmo com match
+        # (provado na 1ª execução: bump=none eterno). grep puro lê o
+        # stream inteiro — exit code correto sob pipefail.
+        if git log --format='%s' "$RANGE" | grep -iE '^[a-z]+(\([^)]*\))?!:' > /dev/null || git log --format='%B' "$RANGE" | grep -i '^BREAKING CHANGE:' > /dev/null; then
           BUMP="major"
-        elif git log --format='%s' "$RANGE" | grep -qiE '^feat(\(|:)' && [ "$BUMP" = "none" ]; then
+        elif git log --format='%s' "$RANGE" | grep -iE '^feat(\(|:)' > /dev/null && [ "$BUMP" = "none" ]; then
           BUMP="minor"
-        elif git log --format='%s' "$RANGE" | grep -qiE '^(fix|perf|revert|deps)(\(|:)' && [ "$BUMP" = "none" ]; then
+        elif git log --format='%s' "$RANGE" | grep -iE '^(fix|perf|revert|deps)(\(|:)' > /dev/null && [ "$BUMP" = "none" ]; then
           BUMP="patch"
         elif [ "$DEFAULT_BUMP" != "none" ] && [ "$BUMP" = "none" ]; then
           BUMP="$DEFAULT_BUMP"
