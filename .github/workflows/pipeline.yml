@@ -45,6 +45,10 @@ on:
         description: "Forçar versionamento na main (patch mesmo sem feat/fix)"
         type: boolean
         default: false
+      tag:
+        description: "Tag existente p/ release (ex.: v0.1.0) — o push de tag feito pelo GITHUB_TOKEN não dispara workflow (anti-loop do GitHub); dispatch com este input resolve"
+        type: string
+        required: false
 
 permissions:
   contents: write # tags + GitHub Release
@@ -434,12 +438,15 @@ jobs:
   release-cli:
     name: Release — CLI de campo (Windows, gnu)
     needs: [gate, spec]
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.tag != '')
     runs-on: windows-latest
     env:
       RUSTUP_TOOLCHAIN: stable-x86_64-pc-windows-gnu
     steps:
+      # No dispatch com input tag, compila A PARTIR DA TAG (não da branch).
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag || github.ref }}
 
       - name: Toolchain + cache
         uses: ./.github/actions/setup-rust
@@ -464,7 +471,7 @@ jobs:
       - name: Empacotar (zip + SHA256 + notas)
         shell: bash
         run: |
-          STAGE="gp100-cli-${GITHUB_REF_NAME}"
+          STAGE="gp100-cli-${{ inputs.tag || github.ref_name }}"
           mkdir -p "$STAGE"
           cp target/release/gp100-cli.exe "$STAGE/"
           cp docs/H1_CHECKLIST.md docs/H1_REPORT.md scripts/h1_field.sh "$STAGE/"
@@ -502,6 +509,7 @@ jobs:
       - name: Publicar na GitHub Release
         uses: softprops/action-gh-release@v3
         with:
+          tag_name: ${{ inputs.tag || github.ref_name }}
           files: |
             ${{ env.ASSET }}
             ${{ env.ASSET_SHA }}
@@ -512,12 +520,15 @@ jobs:
   release-installer:
     name: Release — instalador NSIS (Tauri, MSVC)
     needs: [gate, spec]
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.tag != '')
     runs-on: windows-latest
     env:
       RUSTUP_TOOLCHAIN: stable-x86_64-pc-windows-msvc
     steps:
+      # No dispatch com input tag, compila A PARTIR DA TAG (não da branch).
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag || github.ref }}
 
       - name: Setup do front (Node 22 + pnpm 11)
         uses: ./.github/actions/setup-node-pnpm
@@ -557,6 +568,7 @@ jobs:
       - name: Publicar na GitHub Release
         uses: softprops/action-gh-release@v3
         with:
+          tag_name: ${{ inputs.tag || github.ref_name }}
           files: |
             ${{ env.SETUP }}
             ${{ env.SETUP_SHA }}
