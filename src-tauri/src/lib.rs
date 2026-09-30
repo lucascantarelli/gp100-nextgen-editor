@@ -28,14 +28,19 @@ use gp100_core::transport::mock::MockDevice;
 pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     let mock = MockDevice::new()?;
     let actor = actor::DeviceActor::spawn(mock);
-    tauri::Builder::default()
-        .manage(commands::AppState { actor })
+    let result = tauri::Builder::default()
+        .manage(commands::AppState {
+            actor: actor.clone(),
+        })
         .invoke_handler(tauri::generate_handler![
             commands::device_info,
             commands::device_boot,
             commands::list_user_irs,
             commands::pending_pushes,
         ])
-        .run(tauri::generate_context!())?;
-    Ok(())
+        .run(tauri::generate_context!());
+    // Ciclo de vida: o actor roda até o app fechar — shutdown explícito
+    // (o handle é Clone; Drop em clone derrubaria o actor alheio).
+    actor.shutdown();
+    result.map_err(Into::into)
 }
