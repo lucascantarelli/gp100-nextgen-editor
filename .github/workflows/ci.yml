@@ -224,7 +224,7 @@ jobs:
 
       - name: Formatação
         if: matrix.os == 'ubuntu-latest'
-        run: cargo fmt --check
+        run: cargo fmt -- --check
 
       - name: Clippy (warnings = erro)
         run: cargo clippy -p gp100-ui --all-targets -- -D warnings
