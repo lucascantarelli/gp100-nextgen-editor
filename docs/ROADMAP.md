@@ -280,7 +280,7 @@
   entra na M1.1 — aqui é a prova do IPC) e o front `ui/` consumindo via
   `invoke` com fallback mockado (já implementado).
 - **DoD:** `pnpm tauri dev` abre a janela mostrando pp/nome/tipo do mock;
-  `cargo test` cobre o command; CI (4 jobs) verde.
+  `cargo test` cobre o command; CI (matrix 3 OSes por projeto) verde.
 - **Depois dela:** M1.1 (DeviceActor + boot).
 
 ### A-3. Toolchain/versões base — ✅ FEITO 29/09

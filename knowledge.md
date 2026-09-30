@@ -273,6 +273,8 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
   teste de tokens).
 - pnpm 11: allowlist de build scripts vai em `pnpm-workspace.yaml`
   (`allowBuilds`), NÃO no package.json (`pnpm.onlyBuiltDependencies` é legado).
-- CI: pytest + rust (win-gnu) + rust-portable (linux/macos) + ui (ubuntu).
-  Rust stable do RUNNER nas checagens de portabilidade (pin gnu não existe
-  como host fora do Windows).
+- CI (reestrutura do owner, 30/09): UM JOB POR PROJETO × matrix dos 3 OSes
+  (core/cli/ui em windows+linux+macos) + fmt rápido em ubuntu + pytest único.
+  Rust stable do RUNNER fora do Windows (pin gnu via RUSTUP_TOOLCHAIN só no
+  runner Windows). Linux + feature real-device exige `pkg-config` +
+  `libasound2-dev` (alsa-sys compila C) — instalado no job cli/ubuntu.
