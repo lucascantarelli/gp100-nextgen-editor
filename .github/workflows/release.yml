@@ -113,9 +113,6 @@ jobs:
   ui-installer:
     name: Instalador do app (NSIS via Tauri, MSVC)
     runs-on: windows-latest
-    defaults:
-      run:
-        working-directory: ui
     steps:
       - uses: actions/checkout@v7
 
@@ -126,11 +123,16 @@ jobs:
       - name: Instalar pnpm 11
         run: npm install -g pnpm@11
 
-      - name: Instalar deps (lockfile congelado)
-        run: pnpm install --frozen-lockfile
+      - name: Front (deps + build — ui/dist alimenta o bundle)
+        working-directory: ui
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
 
-      # O bundler roda beforeBuildCommand (pnpm build), compila o gp100-ui na
-      # toolchain MSVC do src-tauri/rust-toolchain.toml e baixa o NSIS.
+      # O CLI do Tauri procura o tauri.conf.json DESCENDO de onde roda: da
+      # raiz, ele acha src-tauri/ (irmão de ui/). Compila o gp100-ui na
+      # toolchain MSVC do src-tauri/rust-toolchain.toml e baixa o NSIS;
+      # beforeBuildCommand é vazio (o front já foi buildado acima).
       - name: Build do bundle (instalador NSIS)
         run: pnpm exec tauri build
 

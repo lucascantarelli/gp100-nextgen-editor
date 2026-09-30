@@ -4,9 +4,9 @@
   "version": "0.1.0",
   "identifier": "com.gp100.nextgen.editor",
   "build": {
-    "beforeDevCommand": "pnpm dev",
+    "beforeDevCommand": "",
     "devUrl": "http://localhost:5173",
-    "beforeBuildCommand": "pnpm build",
+    "beforeBuildCommand": "",
     "frontendDist": "../ui/dist"
   },
   "app": {
