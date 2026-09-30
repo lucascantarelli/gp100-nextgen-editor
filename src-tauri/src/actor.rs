@@ -85,7 +85,7 @@ impl DeviceActor {
                 match req {
                     Request::Info { reply } => match session.take() {
                         Some(s) => {
-                            let mut transport = s.into_transport();
+                            let transport = s.into_transport();
                             let st = transport.state().clone();
                             session = Some(Session::new(transport));
                             let _ = reply.send(Ok(st));

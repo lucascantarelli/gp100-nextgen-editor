@@ -199,6 +199,7 @@ pub fn pending_pushes(state: State<'_, AppState>) -> Result<Vec<String>, String>
 #[cfg(test)]
 mod tests {
     use super::*;
+    use gp100_core::transport::mock::MockDevice;
 
     /// O DTO do command é derivado do MOCK REAL (nunca de valores
     /// inventados): mesmo estado que o CLI `info` imprime — R1 nos DTOs.
