@@ -223,11 +223,11 @@ impl DeviceActor {
     }
 }
 
-impl Drop for DeviceActor {
-    fn drop(&mut self) {
-        self.shutdown();
-    }
-}
+// SEM impl Drop: o handle é Clone e qualquer clone caindo fora de escopo
+// NÃO pode derrubar o actor compartilhado (bug clássico de shutdown por
+// Drop em handle clonável — pegaria a thread de teste no meio do uso). O
+// shutdown é EXPLÍCITO: o app o tem pelo ciclo da AppState (processo);
+// os testes chamam no fim.
 
 #[cfg(test)]
 mod tests {
@@ -293,18 +293,23 @@ mod tests {
         actor.shutdown();
     }
 
-    /// Boot limpo NÃO deixa resíduos: todo reply do mock é consumido pela
-    /// transação correspondente (pareamento 1:1) — a drenagem pós-boot vem
-    /// vazia (o log de pushes da UI se popula com pushes REAIS do device;
-    /// no mock, com injeções — ver drain_inbox em gp100-core).
+    /// O boot deixa o backlog D7 na inbox do DEVICE: os nomes são
+    /// fire-and-forget (D4 — a Session não espera) e o mock RESPONDE a
+    /// eles (61 pushes @11000008) — a drenagem os devolve como hex
+    /// (F0…F7) e a 2ª drenagem vem vazia (dreno esvazia).
     #[test]
-    fn boot_limpo_drena_vazio() {
+    fn boot_deixa_backlog_d7_drenavel() {
         let actor = DeviceActor::spawn(MockDevice::new().expect("mock"));
         actor.boot(None).expect("boot");
+        let pushes = actor.drain_pushes().expect("drenagem");
         assert!(
-            actor.drain_pushes().expect("drenagem").is_empty(),
-            "boot sem pushes espontâneos: inbox pareia 1:1"
+            !pushes.is_empty(),
+            "respostas tardias dos nomes = backlog D7 do device"
         );
+        for h in &pushes {
+            assert!(h.starts_with("F0") && h.ends_with("F7"), "SysEx: {h}");
+        }
+        assert!(actor.drain_pushes().expect("2ª").is_empty());
         actor.shutdown();
     }
 
