@@ -78,6 +78,12 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
+    env:
+      # Sobrepõe o pin windows-gnu do rust-toolchain.toml (os shims do rustup
+      # tentariam instalar toolchain Windows fora do Windows e morreriam com
+      # "target tuple in channel name"). A checagem de portabilidade roda na
+      # stable NATIVA do runner; a build de campo continua no job `rust`.
+      RUSTUP_TOOLCHAIN: stable
     steps:
       - uses: actions/checkout@v4
 
