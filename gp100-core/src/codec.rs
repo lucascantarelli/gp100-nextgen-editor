@@ -288,6 +288,32 @@ pub fn ir_chunk_ack_payload(slot: u8, idx: u16) -> [u8; 4] {
     [slot, (idx >> 8) as u8, (idx & 0xFF) as u8, 0x01]
 }
 
+/// Envelopa um WRITE na forma canônica [`WireWrite`] → frame completo
+/// (§13.1): `HEADER | 12 | ADDR(4B) | DATA | F7`. PONTO ÚNICO de montagem
+/// de envelope de write (ADR-6: binários não montam SysEx; a FSM e o
+/// dry-run do CLI imprimem o que ESTA função produz).
+pub fn write_frame(addr: &[u8; 4], payload: &[u8]) -> Vec<u8> {
+    let mut m = Vec::with_capacity(SYSEX_HEADER.len() + 5 + payload.len() + 1);
+    m.extend_from_slice(&SYSEX_HEADER);
+    m.push(0x12);
+    m.extend_from_slice(addr);
+    m.extend_from_slice(payload);
+    m.push(SYSEX_EOX);
+    m
+}
+
+/// Desmonta um write nas partes (§13.1), o inverso exato de [`write_frame`].
+pub fn write_parse(frame: &[u8]) -> Result<([u8; 4], &[u8]), ProtocolError> {
+    let (func, addr, payload) = crate::golden::decode_envelope(frame)?;
+    if func != 0x12 {
+        return Err(ProtocolError::InvalidShape {
+            expected: "write (func 12)".into(),
+            got: format!("func {func:02x}"),
+        });
+    }
+    Ok((addr, payload))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

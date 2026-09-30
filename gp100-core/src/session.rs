@@ -354,24 +354,18 @@ impl<T: DeviceTransport> Session<T> {
     /// BLOCKERS 11); "salvou?" em H2 = display/`list_user_irs`, NUNCA
     /// interpretar burst 11xx tardio como confirmação.
     pub fn save_preset(&mut self, pp: u16, pp_type: u16, name: &str) -> Result<(), ProtocolError> {
+        // write_frame = ponto ÚNICO de montagem de envelope de write (§13.1);
+        // 5 writes do meta (§13.12) + ciclo de ops da S4 (D3): op0 com o
+        // meta, op0 de novo, op1 ×2 — fim dos writes = commit, ZERO IN esperado
         let mut sysexes: Vec<Vec<u8>> = Vec::new();
         for (addr, payload) in crate::codec::meta_block(pp, pp_type, name)? {
-            let mut m = Vec::from(crate::SYSEX_HEADER);
-            m.push(0x12);
-            m.extend_from_slice(&addr);
-            m.extend_from_slice(&payload);
-            m.push(crate::SYSEX_EOX);
-            sysexes.push(m);
+            sysexes.push(crate::codec::write_frame(&addr, &payload));
         }
-        // ciclo de ops da S4 (§13.12 re-derivado, D3): op0 com o meta,
-        // op0 de novo, op1 ×2 — fim dos writes = commit, ZERO IN esperado
         for op in [0u8, 0, 1, 1] {
-            let mut m = Vec::from(crate::SYSEX_HEADER);
-            m.push(0x12);
-            m.extend_from_slice(&[0x00, 0x02, 0x00, 0x00]);
-            m.extend_from_slice(&crate::codec::op_payload(op));
-            m.push(crate::SYSEX_EOX);
-            sysexes.push(m);
+            sysexes.push(crate::codec::write_frame(
+                &[0x00, 0x02, 0x00, 0x00],
+                &crate::codec::op_payload(op),
+            ));
         }
         for s in &sysexes {
             self.transport.send_raw(s).map_err(tx_err)?;

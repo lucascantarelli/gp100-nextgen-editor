@@ -533,22 +533,19 @@ fn run_save(pp: u16, pp_type: u16, name: &str) -> i32 {
         Err(e) => return fail(&e),
     };
     println!("dry-run save (§13.12): 9 frames (5 meta + 4 ops); ZERO IN esperado (D3)");
+    // Os frames vêm de codec::write_frame — o PONTO ÚNICO de montagem de
+    // envelope (ADR-6: o binário não monta SysEx; imprime o que a lib faz).
     for (addr, payload) in &block {
-        let mut m = Vec::from(gp100_core::SYSEX_HEADER);
-        m.push(0x12);
-        m.extend_from_slice(addr);
-        m.extend_from_slice(payload);
-        m.push(gp100_core::SYSEX_EOX);
+        let m = gp100_core::codec::write_frame(addr, payload);
         let hex: String = m.iter().map(|b| format!("{b:02x}")).collect();
         let addr_hex: String = addr.iter().map(|b| format!("{b:02x}")).collect();
         println!("  meta {addr_hex} ({}B): {hex}", m.len());
     }
     for op in [0u8, 0, 1, 1] {
-        let mut m = Vec::from(gp100_core::SYSEX_HEADER);
-        m.push(0x12);
-        m.extend_from_slice(&[0x00, 0x02, 0x00, 0x00]);
-        m.extend_from_slice(&gp100_core::codec::op_payload(op));
-        m.push(gp100_core::SYSEX_EOX);
+        let m = gp100_core::codec::write_frame(
+            &[0x00, 0x02, 0x00, 0x00],
+            &gp100_core::codec::op_payload(op),
+        );
         let hex: String = m.iter().map(|b| format!("{b:02x}")).collect();
         println!("  op   00020000 (op={op}, {}B): {hex}", m.len());
     }
