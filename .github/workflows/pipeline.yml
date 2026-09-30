@@ -403,9 +403,15 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add Cargo.toml src-tauri/Cargo.toml version.json
-          git commit -m "chore(release): $TAG (bump automático por conventional commits)"
-          git tag "$TAG"
-          git push origin HEAD "${TAG}"
+          # Se a versão calculada já é a dos manifests (ex.: 1º corte
+          # automático v0.1.0), NÃO há commit — a tag marca a árvore como
+          # está; a força garante idempotência em re-runs do dispatch.
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(release): $TAG (bump automático por conventional commits)"
+            git push origin HEAD
+          fi
+          git tag --force "$TAG"
+          git push --force origin "$TAG"
           echo "tag $TAG publicada — pipeline re-executa no ref da tag para o release"
 
   # ── RELEASE: CLI de campo (Windows, gnu pinado) — só em tag v* ──
