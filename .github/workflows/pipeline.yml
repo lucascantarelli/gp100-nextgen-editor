@@ -391,9 +391,16 @@ jobs:
             echo "issue criada"
           fi
 
-  # ── VERSIONAMENTO: main verde → semver pelos conventional commits ──
+  # ── VERSIONAMENTO (2 estágios): cálculo automático + AÇÃO MANUAL ──
+  # 1) `version` calcula a próxima versão (rápido, sem pausa);
+  # 2) `tag-release` SÓ RODA se houver bump e PAUSA no environment
+  #    "release" (reviewer = owner): a tag só sai com o Approve humano
+  #    (no run: "Review deployments" → Approve; ou Settings → Environments).
+  # Após a aprovação, os jobs release-* rodam NA MESMA RUN (o GITHUB_TOKEN
+  # não dispara workflow no push de tag — anti-loop do GitHub — e a
+  # publicação na própria run elimina o dispatch manual).
   version:
-    name: Versionamento (semver automático)
+    name: Versionamento (cálculo semver)
     needs: [gate, spec, rust, front]
     if: >-
       github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -411,42 +418,79 @@ jobs:
       - name: Buscar tags
         run: git fetch --tags --force
 
-      - name: Calcular e aplicar versão
+      - name: Calcular próxima versão
         id: ver
         uses: ./.github/actions/version-bump
 
-      - name: Commit + tag de release
-        if: steps.ver.outputs.release == 'true'
+      - name: Resumo do cálculo
+        run: |
+          {
+            echo "versão atual → **${{ steps.ver.outputs.next-version }}** (bump: ${{ steps.ver.outputs.bump }})"
+            echo "release pendente: ${{ steps.ver.outputs.release }}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # 2) AÇÃO MANUAL: pausa aqui até o owner aprovar (environment release).
+  tag-release:
+    name: Tag de release — aguardando aprovação
+    needs: version
+    if: needs.version.outputs.released == 'true'
+    runs-on: ubuntu-24.04
+    environment: release
+    outputs:
+      tag: ${{ steps.criar.outputs.tag }}
+      released: ${{ needs.version.outputs.released }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Buscar tags
+        run: git fetch --tags --force
+
+      - name: Aplicar versão (determinística sobre o mesmo sha)
+        uses: ./.github/actions/version-bump
+
+      - name: Criar commit + tag (após aprovação)
+        id: criar
         env:
-          TAG: v${{ steps.ver.outputs.next-version }}
+          TAG: v${{ needs.version.outputs.version }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          # Só commita se a versão divergir dos manifests (1º corte v0.1.0:
+          # sem diff — a tag marca a árvore como está).
           git add Cargo.toml src-tauri/Cargo.toml version.json
-          # Se a versão calculada já é a dos manifests (ex.: 1º corte
-          # automático v0.1.0), NÃO há commit — a tag marca a árvore como
-          # está; a força garante idempotência em re-runs do dispatch.
           if ! git diff --cached --quiet; then
             git commit -m "chore(release): $TAG (bump automático por conventional commits)"
             git push origin HEAD
           fi
           git tag --force "$TAG"
           git push --force origin "$TAG"
-          echo "tag $TAG publicada — pipeline re-executa no ref da tag para o release"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          {
+            echo "tag **$TAG** criada (aprovada por ${{ github.actor }})"
+            echo "jobs release-* publicando na mesma run…"
+          } >> "$GITHUB_STEP_SUMMARY"
 
-  # ── RELEASE: CLI de campo (Windows, gnu pinado) — só em tag v* ──
+  # ── RELEASE: CLI de campo (Windows, gnu pinado) — tag v*, dispatch com
+  # input tag, OU aprovação manual do versionamento (mesma run) ──
   release-cli:
     name: Release — CLI de campo (Windows, gnu)
-    needs: [gate, spec]
-    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.tag != '')
+    needs: [gate, spec, tag-release]
+    if: >-
+      !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
+      && (startsWith(github.ref, 'refs/tags/v')
+          || (github.event_name == 'workflow_dispatch' && inputs.tag != '')
+          || needs.tag-release.outputs.released == 'true')
     runs-on: windows-latest
     env:
       RUSTUP_TOOLCHAIN: stable-x86_64-pc-windows-gnu
     steps:
-      # No dispatch com input tag, compila A PARTIR DA TAG (não da branch).
+      # Tag push: compila da própria ref; dispatch: da tag do input;
+      # aprovação: da tag recém-criada pelo tag-release.
       - uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.tag || github.ref }}
+          ref: ${{ inputs.tag || needs.tag-release.outputs.tag || github.ref }}
 
       - name: Toolchain + cache
         uses: ./.github/actions/setup-rust
@@ -471,7 +515,7 @@ jobs:
       - name: Empacotar (zip + SHA256 + notas)
         shell: bash
         run: |
-          STAGE="gp100-cli-${{ inputs.tag || github.ref_name }}"
+          STAGE="gp100-cli-${{ inputs.tag || needs.tag-release.outputs.tag || github.ref_name }}"
           mkdir -p "$STAGE"
           cp target/release/gp100-cli.exe "$STAGE/"
           cp docs/H1_CHECKLIST.md docs/H1_REPORT.md scripts/h1_field.sh "$STAGE/"
@@ -509,26 +553,29 @@ jobs:
       - name: Publicar na GitHub Release
         uses: softprops/action-gh-release@v3
         with:
-          tag_name: ${{ inputs.tag || github.ref_name }}
+          tag_name: ${{ inputs.tag || needs.tag-release.outputs.tag || github.ref_name }}
           files: |
             ${{ env.ASSET }}
             ${{ env.ASSET_SHA }}
           body_path: RELEASE_NOTES.md
           fail_on_unmatched_files: true
 
-  # ── RELEASE: instalador do app (NSIS via Tauri, MSVC) — só em tag v* ──
+  # ── RELEASE: instalador do app (NSIS via Tauri, MSVC) — mesmas 3 rotas ──
   release-installer:
     name: Release — instalador NSIS (Tauri, MSVC)
-    needs: [gate, spec]
-    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.tag != '')
+    needs: [gate, spec, tag-release]
+    if: >-
+      !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
+      && (startsWith(github.ref, 'refs/tags/v')
+          || (github.event_name == 'workflow_dispatch' && inputs.tag != '')
+          || needs.tag-release.outputs.released == 'true')
     runs-on: windows-latest
     env:
       RUSTUP_TOOLCHAIN: stable-x86_64-pc-windows-msvc
     steps:
-      # No dispatch com input tag, compila A PARTIR DA TAG (não da branch).
       - uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.tag || github.ref }}
+          ref: ${{ inputs.tag || needs.tag-release.outputs.tag || github.ref }}
 
       - name: Setup do front (Node 22 + pnpm 11)
         uses: ./.github/actions/setup-node-pnpm
@@ -568,7 +615,7 @@ jobs:
       - name: Publicar na GitHub Release
         uses: softprops/action-gh-release@v3
         with:
-          tag_name: ${{ inputs.tag || github.ref_name }}
+          tag_name: ${{ inputs.tag || needs.tag-release.outputs.tag || github.ref_name }}
           files: |
             ${{ env.SETUP }}
             ${{ env.SETUP_SHA }}
