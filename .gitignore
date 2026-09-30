@@ -1,7 +1,7 @@
 # ===== Rust =====
 /target
-src-tauri/target/
-src-tauri/gen/
+packages/app/api/target/
+packages/app/api/gen/
 Cargo.lock.bak
 *.pdb
 
@@ -50,8 +50,8 @@ analysis/manual_streams.txt
 analysis/h1_rehearsal_*/
 analysis/h1_field_*/
 
-# ── Front (ui/, M1.0+) ──
-ui/node_modules/
-ui/dist/
-ui/coverage/
+# ── Front (packages/app/ui/, M1.0+) ──
+packages/app/ui/node_modules/
+packages/app/ui/dist/
+packages/app/ui/coverage/
 *.tsbuildinfo

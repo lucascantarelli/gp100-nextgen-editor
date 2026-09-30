@@ -22,12 +22,14 @@
 #                      spec + issue ACHADOS única, por OUTCOME das steps).
 #
 # VELOCIDADE e RUÍDO ZERO (padrão monorepo):
-#   - O job `plan` calcula os CAMINHOS mudados e só materializa os jobs
-#     afetados: matriz DINÂMICA (fromJSON) — docs-only não sobe Rust/front;
-#     mudança só no front não sobe core/cli (o ui-rust sobe: embute ui/dist).
-#   - Jobs que não vão rodar NEM APARECEM: matriz vazia não gera nó no grafo
-#     (if: false apareceria como "skipped"). version/tag/release são matrizes
-#     de 1 item decididas pelo plan (0 = invisível, 1 = roda).
+#   - O job `plan` calcula os CAMINHOS mudados e liga/desliga jobs por
+#     booleano (run-rust/run-front/run-spec): docs-only não sobe Rust/front;
+#     mudança só no front não sobe core/cli (o ui-rust sobe: embute app/ui/dist).
+#   - Job filtrado aparece como "skipped" (0 min, não falha a run). ⚠️ NUNCA
+#     emitir matriz de 0 itens: matriz vazia CRASHA a run inteira como failure
+#     sem nenhum job failed (provado na run 36747668222) — matrizes dinâmicas
+#     só existem onde o plan garante ≥1 item; tag/release usam matriz fixa de 1
+#     + if por booleano.
 #   - concurrency por ref (schedule/tag nunca cancelam), caches por projeto,
 #     timeout-minutes em todo job (runner preso não queima minutos).
 # ═══════════════════════════════════════════════════════════════════════════
@@ -73,9 +75,11 @@ jobs:
     outputs:
       rust-matrix: ${{ steps.mat.outputs.rust-matrix }}
       front-matrix: ${{ steps.mat.outputs.front-matrix }}
+      run-rust: ${{ steps.mat.outputs.run-rust }}
+      run-front: ${{ steps.mat.outputs.run-front }}
       run-spec: ${{ steps.mat.outputs.run-spec }}
-      tag-matrix: ${{ steps.rel.outputs.tag-matrix }}
-      release-matrix: ${{ steps.rel.outputs.release-matrix }}
+      run-tag: ${{ steps.rel.outputs.run-tag }}
+      run-release: ${{ steps.rel.outputs.run-release }}
       next-version: ${{ steps.calc.outputs.next-version }}
       release: ${{ steps.calc.outputs.release }}
       bump: ${{ steps.calc.outputs.bump }}
@@ -128,9 +132,9 @@ jobs:
           is_all = changed == "ALL"
           def has(pat):
               return is_all or re.search(pat, changed, re.I) is not None
-          core   = has(r'^(Cargo\.toml$|Cargo\.lock$|rust-toolchain\.toml$|gp100-core/|gp100-cli/)')
-          uirust = has(r'^(src-tauri/|gp100-core/|ui/|Cargo\.toml$|rust-toolchain\.toml$)')
-          front  = has(r'^ui/')
+          core   = has(r'^(Cargo\.toml$|Cargo\.lock$|rust-toolchain\.toml$|packages/core/|packages/cli/)')
+          uirust = has(r'^(packages/app/|packages/core/|Cargo\.toml$|rust-toolchain\.toml$)')
+          front  = has(r'^packages/app/ui/')
           spec   = has(r'^(analysis/|docs/|pyproject\.toml$|uv\.lock$)')
           scheduled = os.environ.get("IS_SCHEDULE") == "true"
           lite = os.environ.get("IS_LITE") == "true"
@@ -142,11 +146,13 @@ jobs:
                       rust.append({"os": o, "project": "core", "workdir": "."})
                       rust.append({"os": o, "project": "cli", "workdir": "."})
                   if uirust:
-                      rust.append({"os": o, "project": "ui-rust", "workdir": "src-tauri"})
+                      rust.append({"os": o, "project": "ui-rust", "workdir": "packages/app/api"})
           fr = [] if scheduled else [{"os": o} for o in oss if front]
           compact = lambda d: json.dumps(d, separators=(",", ":"))
           print(f"rust-matrix={compact({'include': rust})}")
           print(f"front-matrix={compact({'include': fr})}")
+          print(f"run-rust={'true' if rust else 'false'}")
+          print(f"run-front={'true' if fr else 'false'}")
           print(f"run-spec={'true' if (spec and not scheduled) else 'false'}")
           PY
 
@@ -169,10 +175,9 @@ jobs:
           if [ "$EVENT" = "workflow_dispatch" ] && [ -z "$TAG_INPUT" ] && [ "$PENDING" = "true" ]; then
             DO_TAG=true; DO_RELEASE=true   # play sem input + bump pendente
           fi
-          obj() { if [ "$1" = true ]; then echo '{"include":[{"run":true}]}'; else echo '{"include":[]}'; fi; }
           {
-            echo "tag-matrix=$(obj "$DO_TAG")"
-            echo "release-matrix=$(obj "$DO_RELEASE")"
+            echo "run-tag=$DO_TAG"
+            echo "run-release=$DO_RELEASE"
           } >> "$GITHUB_OUTPUT"
           {
             echo "### Plano do pipeline"
@@ -253,6 +258,7 @@ jobs:
   rust:
     name: ${{ matrix.project }} (${{ matrix.os }})
     needs: plan
+    if: needs.plan.outputs.run-rust == 'true'
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.plan.outputs.rust-matrix) }}
@@ -266,10 +272,10 @@ jobs:
 
       # Regra por OS (a composite instala a toolchain; esta env garante que
       # TODO cargo do job a use — runner.os só existe em STEP, daí o
-      # GITHUB_ENV): gnu na raiz (campo/dev), msvc no src-tauri (ADR-7),
+      # GITHUB_ENV): gnu na raiz (campo/dev), msvc na api (ADR-7),
       # stable nativa fora do Windows (ADR-8).
       - name: Definir RUSTUP_TOOLCHAIN por OS/projeto
-        run: echo "RUSTUP_TOOLCHAIN=${{ runner.os == 'Windows' && (matrix.workdir == 'src-tauri' && 'stable-x86_64-pc-windows-msvc' || 'stable-x86_64-pc-windows-gnu') || 'stable' }}" >> "$GITHUB_ENV"
+        run: echo "RUSTUP_TOOLCHAIN=${{ runner.os == 'Windows' && (matrix.workdir == 'packages/app/api' && 'stable-x86_64-pc-windows-msvc' || 'stable-x86_64-pc-windows-gnu') || 'stable' }}" >> "$GITHUB_ENV"
 
       - name: Toolchain + cache do cargo
         uses: ./.github/actions/setup-rust
@@ -336,8 +342,9 @@ jobs:
 
   # ── FRONT (ui/): matriz dinâmica — lint/vitest/build ──
   front:
-    name: ui — front (${{ matrix.os }})
+    name: app/ui — front (${{ matrix.os }})
     needs: plan
+    if: needs.plan.outputs.run-front == 'true'
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.plan.outputs.front-matrix) }}
@@ -354,8 +361,11 @@ jobs:
   tag-release:
     name: Tag de release (cortada no play)
     needs: [plan, gate, spec, rust, front]
+    if: needs.plan.outputs.run-tag == 'true'
     strategy:
-      matrix: ${{ fromJSON(needs.plan.outputs.tag-matrix) }}
+      matrix:
+        include:
+          - run: true
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     outputs:
@@ -381,7 +391,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           # Só commita se a versão divergir dos manifests (1º corte: sem
           # diff — a tag marca a árvore como está).
-          git add Cargo.toml src-tauri/Cargo.toml version.json
+          git add Cargo.toml packages/app/api/Cargo.toml version.json
           if ! git diff --cached --quiet; then
             git commit -m "chore(release): $TAG (bump automático por conventional commits)"
             git push origin HEAD
@@ -395,8 +405,11 @@ jobs:
   release-cli:
     name: Release — CLI de campo (Windows, gnu)
     needs: [plan, gate, spec, tag-release]
+    if: needs.plan.outputs.run-release == 'true'
     strategy:
-      matrix: ${{ fromJSON(needs.plan.outputs.release-matrix) }}
+      matrix:
+        include:
+          - run: true
     runs-on: windows-latest
     timeout-minutes: 40
     env:
@@ -480,8 +493,11 @@ jobs:
   release-installer:
     name: Release — instalador NSIS (Tauri, MSVC)
     needs: [plan, gate, spec, tag-release]
+    if: needs.plan.outputs.run-release == 'true'
     strategy:
-      matrix: ${{ fromJSON(needs.plan.outputs.release-matrix) }}
+      matrix:
+        include:
+          - run: true
     runs-on: windows-latest
     timeout-minutes: 40
     env:
@@ -497,22 +513,22 @@ jobs:
       - name: Front (lint + test + build — ui/dist alimenta o bundle)
         uses: ./.github/actions/build-front
 
-      - name: Toolchain + cache (MSVC do src-tauri — ADR-7)
+      - name: Toolchain + cache (MSVC da api — ADR-7)
         uses: ./.github/actions/setup-rust
         with:
-          workdir: src-tauri
+          workdir: packages/app/api
           cache-key: release-installer
 
       # O tauri-cli acha o conf DESCENDO do cwd; exige workspace (o próprio
-      # de src-tauri) e usa o shim do ui/ (raiz não é pacote pnpm).
+      # de packages/app/api) e usa o shim do ui/ (packages/app não é pacote pnpm).
       - name: Build do bundle (instalador NSIS)
-        working-directory: src-tauri
-        run: ../ui/node_modules/.bin/tauri.cmd build
+        working-directory: packages/app/api
+        run: ../../ui/node_modules/.bin/tauri.cmd build
 
       - name: Localizar e empacotar (SHA256)
         shell: bash
         run: |
-          SETUP=$(ls src-tauri/target/release/bundle/nsis/*-setup.exe | head -1)
+          SETUP=$(ls packages/app/api/target/release/bundle/nsis/*-setup.exe | head -1)
           echo "instalador: $SETUP"
           sha256sum "$SETUP" > "$SETUP.sha256"
           echo "SETUP=$SETUP" >> "$GITHUB_ENV"
@@ -560,7 +576,7 @@ jobs:
       - name: cargo audit — gp100-ui (lockfile próprio, ADR-7)
         id: cargo_audit_ui
         continue-on-error: true
-        working-directory: src-tauri
+        working-directory: packages/app/api
         run: cargo audit --file Cargo.lock 2>&1 | tee /tmp/cargo-audit-ui.txt
 
       - name: Setup (Node 22 + pnpm 11)
@@ -569,12 +585,12 @@ jobs:
       - name: pnpm audit (runtime do front — --prod ignora dev-deps)
         id: pnpm_audit
         continue-on-error: true
-        working-directory: ui
+        working-directory: packages/app/ui
         run: pnpm audit --prod 2>&1 | tee /tmp/pnpm-audit.txt
 
       - name: Relatório de versões (INFORMATIVO — não falha)
         if: always()
-        working-directory: ui
+        working-directory: packages/app/ui
         run: pnpm outdated 2>&1 | tee /tmp/pnpm-outdated.txt || true
 
       - name: Trava da especificação (pytest — como no security noturno antigo)

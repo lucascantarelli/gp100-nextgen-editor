@@ -1,8 +1,8 @@
 {
-  // Debug do GP-100 NextGen Editor.
+  // Debug do GP-100 NextGen Editor (layout: packages/app/ui + packages/app/api).
   //
   // COMO VER A UI (owner, escolha pelo objetivo):
-  //  1. Visual rápido (sem shell nativo): rode a task "ui: dev server" e
+  //  1. Visual rápido (sem shell nativo): rode a task "app/ui: dev server" e
   //     abra http://localhost:5173 no browser — o ipc tem fallback mock
   //     (mesmos valores do MockDevice) e o boot mostra a barra com
   //     progresso sintético. Launch "UI (Chrome)" faz isso com F5.
@@ -19,8 +19,8 @@
       "type": "chrome",
       "request": "launch",
       "url": "http://localhost:5173",
-      "webRoot": "${workspaceFolder}/ui/src",
-      "preLaunchTask": "ui: dev server (vite — UI no browser)",
+      "webRoot": "${workspaceFolder}/packages/app/ui/src",
+      "preLaunchTask": "app/ui: dev server (vite — UI no browser)",
       "runtimeArgs": ["--auto-open-devtools-for-tabs"]
     },
     {
@@ -28,20 +28,20 @@
       "type": "msedge",
       "request": "launch",
       "url": "http://localhost:5173",
-      "webRoot": "${workspaceFolder}/ui/src",
-      "preLaunchTask": "ui: dev server (vite — UI no browser)"
+      "webRoot": "${workspaceFolder}/packages/app/ui/src",
+      "preLaunchTask": "app/ui: dev server (vite — UI no browser)"
     },
     {
       "name": "Tauri (dev) — janela desktop real",
       "type": "node",
       "request": "launch",
-      "runtimeExecutable": "${workspaceFolder}/ui/node_modules/.bin/tauri.cmd",
+      "runtimeExecutable": "${workspaceFolder}/packages/app/ui/node_modules/.bin/tauri.cmd",
       "runtimeArgs": ["dev"],
-      "cwd": "${workspaceFolder}/src-tauri",
+      "cwd": "${workspaceFolder}/packages/app/api",
       "env": { "RUSTUP_TOOLCHAIN": "stable-x86_64-pc-windows-msvc" },
       "console": "integratedTerminal",
       "skipFiles": ["<node_internals>/**"],
-      "windows": { "runtimeExecutable": "${workspaceFolder}/ui/node_modules/.bin/tauri.cmd" }
+      "windows": { "runtimeExecutable": "${workspaceFolder}/packages/app/ui/node_modules/.bin/tauri.cmd" }
     },
     {
       "name": "Rust — debug gp100-cli (args do device)",
@@ -57,9 +57,9 @@
       "name": "Vitest — debug arquivo atual",
       "type": "node",
       "request": "launch",
-      "runtimeExecutable": "${workspaceFolder}/ui/node_modules/.bin/vitest.cmd",
+      "runtimeExecutable": "${workspaceFolder}/packages/app/ui/node_modules/.bin/vitest.cmd",
       "args": ["run", "${relativeFile}", "--no-file-parallelism"],
-      "cwd": "${workspaceFolder}/ui",
+      "cwd": "${workspaceFolder}/packages/app/ui",
       "console": "integratedTerminal",
       "skipFiles": ["<node_internals>/**", "**/node_modules/**"]
     }

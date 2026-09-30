@@ -3,7 +3,7 @@ description: >
   Calcula a próxima versão SEMVER pelos conventional commits desde a última
   tag v*: feat→minor, fix/perf/revert/deps→patch, BREAKING CHANGE/!→major;
   docs/chore/ci/test/refactor não bumpam. Aplica em Cargo.toml (raiz +
-  src-tauri) e version.json (fonte única do front/release). Saída:
+  packages/app/api) e version.json (fonte única do front/release). Saída:
   next-version, release (true/false), bump.
 inputs:
   default-bump:
@@ -78,11 +78,11 @@ runs:
         NEXT: ${{ steps.calc.outputs.next }}
       run: |
         set -euo pipefail
-        for f in Cargo.toml src-tauri/Cargo.toml version.json; do
+        for f in Cargo.toml packages/app/api/Cargo.toml version.json; do
           if [ "$f" = "version.json" ]; then
             printf '{\n  "version": "%s"\n}\n' "$NEXT" > version.json
           else
             sed -i -E "0,/^version = \".*\"/s//version = \"$NEXT\"/" "$f"
           fi
         done
-        echo "aplicado $NEXT em Cargo.toml, src-tauri/Cargo.toml, version.json"
+        echo "aplicado $NEXT em Cargo.toml, packages/app/api/Cargo.toml, version.json"

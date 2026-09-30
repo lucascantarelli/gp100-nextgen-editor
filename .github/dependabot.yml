@@ -7,16 +7,16 @@
 # 14 jobs, cache quente) e o security noturno revalida os lockfiles.
 #
 # 3 ecossistemas:
-#   - github-actions "/"  → pins das actions nos 3 workflows (checkout@v7…)
-#   - npm "/ui"           → pnpm-lock.yaml do front
-#   - cargo "/src-tauri"  → Cargo.lock PRÓPRIO do gp100-ui (workspace
+#   - github-actions "/"  → pins das actions do pipeline (checkout@v7…)
+#   - npm "/packages/app/ui" → pnpm-lock.yaml do front
+#   - cargo "/packages/app/api" → Cargo.lock PRÓPRIO do gp100-ui (workspace
 #     separado por ADR-7)
 # ⚠️ SEM entry `cargo /` (lockfile da raiz, core+cli) — DELIBERADO (ADR-8):
 #   o updater do Dependabot roda em container Linux e NÃO expõe
 #   RUSTUP_TOOLCHAIN; o pin windows-gnu do rust-toolchain.toml da raiz
 #   (load-bearing no host — sem VS Build Tools) quebra o rustup de lá
 #   ("target tuple in channel name"). O lockfile da raiz segue com
-#   `cargo update` deliberado (padrão A-1/A-3) e o security noturno DETETA
+#   `cargo update` deliberado e o security noturno DETETA
 #   vulnerabilidades (cargo audit já cobre o Cargo.lock da raiz).
 #
 # Cadência SEMANAL (segunda 09:00 UTC = 06:00 BRT, antes do expediente —
@@ -38,7 +38,7 @@
 
 version: 2
 updates:
-  # ── Actions dos workflows (ci.yml, security.yml, release.yml) ──
+  # ── Actions do pipeline ──
   - package-ecosystem: github-actions
     directory: "/"
     schedule:
@@ -55,14 +55,21 @@ updates:
         patterns:
           - "*"
 
-  # ── Front (React 19/Vite 8/Vitest 5/ESLint 10 — ui/pnpm-lock.yaml) ──
+  # ── Front (React 19/Vite 8/Vitest 5/ESLint 10 — packages/app/ui/pnpm-lock.yaml) ──
   - package-ecosystem: npm
-    directory: "/ui"
+    directory: "/packages/app/ui"
     schedule:
       interval: weekly
       day: monday
       time: "09:00"
     open-pull-requests-limit: 5
+    # TS 7 trava o lint: o typescript-eslint 8.x suporta só TS <6.1 e morre
+    # com "Error: typescript-eslint does not support TS 7.0." (provado no
+    # PR #2 — 3 jobs ui em failure). Reabrir o bump quando o typescript-
+    # eslint estender o peer range.
+    ignore:
+      - dependency-name: "typescript"
+        versions: [">=7.0.0"]
     labels:
       - dependencies
       - npm
@@ -77,11 +84,11 @@ updates:
         applies-to: version-updates
         dependency-type: production
 
-  # ── gp100-ui (workspace PRÓPRIO do Tauri, ADR-7 — Cargo.lock próprio).
-  # O rust-toolchain.toml daqui tem canal SEM triple (ADR-8) — portável
-  # para o container Linux do updater. ──
+  # ── gp100-ui (workspace PRÓPRIO do Tauri, ADR-7 — Cargo.lock próprio;
+  # hoje em packages/app/api). O rust-toolchain.toml daqui tem canal SEM
+  # triple (ADR-8) — portável para o container Linux do updater. ──
   - package-ecosystem: cargo
-    directory: "/src-tauri"
+    directory: "/packages/app/api"
     schedule:
       interval: weekly
       day: monday

@@ -47,12 +47,18 @@ boot/scan de presets (S1), upload de IRs mono+estéreo (S2), edição de knobs p
 ## 2. Estrutura do repositório
 
 ```
-├── gp100-core/                # lib Rust: model, preset, golden, codec,
-│   │                          #   transport (mock), session — Fase M0 ✅
-│   ├── README.md              # arquitetura do core + exemplos que rodam
-│   └── tests/                 # contratos caixa-preta (fixtures P4, replay)
-├── gp100-cli/                 # bin Rust (M0.7 ✅): info/list-user-irs/… via mock
-│                              #   + --log no schema P4 (insumo do gate H1)
+├── packages/                  # monorepo de código (root limpo = só configs)
+│   ├── core/                  # gp100-core (lib Rust): model, preset, golden,
+│   │   │                      #   codec, transport (mock/real), session
+│   │   ├── README.md          # arquitetura do core + exemplos que rodam
+│   │   └── tests/             # contratos caixa-preta (fixtures P4, replay)
+│   ├── cli/                   # gp100-cli (bin Rust): info/list-user-irs/… via
+│   │                          #   mock + --log no schema P4 (insumo do gate H1)
+│   └── app/                   # aplicativo desktop (Tauri 2 + React)
+│       ├── ui/                # front React/TS: vite, vitest, tokens, ipc/
+│       ├── api/               # backend do shell (crate gp100-ui): commands,
+│       │                      #   DeviceActor — workspace MSVC próprio (ADR-7)
+│       └── README.md          # divisão front/backend + como rodar
 ├── docs/
 │   ├── INDEX.md               # mapa da documentação (comece por aqui)
 │   ├── VISION.md              # visão, arquitetura, stack, features (rev. v1.2)
@@ -95,7 +101,7 @@ boot/scan de presets (S1), upload de IRs mono+estéreo (S2), edição de knobs p
 
 Windows + Git Bash (desenvolvido em `D:\GP-100 app`). Requisitos:
 
-- **[uv](https://docs.astral.sh/uv/)** (gestão Python): `uv sync --all-groups`
+- **[uv](https://docs.astral.sh/uv/)** (gestão Python, raiz): `uv sync --all-groups`
   recria o venv único `.venv/` na raiz (capstone, pefile, **ziglang no venv**, pytest).
   Rodar comandos da raiz com `uv run python ...`.
 - **Rust** stable (M0+, toolchain windows-gnu pinada em `rust-toolchain.toml`) e
@@ -193,7 +199,7 @@ em §13.12 — não são dívidas.)
 2. `docs/VISION.md` — o produto que estamos construindo e por quê
 3. `docs/PROTOCOL.md` §13 — o protocolo de fio (a narrativa)
 4. `docs/protocol_golden.json` — a mesma coisa, byte-a-byte (a especificação executável)
-5. `gp100-core/README.md` — **a arquitetura do código com exemplos que RODAM**
+5. `packages/core/README.md` — **a arquitetura do código com exemplos que RODAM**
    (contrato `tests/readme_examples.rs` garante que a doc não mente)
 6. `docs/BLOCKERS.md` — o que está resolvido e o que é risco
 7. `knowledge.md` — armadilhas de ambiente que já morderam alguém

@@ -4,48 +4,48 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "ui: dev server (vite — UI no browser)",
+      "label": "app/ui: dev server (vite — UI no browser)",
       "type": "shell",
       "command": "pnpm",
       "args": ["dev"],
-      "options": { "cwd": "${workspaceFolder}/ui" },
+      "options": { "cwd": "${workspaceFolder}/packages/app/ui" },
       "isBackground": true,
       "problemMatcher": [],
       "presentation": { "reveal": "always", "panel": "dedicated" },
       "detail": "http://localhost:5173 — fallback mock: a UI roda SEM o shell Tauri (ipc/local). Melhor caminho para ver o visual da interface."
     },
     {
-      "label": "ui: build (tsc + vite)",
+      "label": "app/ui: build (tsc + vite)",
       "type": "shell",
       "command": "pnpm",
       "args": ["build"],
-      "options": { "cwd": "${workspaceFolder}/ui" },
+      "options": { "cwd": "${workspaceFolder}/packages/app/ui" },
       "group": "build",
       "problemMatcher": ["$tsc"]
     },
     {
-      "label": "ui: testes (vitest run)",
+      "label": "app/ui: testes (vitest run)",
       "type": "shell",
       "command": "pnpm",
       "args": ["test"],
-      "options": { "cwd": "${workspaceFolder}/ui" },
+      "options": { "cwd": "${workspaceFolder}/packages/app/ui" },
       "group": "test",
       "problemMatcher": []
     },
     {
-      "label": "ui: lint (eslint)",
+      "label": "app/ui: lint (eslint)",
       "type": "shell",
       "command": "pnpm",
       "args": ["lint"],
-      "options": { "cwd": "${workspaceFolder}/ui" },
+      "options": { "cwd": "${workspaceFolder}/packages/app/ui" },
       "problemMatcher": ["$eslint-stylish"]
     },
     {
-      "label": "ui: watch testes (vitest)",
+      "label": "app/ui: watch testes (vitest)",
       "type": "shell",
       "command": "pnpm",
       "args": ["test:watch"],
-      "options": { "cwd": "${workspaceFolder}/ui" },
+      "options": { "cwd": "${workspaceFolder}/packages/app/ui" },
       "isBackground": true,
       "problemMatcher": []
     },
@@ -59,12 +59,12 @@
       "problemMatcher": ["$rustc"]
     },
     {
-      "label": "rust: gp100-ui — clippy (MSVC do src-tauri)",
+      "label": "rust: gp100-ui — clippy (MSVC da api)",
       "type": "shell",
       "command": "cargo",
       "args": ["clippy", "-p", "gp100-ui", "--all-targets", "--", "-D", "warnings"],
       "options": {
-        "cwd": "${workspaceFolder}/src-tauri",
+        "cwd": "${workspaceFolder}/packages/app/api",
         // ADR-7: o crate do Tauri exige MSVC; o host não tem VS Build Tools
         // — esta task só funciona APÓS instalar MSVC (ver ADR-7/launch.json).
         "env": { "RUSTUP_TOOLCHAIN": "stable-x86_64-pc-windows-msvc" }
@@ -75,10 +75,10 @@
     {
       "label": "tauri: dev (shell nativo + hot reload)",
       "type": "shell",
-      "command": "${workspaceFolder}/ui/node_modules/.bin/tauri.cmd",
+      "command": "${workspaceFolder}/packages/app/ui/node_modules/.bin/tauri.cmd",
       "args": ["dev"],
       "options": {
-        "cwd": "${workspaceFolder}/src-tauri",
+        "cwd": "${workspaceFolder}/packages/app/api",
         "env": { "RUSTUP_TOOLCHAIN": "stable-x86_64-pc-windows-msvc" }
       },
       "isBackground": true,

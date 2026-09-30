@@ -1,7 +1,0 @@
-{
-  "$schema": "../gen/schemas/desktop-schema.json",
-  "identifier": "default",
-  "description": "Permissões da janela principal (M1.0: só o core; plugins futuros adicionam entradas aqui — princípio do menor privilégio).",
-  "windows": ["main"],
-  "permissions": ["core:default"]
-}

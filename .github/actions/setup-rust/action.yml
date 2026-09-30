@@ -5,7 +5,7 @@ description: >
   desde a M0); mudou a regra, muda aqui.
 inputs:
   workdir:
-    description: "Workspace cargo a cachear (raiz ou src-tauri)"
+    description: "Workspace cargo a cachear (raiz ou packages/app/api)"
     required: false
     default: "."
   cache-key:
@@ -19,7 +19,7 @@ runs:
       shell: bash
       run: |
         if [ "$RUNNER_OS" = "Windows" ]; then
-          if [ "${{ inputs.workdir }}" = "src-tauri" ]; then
+          if [ "${{ inputs.workdir }}" = "packages/app/api" ]; then
             rustup toolchain install stable-x86_64-pc-windows-msvc --no-self-update --component rustfmt --component clippy
           else
             rustup toolchain install stable-x86_64-pc-windows-gnu --no-self-update --component rustfmt --component clippy
