@@ -1,0 +1,4 @@
+# pnpm 11 — allowlist de build scripts (supply-chain). Só o esbuild do Vite
+# precisa de script de pós-instalação (binário nativo); nada mais roda.
+allowBuilds:
+  esbuild: true

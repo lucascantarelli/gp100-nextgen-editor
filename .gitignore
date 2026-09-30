@@ -47,3 +47,9 @@ analysis/manual_streams.txt
 # referências do mock ficam em analysis/h1_reference/ — versionadas)
 analysis/h1_rehearsal_*/
 analysis/h1_field_*/
+
+# ── Front (ui/, M1.0+) ──
+ui/node_modules/
+ui/dist/
+ui/coverage/
+*.tsbuildinfo

@@ -65,3 +65,59 @@ jobs:
 
       - name: Testes (unitários + doc-tests)
         run: cargo test
+
+  # ── Portabilidade (M1.0): a lib e o CLI são cross-platform — validar em
+  # Linux e macOS também. A build DE CAMPO (windows-gnu pinada) continua no
+  # job `rust` acima; aqui provamos que o CÓDIGO é portável (clippy/testes).
+  # O pin gnu do rust-toolchain.toml não existe como toolchain host fora do
+  # Windows: usamos a stable do próprio runner para a checagem de portabilidade.
+  rust-portable:
+    name: Rust — portabilidade (linux + macOS)
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Toolchain stable do runner (checagem de portabilidade)
+        run: rustup update stable --no-self-update
+
+      - name: Cache do cargo
+        uses: Swatinem/rust-cache@v2
+
+      - name: Clippy (portabilidade = warnings são erro)
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Testes (a lib e o CLI não dependem de Windows)
+        run: cargo test
+
+  # ── Front (M1.0): lint/test/build do ui/ com Node 22 + pnpm (cache).
+  ui:
+    name: UI — lint/test/build (pnpm)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ui
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Instalar pnpm 11
+        run: npm install -g pnpm@11
+
+      - name: Instalar deps (lockfile congelado)
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint (R1 no front: invoke só em ipc/)
+        run: pnpm lint
+
+      - name: Testes (tokens/contraste/a11y/estados)
+        run: pnpm test
+
+      - name: Build (tsc + vite)
+        run: pnpm build

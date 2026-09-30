@@ -1,0 +1,126 @@
+/**
+ * Design tokens em CSS custom properties (dark é a base; light = camada).
+ * docs/UI_DESIGN.md explica o PORQUÊ de cada valor; este arquivo é a fonte
+ * em CSS — componentes só consomem var(--…).
+ *
+ * Paleta "PALCO" (Valeton GP-100): preto-quente de palco + âmbar de display
+ * Valeton; variantes de tema nas cores de produto (preto/vermelho/lavanda).
+ * Estado "ao vivo": LED verde pulsando quando conectado (§5 do UI_DESIGN).
+ */
+:root {
+  /* espaçamento — Fibonacci base 4 (§1) */
+  --space-4: 4px;
+  --space-8: 8px;
+  --space-12: 12px;
+  --space-20: 20px;
+  --space-32: 32px;
+  --space-52: 52px;
+  --space-84: 84px;
+
+  /* tipografia (§3) */
+  --font-ui: "Segoe UI", Inter, system-ui, sans-serif;
+  --font-mono: "Cascadia Code", Consolas, monospace;
+  --text-xs: 11px;
+  --text-sm: 13px;
+  --text-md: 15px;
+  --text-lg: 21px;
+  --text-xl: 34px;
+
+  /* motion (§4) */
+  --motion-fast: 120ms;
+  --motion-panel: 200ms;
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+
+  /* tema escuro "palco" (base) — rácios medidos em docs/UI_DESIGN.md §2 */
+  --bg: #141210;
+  --bg-raised: #1d1a17;
+  --text: #eef0f2;
+  --text-muted: #a89f92;
+  --accent: #ffa938; /* âmbar Valeton */
+  --ok: #3ecf8e;
+  --warn: #f5b544;
+  --error: #ff6b6b;
+  --focus-ring: var(--accent);
+}
+
+/* tema claro = só os tokens de cor trocam (§2) */
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f6f3ee;
+    --bg-raised: #ffffff;
+    --text: #191512;
+    --text-muted: #6a6157;
+    --accent: #9a5200;
+    --ok: #0f6b44;
+    --warn: #7a4d00;
+    --error: #a92222;
+  }
+}
+
+/* temas de accent (cores de produto) — opt-in; nunca mudam semântica (§2) */
+:root[data-theme="red"] {
+  --accent: #e05252;
+}
+:root[data-theme="lav"] {
+  --accent: #b9a7ff;
+}
+@media (prefers-color-scheme: light) {
+  :root[data-theme="red"] {
+    --accent: #a92222;
+  }
+  :root[data-theme="lav"] {
+    --accent: #5b4bb0;
+  }
+}
+
+/* base mínima acessível */
+html {
+  color-scheme: dark light;
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: var(--text-sm)/1.5 var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* foco visível SEMPRE (WCAG 2.4.13: 2px, ≥3:1 vs adjacente) */
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* LED "ao vivo" — pulso sutil de pedal ligado (some com reduced-motion) */
+@keyframes live-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+.live-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ok);
+  animation: live-pulse 2s var(--ease-out) infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .live-dot {
+    animation: none;
+  }
+}
+
+/* reduced motion (§4) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
