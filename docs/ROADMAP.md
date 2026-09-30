@@ -273,14 +273,18 @@
   Fibonacci, contraste AA medido, identidade "pedalboard ao vivo"), skill
   `ui-ux-practices`, testes de token/a11y/estado e job `ui` na CI.
 
-### A-4. Completar o spike M1.0 — workspace `src-tauri` + `device_info` — ⏳ ABERTA (PRÓXIMA)
+### A-4. Completar o spike M1.0 — workspace `src-tauri` + `device_info` — ✅ FEITO 30/09
 - **Origem:** auditoria `ls src-tauri` (ausente) · **Prioridade:** máxima
-- **O quê:** criar `src-tauri/` (crate `gp100-ui`, Tauri 2) com o command
-  `device_info` contra o MockDevice (arquitetura §2 do `UI_PLAN`: DeviceActor
-  entra na M1.1 — aqui é a prova do IPC) e o front `ui/` consumindo via
-  `invoke` com fallback mockado (já implementado).
-- **DoD:** `pnpm tauri dev` abre a janela mostrando pp/nome/tipo do mock;
-  `cargo test` cobre o command; CI (matrix 3 OSes por projeto) verde.
+- **O quê:** ✅ `src-tauri/` (crate `gp100-ui`, Tauri 2) com o command
+  `device_info` contra o MockDevice (DTO camelCase = `ui/src/ipc/types.ts`,
+  testado contra o mock real) e o front `ui/` consumindo via `invoke` com
+  fallback mockado. **ADR-7:** o Tauri 2 não suporta windows-gnu (build
+  script morre com STATUS_ACCESS_VIOLATION no pin da casa) — crate FORA do
+  workspace, toolchain MSVC própria (pin local) validada pela CI.
+- **DoD:** ✅ CI verde nos 3 OSes (clippy/test/build do shell; Windows prova
+  o Tauri em MSVC). `pnpm tauri dev` no host exige MSVC local (instalação
+  é decisão do owner); até lá, dev da UI = `pnpm dev` no browser (fallback
+  mock do ipc) + CI.
 - **Depois dela:** M1.1 (DeviceActor + boot).
 
 ### A-3. Toolchain/versões base — ✅ FEITO 29/09

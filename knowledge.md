@@ -278,3 +278,20 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
   Rust stable do RUNNER fora do Windows (pin gnu via RUSTUP_TOOLCHAIN só no
   runner Windows). Linux + feature real-device exige `pkg-config` +
   `libasound2-dev` (alsa-sys compila C) — instalado no job cli/ubuntu.
+
+## gp100-ui / Tauri (30/09 — ADR-7)
+- **Tauri 2 NÃO suporta windows-gnu**: build script do `tauri` morre com
+  STATUS_ACCESS_VIOLATION (0xC0000005) no gnu, mesmo com dlltool resolvido
+  (llvm-dlltool via -C dlltool=). Crate gp100-ui FORA do workspace
+  (`exclude`), pin MSVC próprio em src-tauri/rust-toolchain.toml.
+- Estrutura canônica Tauri: commands em SUBMÓDULO (commands.rs) —
+  generate_handler! no mesmo módulo do #[tauri::command] colide os macros
+  ocultos __cmd__<name> (E0255).
+- generate_context! (linux/macos) exige icons/icon.png **RGBA** (RGB puro
+  rejeita: "icon is not RGBA"); .ico só serve ao Windows.
+- tauri::Error::Setup recebe SetupError (não String) no 2.x atual.
+- CI job gp100-ui: front buildado ANTES do cargo (generate_context! embute
+  ui/dist); linux precisa libwebkit2gtk-4.1-dev + gtk3 + ayatana + librsvg;
+  fmt do crate roda DENTRO de src-tauri (projeto solto, sem --all).
+- rustfmt rejeita vírgula final dentro de generate_handler![] (macro com
+  proc-macro span — fmt local com a gnu é suficiente p/ validar).

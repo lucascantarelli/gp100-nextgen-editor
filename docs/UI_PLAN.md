@@ -1,6 +1,6 @@
 # 🧭 UI_PLAN — Planejamento da Fase M1 (Editor UI)
 
-> **Status:** ⏳ planejado · **Última revisão:** 2026-09-29 · **Pré-requisitos:** ✅ Fase M0 concluída (M0.7 CLI + M0.8 docs) · gate **H1** só para o modo `--real` de leitura
+> **Status:** 🔨 em andamento (M1.0 ✅ 30/09 — front + gp100-ui na CI; ADR-7) · **Última revisão:** 2026-09-30 · **Pré-requisitos:** ✅ Fase M0 concluída (M0.7 CLI + M0.8 docs) · gate **H1** só para o modo `--real` de leitura
 > **Fontes de verdade deste plano:** `docs/VISION.md` §5–§9 (arquitetura/stack/UX/features), `docs/DECISIONS.md` ADR-1..6, `docs/ROADMAP.md` (M0/H e regras R1–R4), `docs/BLOCKERS.md` itens 4/11 (editor + escrita validada), API da `Session` (ADR-6).
 >
 > Este documento é o **planejamento issue-a-issue da M1**. O panorama de produto
@@ -47,6 +47,8 @@ React/TS** que fala com a GP-100 **exclusivamente através do `gp100-core`**
 ```
 
 Decisões estruturais (cada uma vira linha de ADR no M1.0 se confirmada no spike):
+  **ADR-7 ✅:** gp100-ui fora do workspace gnu (Tauri 2 exige MSVC no Windows;
+  pin próprio + CI como prova de build). Pendentes de ADR na M1.1:
 1. **DeviceActor (D8):** a `Session` tem consumidor único — um actor task
    com fila `mpsc` possui a `Session`; commands enviam requisições e recebem
    resultados por canal. Nada de `Mutex<Session>` compartilhado com a UI
@@ -111,7 +113,7 @@ Aplicação direta de VISION §7.2 + BLOCKERS §4 + ADR-5/ADR-6:
 
 | Issue | Entrega | DoD |
 |---|---|---|
-| **M1.0** Spike Tauri | workspace `src-tauri` + `ui/`; 1 command `device_info` contra o mock; CI estendida (pnpm lint/test) | `pnpm tauri dev` mostra info do mock; CI verde com os 3 gates |
+| **M1.0** Spike Tauri ✅ 30/09 | workspace `src-tauri` + `ui/`; 1 command `device_info` contra o mock; CI estendida (pnpm lint/test) | ✅ CI verde nos 3 OSes (job `gp100-ui`); DTO testado contra o mock real; ADR-7 (MSVC fora do workspace gnu). `pnpm tauri dev` no host exige MSVC local (decisão do owner); dev da UI = `pnpm dev` (fallback mock) + CI |
 
 **Ferramentas fixadas no M1.0:** React 19, Vite 8, Vitest 5, ESLint 10,
 TypeScript 6.0 (TS 7 aguarda suporte do typescript-eslint ≥7.1), Node 22 +
