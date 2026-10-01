@@ -12,10 +12,10 @@ runs:
       working-directory: packages/app/ui
       run: pnpm lint
 
-    - name: Testes (tokens/contraste/a11y/estados)
+    - name: Testes + GATE de coverage (85% lines/fns/stmts — vite.config.ts)
       shell: bash
       working-directory: packages/app/ui
-      run: pnpm test
+      run: pnpm test:coverage
 
     - name: Build (tsc + vite)
       shell: bash

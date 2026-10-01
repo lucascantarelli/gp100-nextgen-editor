@@ -1,0 +1,395 @@
+/**
+ * Fundação do PALCO sob teste direto (unit, jsdom — a base declarada da
+ * Fase 2 de pedais, antes coberta só "de raspão" pelo App):
+ *   - fxModels: variante conhecida, fallback por archetype e capacidade
+ *     para TODOS os slots possíveis do mock (contrato de nunca-undefined);
+ *   - Pedalboard: 3 linhas de pedais, display LED, ordem custom com slots
+ *     ausentes preservados e pulsos de sinal por par ON;
+ *   - Pedal: LED on/off, truncamento de nome e ValueBox (Enter commit,
+ *     Esc restaura);
+ *   - Knob: teclado (setas/Shift/Home/End), duplo-clique = reset e
+ *     ciclo de switch/combox.
+ */
+import { act } from "react";
+import { createRoot } from "react-dom/client";
+import type { Root } from "react-dom/client";
+import { beforeAll, describe, expect, it, vi } from "vitest";
+import { Pedalboard } from "../src/components/Pedalboard";
+import { Pedal } from "../src/components/Pedal";
+import { Knob } from "../src/components/Knob";
+import { modelFor } from "../src/artifacts/fxModels";
+import { CHAIN_FAMILIES } from "../src/ipc/types";
+import type { BoardKnob, BoardSlot, BoardView } from "../src/ipc/types";
+
+beforeAll(() => {
+  (globalThis as Record<string, unknown>).IS_REACT_ACT_ENVIRONMENT = true;
+});
+
+const ARCHETYPE_OF = {
+  PRE: "BUFFER",
+  DST: "DISTORTION",
+  AMP: "AMPLIFIER",
+  NR: "NOISEGATE",
+  CAB: "CABINET",
+  EQ: "EQ",
+  MOD: "MODULATION",
+  DLY: "DELAY",
+  RVB: "REVERB",
+} as const;
+
+function mkSlot(i: number, family: BoardSlot["family"], variant = "comp"): BoardSlot {
+  return {
+    slot: i,
+    family,
+    archetype: ARCHETYPE_OF[family],
+    name: `${family}-${i}`,
+    variant,
+    code: i + 1,
+    state: true,
+    knobs: [
+      { name: "Gain", pos: 0, kind: "knob", options: [], value: "50", default: "50", range: [0, 100] },
+      { name: "Mode", pos: 1, kind: "switch", options: ["off", "on1", "on2"], value: "off", default: "off" },
+      { name: "Type", pos: 2, kind: "combox", options: ["A", "B"], value: "A", default: "A" },
+    ],
+  };
+}
+
+const BOARD: BoardView = {
+  pp: 0,
+  name: "Preset Teste",
+  ppType: 0,
+  ppTypeName: "Factory",
+  slots: CHAIN_FAMILIES.map((f, i) => mkSlot(i, f)),
+};
+
+function mount(ui: React.ReactElement): { root: Root; host: HTMLElement } {
+  const host = document.createElement("div");
+  document.body.appendChild(host);
+  const root = createRoot(host);
+  act(() => root.render(ui));
+  return { root, host };
+}
+
+const noop = () => {};
+const noopSlot = () => {};
+
+function groupLabels(host: HTMLElement): string[] {
+  return Array.from(host.querySelectorAll('svg[role="group"]')).map((g) =>
+    g.getAttribute("aria-label") ?? "",
+  );
+}
+
+describe("fxModels — catálogo de modelos por variante", () => {
+  it("variante conhecida resolve a entrada do catálogo (a-chorus → box CE-2)", () => {
+    const m = modelFor({ ...mkSlot(0, "MOD"), variant: "a-chorus" });
+    expect(m.shape).toBe("box");
+    expect(m.ref).toContain("CE-2");
+  });
+
+  it("variante desconhecida cai no fallback do archetype (nunca undefined)", () => {
+    const m = modelFor({ ...mkSlot(0, "RVB"), variant: "nao-existe-xyz" });
+    expect(m.shape).toBe("widebox");
+    expect(m.ref).toContain("big box");
+  });
+
+  it("capacidade garantida: TODOS os 9 slots do mock resolvem modelo", () => {
+    for (const s of BOARD.slots) {
+      const m = modelFor(s);
+      expect(m.w).toBeGreaterThan(0);
+      expect(m.cols).toBeGreaterThan(0);
+      expect(m.ref.length).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe("Pedalboard — o palco em 3 linhas", () => {
+  it("monta os 9 pedais com display LED do preset (pp + nome + contagem ON)", () => {
+    const { root, host } = mount(
+      <Pedalboard
+        board={BOARD}
+        states={{}}
+        onToggle={noopSlot}
+        onKnobChange={noopSlot}
+        onKnobReset={noopSlot}
+        onReorder={noop}
+      />,
+    );
+    expect(groupLabels(host).length).toBe(9);
+    const status = host.querySelector('[role="status"]');
+    expect(status?.textContent).toContain("00");
+    expect(status?.textContent).toContain("Preset Teste");
+    expect(status?.textContent).toContain("9/9"); // states vazio = estado do slot (todos ON)
+    act(() => root.unmount());
+    host.remove();
+  });
+
+  it("reorder: ordem custom aplicada e slots ausentes preservados no fim", () => {
+    const { root, host } = mount(
+      <Pedalboard
+        board={BOARD}
+        states={{}}
+        order={[4, 0, 1, 2, 3, 5, 6, 7]} // NR vai para a 1ª posição; RVB-8 fica de fora
+        onToggle={noopSlot}
+        onKnobChange={noopSlot}
+        onKnobReset={noopSlot}
+        onReorder={noop}
+      />,
+    );
+    const labels = groupLabels(host);
+    expect(labels.length).toBe(9); // nenhum slot perdido
+    expect(labels[0]).toContain("CAB-4"); // slot 4 (CAB) vai para a 1ª posição
+    expect(labels[8]).toContain("RVB-8"); // slot 8, ausente da ordem → preservado no fim
+    act(() => root.unmount());
+    host.remove();
+  });
+
+  it("pulsos de sinal: só em cabos entre pares ON (com todos ON: 6 segmentos)", () => {
+    const { root, host } = mount(
+      <Pedalboard
+        board={BOARD}
+        states={{}}
+        onToggle={noopSlot}
+        onKnobChange={noopSlot}
+        onKnobReset={noopSlot}
+        onReorder={noop}
+      />,
+    );
+    // 3 linhas × 3 pedais = 2 cabos por linha, todos com pulso
+    expect(host.querySelectorAll('circle[fill="#ffd23f"]').length).toBe(6);
+    act(() => root.unmount());
+    host.remove();
+  });
+
+  it("pares com pedal OFF não geram pulso (states sobrepõe o estado do slot)", () => {
+    const states = Object.fromEntries(CHAIN_FAMILIES.map((_, i) => [i, i % 2 === 0]));
+    const { root, host } = mount(
+      <Pedalboard
+        board={BOARD}
+        states={states}
+        onToggle={noopSlot}
+        onKnobChange={noopSlot}
+        onKnobReset={noopSlot}
+        onReorder={noop}
+      />,
+    );
+    expect(host.querySelectorAll('circle[fill="#ffd23f"]').length).toBe(0);
+    act(() => root.unmount());
+    host.remove();
+  });
+
+  it("toggle do footswitch sobe o callback com o slot certo (PRE-0)", () => {
+    const onToggle = vi.fn();
+    const { root, host } = mount(
+      <Pedalboard
+        board={BOARD}
+        states={{}}
+        onToggle={onToggle}
+        onKnobChange={noopSlot}
+        onKnobReset={noopSlot}
+        onReorder={noop}
+      />,
+    );
+    const foot = Array.from(host.querySelectorAll('[role="button"]')).find((b) =>
+      (b.getAttribute("aria-label") ?? "").startsWith("Desligar efeito"),
+    );
+    expect(foot, "footswitch do 1º pedal (ON → Desligar)").toBeTruthy();
+    act(() => foot!.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    expect(onToggle).toHaveBeenCalledTimes(1);
+    expect(onToggle.mock.calls[0][0]).toMatchObject({ slot: 0, family: "PRE" });
+    act(() => root.unmount());
+    host.remove();
+  });
+});
+
+describe("Pedal — o pedal individual", () => {
+  it("LED verde quando ON e vermelho quando OFF (states sobrepõe)", () => {
+    const { root, host } = mount(
+      <Pedalboard
+        board={BOARD}
+        states={{ 0: false }}
+        onToggle={noopSlot}
+        onKnobChange={noopSlot}
+        onKnobReset={noopSlot}
+        onReorder={noop}
+      />,
+    );
+    const leds = host.querySelectorAll("[data-led]");
+    expect(leds.length).toBe(9);
+    expect(host.querySelector('[data-led="off"]')).toBeTruthy(); // slot 0 forçado OFF
+    expect(host.querySelectorAll('[data-led="on"]').length).toBe(8);
+    act(() => root.unmount());
+    host.remove();
+  });
+
+  it("nome longo é truncado com reticências (nunca estoura o enclosure)", () => {
+    const long = { ...mkSlot(0, "PRE"), name: "N".repeat(30) };
+    const { root, host } = mount(
+      <Pedal slot={long} onToggle={noopSlot} onKnobChange={noopSlot} onKnobReset={noopSlot} />,
+    );
+    const texts = Array.from(host.querySelectorAll("text")).map((t) => t.textContent ?? "");
+    expect(texts.some((t) => t === `${"N".repeat(25)}…`)).toBe(true);
+    act(() => root.unmount());
+    host.remove();
+  });
+
+  it("ValueBox: Enter aplica ao device; Esc restaura; valor não-numérico é ignorado", () => {
+    const onKnobChange = vi.fn();
+    const { root, host } = mount(
+      <Pedal slot={mkSlot(0, "PRE")} onToggle={noopSlot} onKnobChange={onKnobChange} onKnobReset={noopSlot} />,
+    );
+    const box = host.querySelector<HTMLInputElement>('input[aria-label="Valor (Enter para editar)"]');
+    expect(box, "caixa de valor em modo leitura").toBeTruthy();
+    expect(box!.value).toBe("50");
+
+    // click → edição (input de draft aparece com aria-label de edição)
+    act(() => box!.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    const editing = host.querySelector<HTMLInputElement>('input[aria-label^="Valor do knob"]');
+    expect(editing).toBeTruthy();
+    const target = editing as HTMLInputElement;
+
+    const commit = (raw: string, key: string) => {
+      act(() => {
+        const setter = Object.getOwnPropertyDescriptor(
+          window.HTMLInputElement.prototype,
+          "value",
+        )!.set!;
+        setter.call(target, raw);
+        target.dispatchEvent(new Event("input", { bubbles: true }));
+        target.dispatchEvent(
+          new KeyboardEvent("keydown", { key, bubbles: true }),
+        );
+      });
+    };
+
+    commit("12.7", "Enter");
+    expect(onKnobChange).toHaveBeenCalledTimes(1);
+    expect(onKnobChange.mock.calls[0][0]).toMatchObject({ family: "PRE" });
+    expect(onKnobChange.mock.calls[0][2]).toBe("13"); // range inteiro → Math.round
+
+    // commit inválido (NaN) não chama o callback
+    act(() => box!.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    commit("abc", "Enter");
+    expect(onKnobChange).toHaveBeenCalledTimes(1);
+
+    // Esc restaura: volta ao modo leitura mostrando o valor da PROP (o
+    // parent é estático aqui — o commit de verdade já foi provado pelo mock)
+    commit("99", "Escape");
+    expect(onKnobChange).toHaveBeenCalledTimes(1);
+    expect(
+      host.querySelector<HTMLInputElement>('input[aria-label="Valor (Enter para editar)"]')!.value,
+    ).toBe("50");
+    act(() => root.unmount());
+    host.remove();
+  });
+});
+
+describe("Knob — controle rotativo paramétrico", () => {
+  const KNOB: BoardKnob = {
+    name: "Tone",
+    pos: 2,
+    kind: "knob",
+    options: [],
+    value: "50",
+    default: "50",
+    range: [0, 100],
+  };
+
+  it("é um slider acessível com aria now/min/max", () => {
+    const onChange = vi.fn();
+    const onReset = vi.fn();
+    const { root, host } = mount(<Knob knob={KNOB} onChange={onChange} onReset={onReset} />);
+    const svg = host.querySelector('svg[role="slider"][aria-label="Tone"]');
+    expect(svg).toBeTruthy();
+    expect(svg!.getAttribute("aria-valuenow")).toBe("50");
+    expect(svg!.getAttribute("aria-valuemin")).toBe("0");
+    expect(svg!.getAttribute("aria-valuemax")).toBe("100");
+    act(() => root.unmount());
+    host.remove();
+  });
+
+  it("teclado: ↑ 1%, Shift+↓ 5%, Home/End/PageUp/PageDown (cada passo do valor de partida)", () => {
+    const onChange = vi.fn();
+    const onReset = vi.fn();
+    // O Knob é STATELESS sobre value: cada passo parte do valor da prop e
+    // o parent re-renderiza (Pedalboard). Cada passo aqui = mount com o
+    // valor de partida, provando o delta exato da tecla.
+    const pressFrom = (start: string, key: string, expected: string, shift = false) => {
+      const k: BoardKnob = { ...KNOB, value: start };
+      const h = mount(<Knob knob={k} onChange={onChange} onReset={onReset} />);
+      const svg = h.host.querySelector('svg[role="slider"]')!;
+      act(() => svg.dispatchEvent(new KeyboardEvent("keydown", { key, shiftKey: shift, bubbles: true })));
+      expect(onChange).toHaveBeenLastCalledWith(2, expected);
+      h.root.unmount();
+      h.host.remove();
+    };
+    pressFrom("50", "ArrowUp", "51");
+    pressFrom("50", "ArrowDown", "49");
+    pressFrom("50", "ArrowDown", "45", true); // Shift = 5%
+    pressFrom("50", "Home", "0");
+    pressFrom("50", "End", "100");
+    pressFrom("100", "PageDown", "95");
+    pressFrom("0", "PageUp", "5");
+  });
+
+  it("duplo clique reseta ao default e range fracionário formata com 1 decimal", () => {
+    const onChange = vi.fn();
+    const onReset = vi.fn();
+    const { root, host } = mount(<Knob knob={KNOB} onChange={onChange} onReset={onReset} />);
+    const svg = host.querySelector('svg[role="slider"]')!;
+    act(() => svg.dispatchEvent(new MouseEvent("dblclick", { bubbles: true })));
+    expect(onReset).toHaveBeenCalledWith(2);
+    act(() => root.unmount());
+    host.remove();
+
+    const frac: BoardKnob = { ...KNOB, range: [0, 0.5], value: "0.25", default: "0.25" };
+    const host2 = mount(<Knob knob={frac} onChange={onChange} onReset={onReset} />);
+    const svg2 = host2.host.querySelector('svg[role="slider"]')!;
+    act(() => svg2.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true })));
+    const v = onChange.mock.lastCall?.[1] as string;
+    expect(v).toMatch(/^\d+\.\d$/); // 1 decimal em range fracionário
+    host2.root.unmount();
+    host2.host.remove();
+  });
+
+  it("switch e combox ciclam opções por clique (parent re-renderiza); knob não cicla", () => {
+    const onChange = vi.fn();
+    const onReset = vi.fn();
+    // O Knob é STATELESS sobre value: o ciclo vem do callback + parent
+    // re-renderizando com o novo valor. Cada passo = remount com o valor
+    // atualizado (mesma sequência do Pedalboard real).
+    const cycleStep = (value: string, expected: string) => {
+      const sw: BoardKnob = { name: "Mode", pos: 1, kind: "switch", options: ["off", "on1", "on2"], value, default: "off" };
+      const h = mount(<Knob knob={sw} onChange={onChange} onReset={onReset} />);
+      const svg = h.host.querySelector('svg[role="button"][aria-label="Mode"]')!;
+      act(() => svg.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+      expect(onChange).toHaveBeenLastCalledWith(1, expected);
+      h.root.unmount();
+      h.host.remove();
+    };
+    cycleStep("off", "on1");
+    cycleStep("on1", "on2");
+    cycleStep("on2", "off"); // ciclo fecha
+
+    // combox: mesmo caminho de ciclo (A → B → A)
+    const cycleCombox = (value: string, expected: string) => {
+      const cb: BoardKnob = { name: "Type", pos: 2, kind: "combox", options: ["A", "B"], value, default: "A" };
+      const h2 = mount(<Knob knob={cb} onChange={onChange} onReset={onReset} />);
+      const svg2 = h2.host.querySelector('svg[role="button"][aria-label="Type"]')!;
+      act(() => svg2.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+      expect(onChange).toHaveBeenLastCalledWith(2, expected);
+      h2.root.unmount();
+      h2.host.remove();
+    };
+    cycleCombox("A", "B");
+    cycleCombox("B", "A");
+
+    // knob NÃO cicla por clique (arrasto/teclado é o caminho)
+    const before = onChange.mock.calls.length;
+    const h3 = mount(<Knob knob={KNOB} onChange={onChange} onReset={onReset} />);
+    const svg3 = h3.host.querySelector('svg[role="slider"]')!;
+    act(() => svg3.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    expect(onChange.mock.calls.length).toBe(before);
+    h3.root.unmount();
+    h3.host.remove();
+  });
+});
