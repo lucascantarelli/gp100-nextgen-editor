@@ -713,6 +713,10 @@ jobs:
         working-directory: packages/app/ui
         run: pnpm outdated 2>&1 | tee /tmp/pnpm-outdated.txt || true
 
+      - name: Instalar uv
+        if: always()
+        uses: astral-sh/setup-uv@v10.2.0
+
       - name: Trava da especificação (pytest — como no security noturno antigo)
         if: always()
         run: |
