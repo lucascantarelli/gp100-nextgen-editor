@@ -590,6 +590,19 @@
     pipeline/release — o teste de integração real do close-issues
     continua sendo o próprio merge em develop; act exigiria Docker no
     gate). Proteção de branches = configuração do repo (não-workflow).
+  - ✅ FEITO 01/10 — **simulação end-to-end da cadeia no gate**
+    (`scripts/simulate_release.py`): extrai os blocos `run:` DO PRÓPRIO
+    release.yml e os executa num sandbox git local (origin bare + clones
+    descartáveis), com `${{ inputs/steps/env }}` resolvidos e
+    GITHUB_OUTPUT simulado — prova rc1→rc2 (branch reutilizada, N
+    incrementa)→promote (tag final, merge --no-ff em main, backport em
+    develop, branch apagada), idempotência do promote e os guards de
+    recusa (rc sem bump pendente / promote com tag existente). Roda no
+    gate do pipeline (runner ubuntu: git+bash+python3) e local via
+    `python3 scripts/simulate_release.py` (`--keep` preserva o sandbox;
+    steps rodam via arquivo .sh como o Actions faz — `bash -c` perde
+    atribuições/expansões no interop WSL do Windows, diagnosticado e
+    documentado no próprio harness).
   - ✅ FEITO 30/09 — fechamento de issue no merge em develop (a parte
     "vinculação issue↔PR" da nota): `.github/workflows/close-issues.yml`
     extrai `Closes/Fixes/Resolves #N` do corpo do PR mergeado em develop e

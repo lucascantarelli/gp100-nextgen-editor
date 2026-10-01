@@ -251,6 +251,15 @@ jobs:
           python3 -c "import yaml" 2>/dev/null || python3 -m pip install --quiet --user pyyaml
           python3 scripts/validate_workflows.py
 
+      # Simulação END-TO-END da cadeia rc→promote (V-7): extrai os blocos
+      # run: DO release.yml e os executa num sandbox git local (origin bare
+      # + clones), provando rc1→rc2→promote + idempotência + guards ANTES
+      # de qualquer uso real. Só precisa de git+bash+python3 do runner.
+      - name: Simulação do release-gitflow (rc→promote)
+        run: |
+          python3 -c "import yaml" 2>/dev/null || python3 -m pip install --quiet --user pyyaml
+          python3 scripts/simulate_release.py
+
   # ── SPEC: trava da especificação (pytest) — só quando ela muda ──
   spec:
     name: Python — trava da especificação

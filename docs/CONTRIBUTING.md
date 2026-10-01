@@ -173,6 +173,12 @@ Rust/front (jobs aparecem como skipped, sem custo).
      promote é idempotente — tag existente recusa).
 - **Proteção das branches** (`main`/`develop`) é configuração do
   repositório (Settings → Branches) — não vive nos workflows.
+- **Ensaio da cadeia (gate + local)**: `python3 scripts/simulate_release.py`
+  extrai os blocos `run:` do release.yml e os executa num sandbox git
+  temporário (origin bare + clones) — prova rc1→rc2→promote, idempotência
+  e os guards de recusa ANTES de qualquer uso real. Roda automaticamente
+  no gate do pipeline; local precisa só de git+bash+python3 (+pyyaml).
+  `--keep` preserva o sandbox em $TMPDIR para inspeção.
 
 ---
 
