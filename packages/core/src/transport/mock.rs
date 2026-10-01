@@ -40,6 +40,13 @@ use crate::{ProtocolError, SYSEX_EOX, SYSEX_HEADER};
 const ALL_PRST: &str = include_str!("../../../../files/patches/all.prst");
 const PARAMETERS: &str = include_str!("../../../../analysis/parameters.json");
 
+/// O `.prst` embedado (all.prst) — acesso público para as projeções de
+/// board (`crate::pedalboard::embedded_document`): os dados vivem no core
+/// (R1); consumidores externos nunca reabrem o arquivo de disco.
+pub fn embedded_preset() -> &'static str {
+    ALL_PRST
+}
+
 /// Estado do device simulado, derivado de `all.prst` + dicionário.
 #[derive(Debug, Clone)]
 pub struct MockState {

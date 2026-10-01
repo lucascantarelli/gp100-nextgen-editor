@@ -123,6 +123,10 @@ pub mod transport;
 /// travadas; replay byte-a-byte das fixtures prova a FSM).
 pub mod session;
 
+/// pedalboard — projeção de preset → view de board (dados puros p/ a UI
+/// do app: arquétipos por família, knobs do dicionário, biblioteca).
+pub mod pedalboard;
+
 // Os testes dos herdados do P2 (header/envelope §13.1) usam SÓ API pública,
 // então vivem como contratos caixa-preta em `tests/wire_envelope.rs` (regra
 // da skill rust-practices: unitário dentro de `src/` só para internals).
