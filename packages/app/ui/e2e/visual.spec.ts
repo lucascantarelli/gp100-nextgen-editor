@@ -81,12 +81,17 @@ const ERROR_STATES = [
   },
 ] as const;
 
-/** skip de CI sem baseline (escrita travada fora do update-snapshots). */
+/** skip quando NÃO há baseline e a execução não está atualizando.
+ *  O sinal correto é `config.updateSnapshots` (o Playwright força `none` no
+ *  CI e `missing` localmente) — depender de `process.env.CI` deixava os
+ *  baselines ausentes falharem no job principal `e2e`, que roda TODOS os
+ *  specs. Semântica: local cria (missing), CI compara ou SKIPa, e o input
+ *  `update-snapshots` do workflow gera as baselines linux. */
 async function skipIfBaselineMissing(name: string): Promise<void> {
   const updating = test.info().config.updateSnapshots !== "none";
   test.skip(
-    !updating && !!process.env.CI && !existsSync(baselinePath(name)),
-    "baseline ausente no CI — gere pelo input update-snapshots e commite",
+    !updating && !existsSync(baselinePath(name)),
+    "baseline ausente — gere com --update-snapshots (input do workflow) e commite",
   );
 }
 

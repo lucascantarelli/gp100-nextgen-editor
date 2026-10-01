@@ -25,7 +25,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { MSG } from "../i18n/messages";
-import { REF_PITCH_DEFAULT, REF_PITCH_MAX, REF_PITCH_MIN, TunerEngine } from "../tuner/pitch";
+import { ANALYSIS_WINDOW, REF_PITCH_DEFAULT, REF_PITCH_MAX, REF_PITCH_MIN, TunerEngine } from "../tuner/pitch";
 import type { TunerReading } from "../tuner/pitch";
 
 export type TunerMode = "bypass" | "thru" | "mute";
@@ -200,7 +200,8 @@ export function TunerPanel({
       const el = performance.now() - t0;
       const cents = Math.sin((el / 2000) * Math.PI * 2) * DEMO_CENTS;
       const freq = DEMO_BASE_HZ * Math.pow(2, cents / 1200);
-      const frame = new Float32Array(1024);
+      /* janela do MOTOR (2048): menos que isso o detectPitch devolve null */
+      const frame = new Float32Array(ANALYSIS_WINDOW);
       for (let i = 0; i < frame.length; i += 1) {
         phase += (2 * Math.PI * freq) / DEMO_RATE;
         frame[i] = 0.4 * Math.sin(phase) + 0.15 * Math.sin(2 * phase); /* +harmônico */

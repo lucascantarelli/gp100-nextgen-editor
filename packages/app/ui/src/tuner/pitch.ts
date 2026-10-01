@@ -69,8 +69,10 @@ export function frequencyToReading(frequency: number, refPitch: number = REF_PIT
 }
 
 /** Janela de análise: 2048 amostras cobre E2 (82.4 Hz) em 44.1 kHz com
- *  folga para a autocorrelação (lag máx = rate/40, limitado a N/2). */
-const WINDOW = 2048;
+ *  folga para a autocorrelação (lag máx = rate/40, limitado a N/2).
+ *  EXPORTADA: quem alimenta o motor (ex.: o demo do painel) precisa gerar
+ *  janelas deste tamanho — menos que isso é silêncio por contrato. */
+export const ANALYSIS_WINDOW = 2048;
 /** RMS abaixo disso = silêncio/ruído → sem leitura (honesto). */
 const RMS_GATE = 0.012;
 /** 1º pico local com r ≥ 85% do global (evita travar em sub-harmônico). */
@@ -80,8 +82,8 @@ const MIN_CORR = 0.3;
 
 /** Detecta a frequência fundamental (Hz) ou null (silêncio/sem pitch). */
 export function detectPitch(samples: ArrayLike<number>, sampleRate: number): number | null {
-  const n = Math.min(samples.length, WINDOW);
-  if (n < WINDOW) return null;
+  const n = Math.min(samples.length, ANALYSIS_WINDOW);
+  if (n < ANALYSIS_WINDOW) return null;
 
   let energy = 0;
   for (let i = 0; i < n; i += 1) energy += samples[i] * samples[i];

@@ -210,7 +210,9 @@ impl DeviceActor {
                         reply,
                     } => match session.as_mut() {
                         Some(s) => {
-                            let r = s.set_param(slot, code, ctrl, value).map_err(|e| e.to_string());
+                            let r = s
+                                .set_param(slot, code, ctrl, value)
+                                .map_err(|e| e.to_string());
                             let _ = reply.send(r);
                         }
                         None => {
