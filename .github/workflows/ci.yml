@@ -70,6 +70,10 @@ jobs:
     timeout-minutes: 5
     env:
       GH_TOKEN: ${{ github.token }}
+      # Sem actions/checkout o gh NÃO sabe o repositório (e o contexto do
+      # GitHub não é herdado pelo CLI) — GH_REPO resolve. Bug pego no merge
+      # do PR #35: "issue #32 não existe — ignorada" (issue #36).
+      GH_REPO: ${{ github.repository }}
       PR: ${{ github.event.pull_request.number }}
     steps:
       - name: Extrair issues vinculadas do corpo do PR
@@ -101,8 +105,9 @@ jobs:
         run: |
           CLOSED=0; SKIPPED=0
           for N in $NUMBERS; do
-            # Estados da issue + label de security (que não fecha por aqui)
-            JSON=$(gh issue view "$N" --json state,title,labels 2>/dev/null) || { echo "issue #$N não existe — ignorada"; continue; }
+            # Estados da issue + label de security (que não fecha por aqui).
+            # SEM 2>/dev/null: falha do gh precisa aparecer no log (lição do #36).
+            JSON=$(gh issue view "$N" --json state,title,labels) || { echo "issue #$N inacessível — ignorada (ver erro acima)"; continue; }
             STATE=$(echo "$JSON" | jq -r .state)
             TITLE_I=$(echo "$JSON" | jq -r .title)
             if echo "$JSON" | jq -e '.labels[]?.name | select(. == "achados-security")' >/dev/null; then
