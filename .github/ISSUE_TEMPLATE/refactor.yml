@@ -1,0 +1,35 @@
+name: "♻️ Refactor / tech-debt"
+description: "Melhoria interna sem mudança de comportamento (código morto, dedupe, organização)"
+labels: ["refactor"]
+body:
+  - type: textarea
+    id: problema
+    attributes:
+      label: "Problema / dívida"
+      description: "O que está duplicado, morto, desorganizado ou frágil hoje — e o custo"
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: "Área"
+      options:
+        - "gp100-ui (editor — navbar/palco/biblioteca)"
+        - "gp100-ui shell (Tauri/Rust)"
+        - "gp100-core (Rust)"
+        - "gp100-cli"
+        - "docs"
+        - "CI / workflow"
+    validations:
+      required: true
+  - type: textarea
+    id: proposta
+    attributes:
+      label: "Proposta"
+      description: "Como fica depois — alvo concreto da reorganização"
+  - type: textarea
+    id: garantias
+    attributes:
+      label: "Garantias de não-regressão"
+      description: "Como provar comportamento idêntico (testes que devem continuar verdes, baselines)"
+      placeholder: "unit 27/27 · e2e 71/71 · 48 baselines comparadas limpas"

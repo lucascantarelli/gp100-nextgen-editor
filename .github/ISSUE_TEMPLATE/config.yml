@@ -1,5 +1,8 @@
 blank_issues_enabled: true
 contact_links:
+  - name: "Como contribuir (fluxo completo)"
+    url: https://github.com/lucascantarelli/gp100-nextgen-editor/blob/main/docs/CONTRIBUTING.md
+    about: "Branch → commit → PR → fechamento de issue: GitFlow, conventional commits, gates e templates"
   - name: "Roadmap executivo"
     url: https://github.com/lucascantarelli/gp100-nextgen-editor/blob/main/docs/ROADMAP.md
     about: "Issues P/M0/H com responsável e critério de aceite — confira antes de abrir nova issue"

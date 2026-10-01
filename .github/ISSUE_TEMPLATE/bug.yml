@@ -26,11 +26,14 @@ body:
     attributes:
       label: "Área"
       options:
+        - "gp100-ui (editor — navbar/palco/biblioteca)"
+        - "gp100-ui shell (Tauri/Rust)"
         - "gp100-core (Rust)"
         - "gp100-cli"
         - "fixtures / capturas"
         - "proxy winmm"
         - "docs / protocolo"
+        - "CI / workflow"
         - "outro"
     validations:
       required: true

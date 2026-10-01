@@ -1,0 +1,35 @@
+name: "🏗️ Epic"
+description: "Fase do ROADMAP que se desdobra em issues filhas (acompanha pelo checklist)"
+labels: ["epic"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Regra de casa:** o epic NÃO fecha pelo PR de uma filha — só quando
+        **todas** as filhas estiverem fechadas. Referencie as filhas como
+        tarefas `- [ ] #N` no corpo; se alguma filha usar `Closes #N` apontando
+        para este epic, feche-o manualmente ao final da fase (ou converta o
+        vínculo em simples menção `#N`).
+  - type: textarea
+    id: objetivo
+    attributes:
+      label: "Objetivo"
+      description: "Resultado final da fase, em 1–3 frases (espelhe o ROADMAP quando possível)"
+    validations:
+      required: true
+  - type: textarea
+    id: filhas
+    attributes:
+      label: "Issues filhas"
+      description: "Checklist com as issues que compõem o epic (com link #N) — é o medidor de progresso"
+      placeholder: |
+        - [ ] #12 — task 1
+        - [ ] #13 — task 2
+        - [ ] #14 — task 3
+    validations:
+      required: true
+  - type: textarea
+    id: aceite
+    attributes:
+      label: "Critério de aceite do epic"
+      description: "Gates verdes + prova (testes, baselines, docs atualizados)"

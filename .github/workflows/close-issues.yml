@@ -1,0 +1,128 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# FECHAMENTO DE ISSUES no merge em develop (GitFlow).
+#
+# POR QUÊ EXISTE: o GitHub só fecha a issue por "Closes #N" quando o merge
+# entra na branch DEFAULT (main). No GitFlow, o PR aponta para develop —
+# a issue ficaria aberta até o release para main. Este workflow fecha na
+# INTEGRAÇÃO (develop), onde o trabalho realmente é concluído.
+#
+# COMO: extrai as palavras-chave de fechamento do corpo do PR (close[sd]/fix
+# [esd]/resolve[sd] #N, case-insensitive) e fecha via API com comentário de
+# rastreabilidade (PR + sha + link da run). Idempotente: issue já fechada é
+# apenas confirmada. Sem palavra-chave, registra no summary (não falha).
+#
+# GUARDS:
+#   - só em PR MERGEADO na base develop (não dispara em close sem merge);
+#   - pula PRs criados pelo github-actions[bot] (evita loop de automação);
+#   - pula issues automáticas de security (label `achados-security`) — essas
+#     só se fecham manualmente, com a correção provada.
+# ═══════════════════════════════════════════════════════════════════════════
+
+name: fecha-issues-develop
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [develop]
+
+permissions:
+  issues: write # fechar issue + comentário de rastreabilidade
+  pull-requests: read # ler corpo/labels do PR
+
+jobs:
+  close-linked:
+    name: Fechar issues vinculadas (Closes #N)
+    if: ${{ github.event.pull_request.merged == true && github.event.pull_request.user.login != 'github-actions[bot]' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PR: ${{ github.event.pull_request.number }}
+    steps:
+      - name: Extrair issues vinculadas do corpo do PR
+        id: linked
+        env:
+          BODY: ${{ github.event.pull_request.body || '' }}
+        run: |
+          # close[sd]/fix(e[sd])/resolve[sd] #N — case-insensitive, aceita
+          # vírgula e dois-pontos entre a palavra e o número. Cada menção
+          # vira uma linha "N"; awk deduplifica preservando a ordem.
+          NUMBERS=$(printf '%s\n' "$BODY" \
+            | grep -ioE '(close[sd]?|fix(e[sd])?|resolve[sd]?)[:,]? #[0-9]+' \
+            | grep -oE '#[0-9]+' | tr -d '#' | awk '!seen[$0]++')
+          {
+            echo "numbers<<EOF"
+            echo "$NUMBERS"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+          COUNT=$(printf '%s' "$NUMBERS" | grep -c '[0-9]' || true)
+          echo "encontradas: ${COUNT:-0} → $(echo "$NUMBERS" | tr '\n' ' ')"
+
+      - name: Fechar issues vinculadas
+        if: ${{ steps.linked.outputs.numbers != '' }}
+        env:
+          NUMBERS: ${{ steps.linked.outputs.numbers }}
+          SHA: ${{ github.event.pull_request.merge_commit_sha }}
+          TITLE: ${{ github.event.pull_request.title }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          CLOSED=0; SKIPPED=0
+          for N in $NUMBERS; do
+            # Estados da issue + label de security (que não fecha por aqui)
+            JSON=$(gh issue view "$N" --json state,title,labels 2>/dev/null) || { echo "issue #$N não existe — ignorada"; continue; }
+            STATE=$(echo "$JSON" | jq -r .state)
+            TITLE_I=$(echo "$JSON" | jq -r .title)
+            if echo "$JSON" | jq -e '.labels[]?.name | select(. == "achados-security")' >/dev/null; then
+              echo "issue #$N ($TITLE_I) é achado de security — fechamento MANUAL, pulada"
+              echo "skipped|$N|$TITLE_I|achado de security (fechamento manual)" >> /tmp/issues.tsv
+              SKIPPED=$((SKIPPED+1))
+              continue
+            fi
+            if [ "$STATE" = "CLOSED" ]; then
+              echo "issue #$N ($TITLE_I) já estava fechada — nada a fazer"
+              echo "skipped|$N|$TITLE_I|já fechada" >> /tmp/issues.tsv
+              SKIPPED=$((SKIPPED+1))
+              continue
+            fi
+            gh issue close "$N" --comment "$(cat <<MD
+          ✅ Fechada automaticamente: integrada em \`develop\` pelo PR **#$PR — $TITLE** (sha \`$SHA\`).
+
+          _Rastreabilidade: workflow \`fecha-issues-develop\` — [run]($RUN_URL). A issue sai oficialmente no release para \`main\` (GitFlow)._
+          MD
+          )"
+            echo "issue #$N ($TITLE_I) fechada via PR #$PR"
+            echo "closed|$N|$TITLE_I|PR #$PR" >> /tmp/issues.tsv
+            CLOSED=$((CLOSED+1))
+          done
+          {
+            echo "closed=$CLOSED"
+            echo "skipped=$SKIPPED"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Resumo (summary)
+        if: always()
+        env:
+          NUMBERS: ${{ steps.linked.outputs.numbers }}
+          CLOSED: ${{ steps.close-linked.outputs.closed }}
+          SKIPPED: ${{ steps.close-linked.outputs.skipped }}
+        run: |
+          {
+            echo "### 🔗 Fechamento de issues (merge em develop)"
+            echo ""
+            echo "PR **#$PR — ${{ github.event.pull_request.title }}** (merge: \`develop\`)"
+            echo ""
+            if [ -z "$NUMBERS" ]; then
+              echo "> Nenhuma palavra-chave de fechamento no corpo do PR."
+              echo "> Adicione \`Closes #N\` (ou \`Fixes #N\` / \`Resolves #N\`) ao corpo para o vínculo automático."
+            else
+              echo "| Issue | Resultado |"
+              echo "|---|---|"
+              if [ -f /tmp/issues.tsv ]; then
+                while IFS='|' read -r tipo n titulo detalhe; do
+                  icone="❓"; [ "$tipo" = "closed" ] && icone="✅ fechada"
+                  [ "$tipo" = "skipped" ] && icone="⏭️ pulada"
+                  echo "| #$n — $titulo | $icone ($detalhe) |"
+                done < /tmp/issues.tsv
+              fi
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

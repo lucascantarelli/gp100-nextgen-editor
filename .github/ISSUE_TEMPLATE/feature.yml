@@ -19,6 +19,8 @@ body:
         - "M1 — Editor UI (Tauri/React)"
         - "M2 — IR lab / empacotamento"
         - "M3 — diferenciais"
+        - "FASE V — UI/UX (navbar, palco, VU)"
+        - "infra (CI/CD, GitFlow, docs)"
         - "fora de escopo por agora"
     validations:
       required: true
