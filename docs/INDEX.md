@@ -4,7 +4,7 @@
 > fonte de verdade de cada assunto. Mantenha-o atualizado a cada novo documento
 > ou mudança de status — é o contrato de navegação entre agentes e humanos.
 
-**Última revisão:** 2026-09-30 (**M0 100% · M1.0 ✅ · M1.1 ✅** — DeviceActor (D8) + commands `device_*` + boot com barra de progresso; front `ui/` + backend `src-tauri` na CI multi-OS; ADR-1..8; Dependabot ativo (npm/actions/cargo src-tauri); FASE ACHADOS A-1..A-4 ✅ no ROADMAP)
+**Última revisão:** 2026-10-01 (**M0 100% · M1.0 ✅ · M1.1 ✅** — DeviceActor (D8) + commands `device_*` + boot com barra de progresso; front `ui/` + backend `src-tauri` na CI multi-OS; ADR-1..8; Dependabot ativo (npm/actions/cargo src-tauri); FASE ACHADOS A-1..A-4 ✅ no ROADMAP; fluxo de contribuição documentado — CONTRIBUTING + fechamento automático de issue em develop + templates novos)
 
 ---
 
@@ -13,6 +13,7 @@
 | Objetivo | Rota de leitura |
 |---|---|
 | **Entender o projeto** | `README.md` → `docs/VISION.md` |
+| **Contribuir (issue → branch → PR → merge)** | `docs/CONTRIBUTING.md` (GitFlow, conventional commits, gates por área, fechamento automático da issue)
 | **Executar o plano de desenvolvimento** | `docs/ROADMAP.md` (P/M0/H em ordem, com DoD; **FASE ACHADOS = prioridade máxima**) + `docs/UI_PLAN.md` (M1, issues M1.0–M1.6) |
 | **Levar o gp100-core à pedaleira (gate H1)** | `docs/H1_CHECKLIST.md` (checklist) + `docs/H1_REPORT.md` (relatório/plano de backup) + `scripts/h1_field.sh` (runbook: rehearsal/field) |
 | **Implementar o protocolo (gp100-core)** | `docs/protocol_golden.json` (especificação executável) + `docs/PROTOCOL.md` §13 (narrativa) |
@@ -51,6 +52,7 @@
 | `BLOCKERS.md` | Matriz de 12 subsistemas; 11 resolvidos, firmware-update diferido | ✅ atual |
 | `CAPTURE_PLAN.md` | Plano original das rotas de captura | 📜 histórico (cumprido) |
 | `ROADMAP.md` | Plano executivo: preparação (P), gp100-core (M0), gate de hardware (H) com issues e critérios de aceite | ✅ atual |
+| `CONTRIBUTING.md` | Fluxo de contribuição: GitFlow (develop como integração), conventional commits, gates locais por área (coverage 85% incluso), template de PR e fechamento automático de issue no merge em develop (workflow close-issues.yml) | ✅ atual |
 | `UI_PLAN.md` | Planejamento issue-a-issue da Fase M1 (Editor UI Tauri/React): escopo, arquitetura DeviceActor, superfície IPC, telas, política de hardware, testes, riscos | 🔨 M1.0 ✅ (ADR-7) · M1.1 ✅ (actor + boot com barra); M1.2–M1.6 planejadas |
 | `UI_DESIGN.md` | Design system da UI: paleta palco Valeton (âmbar/preto/vermelho/lavanda com rácios WCAG medidos), escala de Fibonacci, tipografia, motion, identidade "pedalboard ao vivo", checklist de review | ✅ atual (M1.0) |
 | `H1_CHECKLIST.md` | Checklist operacional do gate H1 (primeiro contato real, só leitura): pré-requisitos, procedimento de campo, níveis de comparação (framing × estado), log de divergência, fluxo R3 | ⏳ aguardando pedaleira + owner — RealDevice ✅ e kit de campo prontos |

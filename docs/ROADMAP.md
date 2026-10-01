@@ -343,6 +343,303 @@
 - **ADR-7+** à medida que os spikes fecharem as decisões em aberto do
   `docs/UI_PLAN.md` §9.
 
+## FASE U — UI POR ETAPAS (casca → pedais; decisão do owner 30/09)
+
+> **Fonte de verdade desta fase: `docs/UI_REFERENCE.md`** (inventário de achados,
+> capturas do app oficial, checklist vivo da fase dos pedais e plano §4).
+> Executa a M1.2/M1.3 do `docs/UI_PLAN.md` **por etapas aprovadas pelo owner**:
+> cada etapa termina com **teste manual** (roteiros em `docs/UI_TEST_PLAN.md`)
+> e aprovação antes da próxima.
+
+### U-1. Casca da UI + navegação de presets de fábrica (sem pedais) — 🔨 EM ANDAMENTO
+- **Responsável:** Buffy (UI) · Depende: A-4, M1.1 · **Estimativa:** 1 sessão
+- **O quê:** organização geral da UI no layout do oficial (referencial §1 de
+  UI_REFERENCE): topbar (logo, conexão, Stomp/DRUM/Master VOL prévia, ⚙),
+  biblioteca com os **99 presets de fábrica** (nome/tipo do all.prst; abrir =
+  REAL §13.10), coluna do patch (◀ ▶ + nome), **board VAZIO** com os 9 lugares
+  marcados (PRE/DST/AMP/NR/CAB/EQ/MOD/DLY/RVB) e trava "⇄ mover" no header.
+  NENHUM pedal desenhado nesta fase.
+- **DoD:** navegação completa de presets funcional (busca, setas, abrir), board
+  vazio com lugares definidos, roteiro de teste manual executado, aprovação do
+  owner, CI verde (tsc/lint/vitest/build).
+
+### U-2. Modal Settings (6 abas) + trava do drag — 🔜
+- **Responsável:** Buffy (UI) · Depende: U-1 · **Estimativa:** 1 sessão
+- **O quê:** modal Settings com as abas do oficial (General/Global EQ/About/Info
+  Frame/Help/Release Note); General persiste LOCAL (localStorage, "prévia
+  local" — escrita global só pós captura G3–G6); Global EQ placeholder com 5
+  páginas; trava do drag-and-drop integrada ao header (drag só com ela ATIVA).
+- **DoD:** modal navegável por teclado (Esc fecha, foco preso), aba General
+  persiste local, CI verde + teste manual.
+
+### U-3. Pedais fase 2 (1 cadeia por entrega; 1 efeito por vez) — 🔜
+- **Responsável:** Buffy (UI) · Depende: U-1/U-2 aprovados · **Estimativa:** várias sessões
+- **O quê:** adicionar os pedais um por um na ordem da cadeia (PRE → DST → AMP
+  → NR → CAB → EQ → MOD → DLY → RVB): modelagem SVG por variante, knobs do
+  dicionário com valor editável (textbox), modal de edição do pedal, LED
+  verde/vermelho. Cada efeito é validado ISOLADO (só ele no board) e depois em
+  TODAS as 9 posições (tamanho/espaçamento/linhas) antes do próximo — checklist
+  completo em `docs/UI_REFERENCE.md` §3.
+- **DoD:** cadeia completa entregue após rodadas de teste manual aprovadas;
+  knobs sem sobreposição em qualquer posição; travinha ativa para reordenar.
+
+### U-4. Roteiros de teste manual — ✅ FEITO 30/09 (+ Playwright)
+- **Responsável:** Buffy (docs) · Depende: U-1 · **Estimativa:** 2h
+- **O quê:** ✅ `docs/UI_TEST_PLAN.md` com roteiros numerados por etapa (casca,
+  settings, cada pedal da fase U-3, posição do board, presets/fábrica, teclado)
+  **+ Playwright implementado** (`packages/app/ui/e2e/shell.roteiros.spec.ts`):
+  R1–R6 + drum/looper executados no Chromium (8/8 ✅, rodada 30/09 registrada na
+  doc). Achado corrigido: alvo <32px no PushLog.
+- **DoD:** ✅ roteiro executável pelo owner sem contexto do chat; achados voltam
+  para `docs/UI_REFERENCE.md` §3; `pnpm e2e` na suíte da UI.
+
+### U-5. E2e completo da casca na CI + cobertura do manual — ✅ FEITO 30/09
+- **Responsável:** Buffy (UI) · Depende: U-1/U-2/U-4 · **Estimativa:** 1 sessão
+- **O quê:** ✅ job `e2e` no pipeline (Playwright contra o `pnpm dev` no Chromium;
+  mesmo filtro do front) e como **gate do release** (`tag-release` precisa dele).
+  Suíte: R1–R6 + drum + looper + atalhos globais + responsividade (3 viewports)
+  = **14 e2e ✅ · 23 unit ✅**. Achados corrigidos: BPM do drum com tamanho
+  divergente (258×46 vs 240×32 — UA só aplica border-box a select; `.gp-num`
+  ganhou `box-sizing`), navegação ◀ ▶ do manual implementada, redundâncias do
+  looper removidas (estado da fita numa linha só). Matriz de cobertura:
+  `docs/MANUAL_COVERAGE.md` (33 ✅ · 5 🟡 · 5 🔴 — nada silencioso).
+- **DoD:** ✅ e2e verde na CI como condição de tag; cobertura do manual explícita;
+  alinhamento dos componentes travado por teste (responsivo + BPM).
+
+### U-6. Regressão estética dos painéis (toHaveScreenshot) — ✅ FEITO 30/09
+- **Responsável:** Buffy (UI) · Depende: U-5 · **Estimativa:** 1 sessão
+- **O quê:** ✅ `e2e/visual.spec.ts` — 9 baselines (board/looper/biblioteca ×
+  1440/1280/1024) com `toHaveScreenshot`: animações congeladas, tolerância 1% e
+  **baseline por plataforma** (fontes divergem Win/Linux — template
+  `{arg}-{platform}`). Sem baseline no CI = SKIP (não quebra a 1ª execução);
+  local sem baseline = cria sozinho; input `update-snapshots` do workflow
+  gera as baselines linux e sobe artefato para commit. Validadas localmente
+  (win32, 2 rodadas idênticas).
+- **DoD:** ✅ job `e2e-visual` na CI; promoção p/ gate de release assim que as
+  baselines `linux` forem commitadas (1º run do input update-snapshots).
+
+### U-7. Smoke do shell Tauri real na CI (tauri-driver) — ✅ FEITO 30/09
+- **Responsável:** Buffy (UI) · Depende: U-5, ADR-7 (sobe no CI) · **Estimativa:** 1 sessão
+- **O quê:** ✅ job `e2e-tauri` (Ubuntu): build debug do `gp100-ui` com o
+  `ui/dist` embutido (backend mock, sem hardware) → `tauri-driver` +
+  `WebKitWebDriver` sob `xvfb-run` (receita oficial: deps
+  `webkit2gtk-driver`+`xvfb`, `WEBKIT_DISABLE_DMABUF_RENDERER=1`) → Selenium
+  (`e2e/tauri.smoke.mjs`): banner no webview, 3 painéis no DOM e a biblioteca
+  com os 99 presets REAIS dentro do webview. Nota: roda quando front OU rust
+  mudam; não é gate de release ainda (amadurecer 1º) — promover depois.
+- **DoD:** ✅ prova de que a casca sobe no WEBVIEW na CI, não só no Chromium.
+
+### FASE Q — QUALIDADE DA UI (code review do owner, 30/09)
+
+> Origem: review do owner — campos falsos na UI (Noise Gates inexistentes),
+> nome do preset congelado nos displays, vocabulário interno visível ao
+> usuário e "os testes por que não pegaram?". Estes issues NÃO reabrem
+> discussão: são dívida técnica nomeada, com prioridade antes de novos
+> recursos de UI.
+
+- **Q-1. Vocabulário interno fora da UI** — ✅ FEITO 30/09
+  - ✅ Limpo: "fase 2", "(D7)", "captura G3–G6", "Fase M", "gate H1",
+    "U-1/U-2", "§13.12", "docs/MANUAL_COVERAGE.md" nos textos da UI;
+    mensagens centralizadas em `src/i18n/messages.ts` (fonte única, base do
+    i18n de 4 idiomas que o próprio Settings já prevê).
+  - ✅ Varredura exaustiva: TODO componente migra para MSG (TopBar,
+    ConnectionBar, Library, EmptyBoard, Drum, PushLog, Looper, Settings, App,
+    Pedal, Pedalboard, PresetCase + decorativos AmpHead/Knob); achei e migrei
+    resíduos que a 1ª passada deixou (aria do pedal/rolo, "capstan", placa
+    "GP-100", "0x" do pp, ternários "ok?"/"✕").
+  - ✅ Lint custom `local/no-user-literals` (eslint.config.js, `error` em
+    src/components/** + App.tsx): trava JSXText com letras, literais em
+    title/placeholder/aria-label/label/alt, templates sem interpolação e
+    ternários com ramo literal. Gates: 0 violações (unit 27/27, e2e 32/32).
+- **Q-2. Campos falsos na UI (não existem no device)** — ✅ FEITO 30/09
+  - Noise Gate (1)/(2) e Noise Mode removidos do Settings (nada de noise no
+    manual/firmware extraído); APP Language agora DESABILITADO com "disponível
+    em uma próxima versão" (o select ativo que não trocava idioma era o mesmo
+    engano); unit test trava a ausência dos fantasmas.
+- **Q-3. Nome do preset congelado (fallback ignorava o pp)** — ✅ FEITO 30/09
+  - `localMockBoard(pp)` devolvia sempre "It's GP100" — navbar, LED do board
+    e ConnectionBar não acompanhavam a seleção. Fix: fallback usa o MESMO
+    artefato da biblioteca (presetData). Corrigido em conjunto o pp/ppType
+    do ConnectionBar (pp fixo 0x0000).
+  - Lição de teste: os asserts verificavam só o NÚMERO (`/^P25 /`) — nunca o
+    nome. Agora e2e cobre o NOME COMPLETO nos 3 locais (biblioteca → navbar,
+    ◀ ▶ → navbar+LED+seleção da lista).
+- **Q-4. Efeito colateral dentro de updater de estado** — ✅ FEITO 30/09
+  - `stepPreset` chamava `openPreset()` dentro do updater do `setPp`
+    (updater tem que ser puro; StrictMode executa 2×). Fix: updater puro +
+    `useEffect([pp])` abre o preset corrente.
+- **Q-5. Varredura completa de dados estáticos/mock** — ✅ FEITO 30/09
+  - Auditoria dos 3 fallbacks (info/board/lib) contra os artefatos gerados:
+    nome/tipo do corrente e a biblioteca já vinham do all.prst; o board usa
+    knobs/ranges do dicionário, mas os 9 `code` eram transcritos à mão e
+    6/9 divergiam do nibble/index reais (só o Bog RedM — validado por
+    captura — coincidia). Fix: code DERIVADO do artefato (nibble<<24 | index).
+  - Números exibidos ao usuário (About/Release Note/drum do painel: 99
+    presets, 87 ritmos, 185/639 do catálogo) agora são derivados dos
+    ARTEFATOS (FACTORY_PRESETS, DRUM_GENRES, FX_MODULES) — regenerar o
+    dicionário atualiza a UI (regra §8-3 do UI_REFERENCE de verdade).
+  - Duplicações eliminadas: a lista PRE…RVB existia em 3 cópias (2 em
+    device.ts + 1 em EmptyBoard) → `CHAIN_FAMILIES`/`ARCHETYPE_OF` em
+    ipc/types.ts (fonte única); tipo `DrumBeat` órfão removido.
+  - Revisão pré-Fase 2 de Pedal/Pedalboard/Knob: sem dado mock hardcoded —
+    knobs/nomes/codes chegam do board; restam só formato de payload SET e
+    dimensões de layout (protocolo/arte, não dado do device).
+  - Hardcoded deliberadamente mantido (mock de Fase 1, sem captura que o
+    valide): irSlotsWithCrc=20, 90/45 s do looper, 2297 transações, V2.1,
+    ppTypeName do corrente. Unit trava o que já é derivável (87 ritmos).
+- **Q-6. Cobertura de interação ponta-a-ponta da casca** — ✅ FEITO 30/09
+  - `e2e/interacoes.spec.ts`: master VOL (display numérico + reload), drum
+    volume/speed, looper Rec/Play/P-VOL + rota PRE/POST, kill switch por
+    teclado e Settings campo a campo (input/normal level, USB Audio, Hint
+    Mode, Tap Tempo) — cada campo muda → UI reflete → persiste (localStorage
+    comprovado e reload restaura). Regra Q-3 aplicada: assert do valor
+    TROCADO, nunca só do inicial.
+- **Q-7. Error states e empty states sem cenário** — ✅ FEITO 30/09
+  - Gancho de teste `gp100.debug.failDevice` (="info"|"boot"|"board"|"all")
+    no fallback de `src/ipc/device.ts` — fora do fallback (webview real)
+    não tem efeito; sem a chave, custo zero.
+  - Unit `tests/device.fail.test.ts`: deviceInfo rejeita com a flag (info/all)
+    e segue mock sem ela.
+  - `e2e/estados.spec.ts` (flag setada antes do load via addInitScript):
+    info falha → casca de pé + "Device desconectado"; boot falha →
+    role="alert" amigável (MSG.connBootError, sem stack técnica); board
+    falha → banner amigável (MSG.errOpenPreset); "all" → nenhum crash.
+- **Q-8. Comentários/docstrings de código apontando para o chat** — ✅ FEITO 30/09
+  - Varredura exaustiva de src/, tests/ e e2e/ (artifacts/ gerados ficam de
+    fora): zero referências a decisões de chat, datas de rodada ou issues em
+    comentários — cada um agora explica o PORQUÊ técnico local; as decisões
+    continuam documentadas nos docs vivos (ROADMAP, UI_REFERENCE §8, TEST_PLAN).
+  - Bônus da varredura: 1 vazamento REAL de vocabulário interno ao usuário —
+    o tooltip do modo engenheiro do Knob exibia "SET §13.11"; agora mostra
+    "SET" + addr/code/ctrl/payload.
+- **Q-9. Revisão Rust (core/api) sob as mesmas lentes** — 🟢 BAIXA · saudável
+  - Evidência: 0 `unwrap` fora de testes no core/api, 0 TODO/FIXME real,
+    gates clippy -D warnings na CI. Manter o padrão; nada a fazer agora.
+
+## 🎨 FASE V — UI/UX enterprise (plano do owner 30/09)
+
+> Alinhamento já respondido pelo owner: drums = drawer inferior (A);
+> coverage mínimo 85%; `/deprecated_docs` entra no .gitignore ao final;
+> merge de PR = revisão do agente (CI verde, sem comentários) + comando do usuário.
+
+- **V-1. Tema "Valeton Violet" (dark + light)** — ✅ FEITO 30/09
+  - Paleta do acabamento jewel violet do GP-100VT (pesquisado no site
+    oficial): obsidiana `#0C0910` + violeta anodizado `#7C3AED` e brilho
+    neon `#9333EA` — visual vivo/brilhante de mesa tecnológica, não retro.
+  - Tokens novos: `--border`, `--accent-text` (TEXTO AA sobre escuro),
+    `--on-accent` (texto sobre violeta), `--silver`/`--steel`; contrastes
+    medidos e travados em tokens.ts (todos ≥ 4.5:1; on-accent 5.5/7.6).
+- **V-2. Hierarquia do shell (looper no topo, sem lacunas)** — ✅ FEITO 30/09
+  - Ordem no App: looper full-width em cima; abaixo, biblioteca (300px,
+    scroll interno, `minHeight: 0`) à esquerda e pedalboard com
+    `align-items: stretch` — alturas iguais, zero lacuna vertical;
+    empilhado ≤1100px o palco volta ao topo via CSS `order`.
+  - Asserts e2e novos: lib ≤300px, à esquerda do board, topos alinhados.
+- **V-3. Navbar consolidada** — ✅ FEITO 30/09 · ampliado (seção "Conexão" REMOVIDA)
+  - Faixa "backend simulado (mock)…" removida da ConnectionBar; vira badge
+    `Mock Device` com LED (âmbar=mock, verde=conectado) no cluster de conexão.
+  - Mover/Kill/⚙ integrados à navbar à direita, botão vidro (classe
+    `btn-glass`: 34px fixos, blur sutil, borda violeta, hover com glow).
+  - **Consolidação total (pedido do owner):** a seção permanente "Conexão"
+    da página foi apagada — status, badge e BOOT vivem só na navbar (botão
+    Boot com `aria-busy`); progresso do boot = faixa fina no banner e erro =
+    `role="alert"`, ambos só durante o boot/falha. `ConnectionBar.tsx` e
+    `bootPp` do useBoot removidos; 14 baselines visuais regeneradas;
+    asserts e2e migrados (R1/R5, estados, erro-boot).
+  - **Viewport única + remanejamento harmônico (pedido do owner):** a página
+    inteira virou uma "mesa" (`main` = grid navbar → meio com scroll →
+    rodapé; os 99 presets NÃO esticam mais a página — lista delimitada
+    `max-height 38vh` rolando por dentro). Botões remanejados: **⇄ mover**
+    → cabeçalho do PALCO (controla o drag dos slots, onde faz sentido);
+    **⭘ kill** → cluster do master (mute junto do volume, como no hardware);
+    **⚙** → cluster do master (global, sempre clicável — no rodapé o drawer
+    do drum o cobriria); rodapé novo = chassi da pedaleira (IN · GP · OUT).
+- **V-4. Drums em drawer inferior** — ✅ FEITO 30/09 (opção A)
+  - DrumPanel reescrito como drawer full-width (`.drum-drawer`, animação
+    suave, fecha com Esc pela precedência global já existente); palco 100% limpo.
+- **V-5. Regressão visual expandida** — ✅ FEITO 30/09
+  - 48 baselines win32: 3 painéis + topbar + 2 erros × 7 viewports
+    (800×600, 1024, 1280, 1440, 1920×1080, 2560×1440, 2560×1080) + tema
+    claro (emulateMedia, sufixo `-light`) × 6. Regeneradas com o tema novo;
+    71/71 e2e ✅ com comparação limpa na 2ª execução.
+- **V-6. Código morto (parte da auditoria de QA)** — ✅ FEITO 30/09
+  - Removidos: `useDevice.ts`, `PresetCase.tsx`, `AmpHead.tsx` (0
+    importadores; varredura por grep + tsc + lint confirmando) e suas chaves
+    MSG. Mantidos DE PROPÓSITO: Pedal/Pedalboard/Knob/fxModels — fundação
+    declarada da Fase 2 (pedais voltam ao board um efeito por vez).
+- **V-7. Pendências do plano enterprise (issues abertas)**
+  - ✅ FEITO 01/10 — Page Object Model nos e2e: `e2e/pages/_pages.ts`
+    (Shell/Brand/Library/Board/Looper/Drum/Settings/VU) com os 5 specs
+    reescritos 1:1 (mesmos asserts, zero mudança de comportamento);
+    `_helpers.ts` permanece como módulo de medidas geométricas. Bônus:
+    restaurado o `toHaveScreenshot` dos painéis/tema claro (perdido em
+    edição anterior) — o guard retomado pegou drift real de 2px no palco
+    e as baselines foram regeneradas; 72/72 e2e ✅.
+  - Edge cases de IPC de nível 2 (failDevice em select/set_param e nos
+    eventos, retry/backoff de command).
+  - ✅ FEITO 01/10 — GitFlow completo + cadeia rc sob `workflow_dispatch`:
+    `.github/workflows/release.yml` (release-gitflow) com `action=rc`
+    (corta/reutiliza release/x.y.z de develop, etiqueta vX.Y.Z-rc.N —
+    o pipeline publica PRERELEASE; N incrementa sozinho) e
+    `action=promote` (tag final vX.Y.Z, merge --no-ff em main, backport
+    em develop, branch apagada; conflito aborta sem empurrar nada
+    parcial; idempotente por tag existente). Guard de prerelease no
+    pipeline para tags -rc (CLI + instalador). Validação sintática dos
+    workflows no gate do pipeline (`scripts/validate_workflows.py`:
+    YAML dos 9 arquivos + contrato de gatilhos do close-issues/
+    pipeline/release — o teste de integração real do close-issues
+    continua sendo o próprio merge em develop; act exigiria Docker no
+    gate). Proteção de branches = configuração do repo (não-workflow).
+  - ✅ FEITO 30/09 — fechamento de issue no merge em develop (a parte
+    "vinculação issue↔PR" da nota): `.github/workflows/close-issues.yml`
+    extrai `Closes/Fixes/Resolves #N` do corpo do PR mergeado em develop e
+    fecha via API com comentário de rastreabilidade (PR + sha + run).
+    Guards: PR do github-actions[bot], issues `achados-security` (fechamento
+    manual) e idempotência (já fechada = confirmada). O GitHub nativo só
+    fecha na branch default (main); no GitFlow este workflow cobre develop.
+  - ✅ FEITO 30/09 — templates novos (parte da centralização): issue `epic`
+    (checklist de filhas como medidor de progresso) e `refactor` (com
+    garantias de não-regressão); bug/feature ganharam áreas do editor
+    (gp100-ui/shell), `CI / workflow` e fases atuais do ROADMAP; PR template
+    reescrito com tabelas de gates executados, ambiente verificado e
+    antes→depois (R1–R4 e política de conteúdo mantidos). YAML dos 8
+    arquivos validado por parse.
+  - ✅ FEITO 01/10 — **gate de coverage 85%** no front: `test:coverage`
+    (vitest + @vitest/coverage-v8) com thresholds statements/functions/lines
+    = 85 no `vite.config.ts` (branches medidos, sem gate — ganho por
+    incremento; excluindo só main.tsx/design.css/VuPanel, coberto por e2e
+    visual). A CI trava pelo build-front action (`pnpm test:coverage`),
+    válido para front, ui-rust, e2e-tauri e releases. Suite subiu 27 → 77
+    unit (tsc/lint ✅): ipc/device completo (boot em lotes de 64 com cap
+    travado em unit, board/library/comandos, gancho failDevice por
+    operação, **branch de webview Tauri** via mock parcial de
+    @tauri-apps/core+event), useBoot (auto 1× sob StrictMode, manual,
+    throttle rAF, erro→retry, reset), fundação do palco (fxModels
+    variante+fallback, Pedalboard linhas/ordem/pulsos, Pedal LED+ValueBox,
+    Knob teclado+arrasto+ciclo) e interações do App (◀/▶ ciclo, master,
+    faixas de boot/erro com recuperação pelo ⟳, erro do openPreset, FSM
+    completa do looper, busca da biblioteca, 6 abas do Settings,
+    persistência do General, push log com cap de 100, drum on/off/BPM/
+    compasso, VU modo + drag do EmptyBoard). Números: **91.6% lines ·
+    89.9% stmts · 86.6% fns · 81.6% branches**. **Mapa de edge cases de
+    IPC cobertos** vs. pendentes (nível 2): (a) info falha → navbar off
+    (e2e R5); (b) boot falha → alerta + ⟳ recupera (e2e + unit); (c) board
+    falha → erro amigável (e2e + unit); (d) boot lento → lotes de 64,
+    UI fluida (unit); (e) events unlisten/dupla assinatura (unit); (f)
+    library/sem falha — resolve sempre (unit). Pendentes para a integração
+    real (issue própria quando o backend responder): falha em
+    select/set_param (hoje void-infallible), retry/backoff de command,
+    disconnect mid-boot, dedupe/parse de push hex inválido.
+  - ✅ FEITO 01/10 — fluxo de contribuição documentado (parte da
+    centralização): `docs/CONTRIBUTING.md` liga o ciclo completo
+    issue → branch (GitFlow, develop como integração) → conventional
+    commits → gates por área (coverage 85% incluso) → PR (tabelas do
+    template) → fechamento automático da issue pelo close-issues.yml;
+    regras de casa escritas (epic não fecha por filha, vínculo de
+    fechamento no CORPO do PR, ci-lite, achados-security manual).
+    Indexado no INDEX.md (rota + inventário) e no seletor de issues
+    (contact link do config.yml).
+
 ## ❌ Deliberadamente FORA de escopo agora (não reabrir)
 - Firmware update (política V2+) · layout byte-a-byte da página 13xx (só mock precisa
   de shape) · CRC de slot IR ocupado · ppEXP1/ppCtrl fino · G3–G6 de captura ·
