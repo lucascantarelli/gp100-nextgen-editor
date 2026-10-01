@@ -85,17 +85,27 @@ test("looper: volumes refletem no display, persistem e a rota PRE/POST volta do 
   await expect(looper.routeButton("POST")).toHaveAttribute("aria-pressed", "true");
 });
 
-/* ── Kill switch (topbar) — alcançável por teclado, sem quebrar a casca ── */
-test("kill switch: foco por teclado e Enter não tiram a casca do ar", async ({ page }) => {
+/* ── Kill switch (topbar): mute global REVERSÍVEL, alcançável por teclado ── */
+test("kill switch: mute global (master→0 + drum off) por teclado e volta", async ({ page }) => {
   const kill = shell.killSwitch();
+  const master = shell.masterVolume();
   await expect(kill).toBeVisible();
+  await expect(kill).toHaveAttribute("aria-pressed", "false");
+  await expect(master).toHaveValue("99");
+
+  // Enter (teclado) dispara o mute global: valor TROCADO e visível
   await kill.focus();
   await page.keyboard.press("Enter");
-  // Fase 1: o kill ainda não escreve no device (fios G3–G6) — o cenário
-  // trava a ALCANÇABILIDADE: o botão segue no lugar e o shell responde.
-  await expect(kill).toBeVisible();
+  await expect(kill).toHaveAttribute("aria-pressed", "true");
+  await expect(master).toHaveValue("0");
+  await expect(shell.drum.chip).not.toContainText("⏹"); // bateria parada
   await expect(shell.banner).toBeVisible();
   await expect(shell.library.listbox()).toBeVisible();
+
+  // de novo restaura o master anterior (não é botão morto)
+  await kill.click();
+  await expect(kill).toHaveAttribute("aria-pressed", "false");
+  await expect(master).toHaveValue("99");
 });
 
 /* ── Settings: campos remanescentes, um a um ── */
@@ -156,36 +166,38 @@ test("settings: input/normal level, USB Audio, Hint Mode e Tap Tempo — reflexo
   await expect(again.role("checkbox", "DLY")).toBeChecked();
 });
 
-/* ── VU do palco (V-7): modos com animações DIFERENTES de verdade ── */
-test("VU do palco: LED acende segmentos, EQ anima barras, drum ativa", async ({ page }) => {
-  const vu = shell.vu;
-  await expect(vu.group).toBeVisible();
+/* ── afinador do palco (V-7): display sempre visível, monitor + demo ── */
+test("Afinador: display visível, monitor liga, demo move agulha e nota, ref pitch", async ({ page }) => {
+  const tuner = shell.tuner;
+  await expect(tuner.group).toBeVisible();
 
-  // modo LED é o default: 12 colunas × 6 segmentos apagados (sem som)
-  const led = vu.modeButton("led");
-  const eq = vu.modeButton("eq");
-  await expect(led).toHaveAttribute("aria-pressed", "true");
-  await expect(vu.ledSegments(false)).toHaveCount(72);
-  await expect(vu.ledSegments(true)).toHaveCount(0);
+  // repouso honesto: nota "—" (LED próprio presente)
+  await expect(tuner.led()).toBeVisible();
+  await expect(tuner.note()).toHaveText("—");
 
-  // liga o drum (Espaço) → há "som": segmentos ACENDEM (LED ladder)
-  await page.keyboard.press("Space");
-  await page.waitForTimeout(600);
-  expect(await vu.ledSegments(true).count()).toBeGreaterThan(0);
+  // monitor liga (persistência testada no fim)
+  await tuner.powerButton().click();
+  await expect(tuner.powerButton()).toHaveAttribute("aria-pressed", "true");
 
-  // troca para modo equalizador (valor TROCADO, não só o inicial): o DOM
-  // muda de escada de segmentos p/ barras contínuas e a animação muda
-  await eq.click();
-  await expect(eq).toHaveAttribute("aria-pressed", "true");
-  await expect(led).toHaveAttribute("aria-pressed", "false");
-  await expect(vu.eqBars()).toHaveCount(12);
-  const h1 = await vu.barHeights();
-  await page.waitForTimeout(400);
-  const h2 = await vu.barHeights();
-  expect(h1.some((h, i) => Math.abs(h - h2[i]) > 1)).toBe(true); // EQ anima
+  // demo alimenta o MOTOR REAL com senoide varrendo ±30 cents em A2:
+  // nota aparece e a agulha desloca (esquerda flat → direita sharp)
+  await tuner.demoButton().click();
+  await expect(tuner.note()).toHaveText(/A\d/);
+  const left1 = await tuner.group.locator("[data-tuner-needle]").evaluate(
+    (el) => (el as HTMLElement).style.left,
+  );
+  await page.waitForTimeout(700);
+  const left2 = await tuner.group.locator("[data-tuner-needle]").evaluate(
+    (el) => (el as HTMLElement).style.left,
+  );
+  expect(left1).not.toBe(left2); // agulha se move de verdade
 
-  // persistência do modo
+  // demo desliga sozinha: volta ao repouso (monitor segue ligado)
+  await expect(tuner.note()).toHaveText("—", { timeout: 10_000 });
+
+  // ref pitch padrão visível; persistência do monitor após reload
+  await expect(tuner.refPitch()).resolves.toBe("440Hz");
   await shell.reload();
-  const vu2 = new ShellPage(page).vu;
-  await expect(vu2.modeButton("eq")).toHaveAttribute("aria-pressed", "true");
+  const tuner2 = new ShellPage(page).tuner;
+  await expect(tuner2.powerButton()).toHaveAttribute("aria-pressed", "true");
 });

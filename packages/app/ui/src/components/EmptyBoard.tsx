@@ -8,8 +8,8 @@
 import { useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { CHAIN_FAMILIES } from "../ipc/types";
-import { VuPanel } from "./VuPanel";
-import type { VuMode } from "./VuPanel";
+import { TunerPanel } from "./TunerPanel";
+import type { TunerSettings } from "./TunerPanel";
 import { MSG } from "../i18n/messages";
 
 interface Props {
@@ -19,10 +19,10 @@ interface Props {
   celebrate?: boolean;
   arrangeMode: boolean;
   onToggleArrange: () => void;
-  /** VU reativo (V-7): mora AQUI no palco, com a identidade do pedalboard */
-  vuMode: VuMode;
-  onVuMode: (m: VuMode) => void;
-  vuActive: boolean;
+  /** afinador (V-7): mora AQUI no cabeçalho, ao lado do LED e do ⇄ mover,
+   *  ocupando o espaço do antigo visualizador VU — SEMPRE VISÍVEL */
+  tuner: TunerSettings;
+  onTunerChange: (s: TunerSettings) => void;
   onReorder: (fromFamily: string, toFamily: string) => void;
 }
 
@@ -46,21 +46,6 @@ const ledBox: CSSProperties = {
   alignItems: "baseline",
   gap: "var(--space-12)",
 };
-/* trava ⇄ mover vive AQUI (controla o arrastar dos slots do palco) */
-const arrangeBtn = (on: boolean): CSSProperties => ({
-  fontFamily: "var(--font-mono)",
-  fontSize: "var(--text-xs)",
-  fontWeight: on ? 700 : 400,
-  letterSpacing: 0.8,
-  color: on ? "var(--on-accent)" : "var(--text)",
-  background: on ? "var(--accent)" : "transparent",
-  border: on ? "1px solid var(--accent-glow)" : "1px solid #4a3d29",
-  borderRadius: 8,
-  padding: "6px 12px",
-  cursor: "pointer",
-  minHeight: 32,
-  whiteSpace: "nowrap",
-});
 /* grade responsiva via .board-slots (9-across no wide; 3×3 ≤1340px) */
 const row: CSSProperties = {
   position: "relative",
@@ -95,32 +80,64 @@ const famTag: CSSProperties = {
 };
 const hint: CSSProperties = { fontSize: "var(--text-xs)", color: "#6b6255", textAlign: "center" };
 
-export function EmptyBoard({ pp, presetName, ppTypeName, celebrate = false, arrangeMode, onToggleArrange, vuMode, onVuMode, vuActive, onReorder }: Props) {
+/* coluna esquerda: display LED do patch + cadeado de mover ABAIXO dele */
+const leftCol: CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "flex-start",
+  gap: 8,
+  minWidth: 0,
+};
+/* cadeado (desenho puro): trava/destrava o arrastar-e-soltar dos pedais */
+const lockBtn = (on: boolean): CSSProperties => ({
+  fontFamily: "var(--font-mono)",
+  fontSize: 13,
+  lineHeight: 1,
+  color: on ? "var(--accent)" : "#8b97a6",
+  background: "transparent",
+  border: "1px solid #4a3d29",
+  borderRadius: 6,
+  padding: "5px 8px",
+  cursor: "pointer",
+  minHeight: 32,
+  minWidth: 36,
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+});
+/* afinador ocupa a DIREITA, no lugar onde era o botão ⇄ mover */
+const rightSlot: CSSProperties = { display: "flex", alignItems: "center", gap: "var(--space-8)", flex: 1, justifyContent: "flex-end", minWidth: 0 };
+
+export function EmptyBoard({ pp, presetName, ppTypeName, celebrate = false, arrangeMode, onToggleArrange, tuner, onTunerChange, onReorder }: Props) {
   const dragFrom = useRef<string | null>(null);
   const [over, setOver] = useState<string | null>(null);
 
   return (
     <section style={stage} aria-label={MSG.boardAria}>
-      {/* cabeçalho do palco: display LED + trava ⇄ mover do drag */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--space-12)", flexWrap: "wrap", marginBottom: "var(--space-20)" }}>
-        <div style={ledBox} role="status">
-          <span className={celebrate ? "led-flip" : undefined} style={{ color: "var(--accent)", fontSize: 26, fontWeight: 700, letterSpacing: 2, display: "inline-block" }}>
-            {String(pp + 1).padStart(2, "0")}
-          </span>
-          <span style={{ color: "var(--text)", fontSize: 14, fontWeight: 700 }}>{presetName}</span>
-          <span style={{ color: "#5c6774", fontSize: 11 }}>{ppTypeName}</span>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-12)", flexWrap: "wrap" }}>
-          <VuPanel mode={vuMode} onModeChange={onVuMode} active={vuActive} />
+      {/* cabeçalho do palco: display LED do patch (com o cadeado de mover
+          logo ABAIXO dele, alinhado) à esquerda; AFINADOR à direita — ocupa
+          o lugar onde era o botão ⇄ mover */}
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "var(--space-12)", flexWrap: "wrap", marginBottom: "var(--space-20)" }}>
+        <div style={leftCol}>
+          <div style={ledBox} role="status">
+            <span className={celebrate ? "led-flip" : undefined} style={{ color: "var(--accent)", fontSize: 26, fontWeight: 700, letterSpacing: 2, display: "inline-block" }}>
+              {String(pp + 1).padStart(2, "0")}
+            </span>
+            <span style={{ color: "var(--text)", fontSize: 14, fontWeight: 700 }}>{presetName}</span>
+            <span style={{ color: "#5c6774", fontSize: 11 }}>{ppTypeName}</span>
+          </div>
           <button
-            style={arrangeBtn(arrangeMode)}
+            style={lockBtn(arrangeMode)}
             onClick={onToggleArrange}
             aria-pressed={arrangeMode}
             aria-label={MSG.arrangeAria}
             title={MSG.arrangeTitle}
           >
-            {MSG.arrangeLabel}
+            {arrangeMode ? MSG.arrangeLabelOpen : MSG.arrangeLabel}
           </button>
+        </div>
+        <div style={rightSlot}>
+          <TunerPanel settings={tuner} onChange={onTunerChange} />
         </div>
       </div>
 

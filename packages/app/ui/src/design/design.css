@@ -138,42 +138,11 @@ body {
   opacity: 0.85;
 }
 
-/* ── VU da navbar (V-7): fileira de barras reativas (drum tocando/loop) ── */
-/* grade de cores POR INTENSIDADE: verde (baixo) → âmbar (médio) → vermelho
-   (pico) — a cor vem do token do tema, nunca fixa (tema claro cobre). */
-.vu-bar[data-level="low"] {
-  background: var(--ok);
-  box-shadow: 0 0 4px color-mix(in srgb, var(--ok) 55%, transparent);
-}
-.vu-bar[data-level="mid"] {
-  background: var(--warn);
-  box-shadow: 0 0 4px color-mix(in srgb, var(--warn) 55%, transparent);
-}
-.vu-bar[data-level="high"] {
-  background: var(--error);
-  box-shadow: 0 0 4px color-mix(in srgb, var(--error) 55%, transparent);
-}
-/* modo LED: escada de segmentos — apagado por padrão, ACENDE (data-lit)
-   com cor pela faixa do segmento (verde → âmbar → vermelho, VU de rack) */
-.vu-seg {
-  background: #241d0e;
-  transition: background 60ms linear, box-shadow 60ms linear;
-}
-.vu-seg[data-lit="1"][data-band="low"] {
-  background: var(--ok);
-  box-shadow: 0 0 4px color-mix(in srgb, var(--ok) 55%, transparent);
-}
-.vu-seg[data-lit="1"][data-band="mid"] {
-  background: var(--warn);
-  box-shadow: 0 0 4px color-mix(in srgb, var(--warn) 55%, transparent);
-}
-.vu-seg[data-lit="1"][data-band="high"] {
-  background: var(--error);
-  box-shadow: 0 0 4px color-mix(in srgb, var(--error) 55%, transparent);
-}
+/* ── afinador do palco (V-7): ocupa o lugar do antigo visualizador VU ──
+   display sempre visível, LED próprio e escala de cores por tokens do
+   tema (os estilos estruturais moram no TunerPanel; aqui só a régua) */
 @media (prefers-reduced-motion: reduce) {
-  .vu-bar,
-  .vu-seg {
+  [data-tuner-needle] {
     transition: none;
   }
 }

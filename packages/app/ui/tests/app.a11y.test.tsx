@@ -59,9 +59,9 @@ describe("App — casca (a11y e estados)", () => {
 
     // ações globais com nome acessível
     const buttons = Array.from(host.querySelectorAll("button"));
-    expect(buttons.some((b) => (b.getAttribute("aria-label") ?? "").startsWith("Modo mover"))).toBe(true);
+    expect(buttons.some((b) => (b.getAttribute("aria-label") ?? "").startsWith("Trava de mover"))).toBe(true);
     expect(buttons.some((b) => b.getAttribute("aria-label") === "Abrir configurações")).toBe(true);
-    expect(buttons.some((b) => b.getAttribute("aria-label") === "Kill switch (desligar todos os efeitos)")).toBe(true);
+    expect(buttons.some((b) => (b.getAttribute("aria-label") ?? "").startsWith("Kill switch"))).toBe(true);
 
     act(() => root.unmount());
     host.remove();
@@ -145,14 +145,14 @@ describe("App — casca (a11y e estados)", () => {
     host.remove();
   });
 
-  it("trava ⇄ mover: drag-and-drop só com o modo ativo (aria-pressed)", async () => {
+  it("trava de mover: drag-and-drop só com o modo ativo (aria-pressed)", async () => {
     const { root, host } = mount(<App />);
     await settle();
 
     const toggle = Array.from(host.querySelectorAll("button")).find(
-      (b) => (b.getAttribute("aria-label") ?? "").startsWith("Modo mover"),
+      (b) => (b.getAttribute("aria-label") ?? "").startsWith("Trava de mover"),
     );
-    expect(toggle, "botão ⇄ mover presente").toBeTruthy();
+    expect(toggle, "botão de trava de mover presente").toBeTruthy();
     expect(toggle!.getAttribute("aria-pressed")).toBe("false");
 
     act(() => {

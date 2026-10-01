@@ -24,7 +24,7 @@ export class ShellPage {
   readonly looper: LooperPage;
   readonly drum: DrumPage;
   readonly settings: SettingsDialog;
-  readonly vu: VuPage;
+  readonly tuner: TunerPage;
   readonly brand: BrandPage;
 
   constructor(page: Page) {
@@ -40,7 +40,7 @@ export class ShellPage {
     this.looper = new LooperPage(page);
     this.drum = new DrumPage(page);
     this.settings = new SettingsDialog(page);
-    this.vu = new VuPage(page);
+    this.tuner = new TunerPage(page);
     this.brand = new BrandPage(this);
   }
 
@@ -85,7 +85,7 @@ export class ShellPage {
   }
 
   killSwitch(): Locator {
-    return this.page.getByRole("button", { name: "Kill switch (desligar todos os efeitos)" });
+    return this.page.getByRole("button", { name: /^Kill switch/ });
   }
 
   masterVolume(): Locator {
@@ -192,9 +192,9 @@ export class BoardPage {
     await expect(this.slot(n, fam)).toBeVisible();
   }
 
-  /** trava ⇄ mover (cabeçalho do palco) */
+  /** trava de mover (cabeçalho do palco): cadeado 🔒/🔓 abaixo do display do patch */
   mover(): Locator {
-    return this.page.getByRole("button", { name: /Modo mover/ });
+    return this.page.getByRole("button", { name: /Trava de mover pedais/ });
   }
 
   async expectMoverPressed(pressed: boolean): Promise<void> {
@@ -417,32 +417,35 @@ export class SettingsDialog {
   }
 }
 
-/* ── VU do palco (modos LED/EQ) ── */
-export class VuPage {
+/* ── afinador do palco (display sempre visível, no lugar do antigo VU) ── */
+export class TunerPage {
   readonly group: Locator;
 
   constructor(page: Page) {
-    this.group = page.getByRole("region", { name: /Pedalboard/ }).getByRole("group", { name: "Visualizador de nível" });
+    this.group = page.getByRole("region", { name: /Pedalboard/ }).getByRole("group", { name: "Afinador" });
   }
 
-  modeButton(mode: "led" | "eq"): Locator {
-    return this.group.getByRole("button", {
-      name: mode === "led" ? "Modo LED" : "Modo equalizador",
-    });
+  /** botão monitorar (liga/desliga a monitoração de afinação) */
+  powerButton(): Locator {
+    return this.group.getByRole("button", { name: /Ligar ou desligar a monitoração/ });
   }
 
-  ledSegments(lit: boolean): Locator {
-    const ladder = this.group.locator('[data-vu="led"]');
-    return ladder.locator(lit ? '.vu-seg[data-lit="1"]' : ".vu-seg");
+  demoButton(): Locator {
+    return this.group.getByRole("button", { name: /demonstração do afinador/ });
   }
 
-  eqBars(): Locator {
-    return this.group.locator('[data-vu="eq"] .vu-bar');
+  /** nota central exibida ("—" em repouso) */
+  note(): Locator {
+    return this.group.locator("[data-tuner-note]");
   }
 
-  async barHeights(): Promise<number[]> {
-    return this.eqBars().evaluateAll((els) =>
-      els.map((el) => (el as HTMLElement).getBoundingClientRect().height),
-    );
+  /** LED próprio do afinador (cinza/âmbar/verde/vermelho) */
+  led(): Locator {
+    return this.group.locator("[data-tuner-led]");
+  }
+
+  /** REF PITCH atual (ex.: "440Hz") */
+  async refPitch(): Promise<string | null> {
+    return this.group.locator("[data-tuner-ref]").textContent();
   }
 }

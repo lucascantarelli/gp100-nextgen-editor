@@ -28,26 +28,16 @@ import { LibraryPanel } from "./components/LibraryPanel";
 import { EmptyBoard } from "./components/EmptyBoard";
 import { SettingsModal, loadGeneral } from "./components/SettingsModal";
 import type { GeneralSettings } from "./components/SettingsModal";
+import { loadTuner, TUNER_KEY } from "./components/TunerPanel";
+import type { TunerSettings } from "./components/TunerPanel";
 import type { DrumState } from "./components/DrumPanel";
 import { LooperPanel, loadLooper } from "./components/LooperPanel";
 import type { LooperSettings } from "./components/LooperPanel";
-import type { VuMode } from "./components/VuPanel";
 import { PushLog } from "./components/PushLog";
 import { MSG } from "./i18n/messages";
 
 const DRUM_KEY = "gp100.drum.v2";
 const MASTER_KEY = "gp100.master.v1";
-const VU_KEY = "gp100.vu.v1";
-
-function loadVu(): VuMode {
-  try {
-    const raw = localStorage.getItem(VU_KEY);
-    if (raw === "led" || raw === "eq") return raw;
-  } catch {
-    /* teste: sem localStorage */
-  }
-  return "led";
-}
 
 function loadDrum(): DrumState {
   try {
@@ -83,8 +73,8 @@ export default function App() {
   const [err, setErr] = useState<string | null>(null);
   const [drumOpen, setDrumOpen] = useState(false); // popover do drum (subiu do TopBar p/ precedência do Esc)
   const [recRequest, setRecRequest] = useState(0); // pulso do atalho R (looper)
-  const [vuMode, setVuMode] = useState<VuMode>(loadVu);
-  const [looperPlaying, setLooperPlaying] = useState(false);
+  const [tuner, setTuner] = useState<TunerSettings>(loadTuner);
+  const [, setLooperPlaying] = useState(false); /* looper reporta tocar/gravar */
   const pushRef = useRef<HTMLDetailsElement>(null); // drawer "pushes do device" (Esc fecha)
 
   // info + biblioteca no mount
@@ -179,16 +169,6 @@ export default function App() {
 
   const connected = info != null;
 
-  // VU reativo: som = drum tocando OU looper tocando/gravando
-  const vuActive = drum.on || looperPlaying;
-  const setVuModePersist = useCallback((m: VuMode) => {
-    setVuMode(m);
-    try {
-      localStorage.setItem(VU_KEY, m);
-    } catch {
-      /* noop */
-    }
-  }, []);
 
   // faixa de progresso só durante o boot (não ocupa layout permanente);
   // stage pode vir de um beat pendente após o fim — congelar em 100%/fim
@@ -280,9 +260,15 @@ export default function App() {
             celebrate={celebrate}
             arrangeMode={arrangeMode}
             onToggleArrange={() => setArrangeMode((v) => !v)}
-            vuMode={vuMode}
-            onVuMode={setVuModePersist}
-            vuActive={vuActive}
+            tuner={tuner}
+            onTunerChange={(s) => {
+              setTuner(s);
+              try {
+                localStorage.setItem(TUNER_KEY, JSON.stringify(s));
+              } catch {
+                /* noop */
+              }
+            }}
             onReorder={() => {
               /* a reordenação real chega quando os pedais forem renderizados */
             }}

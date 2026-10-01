@@ -32,7 +32,6 @@ export default defineConfig({
       exclude: [
         "src/main.tsx",
         "src/design/design.css",
-        "src/components/VuPanel.tsx",
       ],
       thresholds: {
         statements: 85,

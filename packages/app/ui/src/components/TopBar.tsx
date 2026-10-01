@@ -4,6 +4,7 @@
  * (abre o DrumPanel com os 87 ritmos do firmware) e Master VOL + kill.
  * Nada aqui escreve no device: os fluxos globais ainda não têm escrita via USB.
  */
+import { useEffect, useRef } from "react";
 import type { CSSProperties } from "react";
 import { DrumPanel } from "./DrumPanel";
 import type { DrumState } from "./DrumPanel";
@@ -135,39 +136,59 @@ export function TopBar({
   // sem mock, ficam só com a base (visual idêntico ao resto da casca)
   const glassCls = mock ? "btn-glass" : undefined;
 
+  // KILL (mute global, como o footswitch do hardware): silencia o master e
+  // para o drum. Guarda o último master audível para o toggle ser reversível
+  // — clicar de novo restaura o volume anterior em vez de virar botão morto.
+  const lastMaster = useRef(masterVol > 0 ? masterVol : 99);
+  useEffect(() => {
+    if (masterVol > 0) lastMaster.current = masterVol;
+  }, [masterVol]);
+  const killed = masterVol === 0 && !drum.on;
+  const onKill = () => {
+    if (killed) onMasterVol(lastMaster.current);
+    else {
+      onMasterVol(0);
+      onDrum({ ...drum, on: false });
+    }
+  };
+
   return (
     <header
       style={{
         display: "flex",
         alignItems: "center",
+        justifyContent: "space-between",
         gap: "var(--space-8)",
         flexWrap: "wrap",
         padding: "var(--space-4) 0",
       }}
       role="banner"
     >
-      {/* logo: UMA linha (a tagline mora no rodapé da página) — a navbar
-          não pode quebrar em 2 fileiras (defeito travado no responsivo) */}
+      {/* LOGO ancorada à esquerda */}
       <div style={{ ...row, gap: "var(--space-8)" }}>
         <span
           aria-hidden="true"
           style={{
-            width: 30,
-            height: 30,
+            width: 32,
+            height: 32,
             borderRadius: "50%",
-            border: "2px solid var(--accent)",
+            background: `linear-gradient(135deg, var(--accent) 0%, var(--accent-glow) 100%)`,
             display: "grid",
             placeItems: "center",
             fontFamily: "var(--font-mono)",
             fontWeight: 800,
-            color: "var(--accent)",
+            color: "var(--on-accent)",
             fontSize: 11,
+            boxShadow: `0 0 12px color-mix(in srgb, var(--accent-glow) 50%, transparent), inset 0 1px 0 rgba(255,255,255,0.2)`,
           }}
         >
           {MSG.brandMono}
         </span>
-        <strong style={{ fontSize: "var(--text-sm)", letterSpacing: 0.5 }}>{MSG.brand}</strong>
+        <strong style={{ fontSize: "var(--text-md)", letterSpacing: 0.5, color: "var(--text)" }}>{MSG.brand}</strong>
       </div>
+
+      {/* CONT roles à direita */}
+      <div style={{ display: "flex", alignItems: "center", gap: "var(--space-8)", flexWrap: "wrap", justifyContent: "flex-end" }}>
 
       {/* conexão + boot: status, badge de backend e botão de boot num
           cluster só (a seção de conexão da página foi removida — duplicava
@@ -236,10 +257,24 @@ export function TopBar({
           painel do hardware) + ⚙ (global, sempre alcançável) */}
       <div style={cluster}>
         <span className="nb-cap" style={label}>{MSG.masterLabel}</span>
-        <Slider value={masterVol} onChange={onMasterVol} ariaLabel={MSG.masterAria} w={72} />
+        <Slider value={masterVol} onChange={onMasterVol} ariaLabel={MSG.masterAria} w={68} />
         <span style={val}>{masterVol}</span>
-        <button className={glassCls} style={btnBase} aria-label={MSG.killAria}>
-          {MSG.killLabel}
+        <button
+          className={glassCls}
+          style={{
+            ...(killed ? btnActive : btnBase),
+            minWidth: 72,
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 4,
+          }}
+          onClick={onKill}
+          aria-pressed={killed}
+          aria-label={MSG.killAria}
+          title={MSG.killTitle}
+        >
+          {killed ? MSG.killLabelOn : MSG.killLabel}
         </button>
         <button
           className={glassCls}
@@ -250,6 +285,7 @@ export function TopBar({
         >
           ⚙
         </button>
+      </div>
       </div>
     </header>
   );

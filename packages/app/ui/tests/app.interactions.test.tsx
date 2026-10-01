@@ -427,25 +427,22 @@ describe("Sliders do shell — drum (persistência local)", () => {
   });
 });
 
-describe("Palco — VU e drag-and-drop dos slots (EmptyBoard)", () => {
-  it("troca de modo do VU pelo cabeçalho e drag de slots com ⇄ mover ativo", async () => {
+describe("Palco — afinador e drag-and-drop dos slots (EmptyBoard)", () => {
+  it("afinador no cabeçalho está sempre visível e o drag de slots só com a trava destrancada", async () => {
     const { root, host } = mount();
     await settle();
 
-    // VU mora no palco: modo EQ fica pressionado (estado TROCADO)
-    const eq = host.querySelector<HTMLButtonElement>('button[aria-label="Modo equalizador"]');
-    const led = host.querySelector<HTMLButtonElement>('button[aria-label="Modo LED"]');
-    expect(eq).toBeTruthy();
-    act(() => eq!.dispatchEvent(new MouseEvent("click", { bubbles: true })));
-    await settle();
-    expect(eq!.getAttribute("aria-pressed")).toBe("true");
-    act(() => led!.dispatchEvent(new MouseEvent("click", { bubbles: true })));
-    await settle();
-    expect(led!.getAttribute("aria-pressed")).toBe("true");
+    // o afinador ocupa o lugar do antigo VU: display sempre visível,
+    // nota em repouso, botões de monitor e demo alcançáveis
+    const tunerAria = Array.from(host.querySelectorAll("button")).find(
+      (b) => (b.getAttribute("aria-label") ?? "").includes("Ligar ou desligar a monitoração"),
+    );
+    expect(tunerAria, "botão de monitor do afinador presente").toBeTruthy();
+    expect(tunerAria!.getAttribute("aria-pressed")).toBe("false"); // monitor desligado por padrão
 
-    // drag: trava ⇄ mover ativa, dragstart → dragover → drop em outro slot
+    // trava ⇄ mover vira cadeado 🔒/🔓 logo abaixo do display do patch
     const toggle = Array.from(host.querySelectorAll("button")).find((b) =>
-      (b.getAttribute("aria-label") ?? "").startsWith("Modo mover"),
+      (b.getAttribute("aria-label") ?? "").startsWith("Trava de mover"),
     )!;
     act(() => toggle.dispatchEvent(new MouseEvent("click", { bubbles: true })));
     await settle();
