@@ -54,6 +54,10 @@ on:
         description: "(Opcional) Tag EXISTENTE p/ release (ex.: v0.1.0) — vazia = cortar vNext pelo semver"
         type: string
         required: false
+      update-snapshots:
+        description: "(Visual) Regenerar baselines de screenshot no Ubuntu — baixe o artefato e commite"
+        type: boolean
+        default: false
 
 permissions:
   contents: write # tags + GitHub Release
@@ -239,6 +243,14 @@ jobs:
           done < <(git log --format='%s' "$RANGE" 2>/dev/null)
           exit $FAIL
 
+      # Validação sintática + de gatilhos dos workflows (V-7): o teste de
+      # integração REAL do close-issues é o merge em develop; aqui o gate
+      # trava YAML válido e o contrato (trigger/permissions/guards).
+      - name: Workflows válidos (close-issues/pipeline/release)
+        run: |
+          python3 -c "import yaml" 2>/dev/null || python3 -m pip install --quiet --user pyyaml
+          python3 scripts/validate_workflows.py
+
   # ── SPEC: trava da especificação (pytest) — só quando ela muda ──
   spec:
     name: Python — trava da especificação
@@ -360,10 +372,101 @@ jobs:
       - name: Lint + testes + build
         uses: ./.github/actions/build-front
 
+  # ── E2E: Playwright (casca completa) contra o pnpm dev no Chromium ──
+  # R1–R6 + drum + looper + atalhos globais + responsividade (3 viewports).
+  # O playwright.config sobe o próprio dev server (webServer + strictPort);
+  # roda no MESMO filtro do front (mudança em packages/app/ui/ ou ALL).
+  # GATE DE RELEASE: entra no needs do tag-release (tag só sai com e2e verde).
+  e2e:
+    name: e2e — Playwright (casca no Chromium)
+    needs: plan
+    if: needs.plan.outputs.run-front == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - name: Setup (Node 22 + pnpm 11)
+        uses: ./.github/actions/setup-node-pnpm
+      - name: Chromium do Playwright (+ deps de sistema)
+        working-directory: packages/app/ui
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Suíte e2e (sobe o pnpm dev sozinha — reuseExistingServer)
+        working-directory: packages/app/ui
+        run: pnpm exec playwright test
+
+  # ── E2E VISUAL: regressão estética dos painéis (toHaveScreenshot) ──
+  # Baselines por viewport E por plataforma (e2e/__screenshots__/*-linux.png):
+  # fontes divergem entre Windows/Linux. Sem baseline no CI = SKIP (não falha
+  # a 1ª execução); com o input update-snapshots, o job GERA as baselines
+  # linux e sobe o artefato — commitar os PNGs para ativar a comparação.
+  e2e-visual:
+    name: e2e visual — regressão estética (toHaveScreenshot)
+    needs: plan
+    if: needs.plan.outputs.run-front == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - name: Setup (Node 22 + pnpm 11)
+        uses: ./.github/actions/setup-node-pnpm
+      - name: Chromium do Playwright (+ deps de sistema)
+        working-directory: packages/app/ui
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Suíte visual (compara baselines; gera com update-snapshots)
+        working-directory: packages/app/ui
+        run: pnpm exec playwright test visual.spec.ts ${{ github.event.inputs.update-snapshots == 'true' && '--update-snapshots' || '' }}
+      - name: Baselines/diffs como artefato (inspeção e commit)
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: visual-snapshots
+          path: packages/app/ui/e2e/__screenshots__/
+          retention-days: 14
+          if-no-files-found: ignore
+
+  # ── E2E SMOKE: shell TAURI REAL sobe no webview (tauri-driver, Linux) ──
+  # Prova a casca no WEBVIEW, não só no browser: build debug do gp100-ui
+  # (generate_context! embute ui/dist; backend mock — sem hardware), driver
+  # WebKitGTK sob xvfb e asserções de DOM via Selenium (receita oficial).
+  e2e-tauri:
+    name: e2e smoke — shell Tauri real (tauri-driver, Linux)
+    needs: plan
+    if: needs.plan.outputs.run-front == 'true' || needs.plan.outputs.run-rust == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      RUSTUP_TOOLCHAIN: stable
+    steps:
+      - uses: actions/checkout@v7
+      - name: Setup Rust (stable — pin gnu da raiz quebra Linux, ADR-7)
+        uses: ./.github/actions/setup-rust
+        with:
+          workdir: packages/app/api
+          cache-key: smoke-tauri
+      - name: Setup do front (Node 22 + pnpm 11)
+        uses: ./.github/actions/setup-node-pnpm
+      - name: Front (lint + test + build — ui/dist alimenta o binário)
+        uses: ./.github/actions/build-front
+      - name: Deps do Tauri + driver (WebKitGTK, xvfb, webkit2gtk-driver)
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev webkit2gtk-driver xvfb
+      - name: Build debug do gp100-ui (dist embutido, backend mock)
+        working-directory: packages/app/api
+        run: cargo build -p gp100-ui
+      - name: Instalar tauri-driver
+        run: cargo install tauri-driver --locked
+      - name: Smoke do shell (xvfb + tauri-driver na 4444)
+        working-directory: packages/app/ui
+        env:
+          WEBKIT_DISABLE_DMABUF_RENDERER: "1"
+          WEBKIT_DISABLE_COMPOSITING_MODE: "1"
+        run: xvfb-run -a node e2e/tauri.smoke.mjs
+
   # ── TAG: matriz de 1 decidida pelo plan (0 = job não aparece) ──
   tag-release:
     name: Tag de release (cortada no play)
-    needs: [plan, gate, spec, rust, front]
+    needs: [plan, gate, spec, rust, front, e2e]
     if: needs.plan.outputs.run-tag == 'true'
     strategy:
       matrix:
@@ -486,6 +589,9 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ github.event.inputs.tag || needs.tag-release.outputs.tag || github.ref_name }}
+          # RELEASE CANDIDATE (v*-*rc.*): publica como PRERELEASE — a release
+          # final sai quando o promote do release-gitflow corta a tag limpa.
+          prerelease: ${{ contains(github.event.inputs.tag || needs.tag-release.outputs.tag || github.ref_name, '-rc') }}
           files: |
             ${{ env.ASSET }}
             ${{ env.ASSET_SHA }}
@@ -549,6 +655,8 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ github.event.inputs.tag || needs.tag-release.outputs.tag || github.ref_name }}
+          # RELEASE CANDIDATE: prerelease também no instalador (mesma regra)
+          prerelease: ${{ contains(github.event.inputs.tag || needs.tag-release.outputs.tag || github.ref_name, '-rc') }}
           files: |
             ${{ env.SETUP }}
             ${{ env.SETUP_SHA }}

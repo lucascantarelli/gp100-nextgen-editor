@@ -1,0 +1,273 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# RELEASE (GitFlow) — cadeia de Release Candidates rc1→rcN→tag final.
+#
+# ▶ action=rc      A partir de develop: cria (ou reutiliza) a branch
+#                  release/x.y.z, aplica a versão x.y.z-rc.N nos manifests
+#                  (Cargo.toml ×2 + version.json), commita, etiqueta
+#                  vX.Y.Z-rc.N e empurra — o PIPELINE (push de tag v*) roda
+#                  a matriz cheia e publica o PRERELEASE com artefatos.
+#                  Correções entre rcs: PR para develop e rode rc de novo
+#                  (o N incrementa sozinho).
+# ▶ action=promote Toma a rc mais recente (ou a do input `version`), remove
+#                  o sufixo -rc.N, etiqueta vX.Y.Z FINAL (pipeline publica a
+#                  release real), faz merge em main e backport em develop,
+#                  e apaga a release branch. GitFlow fechado.
+#
+# Convenção de versão: semver dos conventional commits (action version-bump).
+# Guarde com o manual: gate = pipeline verde; promote NUNCA roda sozinho.
+# ═══════════════════════════════════════════════════════════════════════════
+
+name: release-gitflow
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "rc = cortar/avançar release candidate · promote = rc → tag final + merge main/develop"
+        type: choice
+        options: [rc, promote]
+        required: true
+      version:
+        description: "(rc) versão alvo sem o v, ex.: 0.2.0 — vazio = calcular pelos conventional commits (exige bump pendente)"
+        type: string
+        required: false
+
+permissions:
+  contents: write # branches/tags/manifests + push
+
+concurrency:
+  group: release-gitflow
+  cancel-in-progress: false # release é sequencial por definição
+
+env:
+  BOT_NAME: github-actions[bot]
+  BOT_EMAIL: github-actions[bot]@users.noreply.github.com
+
+jobs:
+  rc:
+    name: rc — cortar/avançar release candidate
+    if: inputs.action == 'rc'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout develop (histórico completo p/ semver + tags)
+        uses: actions/checkout@v7
+        with:
+          ref: develop
+          fetch-depth: 0
+
+      - name: Buscar tags
+        run: git fetch --tags --force
+
+      - name: Calcular versão (input > semver pendente)
+        id: ver
+        env:
+          WANT: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          WANT="${WANT#v}"
+          if [ -n "$WANT" ]; then
+            if ! echo "$WANT" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+              echo "::error::version inválida: '$WANT' (esperado x.y.z)"; exit 1
+            fi
+            echo "next=$WANT" >> "$GITHUB_OUTPUT"
+            echo "versão informada: $WANT"
+          else
+            # sem input: exige bump pendente (evita rc sem mudança)
+            LAST=$(git describe --tags --match 'v*' --abbrev=0 2>/dev/null || echo "")
+            if [ -z "$LAST" ]; then
+              echo "::error::sem tags v* no repo — informe o input version para a 1ª rc"
+              exit 1
+            fi
+            BASE="${LAST#v}"
+            MAJOR=$(echo "$BASE" | cut -d. -f1)
+            MINOR=$(echo "$BASE" | cut -d. -f2)
+            PATCH=$(echo "$BASE" | cut -d. -f3)
+            PATCH="${PATCH%%-*}" # última tag pode ser uma rc (v1.2.3-rc.4)
+            BUMPED=0
+            if git log --format='%s' "$LAST..HEAD" | grep -qE '^feat(\(|:)'; then BUMPED=1; fi
+            if [ "$BUMPED" = "0" ]; then
+              echo "::error::sem bump pendente em develop (nenhum feat desde $LAST) — informe o input version"
+              exit 1
+            fi
+            NEXT="$MAJOR.$((MINOR+1)).0"
+            echo "next=$NEXT" >> "$GITHUB_OUTPUT"
+            echo "versão calculada: $NEXT (minor sobre $LAST)"
+          fi
+
+      - name: Preparar release branch + número do rc
+        id: prep
+        env:
+          NEXT: ${{ steps.ver.outputs.next }}
+        run: |
+          set -euo pipefail
+          BR="release/$NEXT"
+          if git ls-remote --exit-code --heads origin "$BR" >/dev/null 2>&1; then
+            git checkout -B "$BR" "origin/$BR"
+            echo "reutilizando $BR (rc avançando)"
+          else
+            git checkout -B "$BR" origin/develop
+            echo "release branch $BR criada de origin/develop"
+          fi
+          N=$(( $(git tag --list "v$NEXT-rc.*" | sed 's/.*-rc\.//' | sort -n | tail -1 || echo 0) + 1 ))
+          {
+            echo "branch=$BR"
+            echo "rc=$N"
+            echo "full=$NEXT-rc.$N"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Aplicar versão rc nos manifests
+        env:
+          FULL: ${{ steps.prep.outputs.full }}
+        run: |
+          set -euo pipefail
+          for f in Cargo.toml packages/app/api/Cargo.toml version.json; do
+            if [ "$f" = "version.json" ]; then
+              printf '{\n  "version": "%s"\n}\n' "$FULL" > version.json
+            else
+              sed -i -E "0,/^version = \".*\"/s//version = \"$FULL\"/" "$f"
+            fi
+          done
+          echo "manifests em $FULL"
+
+      - name: Commit + tag + push (pipeline publica o PRERELEASE)
+        env:
+          BRANCH: ${{ steps.prep.outputs.branch }}
+          TAG: v${{ steps.prep.outputs.full }}
+        run: |
+          set -euo pipefail
+          git config user.name "$BOT_NAME"
+          git config user.email "$BOT_EMAIL"
+          git add Cargo.toml packages/app/api/Cargo.toml version.json
+          git commit -m "chore(release): $TAG (release candidate)"
+          git push origin "$BRANCH"
+          git tag "$TAG"
+          git push origin "$TAG"
+          echo "### 🚀 Release Candidate" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| | |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| tag | \`$TAG\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| branch | \`$BRANCH\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| próximo passo | testar o prerelease; correções em develop + \`action=rc\`; pronto? \`action=promote\` |" >> "$GITHUB_STEP_SUMMARY"
+
+  promote:
+    name: promote — rc → tag final (main + develop)
+    if: inputs.action == 'promote'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout (histórico completo p/ localizar rc e branches)
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Buscar tags + branches
+        run: |
+          git fetch --tags --force
+          git fetch origin main develop --force
+
+      - name: Localizar a rc mais recente e a release branch
+        id: rc
+        env:
+          WANT: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          WANT="${WANT#v}"
+          if [ -n "$WANT" ]; then
+            RC=$(git tag --list "v$WANT-rc.*" --sort=-v:refname | head -1)
+          else
+            RC=$(git for-each-ref refs/tags --sort=-v:refname --format='%(refname:short)' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+-rc\.[0-9]+$' | head -1)
+          fi
+          if [ -z "$RC" ]; then
+            echo "::error::nenhuma rc encontrada$( [ -n "$WANT" ] && echo " para v$WANT" ) — rode action=rc antes de promote"
+            exit 1
+          fi
+          V="${RC%-rc.*}"; V="${V#v}"
+          BR="release/$V"
+          if ! git ls-remote --exit-code --heads origin "$BR" >/dev/null 2>&1; then
+            echo "::error::branch $BR não existe no origin — promote exige a release branch"
+            exit 1
+          fi
+          if git rev-parse -q --verify "refs/tags/v$V" >/dev/null; then
+            echo "::error::v$V já existe (promote é idempotente por definição — nada a fazer)"
+            exit 1
+          fi
+          {
+            echo "tag=$RC"
+            echo "version=$V"
+            echo "branch=$BR"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Versão final nos manifests (remove -rc.N)
+        env:
+          V: ${{ steps.rc.outputs.version }}
+        run: |
+          set -euo pipefail
+          git checkout "origin/${{ steps.rc.outputs.branch }}"
+          for f in Cargo.toml packages/app/api/Cargo.toml version.json; do
+            if [ "$f" = "version.json" ]; then
+              printf '{\n  "version": "%s"\n}\n' "$V" > version.json
+            else
+              sed -i -E "0,/^version = \".*\"/s//version = \"$V\"/" "$f"
+            fi
+          done
+
+      - name: Commit + tag final + push (pipeline publica a release)
+        env:
+          BRANCH: ${{ steps.rc.outputs.branch }}
+          TAG: v${{ steps.rc.outputs.version }}
+          RC: ${{ steps.rc.outputs.tag }}
+        run: |
+          set -euo pipefail
+          git config user.name "$BOT_NAME"
+          git config user.email "$BOT_EMAIL"
+          git add Cargo.toml packages/app/api/Cargo.toml version.json
+          git commit -m "chore(release): $TAG (promove $RC)"
+          git push origin "HEAD:refs/heads/$BRANCH"
+          git tag "$TAG"
+          git push origin "$TAG"
+
+      - name: Merge release → main
+        env:
+          BRANCH: ${{ steps.rc.outputs.branch }}
+          TAG: v${{ steps.rc.outputs.version }}
+        run: |
+          set -euo pipefail
+          git config user.name "$BOT_NAME"
+          git config user.email "$BOT_EMAIL"
+          git checkout -B main origin/main
+          if git merge --no-ff "origin/$BRANCH" -m "merge release: $TAG (rc → main)"; then
+            git push origin main
+            echo "main atualizada com $TAG"
+          else
+            echo "::error::conflito no merge para main — resolva manualmente (abortado, nada empurrado)"
+            git merge --abort || true
+            exit 1
+          fi
+
+      - name: Backport release → develop + apagar branch
+        env:
+          BRANCH: ${{ steps.rc.outputs.branch }}
+          TAG: v${{ steps.rc.outputs.version }}
+        run: |
+          set -euo pipefail
+          git config user.name "$BOT_NAME"
+          git config user.email "$BOT_EMAIL"
+          git checkout -B develop origin/develop
+          if git merge --no-ff "origin/$BRANCH" -m "backport release: $TAG (develop recebe a versão final)"; then
+            git push origin develop
+          else
+            echo "::error::conflito no backport para develop — resolva manualmente (main/tag já estão fora; develop fica sem o bump até resolver)"
+            git merge --abort || true
+            exit 1
+          fi
+          git push origin --delete "$BRANCH"
+          echo "### ✅ Release promovida" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| | |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| tag final | \`$TAG\` (pipeline publica a release com artefatos) |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| main | merge \`--no-ff\` da release branch |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| develop | backport da versão final |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| branch | \`$BRANCH\` apagada (ciclo GitFlow fechado) |" >> "$GITHUB_STEP_SUMMARY"
