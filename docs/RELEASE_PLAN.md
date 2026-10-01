@@ -1,12 +1,22 @@
-# 🚀 RELEASE PLAN — Issues pré-lançamento (empacotamento, assinatura, distribuição, auto-update)
+# 🚀 RELEASE PLAN — Issues pré-lançamento (binários multiplataforma para download direto)
 
-> **Status:** ✅ atual · 01/10/2026 — plano de EPIC-01..05 + issues REL-* para o
-> primeiro lançamento multiplataforma (macOS Intel/ARM, Windows x64/ARM, Ubuntu,
-> Arch Linux, genéricas). Fonte do escopo: auditoria do pipeline atual + requisitos
+> **Status:** ✅ atual · rev. 2 · 01/10/2026 — plano de EPIC-01..05 + issues REL-*
+> para o primeiro lançamento multiplataforma (macOS Intel/ARM, Windows x64/ARM,
+> Ubuntu, Linux genéricas). Fonte do escopo: auditoria do pipeline + requisitos
 > de distribuição. Criar issues via templates `epic` (5 épicos) e `feature`
-> (issues REL-*), labels sugeridas: `release`, `ci`, `security`, `distribuicao`.
+> (issues REL-*), labels: `release`, `ci` + `security` no EPIC-03.
 
 ---
+
+## ⛔ Decisão do owner (01/10/2026) — DISTRIBUIÇÃO = SÓ DOWNLOAD DIRETO
+
+**NÃO publicar em nenhuma store ou repositório externo, por enquanto:** nada de
+Mac App Store, Microsoft Store, winget, Snapcraft Store, Flathub, AUR ou
+repositório apt. O ÚNICO canal de distribuição é a **GitHub Release** (download
+direto dos binários, com checksum). Formatos de *arquivo* para download direto
+(NSIS, MSI, DMG, PKG, AppImage, DEB) continuam válidos — o que está fora é a
+*publicação* em canais de terceiros. Agentes futuros: não re-introduzir essas
+plataformas sem nova decisão do owner registrada aqui.
 
 ## 0. Auditoria do estado atual (provada no repo)
 
@@ -17,25 +27,26 @@
 | Assinatura | Nenhuma (Windows nem macOS) — nada de cert/entitlements/notarization | ausente no pipeline |
 | Smoke de instalação | Só smoke de **hardware** (`hardware-smoke`) e testes de cargo — nenhum teste de instalador em ambiente limpo | `pipeline.yml` |
 | Auto-update | Inexistente (`tauri-plugin-updater` ausente, sem endpoint/keys) | `tauri.conf.json` sem `plugins` |
-| Stores/gerenciadores | Nenhum (sem deb/AppImage/snap/flatpak/AUR) | — |
 | Rollback | Manual e sem runbook | — |
 | Base que AJUDA | Matriz 3-OS já existe (windows-latest, ubuntu-24.04, macos-26); tags `v*` disparam release; guard de prerelease p/ `-rc`; cadeia rc→promote **simulada no gate** (`scripts/simulate_release.py`) | `pipeline.yml`, `release.yml` |
 
-**Lacunas → 5 épicos, 27 issues.** Dependências críticas: assinatura (EPIC-03)
-bloqueia MSIX e flathub/AUR "confiáveis"; a fonte única de versão (REL-VER-01)
+**Lacunas → 5 épicos, 22 issues.** Dependências críticas: assinatura (EPIC-03)
+é o que torna o download direto viável (sem ela, SmartScreen/Gatekeeper
+bloqueiam — e agora é o ÚNICO canal); a fonte única de versão (REL-VER-01)
 bloqueia TODOS os bundlers; o smoke (EPIC-02) consome os artefatos do EPIC-01.
 
 Fluxo de release que os épicos devem preservar (GitFlow já implementado):
 `rc` → tag `vX.Y.Z-rc.N` → **prerelease** (pipeline publica com `-rc`) →
 `promote` → tag `vX.Y.Z` → release final. Tudo o que vier a partir daqui tem de
-encaixar nessa cadeia (rc publica artefatos de teste; promote publica os finais).
+encaixar nessa cadeia (rc publica binários de teste; promote publica os finais).
 
 ---
 
 ## EPIC-01 — Build & Empacotamento Multiplataforma Nativo
 
 > Objetivo: para CADA SO/arquitetura do escopo, o push de tag `v*` produz
-> instalador nativo(s) versionado(s). Pré-requisito transversal: REL-VER-01.
+> binário/instalador nativo(s), versionado(s), anexados à GitHub Release para
+> download direto. Pré-requisito transversal: REL-VER-01.
 
 ### REL-VER-01 · [Transversal] Fonte única de versão para os bundlers
 - **Epic:** EPIC-01 · **Plataformas:** todas · **Prioridade:** Blocker
@@ -56,36 +67,37 @@ encaixar nessa cadeia (rc publica artefatos de teste; promote publica os finais)
   - [ ] Sem duplicação: UM lugar define a versão (version.json)
 - **edge_cases_and_risks:** ["bundler pode exigir version no conf — fallback: step sed no release.yml", "CLI não usa tauri — Cargo.toml da raiz continua a fonte dele"]
 
-### REL-WIN-01 · [Windows] NSIS + MSI x64 como alvos do mesmo build
+### REL-WIN-01 · [Windows] NSIS x64 — binário de referência (formalizar naming)
 - **Epic:** EPIC-01 · **Plataformas:** Windows x64 · **Prioridade:** Blocker
-- **Descrição:** o NSIS já existe; adicionar `msi` a `bundle.targets` (WiX via
-  Tauri) para cobertura corporativa (GPO/Intune preferem MSI). Um único job
-  produz `*-setup.exe` (NSIS) e `*.msi` com os mesmos recursos/icones.
+- **Descrição:** o NSIS x64 já existe no pipeline — esta issue FORMALIZA o que
+  falta para virar binário de download direto: convenção de nome
+  (`gp100-nextgen-editor_<versão>_x64-setup.exe`), versão vinda do REL-VER-01,
+  licença/ícones no instalador e SHA256 na release. É o artefato que TODO
+  usuário Windows baixa.
 - **ci_cd_workflow_spec:**
   - `trigger_event`: push de tag `v*` (prerelease em `-rc`)
   - `runner_matrix`: windows-latest
-  - `steps_to_execute`: ["Adicionar `msi` aos targets do tauri.conf.json", "Estender job release-installer p/ publicar MSI + SHA256", "Ícones/licença consistentes nos dois instaladores"]
-  - `expected_artifacts`: ["*-setup.exe", "*.msi", "*.sha256"]
+  - `steps_to_execute`: ["Padronizar nome do artefato (sem productName com espaços)", "Versão do instalador = version.json (REL-VER-01)", "SHA256 + tabela na release notes"]
+  - `expected_artifacts`: ["gp100-nextgen-editor_<versão>_x64-setup.exe", "*.sha256"]
 - **definition_of_done:**
-  - [ ] Tag de teste produz exe + msi com mesma versão na GitHub Release
-  - [ ] `msiexec /i *.msi /qn` instala e o app abre (ver REL-CI-01)
-  - [ ] MSI registra entrada em `Apps & features` com versão correta
-- **edge_cases_and_risks:** ["WiX não suporta paths com espaços em algumas versões — productName tem espaços: testar", "duplicação de config NSIS/MSI — extrair shared fields"]
+  - [ ] Tag de teste publica o setup com nome/versão canônicos
+  - [ ] `git describe`/`--version` do app instalado casa com a tag
+- **edge_cases_and_risks:** ["productName tem espaços — manter SLUG fixo desde o 1º release (mudar depois quebra atualização por cima)", "GUI não muda — só empacotamento"]
 
-### REL-WIN-02 · [Windows] MSIX p/ winget e sideload corporativo
+### REL-WIN-02 · [Windows] MSI x64 (deploy corporativo offline)
 - **Epic:** EPIC-01 · **Plataformas:** Windows x64 · **Prioridade:** High
-- **Descrição:** gerar MSIX (Tauri `--bundles msix`) preparado para futura
-  submissão ao winget/Store e sideload assinado. Depende de REL-SIGN-01
-  (MSIX sem assinatura de identidade não instala fora de modo dev).
+- **Descrição:** adicionar `msi` a `bundle.targets` (WiX via Tauri) para quem
+  distribui por GPO/Intune/SCCM a partir do download direto (instalação
+  silenciosa `msiexec /qn` sem store). Mesmo build do NSIS, artefato separado.
 - **ci_cd_workflow_spec:**
   - `trigger_event`: push de tag `v*`
   - `runner_matrix`: windows-latest
-  - `steps_to_execute`: ["Job/passo que roda `tauri build --bundles msix`", "Assinar com o identidade do Trusted Signing (REL-SIGN-01)", "Publicar como artefato separado (não anexa na release até validar winget)"]
-  - `expected_artifacts`: ["*.msix", "*.msixupload (futuro Store)"]
+  - `steps_to_execute`: ["Adicionar `msi` aos targets do tauri.conf.json", "Estender job release-installer p/ publicar MSI + SHA256", "Ícones/licença consistentes com o NSIS"]
+  - `expected_artifacts`: ["gp100-nextgen-editor_<versão>_x64.msi", "*.sha256"]
 - **definition_of_done:**
-  - [ ] MSIX assinado instala via `Add-AppxPackage` num runner limpo
-  - [ ] Documentado o caminho winget (manifest yaml) mesmo que a submissão seja outra issue
-- **edge_cases_and_risks:** ["MSIX de app Tauri precisa `runFullTrust` capability — validar no manifest", "winget exige instalador público estável — sequenciar após primeiras releases"]
+  - [ ] Tag de teste produz exe + msi com mesma versão na release
+  - [ ] `msiexec /i *.msi /qn` instala e o app abre (ver REL-CI-01)
+- **edge_cases_and_risks:** ["WiX não suporta paths com espaços em algumas versões — testar", "manter só NSIS é aceitável se o MSI atrasar — não bloqueia o lançamento"]
 
 ### REL-WIN-03 · [Windows] ARM64 (NSIS/MSI `aarch64-pc-windows-msvc`)
 - **Epic:** EPIC-01 · **Plataformas:** Windows ARM64 · **Prioridade:** High
@@ -97,122 +109,81 @@ encaixar nessa cadeia (rc publica artefatos de teste; promote publica os finais)
   - `trigger_event`: push de tag `v*`
   - `runner_matrix`: windows-latest (cross p/ aarch64)
   - `steps_to_execute`: ["`rustup target add aarch64-pc-windows-msvc`", "Build `--target aarch64-pc-windows-msvc --bundles nsis,msi`", "Suffix `-arm64` nos artefatos + SHA256"]
-  - `expected_artifacts`: ["*-setup-arm64.exe", "*-arm64.msi"]
+  - `expected_artifacts`: ["*_arm64-setup.exe", "*_arm64.msi"]
 - **definition_of_done:**
   - [ ] Artefatos arm64 na release com checksum
   - [ ] Instalação testada (VM/real ou documentada como best-effort)
-- **edge_cases_and_risks:** ["NSIS em ARM64 tem histórico instável no Tauri — MSI é o caminho primário", "deps nativas do front não existem (webview é SO) — risco baixo"]
+- **edge_cases_and_risks:** ["NSIS em ARM64 tem histórico instável no Tauri — MSI é o caminho primário", "webview é do SO — risco baixo"]
 
 ### REL-MAC-01 · [macOS] DMG universal (aarch64 + x86_64)
 - **Epic:** EPIC-01 · **Plataformas:** macOS · **Prioridade:** Blocker
 - **Descrição:** primeiro artefato macOS: `universal-apple-darwin` (fat binary),
-  DMG assinado+notarizado (assinatura no EPIC-03; aqui o bundle). Ícones `.icns`
-  ainda não existem — gerar via `pnpm tauri icon`.
+  DMG assinado+notarizado (assinatura no EPIC-03; aqui o bundle) anexado à
+  release. Ícones `.icns` ainda não existem — gerar via `pnpm tauri icon`.
 - **ci_cd_workflow_spec:**
   - `trigger_event`: push de tag `v*`
   - `runner_matrix`: macos-26 (arm) cross p/ universal
   - `steps_to_execute`: ["`rustup target add x86_64-apple-darwin`", "`pnpm tauri icon` p/ gerar icns (comitar resultado)", "Build `--target universal-apple-darwin --bundles app,dmg`", "Upload DMG + SHA256"]
-  - `expected_artifacts`: ["GP-100 NextGen Editor_*_universal.dmg", "*.sha256"]
+  - `expected_artifacts`: ["gp100-nextgen-editor_<versão>_universal.dmg", "*.sha256"]
 - **definition_of_done:**
   - [ ] DMG na release (prerelease nas `-rc`, final no promote)
   - [ ] Binário universal confirmado (`lipo -info` mostra arm64+x86_64)
   - [ ] App abre no runner macOS (sem assinatura: clicar-direito/Gatekeeper documentado)
-- **edge_cases_and_risks:** ["sem assinatura o Gatekeeper bloqueia o download direto — EPIC-03 é obrigatório ANTES do anúncio público", "deps do webkit não aplicam (WKWebView nativo); risco principal é openssl/deps do cargo"]
+- **edge_cases_and_risks:** ["sem assinatura o Gatekeeper bloqueia o download direto — EPIC-03 é obrigatório ANTES do anúncio público", "risco principal é openssl/deps do cargo"]
 
-### REL-MAC-02 · [macOS] PKG (deploy corporativo via `pkgbuild`)
+### REL-MAC-02 · [macOS] PKG para download (deploy corporativo via `pkgbuild`)
 - **Epic:** EPIC-01 · **Plataformas:** macOS · **Prioridade:** Medium
 - **Descrição:** o Tauri não tem target `pkg` nativo — wrapping com `pkgbuild`
   do `.app` universal (REL-MAC-01) + `productbuild` do distribution.xml.
-  Caso de uso: MDM/Jamf.
+  Distribuído como download direto p/ quem usa MDM/Jamf.
 - **ci_cd_workflow_spec:**
   - `trigger_event`: push de tag `v*` (atrás de flag/condição)
   - `runner_matrix`: macos-26
   - `steps_to_execute`: ["script `scripts/mac_pkg.sh` (pkgbuild --component app --scripts preinstall/postinstall)", "productbuild com title/version/identifier", "Assinar com cert Installer (REL-SIGN-02) e publicar"]
-  - `expected_artifacts`: ["GP-100-NextGen-Editor-*.pkg"]
+  - `expected_artifacts`: ["gp100-nextgen-editor_<versão>.pkg"]
 - **definition_of_done:**
   - [ ] `installer -pkg *.pkg -target /` funciona no runner limpo
   - [ ] postinstall não copia por cima de /Applications sem checar versão
-- **edge_cases_and_risks:** ["PKG precisa de cert SEPARADO (Developer ID Installer) do app (Application)", "versioning do pkg tem de casar com o app senão o MDM rebaixa versões"]
+- **edge_cases_and_risks:** ["PKG precisa de cert SEPARADO (Developer ID Installer) do app (Application)", "versioning do pkg tem de casar com o app"]
 
-### REL-LIN-01 · [Linux] AppImage x86_64 (genéricas)
+### REL-LIN-01 · [Linux] AppImage x86_64 (distribuições genéricas)
 - **Epic:** EPIC-01 · **Plataformas:** Linux genéricas · **Prioridade:** Blocker
 - **Descrição:** AppImage é o "download direto" do Linux: um binário que roda
-  em quase qualquer distro. Tauri bundler `appimage` no ubuntu-22.04 (floor de
-  glibc DECIDIDO aqui: 22.04 = compatibilidade máxima; 24.04 = libs novas).
+  em quase qualquer distro, anexado à release. Tauri bundler `appimage` no
+  ubuntu-22.04 (floor de glibc DECIDIDO aqui: 22.04 = compatibilidade máxima;
+  24.04 = libs novas).
 - **ci_cd_workflow_spec:**
   - `trigger_event`: push de tag `v*`
   - `runner_matrix`: ubuntu-22.04
   - `steps_to_execute`: ["Deps do Tauri (webkit2gtk-4.1 etc.)", "`tauri build --bundles appimage` com `APPIMAGE_EXTRACT_AND_RUN=1` (CI sem FUSE)", "Publicar com sufixo `-amd64.AppImage` + SHA256"]
-  - `expected_artifacts`: ["gp100-nextgen-editor_*_amd64.AppImage", "*.sha256"]
+  - `expected_artifacts`: ["gp100-nextgen-editor_<versão>_amd64.AppImage", "*.sha256"]
 - **definition_of_done:**
   - [ ] AppImage roda no runner (extract-and-run) e num container Ubuntu 22.04 limpo
   - [ ] `--appimage-extract-and-run --version` reporta a versão da tag
 - **edge_cases_and_risks:** ["linuxdeploy precisa de FUSE — sempre usar env extract-and-run no CI", "floor glibc: build em 24.04 não abre em 22.04 — FICAR no 22.04 e documentar"]
 
-### REL-LIN-02 · [Linux] DEB (Ubuntu 22.04/24.04 e derivadas)
+### REL-LIN-02 · [Linux] DEB para download direto (Ubuntu 22.04/24.04 e derivadas)
 - **Epic:** EPIC-01 · **Plataformas:** Ubuntu · **Prioridade:** Blocker
-- **Descrição:** target nativo `deb` do Tauri. Definir nome de pacote slug
-  `gp100-nextgen-editor` (productName tem espaços — sanitize) e `mainBinaryName`.
+- **Descrição:** target nativo `deb` do Tauri, distribuído como ARQUIVO na
+  release (instalação local `apt install ./arquivo.deb` — NÃO é publicação em
+  repositório apt). Definir nome de pacote slug `gp100-nextgen-editor`
+  (productName tem espaços — sanitize) e `mainBinaryName`.
 - **ci_cd_workflow_spec:**
   - `trigger_event`: push de tag `v*`
   - `runner_matrix`: ubuntu-22.04
   - `steps_to_execute`: ["Configurar `bundle.linux.deb` (depends: libwebkit2gtk-4.1-0, libgtk-3-0…)", "`tauri build --bundles deb`", "Publicar `_amd64.deb` + SHA256"]
-  - `expected_artifacts`: ["gp100-nextgen-editor_*_amd64.deb", "*.sha256"]
+  - `expected_artifacts`: ["gp100-nextgen-editor_<versão>_amd64.deb", "*.sha256"]
 - **definition_of_done:**
   - [ ] `dpkg -I *.deb` mostra versão/deps corretos; instala em container 22.04 E 24.04
   - [ ] `apt install ./file.deb` resolve deps sozinho num container limpo
-- **edge_cases_and_risks:** ["nome com espaços/maiúsculas quebra repositórios — slug obrigatório", "deb arm64: postergar (demanda real primeiro)"]
-
-### REL-LIN-03 · [Linux] AUR — PKGBUILD validado no CI (Arch)
-- **Epic:** EPIC-01 · **Plataformas:** Arch Linux · **Prioridade:** High
-- **Descrição:** PKGBUILD no repo (empacota o **AppImage** REL-LIN-01 ou compila
-  do source — decidir; AppImage = build CI simples e hash verificável). CI valida
-  com `makepkg` num container `archlinux`. Publicação automática é REL-PUB-03.
-- **ci_cd_workflow_spec:**
-  - `trigger_event`: push em develop (validação) + tag (hash novo)
-  - `runner_matrix`: container `archlinux:base-devel`
-  - `steps_to_execute`: ["`makepkg -f` no container", "`namcap PKGBUILD` (lint)", "atualizar `pkgver`/`sha256sums` da tag via script"]
-  - `expected_artifacts`: ["PKGBUILD + .SRCINFO válidos", "pacote de teste .pkg.tar.zst"]
-- **definition_of_done:**
-  - [ ] `makepkg -si` em container instala e o binário roda
-  - [ ] `.SRCINFO` regenera idempotente do PKGBUILD
-- **edge_cases_and_risks:** ["AUR não aceita binários de terceiros grandes inline — usar fonte do AppImage com checksum", "voter base pequena: manter simples (sem -git/-bin duplos no início)"]
-
-### REL-LIN-04 · [Linux] Snap (Snapcraft Store)
-- **Epic:** EPIC-01 · **Plataformas:** Ubuntu · **Prioridade:** Medium
-- **Descrição:** `snapcraft.yaml` (core24) empacotando o build Tauri; canal
-  `candidate` nas rc e `stable` no promote. Snapd em container é restrito —
-  o smoke usa VM/LXD (ver REL-CI-01).
-- **ci_cd_workflow_spec:**
-  - `trigger_event`: push de tag `v*`
-  - `runner_matrix`: ubuntu-22.04
-  - `steps_to_execute`: ["snapcraft.yaml com `apps: gp100-nextgen: command: usr/bin/…` + plugs (desktop, removable-media p/ biblioteca)", "`snapcraft --use-lxd` ou build no runner", "`snap install --dangerous` de teste"]
-  - `expected_artifacts`: ["*.snap"]
-- **definition_of_done:**
-  - [ ] Snap instala e abre no runner com `--dangerous`
-  - [ ] Permissões mínimas listadas e justificadas no yaml
-- **edge_cases_and_risks:** ["acesso MIDI/serial via snap precisa de plug específico (`serial-port` exige manual-review no Store) — ou empacotar sem acesso a device (app de edição usa a CLI de campo)"]
-
-### REL-LIN-05 · [Linux] Flatpak (Flathub-ready)
-- **Epic:** EPIC-01 · **Plataformas:** Ubuntu + genéricas · **Prioridade:** High
-- **Descrição:** manifest `org.gp100.NextGenEditor` (runtime GNOME, webkit2gtk-4.1)
-  validado com `flatpak-builder` local. Submissão/avaliação do Flathub é
-  REL-PUB-05 (depende de assinatura/identidade e política do store).
-- **ci_cd_workflow_spec:**
-  - `trigger_event`: push em develop
-  - `runner_matrix`: ubuntu-24.04 + flatpak-builder action
-  - `steps_to_execute`: ["manifest yml (source = tarball da tag com sha256)", "`flatpak-builder --user --install --force-clean`", "smoke `flatpak run` com xvfb"]
-  - `expected_artifacts`: ["flatpak repo local de teste"]
-- **definition_of_done:**
-  - [ ] Build reprodo em CI sem warnings de finish-args
-  - [ ] App roda em sandbox e abre biblioteca (pasta user remapped)
-- **edge_cases_and_risks:** ["Sandbox Flathub NÃO acessa hardware serial sem `--device=all` — política de conteúdo revisada com SECURITY.md"]
+- **edge_cases_and_risks:** ["nome com espaços/maiúsculas quebra ferramentas locais — slug obrigatório", "sem repositório apt: o usuário gerencia atualização manual (updater cobre AppImage/NSIS/DMG, não DEB)"]
 
 ### REL-GEN-01 · [Transversal] Checksums, SBOM e manifest do release
 - **Epic:** EPIC-01 · **Plataformas:** todas · **Prioridade:** High
 - **Descrição:** um único `SHA256SUMS` assinado (REL-SIGN-04) + SBOM (cargo
-  `cyclonedx`/`syft`) anexados à release; release notes por plataforma
-  (seção "o que baixar" por SO).
+  `cyclonedx`/`syft`) anexados à release; release notes por plataforma com
+  seção "o que baixar" por SO — é a "loja" do projeto (a própria página da
+  release).
 - **ci_cd_workflow_spec:**
   - `trigger_event`: push de tag `v*` (job final, `needs` todos os builds)
   - `runner_matrix`: ubuntu-24.04
@@ -236,10 +207,8 @@ encaixar nessa cadeia (rc publica artefatos de teste; promote publica os finais)
 - **Descrição:** scripts idempotentes `scripts/smoke/{win,mac,linux}` que
   recebem o artefato e executam: instalação silenciosa → abre o app (processo
   vivo + janela/critério de saída) → desinstala → assert de resíduo. Um spec
-  por formato: NSIS (`/S`), MSI (`msiexec /qn`), MSIX (`Add-AppxPackage`),
-  DMG (hdiutil attach/cp/open), PKG (`installer`), DEB (apt container),
-  AppImage (container + extract-and-run), AUR (makepkg -si container),
-  Snap (`--dangerous`), Flatpak (user install).
+  por formato: NSIS (`/S`), MSI (`msiexec /qn`), DMG (hdiutil attach/cp/open),
+  PKG (`installer`), DEB (apt container), AppImage (container + extract-and-run).
 - **ci_cd_workflow_spec:**
   - `trigger_event`: chamado pelo job REL-CI-02 (workflow_call)
   - `runner_matrix`: windows-latest, macos-26, ubuntu-22.04/24.04 + containers distro
@@ -287,15 +256,16 @@ encaixar nessa cadeia (rc publica artefatos de teste; promote publica os finais)
 
 ## EPIC-03 — Assinatura Digital, Notariação e Segurança de Binários
 
-> Objetivo: zero SmartScreen/Gatekeeper no download direto. Pré-requisito de
-> qualquer anúncio público. Requer contas/certificados PAGOS — orçamento no
-> roadmap (decisão do owner antes de implementar).
+> Objetivo: zero SmartScreen/Gatekeeper no download direto — que agora é o
+> ÚNICO canal, então assinatura deixa de ser diferencial e vira requisito de
+> adoção. Requer contas/certificados PAGOS — orçamento no roadmap (decisão do
+> owner antes de implementar).
 
-### REL-SIGN-01 · [Windows] Azure Trusted Signing (EV-equivalente) p/ exe/msi/msix/cli
+### REL-SIGN-01 · [Windows] Azure Trusted Signing (EV-equivalente) p/ exe/msi/cli
 - **Epic:** EPIC-03 · **Plataformas:** Windows · **Prioridade:** Blocker
 - **Descrição:** Trusted Signing (Azure) elimina cert físico EV e dá
-  reputação SmartScreen imediata. Assinar os 4 binários (NSIS, MSI, MSIX,
-  CLI) no job de release. Autenticação por OIDC federado (sem segredo estático).
+  reputação SmartScreen imediata. Assinar os 3 binários (NSIS, MSI, CLI) no
+  job de release. Autenticação por OIDC federado (sem segredo estático).
 - **ci_cd_workflow_spec:**
   - `trigger_event`: push de tag `v*` (APÓS build, antes do upload)
   - `runner_matrix`: windows-latest
@@ -312,6 +282,8 @@ encaixar nessa cadeia (rc publica artefatos de teste; promote publica os finais)
 - **Descrição:** conta Apple Developer, `Developer ID Application` (e `Installer`
   p/ PKG), hardend runtime + entitlements mínimos, notariação via App Store
   Connect API key e `stapler`. Tauri aceita env `APPLE_*` nativo no build.
+  (A conta da Apple é usada só p/ certificar o binário — o app NÃO vai à Mac
+  App Store.)
 - **ci_cd_workflow_spec:**
   - `trigger_event`: push de tag `v*`
   - `runner_matrix`: macos-26
@@ -341,8 +313,9 @@ encaixar nessa cadeia (rc publica artefatos de teste; promote publica os finais)
 ### REL-SIGN-04 · [Transversal] SHA256SUMS assinado (minisign/GPG)
 - **Epic:** EPIC-03 · **Plataformas:** todas · **Prioridade:** Medium
 - **Descrição:** o checksum do REL-GEN-01 assinado com key dedicada de release;
-  página/README ensina a verificar (`minisign -Vm SHA256SUMS`). Linha de defesa
-  para quem distribui via espelho/S3 futuro.
+  página/README ensina a verificar (`minisign -Vm SHA256SUMS`). Como o download
+  direto é o único canal, é a linha de defesa contra espelho/S3 adulterado no
+  futuro.
 - **ci_cd_workflow_spec:**
   - `trigger_event`: job final da tag
   - `runner_matrix`: ubuntu-24.04
@@ -354,23 +327,23 @@ encaixar nessa cadeia (rc publica artefatos de teste; promote publica os finais)
 
 ---
 
-## EPIC-04 — Publicação Automatizada em Repositórios e Gerenciadores de Pacotes
+## EPIC-04 — GitHub Releases como canal único (download direto coeso)
 
-> Objetivo: além do download direto (GitHub Releases), os canais oficiais:
-> AUR, Snap Store, Flathub. Semântica GitFlow respeitada: rc → canal de teste
-> (candidate/prerelease), promote → canal estável.
+> Objetivo: a página da release É a distribuição do projeto (decisão do owner:
+> nenhuma store). Tudo aqui é sobre deixar ESSE canal coeso: uma release com
+> todos os binários, notes claras, draft→smoke→published.
 
 ### REL-PUB-01 · [Transversal] Matriz única de release multiplataforma
 - **Epic:** EPIC-04 · **Plataformas:** todas · **Prioridade:** Blocker
 - **Descrição:** consolidar `release-cli` + `release-installer` (hoje 2 jobs
-  Windows) numa matriz por SO/ formato com `if` por booleano do plan (padrão
+  Windows) numa matriz por SO/formato com `if` por booleano do plan (padrão
   do monorepo: matriz fixa + if, nunca 0 itens). Guard de prerelease `-rc`
   herdados por TODOS os novos SOs.
 - **ci_cd_workflow_spec:**
   - `trigger_event`: push de tag `v*`
   - `runner_matrix`: ubuntu-22.04, ubuntu-24.04, macos-26, windows-latest
   - `steps_to_execute`: ["refatorar pipeline.yml", "smoke gates antes de publish", "summary com artefatos por plataforma"]
-  - `expected_artifacts`: ["todos os instaladores na MESMA release"]
+  - `expected_artifacts`: ["todos os binários na MESMA release"]
 - **definition_of_done:**
   - [ ] Tag de rc gera release com todos os formatos marcados prerelease
   - [ ] docs-only não dispara matriz (plan gate)
@@ -390,62 +363,20 @@ encaixar nessa cadeia (rc publica artefatos de teste; promote publica os finais)
   - [ ] Notes da release final listam todos artefatos + checksums + how-to-verify
 - **edge_cases_and_risks:** ["automatizar sem chumbo: gerar dos conventional commits (semver já existe)"]
 
-### REL-PUB-03 · [Linux/Arch] Publicação automática no AUR
-- **Epic:** EPIC-04 · **Plataformas:** Arch Linux · **Prioridade:** Medium
-- **Descrição:** após tag final: atualizar `pkgver`/`sha256sums` do PKGBUILD
-  (REL-LIN-03), regenerar `.SRCINFO` e push para `aur.archlinux.org/gp100-nextgen-editor.git`
-  com deploy key (secret SSH read-only... write). rc NÃO publica no AUR.
-- **ci_cd_workflow_spec:**
-  - `trigger_event`: push de tag final (exclui `-rc`)
-  - `runner_matrix`: ubuntu-24.04
-  - `steps_to_execute`: ["clone do repositório AUR", "commit (maintainer name/email) + push", "assert: `makepkg --printsrcinfo` idempotente"]
-  - `expected_artifacts`: ["PKGBUILD atualizado no AUR"]
-- **definition_of_done:**
-  - [ ] Update AUR end-to-end numa tag de teste (repo próprio de ensaio primeiro)
-  - [ ] Falha do push não falha a release (best-effort + issue automática)
-- **edge_cases_and_risks:** ["deploy key com escopo de UM repo AUR", "maintainer email do bot — usar identity própria p/ rastreio"]
-
-### REL-PUB-04 · [Linux] Publicação no Snapcraft Store
-- **Epic:** EPIC-04 · **Plataformas:** Ubuntu · **Prioridade:** Medium
-- **Descrição:** `snapcraft upload` com credencial exportada (secret), canal
-  `candidate` nas rc e `stable` no promote; `snapcraft release` por track.
-- **ci_cd_workflow_spec:**
-  - `trigger_event`: tag (rc→candidate, final→stable)
-  - `runner_matrix`: ubuntu-24.04
-  - `steps_to_execute`: ["snapcraft upload --release=candidate/stable", "assert de revision publicada"]
-  - `expected_artifacts`: ["release no store"]
-- **definition_of_done:**
-  - [ ] Canal candidate recebe rc; stable recebe promote (2 provas)
-- **edge_cases_and_risks:** ["credencial expira — renovação documentada", "manual review do store p/ plugs sensíveis (serial)"]
-
-### REL-PUB-05 · [Linux] Submissão e bot do Flathub
-- **Epic:** EPIC-04 · **Plataformas:** Ubuntu + genéricas · **Prioridade:** Medium
-- **Descrição:** uma vez o manifest estável (REL-LIN-05): submissão ao Flathub
-  (review humano da primeira vez) e, depois de aprovado, bot que abre PR no
-  repo `flathub/org.gp100.NextGenEditor` a cada tag final com o novo sha256.
-- **ci_cd_workflow_spec:**
-  - `trigger_event`: tag final
-  - `runner_matrix`: ubuntu-24.04
-  - `steps_to_execute`: ["fork/branch no flathub repo", "PR com manifest atualizado", "link do PR na release"]
-  - `expected_artifacts`: ["PR no Flathub"]
-- **definition_of_done:**
-  - [ ] 1ª submissão aprovada; updates subsequentes automáticos
-- **edge_cases_and_risks:** ["review do Flathub demora — não é Blocker p/ 1ª release", "política de assinatura do Flathub própria (eles assinam)"]
-
 ---
 
-## EPIC-05 — Infraestrutura de Auto-Update e Telemetria de Lançamento
+## EPIC-05 — Infraestrutura de Atualizações Automáticas (Auto-Update) e Rollback
 
-> Objetivo: atualizar sem reinstalar, com rollback controlado. Updater Tauri 2
-> (minisign) + `latest.json` na própria GitHub Release (sem servidor próprio no
-> início — troca futura por S3/CDN é endpoint-only).
+> Objetivo: atualizar sem reinstalar, com rollback controlado — SEM store e
+> SEM servidor próprio: o endpoint do updater é a própria GitHub Release
+> (`latest.json` como asset). Nada aqui publica em canal externo. DEB não
+> passa pelo updater (atualiza manualmente baixando o novo .deb) — documentar.
 
 ### REL-UPD-01 · [Transversal] Updater Tauri (plugin + config + artefatos .sig)
 - **Epic:** EPIC-05 · **Plataformas:** Windows, macOS, Linux(AppImage) · **Prioridade:** Blocker
 - **Descrição:** `tauri-plugin-updater` + `plugins.updater` no conf (pubkey do
   REL-SIGN-03, endpoints → `latest.json` da release). Builds de tag passam a
   gerar artefatos de update (NSIS setup, app.tar.gz mac, AppImage + `.sig`).
-  DEB/snap/flatpak atualizam pelos próprios gerenciadores — fora do updater.
 - **ci_cd_workflow_spec:**
   - `trigger_event`: push de tag `v*`
   - `runner_matrix`: windows-latest, macos-26, ubuntu-22.04
@@ -476,12 +407,13 @@ encaixar nessa cadeia (rc publica artefatos de teste; promote publica os finais)
 - **Epic:** EPIC-05 · **Plataformas:** todas · **Prioridade:** High
 - **Descrição:** runbook de incidente pós-release: reverter `latest.json` p/ versão
   anterior (updater para de oferecer), marcar release como prerelease/retirar
-  assets, desfazer store (AUR update p/ anterior, snap revert channel, flathub PR
-  revert), comunicar (issue ACHADOS). Dry-run testado em tag de ensaio.
+  assets, comunicar (issue ACHADOS). Dry-run testado em tag de ensaio. Como não
+  há stores, NÃO há passo de revert em canal externo — o rollback é 100%
+  GitHub Releases.
 - **ci_cd_workflow_spec:**
   - `trigger_event`: workflow_dispatch (crisis) — NUNCA automático
   - `runner_matrix`: ubuntu-24.04
-  - `steps_to_execute`: ["workflow de rollback com input `version-alvo`", "permissoes restritas (environments)"]
+  - `steps_to_execute`: ["workflow de rollback com input `version-alvo`", "permissões restritas (environments)"]
   - `expected_artifacts`: ["rollback executado + log"]
 - **definition_of_done:**
   - [ ] Dry-run completo numa tag dummy (mesmo espírito do simulate_release.py)
@@ -491,8 +423,9 @@ encaixar nessa cadeia (rc publica artefatos de teste; promote publica os finais)
 ### REL-UPD-04 · [Transversal] Telemetria de lançamento (downloads + contagem por canal)
 - **Epic:** EPIC-05 · **Plataformas:** todas · **Prioridade:** Medium
 - **Descrição:** job pós-release que coleta download counts por asset (GitHub API)
-  + snapshots do store (snap/flatpak) e publica summary/issue de acompanhamento.
-  SEM tracking do usuário (SECURITY.md) — métrica é de distribuição, não uso.
+  e publica summary/issue de acompanhamento. SEM tracking do usuário
+  (SECURITY.md) — métrica é de distribuição, não uso. Como o GitHub Releases é
+  o canal único, essa métrica cobre 100% da distribuição.
 - **ci_cd_workflow_spec:**
   - `trigger_event`: schedule semanal
   - `runner_matrix`: ubuntu-24.04
@@ -508,16 +441,18 @@ encaixar nessa cadeia (rc publica artefatos de teste; promote publica os finais)
 
 1. **REL-VER-01** (versão certa em tudo) → 2. **EPIC-01** por plataforma
    (WIN-01/MAC-01/LIN-01/LIN-02 primeiro) → 3. **REL-SIGN-03** (keys) +
-   **EPIC-03** (paraleliza: contas/cert demoram) → 4. **REL-CI-01/02** (smoke
-   começa com o que existir) → 5. **REL-PUB-01/02** (release única coesa) →
-   6. **REL-UPD-01/02** (update) → 7. stores (AUR/snap/flathub) e o resto por
-   demanda. rc do release-gitflow é o CAVALO DE TROIA: cada formato novo entra
-   publicando numa rc de teste antes do promote real.
+   **EPIC-03** (paraleliza: contas/cert demoram — e é o que desbloqueia o
+   download direto) → 4. **REL-CI-01/02** (smoke começa com o que existir) →
+   5. **REL-PUB-01/02** (release única coesa) → 6. **REL-UPD-01/02** (update) →
+   7. o resto (MSI/PKG/ARM64/UPD-03/04) por demanda. rc do release-gitflow é o
+   CAVALO DE TROIA: cada formato novo entra publicando numa rc de teste antes
+   do promote real.
 
 ## Como transformar em issues
 
 - 5 issues **epic** (template `epic`, checklist das filhas = medidor).
-- 27 issues **feature** (template `feature`, título com `[ÉPICO-ID]`).
-- Label `release` em todas + `security` no EPIC-03 + `distribuicao` no EPIC-04.
+- 22 issues **feature** (template `feature`, título com `[ÉPICO-ID]`).
+- Label `release` em todas + `security` no EPIC-03.
 - Marcar ROADMAP (FASE release) na criação — e atualizar este doc quando
   cada issue abrir (número da issue no ID: `REL-WIN-01 (#42)`).
+- **Não abrir** issues de stores/gerenciadores (decisão do owner no topo).
