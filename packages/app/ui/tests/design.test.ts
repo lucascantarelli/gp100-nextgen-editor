@@ -1,6 +1,6 @@
 /**
  * Testes de DESIGN (gate de regressão de tokens): a escala de Fibonacci é a
- * que docs/UI_DESIGN.md declara; TODOS os pares de texto atingem AA 4.5:1;
+ * declarada no documento de design; TODOS os pares de texto atingem AA 4.5:1;
  * pisos WCAG de foco/alvo presentes. Quebrou aqui = quebrou o design system.
  */
 import { describe, expect, it } from "vitest";
@@ -43,7 +43,7 @@ describe("escala de espaçamento (Fibonacci base 4)", () => {
   });
 });
 
-describe("contraste (WCAG 2.2 AA) — docs/UI_DESIGN.md §2", () => {
+describe("contraste (WCAG 2.2 AA)", () => {
   it("todo par de texto atinge 4.5:1 nos dois temas", () => {
     for (const theme of ["dark", "light"] as const) {
       for (const [pair, ratio] of Object.entries(TEXT_PAIRS[theme])) {

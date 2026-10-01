@@ -26,6 +26,8 @@
 use std::sync::mpsc;
 use std::thread::JoinHandle;
 
+use gp100_core::model::Dictionary;
+use gp100_core::pedalboard::{board_view_for, embedded_document, preset_list, BoardView};
 use gp100_core::session::{BootProgress, BootReport, Session};
 use gp100_core::transport::mock::MockDevice;
 use gp100_core::transport::DeviceTransport;
@@ -33,11 +35,55 @@ use gp100_core::transport::DeviceTransport;
 /// Estado snapshot do mock (alias curto; o tipo vive no core).
 type MockState = gp100_core::transport::mock::MockState;
 
+/// Biblioteca de presets (o flight case da UI) + corrente.
+#[derive(Debug, Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PresetLibrary {
+    /// Entradas (pp, nome, tipo) de TODOS os presets do arquivo.
+    pub entries: Vec<PresetEntry>,
+    /// pp corrente do mock.
+    pub current_pp: u16,
+}
+
+/// Uma entrada da biblioteca (camelCase no fio IPC).
+#[derive(Debug, Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PresetEntry {
+    /// pp do preset.
+    pub pp: u16,
+    /// Nome do preset.
+    pub name: String,
+    /// Rótulo do tipo (ex.: "Pop").
+    pub pp_type_name: String,
+}
+
 /// Requisições atendidas pelo actor (uma por vez — D8).
 enum Request {
     /// Snapshot do estado do device (command `device_info`).
     Info {
         reply: mpsc::Sender<Result<MockState, String>>,
+    },
+    /// Board do preset: slots/arquétipos/knobs (projeção pura no core).
+    Board {
+        pp: Option<u16>,
+        reply: mpsc::Sender<Result<BoardView, String>>,
+    },
+    /// Biblioteca de presets (flight case da UI).
+    Library {
+        reply: mpsc::Sender<Result<PresetLibrary, String>>,
+    },
+    /// Select de preset (write `13010000` §13.10; o mock troca o corrente).
+    Select {
+        pp: u16,
+        reply: mpsc::Sender<Result<(), String>>,
+    },
+    /// Set-param (knob §13.11, fire-and-forget D4; o mock valida e guarda).
+    SetParam {
+        slot: u8,
+        code: u32,
+        ctrl: u8,
+        value: f32,
+        reply: mpsc::Sender<Result<(), String>>,
     },
     /// Boot completo (§13.10) com canal de progresso opcional
     /// (command `device_boot`): 1 mensagem por transação do script.
@@ -59,6 +105,28 @@ enum Request {
     },
     /// Encerra a thread do actor (drop do `DeviceActor`).
     Shutdown,
+}
+
+/// Snapshot do estado via take/remount da Session (mesma semântica do
+/// `Info` — mock: sem tráfego de fio). Helper interno do Library.
+fn device_snapshot(session: &mut Option<Session<MockDevice>>) -> MockState {
+    match session.take() {
+        Some(s) => {
+            let transport = s.into_transport();
+            let st = transport.state().clone();
+            *session = Some(Session::new(transport));
+            st
+        }
+        None => MockState::load().unwrap_or_else(|_| MockState {
+            preset_count: 0,
+            current_pp: 0,
+            current_name: String::new(),
+            current_pp_type: 4,
+            ir_crcs: [0; 20],
+            set_params: Default::default(),
+            rejected: 0,
+        }),
+    }
 }
 
 /// Handle do actor: clonável para múltiplos commands (a fila serializa).
@@ -89,6 +157,61 @@ impl DeviceActor {
                             let st = transport.state().clone();
                             session = Some(Session::new(transport));
                             let _ = reply.send(Ok(st));
+                        }
+                        None => {
+                            let _ = reply.send(Err("session do actor ausente".into()));
+                        }
+                    },
+                    Request::Board { pp, reply } => {
+                        // Projeção PURA (doc embedado + dicionário): não toca
+                        // a Session nem o fio — pode rodar fora do device
+                        // (o actor só é o caminho para reusar o Dictionary
+                        // carregado do mock).
+                        let r = (|| -> Result<BoardView, String> {
+                            let doc = embedded_document().map_err(|e| e.to_string())?;
+                            let dict = Dictionary::from_json(gp100_core::model::DICTIONARY_JSON)
+                                .map_err(|e| e.to_string())?;
+                            board_view_for(&doc, &dict, pp).map_err(|e| e.to_string())
+                        })();
+                        let _ = reply.send(r);
+                    }
+                    Request::Library { reply } => {
+                        let r = (|| -> Result<PresetLibrary, String> {
+                            let doc = embedded_document().map_err(|e| e.to_string())?;
+                            let state = device_snapshot(&mut session); // corrente
+                            Ok(PresetLibrary {
+                                entries: preset_list(&doc)
+                                    .into_iter()
+                                    .map(|e| PresetEntry {
+                                        pp: e.pp,
+                                        name: e.name,
+                                        pp_type_name: e.pp_type_name,
+                                    })
+                                    .collect(),
+                                current_pp: state.current_pp,
+                            })
+                        })();
+                        let _ = reply.send(r);
+                    }
+                    Request::Select { pp, reply } => match session.as_mut() {
+                        Some(s) => {
+                            let r = s.select_preset(pp).map_err(|e| e.to_string());
+                            let _ = reply.send(r);
+                        }
+                        None => {
+                            let _ = reply.send(Err("session do actor ausente".into()));
+                        }
+                    },
+                    Request::SetParam {
+                        slot,
+                        code,
+                        ctrl,
+                        value,
+                        reply,
+                    } => match session.as_mut() {
+                        Some(s) => {
+                            let r = s.set_param(slot, code, ctrl, value).map_err(|e| e.to_string());
+                            let _ = reply.send(r);
                         }
                         None => {
                             let _ = reply.send(Err("session do actor ausente".into()));
@@ -183,6 +306,63 @@ impl DeviceActor {
             })
             .map_err(|_| "actor de device não está mais rodando".to_string())?;
         rx.recv().map_err(|_| "actor morreu no Boot".to_string())?
+    }
+
+    /// Board do preset (slots/arquétipos/knobs) — projeção pura no core.
+    /// `pp = None` = corrente.
+    ///
+    /// # Erros
+    /// String de erro de parse/projeção ou morte da thread do actor.
+    pub fn board(&self, pp: Option<u16>) -> Result<BoardView, String> {
+        let (tx, rx) = mpsc::channel();
+        self.tx
+            .send(Request::Board { pp, reply: tx })
+            .map_err(|_| "actor de device não está mais rodando".to_string())?;
+        rx.recv().map_err(|_| "actor morreu no Board")?
+    }
+
+    /// Biblioteca de presets (flight case) + pp corrente.
+    ///
+    /// # Erros
+    /// String de erro de parse ou morte da thread do actor.
+    pub fn library(&self) -> Result<PresetLibrary, String> {
+        let (tx, rx) = mpsc::channel();
+        self.tx
+            .send(Request::Library { reply: tx })
+            .map_err(|_| "actor de device não está mais rodando".to_string())?;
+        rx.recv().map_err(|_| "actor morreu no Library")?
+    }
+
+    /// Select de preset (§13.10 — write + meta6). Bloqueia até a FSM
+    /// completar a transação (mock: 1 ida e volta).
+    ///
+    /// # Erros
+    /// [`ProtocolError`](gp100_core::ProtocolError) como string.
+    pub fn select_preset(&self, pp: u16) -> Result<(), String> {
+        let (tx, rx) = mpsc::channel();
+        self.tx
+            .send(Request::Select { pp, reply: tx })
+            .map_err(|_| "actor de device não está mais rodando".to_string())?;
+        rx.recv().map_err(|_| "actor morreu no Select")?
+    }
+
+    /// Set-param do knob (§13.11, fire-and-forget D4). O mock valida o
+    /// shape contra o golden e guarda o valor no estado.
+    ///
+    /// # Erros
+    /// [`ProtocolError`](gp100_core::ProtocolError) como string.
+    pub fn set_param(&self, slot: u8, code: u32, ctrl: u8, value: f32) -> Result<(), String> {
+        let (tx, rx) = mpsc::channel();
+        self.tx
+            .send(Request::SetParam {
+                slot,
+                code,
+                ctrl,
+                value,
+                reply: tx,
+            })
+            .map_err(|_| "actor de device não está mais rodando".to_string())?;
+        rx.recv().map_err(|_| "actor morreu no SetParam")?
     }
 
     /// Tabela dos 20 User IRs (§13.12). Bloqueia até o actor completar as

@@ -34,6 +34,10 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
         })
         .invoke_handler(tauri::generate_handler![
             commands::device_info,
+            commands::device_board,
+            commands::device_preset_library,
+            commands::device_select_preset,
+            commands::device_set_param,
             commands::device_boot,
             commands::list_user_irs,
             commands::pending_pushes,

@@ -130,6 +130,48 @@ pub fn device_info(state: State<'_, AppState>) -> Result<DeviceInfo, String> {
     Ok(DeviceInfo::from_mock(&snapshot))
 }
 
+/// `device_board` — board do preset (dados do pedalboard da UI): slots da
+/// cadeia, arquétipos por família e knobs do dicionário com os valores do
+/// preset. Projeção pura no core, servida pelo actor (D8: um caminho só).
+/// `pp` = null → corrente.
+#[tauri::command]
+pub fn device_board(
+    state: State<'_, AppState>,
+    pp: Option<u16>,
+) -> Result<gp100_core::pedalboard::BoardView, String> {
+    state.actor.board(pp)
+}
+
+/// `device_preset_library` — a biblioteca (flight case) + pp corrente do
+/// mock, servida pelo actor.
+#[tauri::command]
+pub fn device_preset_library(
+    state: State<'_, AppState>,
+) -> Result<crate::actor::PresetLibrary, String> {
+    state.actor.library()
+}
+
+/// `device_select_preset` — select REAL via FSM (§13.10): write `13010000`
+/// + meta6; o mock troca o pp corrente (o board/LED recarregam depois).
+#[tauri::command]
+pub fn device_select_preset(state: State<'_, AppState>, pp: u16) -> Result<(), String> {
+    state.actor.select_preset(pp)
+}
+
+/// `device_set_param` — knob REAL (§13.11, fire-and-forget D4): o mock
+/// valida o shape contra o golden e guarda o valor. O board da UI re-seta
+/// o valor local após o Ok.
+#[tauri::command]
+pub fn device_set_param(
+    state: State<'_, AppState>,
+    slot: u8,
+    code: u32,
+    ctrl: u8,
+    value: f32,
+) -> Result<(), String> {
+    state.actor.set_param(slot, code, ctrl, value)
+}
+
 /// `device_boot` — boot+scan completos (§13.10) com barra de progresso:
 /// emite `device://progress` (BootProgressDto) por transação. BLOQUEIA até
 /// o fim do script (command síncrono; o Tauri o roda fora da main thread —

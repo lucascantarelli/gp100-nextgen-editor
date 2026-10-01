@@ -1,192 +1,307 @@
 /**
- * App: ConnectionBar
- * com boot + barra de progresso (eventos `device://progress`), painel de
- * info do device (mock) e PushLog (pushes visíveis em log da UI).
- * Padrões da skill ui-ux-practices: estados de tela canônicos (ScreenState),
- * erro sempre com retry, foco visível, feedback <100ms, tokens Fibonacci,
- * i18n-ready e a11y (dl/dt/dd, role="status", aria-valuenow na barra).
+ * App — casca do editor em VIEWPORT ÚNICA: navbar (logo/conexão/boot/
+ * patch/DRUM/Master+kill) → meio com scroll próprio (looper, pushes,
+ * biblioteca + palco) → rodapé da pedaleira (IN · marca · ⚙ · OUT).
+ * A biblioteca de FÁBRICA é real (99 presets do all.prst; abrir = select
+ * no device), o board mostra os 9 lugares (display LED + navbar com o
+ * patch) e o modal Settings persiste local (badge "prévia local").
+ * O boot vive INTEGRADO à navbar: progresso e erro aparecem só durante
+ * o boot/falha (a seção de conexão permanente foi removida: duplicava
+ * a navbar). A trava ⇄ mover pertence ao PALCO (EmptyBoard); o rodapé
+ * é o chassi da pedaleira (IN · GP · OUT) — ações globais na navbar.
  *
- * Linguagem visual "pedalboard ao vivo no palco" (docs/UI_DESIGN.md §2):
- * LED pulsando quando conectado; ações primárias em âmbar Valeton.
+ * O board ainda não renderiza pedais: knobs/toggle/set_param entram um
+ * efeito por vez — até lá o palco mostra só os lugares da cadeia.
+ *
+ * Atalhos globais (doc na aba Help do Settings): Espaço = drum play/stop,
+ * R = REC do looper, Esc = fecha o painel do topo (Settings → Drum → pushes).
  */
-import type { CSSProperties } from "react";
-import { useDevice } from "./hooks/useDevice";
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { DeviceInfo } from "./ipc/types";
+import { deviceBoard, deviceInfo, deviceSelectPreset } from "./ipc/device";
 import { useBoot } from "./hooks/useBoot";
+import { BOOT_STAGE_LABEL } from "./hooks/useBoot";
 import { usePushLog } from "./hooks/usePushLog";
-import { ConnectionBar } from "./components/ConnectionBar";
+import { useGlobalShortcuts } from "./hooks/useGlobalShortcuts";
+import { TopBar } from "./components/TopBar";
+import { LibraryPanel } from "./components/LibraryPanel";
+import { EmptyBoard } from "./components/EmptyBoard";
+import { SettingsModal, loadGeneral } from "./components/SettingsModal";
+import type { GeneralSettings } from "./components/SettingsModal";
+import type { DrumState } from "./components/DrumPanel";
+import { LooperPanel, loadLooper } from "./components/LooperPanel";
+import type { LooperSettings } from "./components/LooperPanel";
+import type { VuMode } from "./components/VuPanel";
 import { PushLog } from "./components/PushLog";
+import { MSG } from "./i18n/messages";
+
+const DRUM_KEY = "gp100.drum.v2";
+const MASTER_KEY = "gp100.master.v1";
+const VU_KEY = "gp100.vu.v1";
+
+function loadVu(): VuMode {
+  try {
+    const raw = localStorage.getItem(VU_KEY);
+    if (raw === "led" || raw === "eq") return raw;
+  } catch {
+    /* teste: sem localStorage */
+  }
+  return "led";
+}
+
+function loadDrum(): DrumState {
+  try {
+    const raw = localStorage.getItem(DRUM_KEY);
+    if (raw) return JSON.parse(raw) as DrumState;
+  } catch {
+    /* teste: sem localStorage */
+  }
+  return { on: false, genre: "Rock", style: "Rock 1", bpm: 120, beat: "4/4", volume: 80, speed: 50 };
+}
 
 export default function App() {
-  const { state, refresh } = useDevice();
   const boot = useBoot();
   const { log, clear } = usePushLog();
+  const [info, setInfo] = useState<DeviceInfo | null>(null);
+  const [pp, setPp] = useState(0);
+  const [presetName, setPresetName] = useState("…");
+  const [ppTypeName, setPpTypeName] = useState("…");
+  const [masterVol, setMasterVol] = useState(() => {
+    try {
+      const raw = localStorage.getItem(MASTER_KEY);
+      return raw ? (Number(raw) || 99) : 99;
+    } catch {
+      return 99;
+    }
+  });
+  const [drum, setDrum] = useState<DrumState>(loadDrum);
+  const [general, setGeneral] = useState<GeneralSettings>(loadGeneral);
+  const [looper, setLooper] = useState<LooperSettings>(loadLooper);
+  const [arrangeMode, setArrangeMode] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [celebrate, setCelebrate] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [drumOpen, setDrumOpen] = useState(false); // popover do drum (subiu do TopBar p/ precedência do Esc)
+  const [recRequest, setRecRequest] = useState(0); // pulso do atalho R (looper)
+  const [vuMode, setVuMode] = useState<VuMode>(loadVu);
+  const [looperPlaying, setLooperPlaying] = useState(false);
+  const pushRef = useRef<HTMLDetailsElement>(null); // drawer "pushes do device" (Esc fecha)
 
+  // info + biblioteca no mount
+  useEffect(() => {
+    void deviceInfo()
+      .then(setInfo)
+      .catch(() => setInfo(null));
+    // Biblioteca de fábrica = artefato gerado do all.prst (presetData.ts).
+    // `device_preset_library` volta a alimentar esta lista na integração real.
+  }, []);
+
+  // abre um preset (select real no device; fallback local do device.ts)
+  const openPreset = useCallback(async (target: number) => {
+    try {
+      await deviceSelectPreset(target);
+      const b = await deviceBoard(target);
+      setPp(b.pp);
+      setPresetName(b.name);
+      setPpTypeName(b.ppTypeName);
+      setErr(null);
+    } catch (e) {
+      // Usuário vê mensagem amigável; o detalhe técnico fica no console.
+      console.error("openPreset falhou:", e);
+      setErr(MSG.errOpenPreset);
+    }
+  }, []);
+
+  // ◀ ▶ reproduzem a coluna do patch do app oficial: 0..98 em ciclo.
+  // Efeito FORA do updater (updater tem que ser puro — StrictMode chama 2×).
+  const stepPreset = useCallback(
+    (delta: 1 | -1) => {
+      setPp((cur) => (cur + delta + 99) % 99);
+    },
+    [],
+  );
+  useEffect(() => {
+    void openPreset(pp);
+  }, [pp, openPreset]);
+
+  // LED display: flip só no boot MANUAL (re-escanear) — o auto-boot do
+  // mount é silencioso (a navbar já mostra "on"; flip automático deixaria
+  // o display dependente de timing no primeiro segundo da página)
   const booting = boot.state.kind === "loading";
+  useEffect(() => {
+    if (boot.state.kind === "ready" && boot.origin === "manual") {
+      setCelebrate(true);
+      const t = setTimeout(() => setCelebrate(false), 1000);
+      return () => clearTimeout(t);
+    }
+  }, [boot.state.kind, boot.origin]);
 
+  // persistência local (prévia) — drum/master/settings
+  useEffect(() => {
+    try {
+      localStorage.setItem(DRUM_KEY, JSON.stringify(drum));
+    } catch {
+      /* noop */
+    }
+  }, [drum]);
+  useEffect(() => {
+    try {
+      localStorage.setItem(MASTER_KEY, String(masterVol));
+    } catch {
+      /* noop */
+    }
+  }, [masterVol]);
+  const onChangeGeneral = useCallback((s: GeneralSettings) => {
+    setGeneral(s);
+    try {
+      localStorage.setItem("gp100.settings.general.v1", JSON.stringify(s));
+    } catch {
+      /* noop */
+    }
+  }, []);
+
+  // Atalhos globais (doc: aba Help do Settings) — Espaço = drum, R = REC do
+  // looper, Esc fecha o painel do topo. Transporte fica inerte com o modal
+  // aberto (Esc fecha o modal antes).
+  useGlobalShortcuts({
+    onDrumToggle: () => {
+      if (!settingsOpen) setDrum((d) => ({ ...d, on: !d.on }));
+    },
+    onLooperRec: () => {
+      if (!settingsOpen) setRecRequest((n) => n + 1);
+    },
+    onEscape: () => {
+      if (settingsOpen) setSettingsOpen(false);
+      else if (drumOpen) setDrumOpen(false);
+      else pushRef.current?.removeAttribute("open");
+    },
+  });
+
+  const connected = info != null;
+
+  // VU reativo: som = drum tocando OU looper tocando/gravando
+  const vuActive = drum.on || looperPlaying;
+  const setVuModePersist = useCallback((m: VuMode) => {
+    setVuMode(m);
+    try {
+      localStorage.setItem(VU_KEY, m);
+    } catch {
+      /* noop */
+    }
+  }, []);
+
+  // faixa de progresso só durante o boot (não ocupa layout permanente);
+  // stage pode vir de um beat pendente após o fim — congelar em 100%/fim
+  const stageNow = booting ? boot.stage : null;
+
+  // viewport única: navbar → meio (scroll próprio) → rodapé fixos;
+  // só o MEIO rola (a página inteira nunca cresce — layout de "mesa")
   return (
-    <main style={styles.page}>
-      <header style={styles.header}>
-        <div style={styles.brandRow}>
-          <span style={styles.logoDot} aria-hidden="true" />
-          <h1 style={styles.title}>GP-100 NextGen Editor</h1>
-        </div>
-        <p style={styles.subtitle}>
-          conexão + boot — backend <strong>mock</strong> (política de
-          hardware: nenhum byte vai ao device sem gate)
-        </p>
-      </header>
-
-      <ConnectionBar
-        info={state.kind === "ready" ? state.data : null}
-        bootState={booting ? "booting" : boot.state.kind === "ready" ? "done" : boot.state.kind === "error" ? "error" : "idle"}
-        progress={boot.progress}
-        stage={boot.stage}
-        bootPp={boot.bootPp}
-        onBoot={boot.startBoot}
+    <main
+      style={{
+        height: "100vh",
+        background: "var(--bg)",
+        color: "var(--text)",
+        padding: "var(--space-8) var(--space-20) var(--space-12)",
+        display: "grid",
+        gridTemplateRows: "auto 1fr auto",
+        gap: "var(--space-12)",
+        overflow: "hidden",
+      }}
+    >
+      <TopBar
+        connected={connected}
+        mock={info?.backend === "mock"}
+        presetLabel={`P${String(pp + 1).padStart(2, "0")} ${presetName}`}
+        masterVol={masterVol}
+        drum={drum}
+        drumOpen={drumOpen}
+        booting={booting}
+        onBoot={() => boot.startBoot("manual")}
+        settingsOpen={settingsOpen}
+        onOpenSettings={() => setSettingsOpen(true)}
+        onMasterVol={setMasterVol}
+        onDrum={setDrum}
+        onDrumOpenChange={setDrumOpen}
+        onPrevPatch={() => stepPreset(-1)}
+        onNextPatch={() => stepPreset(1)}
       />
 
-      {boot.state.kind === "error" && (
-        <div role="alert" style={styles.error}>
-          <strong>Erro no boot:</strong> {boot.state.message}
-          <button type="button" onClick={boot.state.retry} style={styles.button}>
-            Tentar de novo
-          </button>
+      {/* boot/erros: faixas transitórias FORA do scroll (sempre visíveis) */}
+
+      {booting && boot.progress !== null && (
+        <div role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={boot.progress} aria-label={MSG.bootProgressAria} style={{ position: "relative", height: 18, borderRadius: 9, overflow: "hidden", background: "color-mix(in srgb, var(--text-muted) 18%, transparent)" }}>
+          <div style={{ position: "absolute", inset: 0, width: `${boot.progress}%`, background: "linear-gradient(90deg, color-mix(in srgb, var(--accent) 65%, transparent), var(--accent))", transition: "width var(--motion-fast) var(--ease-out)" }} />
+          <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "var(--text-xs)", color: "var(--text)", textShadow: "0 1px 2px rgba(0,0,0,.6)" }}>
+            {stageNow ? BOOT_STAGE_LABEL[stageNow] : MSG.bootStarting} · {boot.progress}%
+          </span>
         </div>
       )}
+      {boot.state.kind === "error" && (
+        <div role="alert" style={{ background: "color-mix(in srgb, var(--error) 12%, transparent)", border: "1px solid color-mix(in srgb, var(--error) 45%, transparent)", color: "var(--error)", borderRadius: "var(--space-8)", padding: "var(--space-8) var(--space-12)", fontSize: "var(--text-sm)" }}>
+          {MSG.connBootError}
+        </div>
+      )}
+      {err != null && (
+        <div role="alert" style={{ background: "#2a1414", border: "1px solid #5b2626", color: "#ffb3b3", padding: "8px 12px", borderRadius: 8, fontSize: 13 }}>
+          {err}
+        </div>
+      )}      {/* MEIO da mesa (única área que rola): looper no topo, pushes,
+          biblioteca (300px, lista rolável) à esquerda e palco à direita */}
+      <div className="shell-content">
+        <LooperPanel
+          settings={looper}
+          recRequest={recRequest}
+          onChange={(s) => {
+            setLooper(s);
+            try {
+              localStorage.setItem("gp100.looper.v1", JSON.stringify(s));
+            } catch {
+              /* noop */
+            }
+          }}
+          onPlayingChange={setLooperPlaying}
+        />
 
-      <section aria-label="Device" style={styles.panel}>
-        {state.kind === "idle" && <p>Nada feito ainda.</p>}
-        {state.kind === "loading" && (
-          <p role="status" aria-live="polite">
-            Conectando ao device (mock)…
-          </p>
-        )}
-        {state.kind === "error" && (
-          <div role="alert" style={styles.error}>
-            <strong>Erro:</strong> {state.message}
-            <button type="button" onClick={state.retry} style={styles.button}>
-              Tentar de novo
-            </button>
-          </div>
-        )}
-        {state.kind === "ready" && (
-          <dl style={styles.grid}>
-            <dt style={styles.dt}>Backend</dt>
-            <dd style={styles.dd}>{state.data.backend}</dd>
+        <details ref={pushRef} style={{ border: "1px solid #232932", borderRadius: 10, background: "var(--bg-raised)" }}>
+          <summary style={{ cursor: "pointer", padding: "8px 12px", fontSize: 12, color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>
+            {`${MSG.pushSummary} (${log.length})`}
+          </summary>
+          <PushLog log={log} onClear={clear} />
+        </details>
 
-            <dt style={styles.dt}>Presets</dt>
-            <dd style={styles.ddMono}>{state.data.presetCount}</dd>
+        {/* linha biblioteca ↔ pedalboard: alturas iguais (stretch), sem lacunas */}
+        <div className="shell-main">
+          <LibraryPanel currentPp={pp} onSelect={(target) => void openPreset(target)} />
+          <EmptyBoard
+            pp={pp}
+            presetName={presetName}
+            ppTypeName={ppTypeName}
+            celebrate={celebrate}
+            arrangeMode={arrangeMode}
+            onToggleArrange={() => setArrangeMode((v) => !v)}
+            vuMode={vuMode}
+            onVuMode={setVuModePersist}
+            vuActive={vuActive}
+            onReorder={() => {
+              /* a reordenação real chega quando os pedais forem renderizados */
+            }}
+          />
+        </div>
+      </div>
 
-            <dt style={styles.dt}>Nome</dt>
-            <dd style={styles.dd}>{state.data.currentName}</dd>
-
-            <dt style={styles.dt}>Tipo (ppType)</dt>
-            <dd style={styles.ddMono}>{state.data.currentPpType}</dd>
-
-            <dt style={styles.dt}>IRs com CRC</dt>
-            <dd style={styles.ddMono}>
-              {state.data.irSlotsWithCrc}/20
-            </dd>
-
-            <dt style={styles.dt}>Boot</dt>
-            <dd style={styles.dd}>
-              {boot.state.kind === "ready"
-                ? `completo — ${boot.state.data.transactions} transações`
-                : booting
-                  ? "em curso…"
-                  : "não executado (mock já responde sem boot)"}
-            </dd>
-          </dl>
-        )}
-        <button type="button" onClick={refresh} style={styles.button}>
-          Atualizar
-        </button>
-      </section>
-
-      <PushLog log={log} onClear={clear} />
-
-      <footer style={styles.footer}>
-        <span style={styles.footerHint}>
-          Paleta palco (âmbar Valeton) · Fibonacci 4·8·12·20·32·52·84 ·
-          contraste AA medido · foco 2px — docs/UI_DESIGN.md
+      {/* rodapé da pedaleira: ENTRADA · GP · SAÍDA (o chassi fecha a página;
+          ⚙ voltou para a navbar — o drawer do drum cobre o rodapé) */}
+      <footer className="page-footer" role="contentinfo">
+        <span className="pg-jack" aria-hidden="true">{MSG.stageIn}</span>
+        <span className="pg-mark" aria-hidden="true">
+          {MSG.brand}
+          <span className="pg-tagline">{MSG.tagline}</span>
         </span>
+        <span className="pg-jack" aria-hidden="true">{MSG.stageOut}</span>
       </footer>
+
+      <SettingsModal open={settingsOpen} general={general} onChangeGeneral={onChangeGeneral} onClose={() => setSettingsOpen(false)} />
     </main>
   );
 }
-
-/* Estilos só via tokens (lint + review guardam; zero px cru de espaço). */
-const styles: Record<string, CSSProperties> = {
-  page: {
-    minHeight: "100vh",
-    padding: "var(--space-32) var(--space-52)",
-    display: "flex",
-    flexDirection: "column",
-    gap: "var(--space-32)",
-    maxWidth: 720,
-    margin: "0 auto",
-  },
-  header: { display: "flex", flexDirection: "column", gap: "var(--space-8)" },
-  brandRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: "var(--space-12)",
-  },
-  logoDot: {
-    width: 20,
-    height: 20,
-    borderRadius: "50%",
-    background:
-      "radial-gradient(circle at 35% 35%, var(--accent), color-mix(in srgb, var(--accent) 45%, #000))",
-    boxShadow: "0 0 var(--space-12) color-mix(in srgb, var(--accent) 35%, transparent)",
-  },
-  title: { fontSize: "var(--text-lg)", margin: 0 },
-  subtitle: {
-    margin: 0,
-    color: "var(--text-muted)",
-    fontSize: "var(--text-sm)",
-  },
-  panel: {
-    background: "var(--bg-raised)",
-    border: "1px solid color-mix(in srgb, var(--text-muted) 30%, transparent)",
-    borderRadius: "var(--space-12)",
-    padding: "var(--space-20)",
-    display: "flex",
-    flexDirection: "column",
-    gap: "var(--space-12)",
-    boxShadow: "0 var(--space-4) var(--space-20) rgba(0,0,0,0.35)",
-  },
-  grid: {
-    display: "grid",
-    gridTemplateColumns: "auto 1fr",
-    gap: "var(--space-8) var(--space-20)",
-    margin: 0,
-  },
-  dt: { color: "var(--text-muted)" },
-  dd: { margin: 0 },
-  ddMono: {
-    margin: 0,
-    fontFamily: "var(--font-mono)",
-    fontSize: "var(--text-sm)",
-  },
-  button: {
-    alignSelf: "flex-start",
-    minHeight: 32,
-    padding: "var(--space-8) var(--space-20)",
-    borderRadius: "var(--space-4)",
-    border: "1px solid var(--accent)",
-    background: "color-mix(in srgb, var(--accent) 12%, transparent)",
-    color: "var(--accent)",
-    cursor: "pointer",
-    transition:
-      "background var(--motion-fast) var(--ease-out), transform var(--motion-fast) var(--ease-out)",
-  },
-  error: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "var(--space-8)",
-    color: "var(--error)",
-  },
-  footer: { marginTop: "auto" },
-  footerHint: { color: "var(--text-muted)", fontSize: "var(--text-xs)" },
-};

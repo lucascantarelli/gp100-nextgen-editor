@@ -1,6 +1,6 @@
 /**
- * usePushLog — consome `device://push` (backlog D7 do device, hex cru
- * reemitido pelo actor) e mantém um LOG limitado ("pushes
+ * usePushLog — consome `device://push` (pushes não solicitados do device,
+ * hex cru reemitido pelo actor) e mantém um LOG limitado ("pushes
  * visíveis em log da UI"). Fora do Tauri o listener local permite que o
  * app dev/teste exiba pushes injetados.
  */

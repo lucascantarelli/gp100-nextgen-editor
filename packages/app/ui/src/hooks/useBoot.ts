@@ -2,30 +2,30 @@
  * useBoot — dispara o `device_boot` e consome `device://progress`
  * (barra de progresso; boot nunca trava a UI).
  *
- * Estado canônico (UI_DESIGN §5): o boot vive num ScreenState próprio; o
+ * Estado canônico: o boot vive num ScreenState próprio; o
  * progresso é um NUMBER % (throttle a ~30 fps por rAF) — 2297 beats por
  * boot não podem renderizar 2297 vezes (ui-ux-practices: feedback <100 ms
- * e zero jank). O pp corrente do beat alimenta o display da ConnectionBar.
+ * e zero jank).
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { deviceBoot, onBootProgress } from "../ipc/device";
 import type { BootProgress, BootReport, ScreenState } from "../ipc/types";
+import { MSG } from "../i18n/messages";
 
-/** Etapa em PT-BR para exibição (literais estáveis do backend). */
+/** Etapa em PT-BR para exibição (textos do catálogo central de mensagens). */
 export const BOOT_STAGE_LABEL: Record<BootProgress["stage"], string> = {
-  tables: "Tabelas de IR",
-  scan: "Scan de presets",
-  probe: "Sonda banco 02",
-  setlist: "Setlist",
-  names: "Nomes",
-  keepalive: "Keepalive",
+  tables: MSG.bootStages.tables,
+  scan: MSG.bootStages.scan,
+  probe: MSG.bootStages.probe,
+  setlist: MSG.bootStages.setlist,
+  names: MSG.bootStages.names,
+  keepalive: MSG.bootStages.keepalive,
 };
 
 export function useBoot() {
   const [state, setState] = useState<ScreenState<BootReport>>({ kind: "idle" });
   const [progress, setProgress] = useState<number | null>(null);
   const [stage, setStage] = useState<BootProgress["stage"] | null>(null);
-  const [bootPp, setBootPp] = useState<number | null>(null);
   // refs do throttle: último frame agendado + beat pendente
   const raf = useRef<number | null>(null);
   const pending = useRef<BootProgress | null>(null);
@@ -42,7 +42,6 @@ export function useBoot() {
           if (!last) return;
           setProgress(Math.round((last.done / last.total) * 100));
           setStage(last.stage);
-          setBootPp(last.currentPp);
         });
       }
     }).then((un) => {
@@ -56,7 +55,10 @@ export function useBoot() {
     };
   }, []);
 
-  const startBoot = useCallback(() => {
+  const [origin, setOrigin] = useState<"auto" | "manual">("auto");
+
+  const startBoot = useCallback((src: "auto" | "manual" = "manual") => {
+    setOrigin(src);
     setState({ kind: "loading" });
     setProgress(0);
     deviceBoot()
@@ -74,12 +76,22 @@ export function useBoot() {
       });
   }, []);
 
+  // boot AUTOMÁTICO no mount: o app detecta o device sozinho ao abrir
+ // (o estado "off" da navbar já mostra o aguardo); o botão Boot da
+  // navbar continua disponível para re-escanear explicitamente. A ref
+  // evita rodar duas vezes sob StrictMode (mesma instância, 2 efeitos).
+  const autoRan = useRef(false);
+  useEffect(() => {
+    if (autoRan.current) return;
+    autoRan.current = true;
+    startBoot("auto");
+  }, [startBoot]);
+
   const reset = useCallback(() => {
     setState({ kind: "idle" });
     setProgress(null);
     setStage(null);
-    setBootPp(null);
   }, []);
 
-  return { state, progress, stage, bootPp, startBoot, reset };
+  return { state, progress, stage, origin, startBoot, reset };
 }

@@ -1,14 +1,14 @@
 /**
  * Design tokens em CSS custom properties (dark é a base; light = camada).
- * docs/UI_DESIGN.md explica o PORQUÊ de cada valor; este arquivo é a fonte
+ * O documento de design explica o PORQUÊ de cada valor; este arquivo é a fonte
  * em CSS — componentes só consomem var(--…).
  *
- * Paleta "PALCO" (Valeton GP-100): preto-quente de palco + âmbar de display
- * Valeton; variantes de tema nas cores de produto (preto/vermelho/lavanda).
- * Estado "ao vivo": LED verde pulsando quando conectado (§5 do UI_DESIGN).
+ * Paleta "VALETON VIOLET" (inspirada no acabamento jewel violet do GP-100VT):
+ * violeta vivo e brilhante sobre obsidiana — mesa de pedais tecnológica,
+ * não retro. Estado "ao vivo": LED verde pulsando quando conectado.
  */
 :root {
-  /* espaçamento — Fibonacci base 4 (§1) */
+  /* espaçamento — Fibonacci base 4 */
   --space-4: 4px;
   --space-8: 8px;
   --space-12: 12px;
@@ -17,7 +17,7 @@
   --space-52: 52px;
   --space-84: 84px;
 
-  /* tipografia (§3) */
+  /* tipografia */
   --font-ui: "Segoe UI", Inter, system-ui, sans-serif;
   --font-mono: "Cascadia Code", Consolas, monospace;
   --text-xs: 11px;
@@ -26,50 +26,47 @@
   --text-lg: 21px;
   --text-xl: 34px;
 
-  /* motion (§4) */
+  /* motion */
   --motion-fast: 120ms;
   --motion-panel: 200ms;
   --ease-out: cubic-bezier(0.2, 0, 0, 1);
 
-  /* tema escuro "palco" (base) — rácios medidos em docs/UI_DESIGN.md §2 */
-  --bg: #141210;
-  --bg-raised: #1d1a17;
-  --text: #eef0f2;
-  --text-muted: #a89f92;
-  --accent: #ffa938; /* âmbar Valeton */
-  --ok: #3ecf8e;
-  --warn: #f5b544;
-  --error: #ff6b6b;
-  --focus-ring: var(--accent);
+  /* tema escuro "obsidiana violeta" (base) — rácios de contraste medidos */
+  --bg: #0c0910;
+  --bg-raised: #181324;
+  --border: #2e2442;
+  --text: #f9fafb;
+  --text-muted: #9c94b0;
+  --accent: #7c3aed; /* violeta anodizado (superfícies/botões) */
+  --accent-text: #c084fc; /* violeta claro (TEXTO sobre fundo escuro — AA) */
+  --accent-glow: #9333ea; /* brilho neon de estados ativos */
+  --on-accent: #f9fafb; /* texto SEMPRE sobre var(--accent) */
+  --ok: #4ade80;
+  --warn: #fbbf24;
+  --error: #f87171;
+  --silver: #d1d5db; /* cromo escovado (destaques metálicos) */
+  --steel: #9ca3af; /* aço polido (bordas secundárias) */
+  --focus-ring: var(--accent-text);
 }
 
-/* tema claro = só os tokens de cor trocam (§2) */
+/* tema claro = tokens de cor trocam (alumínio + violeta metálico) */
 @media (prefers-color-scheme: light) {
   :root {
-    --bg: #f6f3ee;
+    --bg: #f3f4f6;
     --bg-raised: #ffffff;
-    --text: #191512;
-    --text-muted: #6a6157;
-    --accent: #9a5200;
-    --ok: #0f6b44;
-    --warn: #7a4d00;
-    --error: #a92222;
-  }
-}
-
-/* temas de accent (cores de produto) — opt-in; nunca mudam semântica (§2) */
-:root[data-theme="red"] {
-  --accent: #e05252;
-}
-:root[data-theme="lav"] {
-  --accent: #b9a7ff;
-}
-@media (prefers-color-scheme: light) {
-  :root[data-theme="red"] {
-    --accent: #a92222;
-  }
-  :root[data-theme="lav"] {
-    --accent: #5b4bb0;
+    --border: #e5e7eb;
+    --text: #111827;
+    --text-muted: #4b5563;
+    --accent: #6d28d9;
+    --accent-text: #6d28d9;
+    --accent-glow: #8b5cf6;
+    --on-accent: #f9fafb;
+    --ok: #047857;
+    --warn: #92400e;
+    --error: #b91c1c;
+    --silver: #374151;
+    --steel: #6b7280;
+    --focus-ring: var(--accent);
   }
 }
 
@@ -91,6 +88,22 @@ body {
   outline-offset: 2px;
 }
 
+/* ── Botão "vidro" da navbar: 34px fixos, blur sutil, borda violeta ── */
+.btn-glass {
+  height: 34px;
+  box-sizing: border-box;
+  background: color-mix(in srgb, var(--bg-raised) 72%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--border));
+  color: var(--text);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: border-color var(--motion-fast) var(--ease-out),
+    background var(--motion-fast) var(--ease-out);
+}
+.btn-glass:hover {
+  border-color: var(--accent-glow);
+}
+
 /* LED "ao vivo" — pulso sutil de pedal ligado (some com reduced-motion) */
 @keyframes live-pulse {
   0%,
@@ -107,6 +120,7 @@ body {
   height: 8px;
   border-radius: 50%;
   background: var(--ok);
+  box-shadow: 0 0 6px var(--ok);
   animation: live-pulse 2s var(--ease-out) infinite;
 }
 @media (prefers-reduced-motion: reduce) {
@@ -119,16 +133,241 @@ body {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--text-muted);
-  opacity: 0.6;
+  background: var(--warn);
+  box-shadow: 0 0 6px var(--warn);
+  opacity: 0.85;
 }
 
-/* reduced motion (§4) */
+/* ── VU da navbar (V-7): fileira de barras reativas (drum tocando/loop) ── */
+/* grade de cores POR INTENSIDADE: verde (baixo) → âmbar (médio) → vermelho
+   (pico) — a cor vem do token do tema, nunca fixa (tema claro cobre). */
+.vu-bar[data-level="low"] {
+  background: var(--ok);
+  box-shadow: 0 0 4px color-mix(in srgb, var(--ok) 55%, transparent);
+}
+.vu-bar[data-level="mid"] {
+  background: var(--warn);
+  box-shadow: 0 0 4px color-mix(in srgb, var(--warn) 55%, transparent);
+}
+.vu-bar[data-level="high"] {
+  background: var(--error);
+  box-shadow: 0 0 4px color-mix(in srgb, var(--error) 55%, transparent);
+}
+/* modo LED: escada de segmentos — apagado por padrão, ACENDE (data-lit)
+   com cor pela faixa do segmento (verde → âmbar → vermelho, VU de rack) */
+.vu-seg {
+  background: #241d0e;
+  transition: background 60ms linear, box-shadow 60ms linear;
+}
+.vu-seg[data-lit="1"][data-band="low"] {
+  background: var(--ok);
+  box-shadow: 0 0 4px color-mix(in srgb, var(--ok) 55%, transparent);
+}
+.vu-seg[data-lit="1"][data-band="mid"] {
+  background: var(--warn);
+  box-shadow: 0 0 4px color-mix(in srgb, var(--warn) 55%, transparent);
+}
+.vu-seg[data-lit="1"][data-band="high"] {
+  background: var(--error);
+  box-shadow: 0 0 4px color-mix(in srgb, var(--error) 55%, transparent);
+}
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    transition-duration: 0.01ms !important;
+  .vu-bar,
+  .vu-seg {
+    transition: none;
   }
+}
+
+/* ── Drawer inferior (drums/controles — opção A do alinhamento) ── */
+@keyframes drawer-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+.drum-drawer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 50;
+  background: var(--bg-raised);
+  border-top: 1px solid var(--accent);
+  box-shadow: 0 -18px 44px rgba(0, 0, 0, 0.55);
+  animation: drawer-up var(--motion-panel) var(--ease-out);
+}
+@media (prefers-reduced-motion: reduce) {
+  .drum-drawer {
+    animation: none;
+  }
+}
+
+/* ── Viewport única ("mesa"): navbar/rodapé fixos; só o MEIO rola ── */
+.shell-content {
+  display: grid;
+  gap: var(--space-12);
+  align-content: start;
+  min-height: 0; /* deixa o 1fr do main encolher de verdade */
+  overflow-y: auto;
+  padding-right: 2px;
+}
+.shell-content::-webkit-scrollbar {
+  width: 8px;
+}
+.shell-content::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--accent) 35%, transparent);
+  border-radius: 4px;
+}
+
+/* ── Responsividade da casca (R-responsivo) ── */
+/* Hierarquia: looper em cima (full width); abaixo, biblioteca (300px)
+   à ESQUERDA e pedalboard esticando à direita — alturas iguais (stretch). */
+.shell-main {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: var(--space-12);
+  align-items: stretch;
+}
+@media (max-width: 1100px) {
+  .shell-main {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  /* empilhado: o PALCO volta a vir primeiro (a biblioteca, 2º filho no
+     DOM, desce) — mesma leitura vertical da hierarquia anterior */
+  .shell-main > aside {
+    order: 2;
+  }
+}
+
+/* Biblioteca: a LISTA tem altura delimitada e rola por dentro — os 99
+   presets nunca esticam a página (viewport única, sem rolagem infinita).
+   Em 1920+ a fração de viewport ficava curta (1440px = lista ~2 presets);
+   340px estáveis valem em qualquer tela grande. */
+.shell-main aside [role="listbox"] {
+  min-height: 160px;
+  max-height: min(340px, 38vh); /* grande tela: 340px fixos; pequena: 38vh */
+}
+
+/* ── Rodapé da pedaleira: ENTRADA · marca · ⚙ · SAÍDA ── */
+.page-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-12);
+  padding: var(--space-8) var(--space-20);
+  background: var(--bg-raised);
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, var(--border));
+  border-radius: 12px;
+}
+.pg-jack {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 1.2;
+  color: var(--text-muted);
+  border: 1px solid color-mix(in srgb, var(--text-muted) 30%, transparent);
+  border-radius: 999px;
+  padding: 4px 14px;
+  background: var(--bg);
+  white-space: nowrap;
+}
+.pg-mark {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 1.2;
+  color: var(--accent-text);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
+  border-radius: 8px;
+  padding: 3px 12px;
+  background: var(--bg);
+  white-space: nowrap;
+  display: grid;
+  justify-items: center;
+  line-height: 1.25;
+}
+.pg-tagline {
+  color: var(--text-muted);
+  font-weight: 400;
+  font-size: 10px;
+}
+
+/* badge Mock esconde em telas menores (a navbar não pode quebrar em 2
+   fileiras; o LED âmbar + "on/off" já denunciam o estado simulado);
+   legendas "patch"/"master" somem em ≤1024 — os controles têm aria-label */
+@media (max-width: 1280px) {
+  .mock-badge {
+    display: none;
+  }
+}
+@media (max-width: 1024px) {
+  .nb-cap {
+    display: none;
+  }
+}
+/* Board: 9 slots lado a lado no wide; 3×3 abaixo de 1340px (sem órfãos). */
+.board-slots {
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  gap: var(--space-8);
+  position: relative;
+  z-index: 4;
+}
+@media (max-width: 1340px) {
+  .board-slots {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* number input SEM spinners — visual idêntico aos selects da casca.
+   box-sizing OBRIGATÓRIO: o UA só aplica border-box a <select>, não a
+   <input> — sem isso o BPM renderiza 258×46 vs 240×32 dos selects
+   (defeito visual travado por assert permanente no e2e). */
+.gp-num::-webkit-outer-spin-button,
+.gp-num::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.gp-num {
+  -moz-appearance: textfield;
+  appearance: textfield;
+  box-sizing: border-box;
+}
+
+/* ── Looper reel-to-reel ── */
+@keyframes reel-rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.reel-spin {
+  animation: reel-rotate 2.4s linear infinite;
+  transform-origin: center;
+}
+.reel-fast {
+  animation-duration: 1.5s;
+}
+@keyframes vu-dance {
+  0% { transform: rotate(-24deg); }
+  18% { transform: rotate(10deg); }
+  35% { transform: rotate(30deg); }
+  52% { transform: rotate(6deg); }
+  70% { transform: rotate(26deg); }
+  100% { transform: rotate(-18deg); }
+}
+.vu-needle {
+  animation: vu-dance 1.3s var(--ease-out) infinite;
+}
+
+/* ── Pedalboard artístico ── */
+/* LED display: flip de dígitos no fim do boot (celebrate). */
+@keyframes led-flip {
+  0% { transform: rotateX(0deg); }
+  30% { transform: rotateX(90deg); opacity: 0.3; }
+  60% { transform: rotateX(-90deg); opacity: 0.3; }
+  100% { transform: rotateX(0deg); opacity: 1; }
+}
+.led-flip {
+  animation: led-flip 0.9s ease-in-out;
+  transform-origin: center;
 }

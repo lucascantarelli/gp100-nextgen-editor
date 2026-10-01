@@ -11,7 +11,7 @@ export interface DeviceInfo {
   backend: "mock" | "real";
   /** Nº de presets do estado (mock: all.prst = 99). */
   presetCount: number;
-  /** pp corrente (u16 BE no fio; aqui como número). */
+  /** pp corrente (u16 big-endian no protocolo; aqui como número). */
   currentPp: number;
   /** Nome do pp corrente. */
   currentName: string;
@@ -21,7 +21,7 @@ export interface DeviceInfo {
   irSlotsWithCrc: number;
 }
 
-/** Etapas do script de boot (§13.10) — literais do backend (BootProgressDto). */
+/** Etapas do script de boot — literais do backend (BootProgressDto). */
 export type BootStage =
   | "tables"
   | "scan"
@@ -32,7 +32,7 @@ export type BootStage =
 
 /** Beat de progresso do boot (evento `device://progress`, camelCase). */
 export interface BootProgress {
-  /** Etapa corrente do script (§13.10). */
+  /** Etapa corrente do script de boot. */
   stage: BootStage;
   /** Transações completas até agora. */
   done: number;
@@ -44,8 +44,81 @@ export interface BootProgress {
 
 /** Resultado do command `device_boot` (BootReportDto). */
 export interface BootReport {
-  /** Nº de transações de boot+scan executadas com sucesso. */
+  /** Nº de transações de boot+scan executadas (fallback dev: total simulado). */
   transactions: number;
+}
+
+/** Um knob do pedal (spec do dicionário + valor do preset). */
+export interface BoardKnob {
+  name: string;
+  pos: number;
+  kind: "knob" | "switch" | "combox";
+  /** [min, max] — knobs bidirecionais podem ter min > max (0 = centro). */
+  range?: [number, number];
+  options: string[];
+  value?: string;
+  default?: string;
+}
+
+/** Um slot da cadeia do board (x = 0..8, ordem do sinal). */
+export interface BoardSlot {
+  slot: number;
+  family: "PRE" | "DST" | "AMP" | "NR" | "CAB" | "EQ" | "MOD" | "DLY" | "RVB";
+  archetype:
+    | "BUFFER"
+    | "DISTORTION"
+    | "AMPLIFIER"
+    | "NOISEGATE"
+    | "CABINET"
+    | "EQ"
+    | "MODULATION"
+    | "DELAY"
+    | "REVERB";
+  name: string;
+  /** Slug do algoritmo real (ex.: "green-od") — escolhe o MODELO do pedal. */
+  variant: string;
+  state: boolean;
+  code: number;
+  knobs: BoardKnob[];
+}
+
+/** Ordem fixa da cadeia de sinal (slots 0..8) — única fonte no front. */
+export const CHAIN_FAMILIES = ["PRE", "DST", "AMP", "NR", "CAB", "EQ", "MOD", "DLY", "RVB"] as const;
+export type ChainFamily = (typeof CHAIN_FAMILIES)[number];
+
+/** Arquétipo de render por família da cadeia (mesma ordem de CHAIN_FAMILIES). */
+export const ARCHETYPE_OF: Record<ChainFamily, BoardSlot["archetype"]> = {
+  PRE: "BUFFER",
+  DST: "DISTORTION",
+  AMP: "AMPLIFIER",
+  NR: "NOISEGATE",
+  CAB: "CABINET",
+  EQ: "EQ",
+  MOD: "MODULATION",
+  DLY: "DELAY",
+  RVB: "REVERB",
+};
+
+/** Board do preset (o pedalboard renderizado no index). */
+export interface BoardView {
+  pp: number;
+  name: string;
+  ppType: number;
+  ppTypeName: string;
+  slots: BoardSlot[];
+}
+
+/** Entrada da biblioteca de presets (flight case). */
+export interface PresetEntry {
+  pp: number;
+  name: string;
+  ppTypeName: string;
+}
+
+/** Biblioteca completa + corrente do mock. */
+export interface PresetLibrary {
+  entries: PresetEntry[];
+  currentPp: number;
 }
 
 /** Entrada de log de pushes (evento `device://push` — log da UI). */
@@ -56,7 +129,7 @@ export interface PushLogEntry {
   at: number;
 }
 
-/** Estado de tela canônico (docs/UI_DESIGN.md §5). */
+/** Estado de tela canônico: idle → loading → ready | error. */
 export type ScreenState<D> =
   | { kind: "idle" }
   | { kind: "loading"; from?: ScreenState<D> }
