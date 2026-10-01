@@ -1,0 +1,6789 @@
+{
+ "meta": {
+  "source": "analysis/parameters.json (R1) — gerado por dump_fx_map.py",
+  "effects_total": 185,
+  "modules": {
+   "PRE": 16,
+   "DST": 19,
+   "AMP": 51,
+   "NR": 2,
+   "CAB": 60,
+   "EQ": 3,
+   "MOD": 12,
+   "DLY": 12,
+   "RVB": 10
+  }
+ },
+ "stats": {
+  "PRE": {
+   "effects": 16,
+   "max_controls": 7,
+   "max_knobs": 6,
+   "max_switches": 1
+  },
+  "DST": {
+   "effects": 19,
+   "max_controls": 5,
+   "max_knobs": 5,
+   "max_switches": 2
+  },
+  "AMP": {
+   "effects": 51,
+   "max_controls": 7,
+   "max_knobs": 7,
+   "max_switches": 1
+  },
+  "NR": {
+   "effects": 2,
+   "max_controls": 3,
+   "max_knobs": 3,
+   "max_switches": 0
+  },
+  "CAB": {
+   "effects": 60,
+   "max_controls": 1,
+   "max_knobs": 1,
+   "max_switches": 0
+  },
+  "EQ": {
+   "effects": 3,
+   "max_controls": 6,
+   "max_knobs": 6,
+   "max_switches": 0
+  },
+  "MOD": {
+   "effects": 12,
+   "max_controls": 5,
+   "max_knobs": 4,
+   "max_switches": 1
+  },
+  "DLY": {
+   "effects": 12,
+   "max_controls": 9,
+   "max_knobs": 6,
+   "max_switches": 3
+  },
+  "RVB": {
+   "effects": 10,
+   "max_controls": 6,
+   "max_knobs": 5,
+   "max_switches": 1
+  }
+ },
+ "modules": {
+  "PRE": [
+   {
+    "variant": "comp",
+    "nibble": 0,
+    "index": 0,
+    "name": "COMP",
+    "knobs": [
+     {
+      "name": "Sustain",
+      "pos": 0,
+      "default": "20.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Output",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 38
+   },
+   {
+    "variant": "c-wah",
+    "nibble": 5,
+    "index": 8,
+    "name": "C-Wah",
+    "knobs": [
+     {
+      "name": "Range",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Q",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "VOL",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 18
+   },
+   {
+    "variant": "boost",
+    "nibble": 0,
+    "index": 26,
+    "name": "Boost",
+    "knobs": [
+     {
+      "name": "Gain",
+      "pos": 0,
+      "default": "20.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [
+     {
+      "name": "Bright",
+      "pos": 1,
+      "options": [
+       "On",
+       "Off"
+      ],
+      "default": "1"
+     }
+    ],
+    "comboxes": [],
+    "observed_in_patches": 14
+   },
+   {
+    "variant": "v-wah",
+    "nibble": 5,
+    "index": 1,
+    "name": "V-Wah",
+    "knobs": [
+     {
+      "name": "Range",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Q",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "VOL",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 14
+   },
+   {
+    "variant": "ac-sim",
+    "nibble": 1,
+    "index": 1,
+    "name": "AC Sim",
+    "knobs": [
+     {
+      "name": "Body",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Top",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "VOL",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [
+     {
+      "name": "Mode",
+      "pos": 3,
+      "options": [
+       "STD",
+       "Jumbo",
+       "ENH",
+       "Piezo"
+      ],
+      "default": "0"
+     }
+    ],
+    "observed_in_patches": 5
+   },
+   {
+    "variant": "comp4",
+    "nibble": 0,
+    "index": 1,
+    "name": "COMP4",
+    "knobs": [
+     {
+      "name": "Sustain",
+      "pos": 0,
+      "default": "20.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Attack",
+      "pos": 1,
+      "default": "60.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Output",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Clip",
+      "pos": 3,
+      "default": "10.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 4
+   },
+   {
+    "variant": "octa",
+    "nibble": 1,
+    "index": 33,
+    "name": "OCTA",
+    "knobs": [
+     {
+      "name": "L-Oct",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "H-Oct",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Dry",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 4
+   },
+   {
+    "variant": "t-wah",
+    "nibble": 1,
+    "index": 15,
+    "name": "T-Wah",
+    "knobs": [
+     {
+      "name": "Sens",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Range",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Q",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Mix",
+      "pos": 3,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [
+     {
+      "name": "Mode",
+      "pos": 4,
+      "options": [
+       "Guitar",
+       "Bass"
+      ],
+      "default": "0"
+     }
+    ],
+    "observed_in_patches": 2
+   },
+   {
+    "variant": "saturate",
+    "nibble": 1,
+    "index": 51,
+    "name": "Saturate",
+    "knobs": [
+     {
+      "name": "Gain",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Mix",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "VOL",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "H-Cut",
+      "pos": 3,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 1
+   },
+   {
+    "variant": "step-filter",
+    "nibble": 1,
+    "index": 25,
+    "name": "Step Filter",
+    "knobs": [
+     {
+      "name": "Step 1",
+      "pos": 0,
+      "default": "10.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Step 2",
+      "pos": 1,
+      "default": "30.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Step 3",
+      "pos": 2,
+      "default": "55.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Step 4",
+      "pos": 3,
+      "default": "85.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Rate",
+      "pos": 4,
+      "default": "0.5",
+      "min": 0.1,
+      "max": 10.0
+     }
+    ],
+    "switches": [
+     {
+      "name": "Sync",
+      "pos": 5,
+      "options": [
+       "On",
+       "Off"
+      ],
+      "default": "0"
+     }
+    ],
+    "comboxes": [],
+    "observed_in_patches": 1
+   },
+   {
+    "variant": "14-boost",
+    "nibble": 0,
+    "index": 14,
+    "name": "14 Boost",
+    "knobs": [
+     {
+      "name": "Gain",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 0
+   },
+   {
+    "variant": "a-wah",
+    "nibble": 1,
+    "index": 21,
+    "name": "A-WAH",
+    "knobs": [
+     {
+      "name": "Depth",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Rate",
+      "pos": 1,
+      "default": "0.5",
+      "min": 0.1,
+      "max": 10.0
+     },
+     {
+      "name": "VOL",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Low",
+      "pos": 3,
+      "default": "20.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Q",
+      "pos": 4,
+      "default": "70.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "High",
+      "pos": 5,
+      "default": "60.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [
+     {
+      "name": "Sync",
+      "pos": 6,
+      "options": [
+       "On",
+       "Off"
+      ],
+      "default": "0"
+     }
+    ],
+    "comboxes": [],
+    "observed_in_patches": 0
+   },
+   {
+    "variant": "hammy",
+    "nibble": 1,
+    "index": 73,
+    "name": "Hammy",
+    "knobs": [
+     {
+      "name": "VOL",
+      "pos": 2,
+      "default": "99",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Position",
+      "pos": 3,
+      "default": "0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [
+     {
+      "name": "Harmony",
+      "pos": 1,
+      "options": [
+       "On",
+       "Off"
+      ],
+      "default": "0"
+     }
+    ],
+    "comboxes": [
+     {
+      "name": "Range",
+      "pos": 0,
+      "options": [
+       "-2 Oct",
+       "-1 Oct",
+       "+1 Oct",
+       "+2 Oct",
+       "+/-1 Oct",
+       "+/-2 Oct"
+      ],
+      "default": "2"
+     }
+    ],
+    "observed_in_patches": 0
+   },
+   {
+    "variant": "p-bend",
+    "nibble": 1,
+    "index": 36,
+    "name": "P-Bend",
+    "knobs": [
+     {
+      "name": "H-Pitch",
+      "pos": 0,
+      "default": "12.0",
+      "min": 0.0,
+      "max": 12.0
+     },
+     {
+      "name": "L-Pitch",
+      "pos": 1,
+      "default": "0.0",
+      "min": 0.0,
+      "max": -12.0
+     },
+     {
+      "name": "Wet",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Dry",
+      "pos": 3,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Range",
+      "pos": 4,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 0
+   },
+   {
+    "variant": "pitch",
+    "nibble": 1,
+    "index": 35,
+    "name": "Pitch",
+    "knobs": [
+     {
+      "name": "H-Pitch",
+      "pos": 0,
+      "default": "12.0",
+      "min": 0.0,
+      "max": 24.0
+     },
+     {
+      "name": "L-Pitch",
+      "pos": 1,
+      "default": "-12.0",
+      "min": 0.0,
+      "max": -24.0
+     },
+     {
+      "name": "Dry",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "H-Vol",
+      "pos": 3,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "L-Vol",
+      "pos": 4,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 0
+   },
+   {
+    "variant": "ring-mod",
+    "nibble": 1,
+    "index": 47,
+    "name": "Ring Mod",
+    "knobs": [
+     {
+      "name": "Mix",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Freq",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Fine",
+      "pos": 2,
+      "default": "0.0",
+      "min": -50.0,
+      "max": 50.0
+     },
+     {
+      "name": "Tone",
+      "pos": 3,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 0
+   }
+  ],
+  "DST": [
+   {
+    "variant": "green-od",
+    "nibble": 3,
+    "index": 0,
+    "name": "Green OD",
+    "knobs": [
+     {
+      "name": "Gain",
+      "pos": 0,
+      "default": "40.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Tone",
+      "pos": 1,
+      "default": "70.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "VOL",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 55
+   },
+   {
+    "variant": "boost",
+    "nibble": 0,
+    "index": 26,
+    "name": "Boost",
+    "knobs": [
+     {
+      "name": "Gain",
+      "pos": 0,
+      "default": "20.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [
+     {
+      "name": "Bright",
+      "pos": 1,
+      "options": [
+       "On",
+       "Off"
+      ],
+      "default": "0"
+     }
+    ],
+    "comboxes": [],
+    "observed_in_patches": 14
+   },
+   {
+    "variant": "yellow-od",
+    "nibble": 3,
+    "index": 2,
+    "name": "Yellow OD",
+    "knobs": [
+     {
+      "name": "Gain",
+      "pos": 0,
+      "default": "40.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "VOL",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 10
+   },
+   {
+    "variant": "lazaro",
+    "nibble": 3,
+    "index": 34,
+    "name": "Lazaro",
+    "knobs": [
+     {
+      "name": "Sustain",
+      "pos": 0,
+      "default": "40.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Tone",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "VOL",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 9
+   },
+   {
+    "variant": "blues-od",
+    "nibble": 3,
+    "index": 9,
+    "name": "Blues OD",
+    "knobs": [
+     {
+      "name": "Gain",
+      "pos": 0,
+      "default": "40.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Tone",
+      "pos": 1,
+      "default": "60.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "VOL",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 6
+   },
+   {
+    "variant": "super-od",
+    "nibble": 3,
+    "index": 6,
+    "name": "Super OD",
+    "knobs": [
+     {
+      "name": "Gain",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Tone",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "VOL",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 5
+   },
+   {
+    "variant": "bass-dist",
+    "nibble": 3,
+    "index": 64,
+    "name": "Bass Dist",
+    "knobs": [
+     {
+      "name": "Gain",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Blend",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "VOL",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Bass",
+      "pos": 3,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Treble",
+      "pos": 4,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 4
+   },
+   {
+    "variant": "flex-od",
+    "nibble": 3,
+    "index": 63,
+    "name": "Flex OD",
+    "knobs": [
+     {
+      "name": "Gain",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Tone",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "VOL",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Blend",
+      "pos": 4,
+      "default": "50",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [
+     {
+      "name": "Mode",
+      "pos": 3,
+      "options": [
+       "Normal",
+       "Scoop",
+       "Edge"
+      ],
+      "default": "0"
+     }
+    ],
+    "observed_in_patches": 4
+   },
+   {
+    "variant": "red-haze",
+    "nibble": 3,
+    "index": 36,
+    "name": "Red Haze",
+    "knobs": [
+     {
+      "name": "Fuzz",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "VOL",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 3
+   },
+   {
+    "variant": "sm-dist",
+    "nibble": 3,
+    "index": 42,
+    "name": "SM Dist",
+    "knobs": [
+     {
+      "name": "Gain",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Tone",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "VOL",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 3
+   },
+   {
+    "variant": "darktale",
+    "nibble": 3,
+    "index": 43,
+    "name": "Darktale",
+    "knobs": [
+     {
+      "name": "Gain",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Filter",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "VOL",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 1
+   },
+   {
+    "variant": "la-charger",
+    "nibble": 3,
+    "index": 48,
+    "name": "La Charger",
+    "knobs": [
+     {
+      "name": "Gain",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Tone",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "VOL",
+      "pos": 2,
+      "default": "50",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 1
+   },
+   {
+    "variant": "14-boost",
+    "nibble": 0,
+    "index": 14,
+    "name": "14 Boost",
+    "knobs": [
+     {
+      "name": "Gain",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 0
+   },
+   {
+    "variant": "chief",
+    "nibble": 3,
+    "index": 45,
+    "name": "Chief",
+    "knobs": [
+     {
+      "name": "Gain",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Volume",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Bass",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Middle",
+      "pos": 3,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Treble",
+      "pos": 4,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 0
+   },
+   {
+    "variant": "penesas",
+    "nibble": 3,
+    "index": 20,
+    "name": "Penesas",
+    "knobs": [
+     {
+      "name": "Gain",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Tone",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "VOL",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 0
+   },
+   {
+    "variant": "plustortion",
+    "nibble": 3,
+    "index": 41,
+    "name": "Plustortion",
+    "knobs": [
+     {
+      "name": "Gain",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Volume",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 0
+   },
+   {
+    "variant": "scream-od",
+    "nibble": 3,
+    "index": 8,
+    "name": "Scream OD",
+    "knobs": [
+     {
+      "name": "Gain",
+      "pos": 0,
+      "default": "30.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Tone",
+      "pos": 1,
+      "default": "60.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Volume",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [
+     {
+      "name": "Fat",
+      "pos": 3,
+      "options": [
+       "On",
+       "Off"
+      ],
+      "default": "0"
+     },
+     {
+      "name": "Air",
+      "pos": 4,
+      "options": [
+       "On",
+       "Off"
+      ],
+      "default": "1"
+     }
+    ],
+    "comboxes": [],
+    "observed_in_patches": 0
+   },
+   {
+    "variant": "taichi-od",
+    "nibble": 3,
+    "index": 16,
+    "name": "TaiChi OD",
+    "knobs": [
+     {
+      "name": "Gain",
+      "pos": 0,
+      "default": "40.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Tone",
+      "pos": 1,
+      "default": "30.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Volume",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Voice",
+      "pos": 3,
+      "default": "60.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 0
+   },
+   {
+    "variant": "tube-clipper",
+    "nibble": 3,
+    "index": 11,
+    "name": "Tube Clipper",
+    "knobs": [
+     {
+      "name": "Gain",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Volume",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Bass",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Treble",
+      "pos": 3,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 0
+   }
+  ],
+  "AMP": [
+   {
+    "variant": "ac-pre",
+    "nibble": 8,
+    "index": 122,
+    "name": "AC Pre",
+    "knobs": [
+     {
+      "name": "VOL",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Tone",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Gain",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "EQ Freq",
+      "pos": 3,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "EQ Q",
+      "pos": 4,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "EQ Gain",
+      "pos": 5,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 15
+   },
+   {
+    "variant": "dark-twin",
+    "nibble": 7,
+    "index": 4,
+    "name": "Dark Twin",
+    "knobs": [
+     {
+      "name": "VOL",
+      "pos": 0,
+      "default": "20.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Output",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Bass",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Middle",
+      "pos": 3,
+      "default": "40.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Treble",
+      "pos": 4,
+      "default": "60.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [
+     {
+      "name": "Bright",
+      "pos": 5,
+      "options": [
+       "On",
+       "Off"
+      ],
+      "default": "1"
+     }
+    ],
+    "comboxes": [],
+    "observed_in_patches": 8
+   },
+   {
+    "variant": "classic-bass",
+    "nibble": 7,
+    "index": 115,
+    "name": "Classic Bass",
+    "knobs": [
+     {
+      "name": "Gain",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Bass",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Middle",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Treble",
+      "pos": 4,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Master",
+      "pos": 5,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [
+     {
+      "name": "MRange",
+      "pos": 3,
+      "options": [
+       "220Hz",
+       "450Hz",
+       "800Hz",
+       "1.6kHz",
+       "3kHz"
+      ],
+      "default": "1"
+     }
+    ],
+    "observed_in_patches": 7
+   },
+   {
+    "variant": "foxy-bass",
+    "nibble": 7,
+    "index": 117,
+    "name": "Foxy Bass",
+    "knobs": [
+     {
+      "name": "VOL",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Bass",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Treble",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 6
+   },
+   {
+    "variant": "bass-pre",
+    "nibble": 8,
+    "index": 118,
+    "name": "Bass Pre",
+    "knobs": [
+     {
+      "name": "VOL",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Bass",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Middle",
+      "pos": 3,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Treble",
+      "pos": 4,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [
+     {
+      "name": "Bright",
+      "pos": 1,
+      "options": [
+       "On",
+       "Off"
+      ],
+      "default": "0"
+     }
+    ],
+    "comboxes": [],
+    "observed_in_patches": 5
+   },
+   {
+    "variant": "tweedy",
+    "nibble": 7,
+    "index": 1,
+    "name": "Tweedy",
+    "knobs": [
+     {
+      "name": "VOL",
+      "pos": 0,
+      "default": "20.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Tone",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Output",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 5
+   },
+   {
+    "variant": "uk-50jp",
+    "nibble": 7,
+    "index": 47,
+    "name": "UK 50JP",
+    "knobs": [
+     {
+      "name": "VOL 1",
+      "pos": 0,
+      "default": "30.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "PRES",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Output",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Bass",
+      "pos": 3,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Middle ",
+      "pos": 4,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Treble",
+      "pos": 5,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "VOL 2",
+      "pos": 6,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 5
+   },
+   {
+    "variant": "uk-800",
+    "nibble": 7,
+    "index": 53,
+    "name": "UK 800",
+    "knobs": [
+     {
+      "name": "Gain",
+      "pos": 0,
+      "default": "30.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "PRES",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Master",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Bass",
+      "pos": 3,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Middle",
+      "pos": 4,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Treble",
+      "pos": 5,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 5
+   },
+   {
+    "variant": "bellman-59n",
+    "nibble": 7,
+    "index": 3,
+    "name": "Bellman 59N",
+    "knobs": [
+     {
+      "name": "VOL",
+      "pos": 0,
+      "default": "20.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "PRES ",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Output",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Bass",
+      "pos": 3,
+      "default": "30.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Middle",
+      "pos": 4,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Treble",
+      "pos": 5,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 4
+   },
+   {
+    "variant": "match-cl",
+    "nibble": 7,
+    "index": 21,
+    "name": "Match CL",
+    "knobs": [
+     {
+      "name": "Gain",
+      "pos": 0,
+      "default": "20.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "PRES",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Master",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Bass",
+      "pos": 3,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Middle",
+      "pos": 4,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Treble",
+      "pos": 5,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 4
+   },
+   {
+    "variant": "z38-od",
+    "nibble": 7,
+    "index": 73,
+    "name": "Z38 OD",
+    "knobs": [
+     {
+      "name": "Gain",
+      "pos": 0,
+      "default": "30.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Cut",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Master",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Bass",
+      "pos": 3,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Middle",
+      "pos": 4,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Treble",
+      "pos": 5,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 4
+   },
+   {
+    "variant": "flagman",
+    "nibble": 7,
+    "index": 64,
+    "name": "Flagman",
+    "knobs": [
+     {
+      "name": "Gain",
+      "pos": 0,
+      "default": "30.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "PRES",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Master",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Bass",
+      "pos": 3,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Middle ",
+      "pos": 4,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Treble",
+      "pos": 5,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 3
+   },
+   {
+    "variant": "l-star-cl",
+    "nibble": 7,
+    "index": 25,
+    "name": "L-Star CL",
+    "knobs": [
+     {
+      "name": "Gain",
+      "pos": 0,
+      "default": "40.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "PRES",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Master",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Bass",
+      "pos": 3,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Middle",
+      "pos": 4,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Treble",
+      "pos": 5,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 3
+   },
+   {
+    "variant": "match-od",
+    "nibble": 7,
+    "index": 72,
+    "name": "Match OD",
+    "knobs": [
+     {
+      "name": "Gain",
+      "pos": 0,
+      "default": "30.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "PRES",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Master",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Bass",
+      "pos": 3,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Middle",
+      "pos": 4,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Treble",
+      "pos": 5,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 3
+   },
+   {
+    "variant": "bog-redm",
+    "nibble": 7,
+    "index": 110,
+    "name": "Bog RedM",
+    "knobs": [
+     {
+      "name": "Gain",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "PRES",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Master",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Bass",
+      "pos": 3,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Middle",
+      "pos": 4,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Treble",
+      "pos": 5,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 2
+   },
+   {
+    "variant": "foxy-30tb",
+    "nibble": 7,
+    "index": 39,
+    "name": "Foxy 30TB",
+    "knobs": [
+     {
+      "name": "VOL",
+      "pos": 0,
+      "default": "30.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Cut",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Master",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Bass",
+      "pos": 3,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Treble",
+      "pos": 4,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [
+     {
+      "name": "Char",
+      "pos": 5,
+      "options": [
+       "Cool",
+       "Hot"
+      ],
+      "default": null
+     }
+    ],
+    "observed_in_patches": 2
+   },
+   {
+    "variant": "j-120-cl",
+    "nibble": 7,
+    "index": 20,
+    "name": "J-120 CL",
+    "knobs": [
+     {
+      "name": "VOL",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Bass",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Middle",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Treble",
+      "pos": 3,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [
+     {
+      "name": "Bright",
+      "pos": 4,
+      "options": [
+       "On",
+       "Off"
+      ],
+      "default": "0"
+     }
+    ],
+    "comboxes": [],
+    "observed_in_patches": 2
+   },
+   {
+    "variant": "juice-r100",
+    "nibble": 7,
+    "index": 83,
+    "name": "Juice R100",
+    "knobs": [
+     {
+      "name": "Gain",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Master",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Bass",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Middle",
+      "pos": 3,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Treble",
+      "pos": 4,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 2
+   },
+   {
+    "variant": "mess-dualm",
+    "nibble": 7,
+    "index": 105,
+    "name": "Mess DualM",
+    "knobs": [
+     {
+      "name": "Gain",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "PRES",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Master",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Bass",
+      "pos": 3,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Middle",
+      "pos": 4,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Treble",
+      "pos": 5,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 2
+   },
+   {
+    "variant": "mini-bass",
+    "nibble": 8,
+    "index": 117,
+    "name": "Mini Bass",
+    "knobs": [
+     {
+      "name": "VOL",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Bass",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Treble",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 2
+   },
+   {
+    "variant": "solo100-ld",
+    "nibble": 7,
+    "index": 89,
+    "name": "Solo100 LD",
+    "knobs": [
+     {
+      "name": "Gain",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "PRES",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Master",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Bass",
+      "pos": 3,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Middle",
+      "pos": 4,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Treble",
+      "pos": 5,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 2
+   },
+   {
+    "variant": "bad-kt-cl",
+    "nibble": 7,
+    "index": 34,
+    "name": "Bad-KT CL",
+    "knobs": [
+     {
+      "name": "Gain",
+      "pos": 0,
+      "default": "20.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "PRES",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Master",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 1
+   },
+   {
+    "variant": "bogsv-cl",
+    "nibble": 7,
+    "index": 26,
+    "name": "BogSV CL",
+    "knobs": [
+     {
+      "name": "Gain",
+      "pos": 0,
+      "default": "20.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "PRES",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Master",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Bass",
+      "pos": 3,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Treble",
+      "pos": 4,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [
+     {
+      "name": "Bright",
+      "pos": 5,
+      "options": [
+       "On",
+       "Off"
+      ],
+      "default": "1"
+     }
+    ],
+    "comboxes": [],
+    "observed_in_patches": 1
+   },
+   {
+    "variant": "dizz-vh",
+    "nibble": 7,
+    "index": 101,
+    "name": "Dizz VH",
+    "knobs": [
+     {
+      "name": "Gain",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "PRES",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Master",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Bass",
+      "pos": 3,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Middle",
+      "pos": 4,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Treble",
+      "pos": 5,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 1
+   },
+   {
+    "variant": "ev-51",
+    "nibble": 7,
+    "index": 90,
+    "name": "EV 51",
+    "knobs": [
+     {
+      "name": "Gain",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Master",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Bass",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Middle",
+      "pos": 3,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Treble",
+      "pos": 4,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "PRES",
+      "pos": 5,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 1
+   },
+   {
+    "variant": "eagle-120",
+    "nibble": 7,
+    "index": 95,
+    "name": "Eagle 120",
+    "knobs": [
+     {
+      "name": "Gain",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "PRES",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Master",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Bass",
+      "pos": 3,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Middle",
+      "pos": 4,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Treble",
+      "pos": 5,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 1
+   },
+   {
+    "variant": "knights-cl",
+    "nibble": 7,
+    "index": 31,
+    "name": "Knights CL",
+    "knobs": [
+     {
+      "name": "Gain",
+      "pos": 0,
+      "default": "20.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "VOL",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Bass",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Middle",
+      "pos": 3,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Treble",
+      "pos": 4,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 1
+   },
+   {
+    "variant": "knights-od",
+    "nibble": 7,
+    "index": 124,
+    "name": "Knights OD",
+    "knobs": [
+     {
+      "name": "Gain",
+      "pos": 0,
+      "default": "30.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Bass",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Middle",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Treble",
+      "pos": 3,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "VOL",
+      "pos": 4,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 1
+   },
+   {
+    "variant": "mess-dualv",
+    "nibble": 7,
+    "index": 104,
+    "name": "Mess DualV",
+    "knobs": [
+     {
+      "name": "Gain",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "PRES",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Master",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Bass",
+      "pos": 3,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Middle",
+      "pos": 4,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Treble",
+      "pos": 5,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 1
+   },
+   {
+    "variant": "solo100-od",
+    "nibble": 7,
+    "index": 71,
+    "name": "Solo100 OD",
+    "knobs": [
+     {
+      "name": "Gain",
+      "pos": 0,
+      "default": "30.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "PRES",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Master",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Bass",
+      "pos": 3,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Middle",
+      "pos": 4,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Treble",
+      "pos": 5,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 1
+   },
+   {
+    "variant": "uk-45",
+    "nibble": 7,
+    "index": 42,
+    "name": "UK 45",
+    "knobs": [
+     {
+      "name": "VOL",
+      "pos": 0,
+      "default": "30.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "PRES",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Output",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Bass",
+      "pos": 3,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Middle",
+      "pos": 4,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Treble",
+      "pos": 5,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 1
+   },
+   {
+    "variant": "bad-kt-od",
+    "nibble": 7,
+    "index": 75,
+    "name": "Bad-KT OD",
+    "knobs": [
+     {
+      "name": "Gain",
+      "pos": 0,
+      "default": "30.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "PRES",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Master",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Bass",
+      "pos": 3,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Edge",
+      "pos": 4,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Treble",
+      "pos": 5,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 0
+   },
+   {
+    "variant": "bellman-59b",
+    "nibble": 7,
+    "index": 36,
+    "name": "Bellman 59B",
+    "knobs": [
+     {
+      "name": "VOL",
+      "pos": 0,
+      "default": "30.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "PRES",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Output",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Bass",
+      "pos": 3,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Middle",
+      "pos": 4,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Treble",
+      "pos": 5,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 0
+   },
+   {
+    "variant": "bog-bluev",
+    "nibble": 7,
+    "index": 109,
+    "name": "Bog BlueV",
+    "knobs": [
+     {
+      "name": "Gain",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "PRES",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Master",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Bass",
+      "pos": 3,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Middle",
+      "pos": 4,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Treble",
+      "pos": 5,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 0
+   },
+   {
+    "variant": "bogsv-od",
+    "nibble": 7,
+    "index": 61,
+    "name": "BogSV OD",
+    "knobs": [
+     {
+      "name": "Gain",
+      "pos": 0,
+      "default": "30.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "PRES",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Master",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Bass",
+      "pos": 3,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Middle",
+      "pos": 4,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Treble",
+      "pos": 5,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 0
+   },
+   {
+    "variant": "flagman",
+    "nibble": 7,
+    "index": 93,
+    "name": "Flagman+",
+    "knobs": [
+     {
+      "name": "Gain",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "PRES",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Master",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Bass",
+      "pos": 3,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Middle",
+      "pos": 4,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Treble",
+      "pos": 5,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 0
+   },
+   {
+    "variant": "foxy-30n",
+    "nibble": 7,
+    "index": 17,
+    "name": "Foxy 30N",
+    "knobs": [
+     {
+      "name": "VOL",
+      "pos": 0,
+      "default": "20.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Cut",
+      "pos": 1,
+      "default": "60.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Master",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [
+     {
+      "name": "Bright",
+      "pos": 3,
+      "options": [
+       "On",
+       "Off"
+      ],
+      "default": "0"
+     }
+    ],
+    "comboxes": [],
+    "observed_in_patches": 0
+   },
+   {
+    "variant": "l-star-od",
+    "nibble": 7,
+    "index": 74,
+    "name": "L-Star OD",
+    "knobs": [
+     {
+      "name": "Gain",
+      "pos": 0,
+      "default": "30.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "PRES",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Master",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Bass",
+      "pos": 3,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Middle",
+      "pos": 4,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Treble",
+      "pos": 5,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 0
+   },
+   {
+    "variant": "mess-bass",
+    "nibble": 7,
+    "index": 119,
+    "name": "Mess Bass",
+    "knobs": [
+     {
+      "name": "VOL",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Master",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Bass",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Middle",
+      "pos": 3,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Treble",
+      "pos": 4,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 0
+   },
+   {
+    "variant": "mess2c-1",
+    "nibble": 7,
+    "index": 57,
+    "name": "Mess2C+ 1",
+    "knobs": [
+     {
+      "name": "Gain",
+      "pos": 0,
+      "default": "30.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "PRES",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Master",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Bass",
+      "pos": 3,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Middle",
+      "pos": 4,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Treble",
+      "pos": 5,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 0
+   },
+   {
+    "variant": "mess2c-2",
+    "nibble": 7,
+    "index": 58,
+    "name": "Mess2C+ 2",
+    "knobs": [
+     {
+      "name": "Gain",
+      "pos": 0,
+      "default": "30.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "PRES",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Master",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Bass",
+      "pos": 3,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Middle",
+      "pos": 4,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Treble",
+      "pos": 5,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 0
+   },
+   {
+    "variant": "mess4-ld",
+    "nibble": 7,
+    "index": 85,
+    "name": "Mess4 LD",
+    "knobs": [
+     {
+      "name": "Gain",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "PRES",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Master",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Bass",
+      "pos": 3,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Middle",
+      "pos": 4,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Treble",
+      "pos": 5,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 0
+   },
+   {
+    "variant": "power-ld",
+    "nibble": 7,
+    "index": 99,
+    "name": "Power LD",
+    "knobs": [
+     {
+      "name": "Gain",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "PRES",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Master",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Bass",
+      "pos": 3,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Middle",
+      "pos": 4,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Treble",
+      "pos": 5,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 0
+   },
+   {
+    "variant": "supdual-od",
+    "nibble": 7,
+    "index": 40,
+    "name": "SUPDual OD",
+    "knobs": [
+     {
+      "name": "VOL 1",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Tone 1",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "VOL 2",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Tone 2",
+      "pos": 3,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Output",
+      "pos": 4,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 0
+   },
+   {
+    "variant": "snaptone-1",
+    "nibble": 15,
+    "index": 0,
+    "name": "SnapTone 1",
+    "knobs": [
+     {
+      "name": "Gain",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "VOL",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Bass",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Middle",
+      "pos": 3,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Treble",
+      "pos": 4,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 0
+   },
+   {
+    "variant": "snaptone-2",
+    "nibble": 15,
+    "index": 1,
+    "name": "SnapTone 2",
+    "knobs": [
+     {
+      "name": "Gain",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "VOL",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Bass",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Middle",
+      "pos": 3,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Treble",
+      "pos": 4,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 0
+   },
+   {
+    "variant": "snaptone-3",
+    "nibble": 15,
+    "index": 2,
+    "name": "SnapTone 3",
+    "knobs": [
+     {
+      "name": "Gain",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "VOL",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Bass",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Middle",
+      "pos": 3,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Treble",
+      "pos": 4,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 0
+   },
+   {
+    "variant": "snaptone-4",
+    "nibble": 15,
+    "index": 3,
+    "name": "SnapTone 4",
+    "knobs": [
+     {
+      "name": "Gain",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "VOL",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Bass",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Middle",
+      "pos": 3,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Treble",
+      "pos": 4,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 0
+   },
+   {
+    "variant": "snaptone-5",
+    "nibble": 15,
+    "index": 4,
+    "name": "SnapTone 5",
+    "knobs": [
+     {
+      "name": "Gain",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "VOL",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Bass",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Middle",
+      "pos": 3,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Treble",
+      "pos": 4,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 0
+   },
+   {
+    "variant": "uk-900",
+    "nibble": 7,
+    "index": 78,
+    "name": "UK 900",
+    "knobs": [
+     {
+      "name": "Gain",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "PRES",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Master",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Bass",
+      "pos": 3,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Middle",
+      "pos": 4,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Treble",
+      "pos": 5,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 0
+   },
+   {
+    "variant": "z38-cl",
+    "nibble": 7,
+    "index": 27,
+    "name": "Z38 CL",
+    "knobs": [
+     {
+      "name": "Gain",
+      "pos": 0,
+      "default": "20.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Cut",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Master",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Bass",
+      "pos": 3,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Middle",
+      "pos": 4,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Treble",
+      "pos": 5,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 0
+   }
+  ],
+  "NR": [
+   {
+    "variant": "gate-1",
+    "nibble": 0,
+    "index": 27,
+    "name": "Gate 1",
+    "knobs": [
+     {
+      "name": "Thre ",
+      "pos": 0,
+      "default": "20.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 89
+   },
+   {
+    "variant": "gate-2",
+    "nibble": 0,
+    "index": 29,
+    "name": "Gate 2",
+    "knobs": [
+     {
+      "name": "Thre",
+      "pos": 0,
+      "default": "20.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Attack",
+      "pos": 1,
+      "default": "25.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Rel",
+      "pos": 2,
+      "default": "60.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 12
+   }
+  ],
+  "CAB": [
+   {
+    "variant": "darktw-2x12",
+    "nibble": 10,
+    "index": 18,
+    "name": "DarkTW 2x12",
+    "knobs": [
+     {
+      "name": "Volume",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 9
+   },
+   {
+    "variant": "uk-gn-4x12",
+    "nibble": 10,
+    "index": 34,
+    "name": "UK-GN 4x12",
+    "knobs": [
+     {
+      "name": "Volume",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 8
+   },
+   {
+    "variant": "2rick-2x12",
+    "nibble": 10,
+    "index": 28,
+    "name": "2Rick 2x12",
+    "knobs": [
+     {
+      "name": "Volume",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 7
+   },
+   {
+    "variant": "ameg-4x10",
+    "nibble": 10,
+    "index": 56,
+    "name": "Ameg 4x10",
+    "knobs": [
+     {
+      "name": "Volume",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 7
+   },
+   {
+    "variant": "max-4x10",
+    "nibble": 10,
+    "index": 57,
+    "name": "Max 4x10",
+    "knobs": [
+     {
+      "name": "Volume",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 7
+   },
+   {
+    "variant": "uk-75-4x12",
+    "nibble": 10,
+    "index": 48,
+    "name": "UK-75 4x12",
+    "knobs": [
+     {
+      "name": "Volume",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 7
+   },
+   {
+    "variant": "l-star-2x12",
+    "nibble": 10,
+    "index": 25,
+    "name": "L-Star 2x12",
+    "knobs": [
+     {
+      "name": "Volume",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 6
+   },
+   {
+    "variant": "bad-kt-1x12",
+    "nibble": 10,
+    "index": 7,
+    "name": "Bad-KT 1x12",
+    "knobs": [
+     {
+      "name": "Volume",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 5
+   },
+   {
+    "variant": "d",
+    "nibble": 10,
+    "index": 60,
+    "name": "D",
+    "knobs": [
+     {
+      "name": "Volume",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 4
+   },
+   {
+    "variant": "jumbo",
+    "nibble": 10,
+    "index": 63,
+    "name": "Jumbo",
+    "knobs": [
+     {
+      "name": "Volume",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 4
+   },
+   {
+    "variant": "u-ban-4x12",
+    "nibble": 10,
+    "index": 44,
+    "name": "U-ban 4x12",
+    "knobs": [
+     {
+      "name": "Volume",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 4
+   },
+   {
+    "variant": "ameg-8x10",
+    "nibble": 10,
+    "index": 59,
+    "name": "Ameg 8x10",
+    "knobs": [
+     {
+      "name": "Volume",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 3
+   },
+   {
+    "variant": "foxy-1x12",
+    "nibble": 10,
+    "index": 8,
+    "name": "Foxy 1x12",
+    "knobs": [
+     {
+      "name": "Volume",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 3
+   },
+   {
+    "variant": "h-way-4x12",
+    "nibble": 10,
+    "index": 42,
+    "name": "H-Way 4x12",
+    "knobs": [
+     {
+      "name": "Volume",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 3
+   },
+   {
+    "variant": "regular-1x12",
+    "nibble": 10,
+    "index": 13,
+    "name": "Regular 1x12",
+    "knobs": [
+     {
+      "name": "Volume",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 3
+   },
+   {
+    "variant": "ev51-4x12",
+    "nibble": 10,
+    "index": 32,
+    "name": "EV51 4x12",
+    "knobs": [
+     {
+      "name": "Volume",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 2
+   },
+   {
+    "variant": "mess-d-4x12",
+    "nibble": 10,
+    "index": 36,
+    "name": "Mess-D 4x12",
+    "knobs": [
+     {
+      "name": "Volume",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 2
+   },
+   {
+    "variant": "messbass-2x10",
+    "nibble": 10,
+    "index": 53,
+    "name": "MessBass 2x10",
+    "knobs": [
+     {
+      "name": "Volume",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 2
+   },
+   {
+    "variant": "om",
+    "nibble": 10,
+    "index": 62,
+    "name": "OM",
+    "knobs": [
+     {
+      "name": "Volume",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 2
+   },
+   {
+    "variant": "twd-2x12",
+    "nibble": 10,
+    "index": 27,
+    "name": "TWD 2x12",
+    "knobs": [
+     {
+      "name": "Volume",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 2
+   },
+   {
+    "variant": "dark-1x12",
+    "nibble": 10,
+    "index": 4,
+    "name": "Dark 1x12",
+    "knobs": [
+     {
+      "name": "Volume",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 1
+   },
+   {
+    "variant": "ga",
+    "nibble": 10,
+    "index": 65,
+    "name": "GA",
+    "knobs": [
+     {
+      "name": "Volume",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 1
+   },
+   {
+    "variant": "j-120-2x12",
+    "nibble": 10,
+    "index": 17,
+    "name": "J-120 2x12",
+    "knobs": [
+     {
+      "name": "Volume",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 1
+   },
+   {
+    "variant": "juice-4x12",
+    "nibble": 10,
+    "index": 41,
+    "name": "Juice 4x12",
+    "knobs": [
+     {
+      "name": "Volume",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 1
+   },
+   {
+    "variant": "pogner-4x12",
+    "nibble": 10,
+    "index": 39,
+    "name": "Pogner 4x12",
+    "knobs": [
+     {
+      "name": "Volume",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 1
+   },
+   {
+    "variant": "studio-1x12",
+    "nibble": 10,
+    "index": 12,
+    "name": "Studio 1x12",
+    "knobs": [
+     {
+      "name": "Volume",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 1
+   },
+   {
+    "variant": "twd-p-1x10",
+    "nibble": 10,
+    "index": 2,
+    "name": "TWD-P 1x10",
+    "knobs": [
+     {
+      "name": "Volume",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 1
+   },
+   {
+    "variant": "uk-dk-4x12",
+    "nibble": 10,
+    "index": 43,
+    "name": "UK-DK 4x12",
+    "knobs": [
+     {
+      "name": "Volume",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 1
+   },
+   {
+    "variant": "uk-gn-2x12",
+    "nibble": 10,
+    "index": 19,
+    "name": "UK-GN 2x12",
+    "knobs": [
+     {
+      "name": "Volume",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 1
+   },
+   {
+    "variant": "uk-ld-4x12",
+    "nibble": 10,
+    "index": 31,
+    "name": "UK-LD 4x12",
+    "knobs": [
+     {
+      "name": "Volume",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 1
+   },
+   {
+    "variant": "uk-md-4x12",
+    "nibble": 10,
+    "index": 33,
+    "name": "UK-MD 4x12",
+    "knobs": [
+     {
+      "name": "Volume",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 1
+   },
+   {
+    "variant": "fx",
+    "nibble": 10,
+    "index": 1048576,
+    "name": "",
+    "knobs": [
+     {
+      "name": "Volume",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 0
+   },
+   {
+    "variant": "fx",
+    "nibble": 10,
+    "index": 1048577,
+    "name": "",
+    "knobs": [
+     {
+      "name": "Volume",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 0
+   },
+   {
+    "variant": "fx",
+    "nibble": 10,
+    "index": 1048578,
+    "name": "",
+    "knobs": [
+     {
+      "name": "Volume",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 0
+   },
+   {
+    "variant": "fx",
+    "nibble": 10,
+    "index": 1048579,
+    "name": "",
+    "knobs": [
+     {
+      "name": "Volume",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 0
+   },
+   {
+    "variant": "fx",
+    "nibble": 10,
+    "index": 1048580,
+    "name": "",
+    "knobs": [
+     {
+      "name": "Volume",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 0
+   },
+   {
+    "variant": "fx",
+    "nibble": 10,
+    "index": 1048581,
+    "name": "",
+    "knobs": [
+     {
+      "name": "Volume",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 0
+   },
+   {
+    "variant": "fx",
+    "nibble": 10,
+    "index": 1048582,
+    "name": "",
+    "knobs": [
+     {
+      "name": "Volume",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 0
+   },
+   {
+    "variant": "fx",
+    "nibble": 10,
+    "index": 1048583,
+    "name": "",
+    "knobs": [
+     {
+      "name": "Volume",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 0
+   },
+   {
+    "variant": "fx",
+    "nibble": 10,
+    "index": 1048584,
+    "name": "",
+    "knobs": [
+     {
+      "name": "Volume",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 0
+   },
+   {
+    "variant": "fx",
+    "nibble": 10,
+    "index": 1048585,
+    "name": "",
+    "knobs": [
+     {
+      "name": "Volume",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 0
+   },
+   {
+    "variant": "fx",
+    "nibble": 10,
+    "index": 1048586,
+    "name": "",
+    "knobs": [
+     {
+      "name": "Volume",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 0
+   },
+   {
+    "variant": "fx",
+    "nibble": 10,
+    "index": 1048587,
+    "name": "",
+    "knobs": [
+     {
+      "name": "Volume",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 0
+   },
+   {
+    "variant": "fx",
+    "nibble": 10,
+    "index": 1048588,
+    "name": "",
+    "knobs": [
+     {
+      "name": "Volume",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 0
+   },
+   {
+    "variant": "fx",
+    "nibble": 10,
+    "index": 1048589,
+    "name": "",
+    "knobs": [
+     {
+      "name": "Volume",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 0
+   },
+   {
+    "variant": "fx",
+    "nibble": 10,
+    "index": 1048590,
+    "name": "",
+    "knobs": [
+     {
+      "name": "Volume",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 0
+   },
+   {
+    "variant": "fx",
+    "nibble": 10,
+    "index": 1048591,
+    "name": "",
+    "knobs": [
+     {
+      "name": "Volume",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 0
+   },
+   {
+    "variant": "fx",
+    "nibble": 10,
+    "index": 1048592,
+    "name": "",
+    "knobs": [
+     {
+      "name": "Volume",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 0
+   },
+   {
+    "variant": "fx",
+    "nibble": 10,
+    "index": 1048593,
+    "name": "",
+    "knobs": [
+     {
+      "name": "Volume",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 0
+   },
+   {
+    "variant": "fx",
+    "nibble": 10,
+    "index": 1048594,
+    "name": "",
+    "knobs": [
+     {
+      "name": "Volume",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 0
+   },
+   {
+    "variant": "fx",
+    "nibble": 10,
+    "index": 1048595,
+    "name": "",
+    "knobs": [
+     {
+      "name": "Volume",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 0
+   },
+   {
+    "variant": "bellman-4x10",
+    "nibble": 10,
+    "index": 30,
+    "name": "Bellman 4x10",
+    "knobs": [
+     {
+      "name": "Volume",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 0
+   },
+   {
+    "variant": "bogsv-1x12",
+    "nibble": 10,
+    "index": 6,
+    "name": "BogSV 1x12",
+    "knobs": [
+     {
+      "name": "Volume",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 0
+   },
+   {
+    "variant": "dizz-4x12",
+    "nibble": 10,
+    "index": 46,
+    "name": "Dizz 4x12",
+    "knobs": [
+     {
+      "name": "Volume",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 0
+   },
+   {
+    "variant": "eagle-4x12",
+    "nibble": 10,
+    "index": 38,
+    "name": "Eagle 4x12",
+    "knobs": [
+     {
+      "name": "Volume",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 0
+   },
+   {
+    "variant": "free-2x12",
+    "nibble": 10,
+    "index": 26,
+    "name": "Free 2x12",
+    "knobs": [
+     {
+      "name": "Volume",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 0
+   },
+   {
+    "variant": "sup-1x6",
+    "nibble": 10,
+    "index": 0,
+    "name": "SUP 1x6",
+    "knobs": [
+     {
+      "name": "Volume",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 0
+   },
+   {
+    "variant": "solo-4x12",
+    "nibble": 10,
+    "index": 40,
+    "name": "Solo 4x12",
+    "knobs": [
+     {
+      "name": "Volume",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 0
+   },
+   {
+    "variant": "twd-1x8",
+    "nibble": 10,
+    "index": 1,
+    "name": "TWD 1x8",
+    "knobs": [
+     {
+      "name": "Volume",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 0
+   },
+   {
+    "variant": "us-4x12",
+    "nibble": 10,
+    "index": 49,
+    "name": "US 4x12",
+    "knobs": [
+     {
+      "name": "Volume",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 0
+   }
+  ],
+  "EQ": [
+   {
+    "variant": "eq-1",
+    "nibble": 1,
+    "index": 53,
+    "name": "EQ 1",
+    "knobs": [
+     {
+      "name": "125Hz",
+      "pos": 0,
+      "default": "0.0",
+      "min": -50.0,
+      "max": 50.0
+     },
+     {
+      "name": "400Hz",
+      "pos": 1,
+      "default": "0.0",
+      "min": -50.0,
+      "max": 50.0
+     },
+     {
+      "name": "800Hz",
+      "pos": 2,
+      "default": "0.0",
+      "min": -50.0,
+      "max": 50.0
+     },
+     {
+      "name": "1.6kHz",
+      "pos": 3,
+      "default": "0.0",
+      "min": -50.0,
+      "max": 50.0
+     },
+     {
+      "name": "4kHz",
+      "pos": 4,
+      "default": "0.0",
+      "min": -50.0,
+      "max": 50.0
+     },
+     {
+      "name": "VOL ",
+      "pos": 5,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 51
+   },
+   {
+    "variant": "mess-eq",
+    "nibble": 1,
+    "index": 60,
+    "name": "Mess EQ",
+    "knobs": [
+     {
+      "name": "80Hz",
+      "pos": 0,
+      "default": "0.0",
+      "min": -50.0,
+      "max": 50.0
+     },
+     {
+      "name": "240Hz",
+      "pos": 1,
+      "default": "0.0",
+      "min": -50.0,
+      "max": 50.0
+     },
+     {
+      "name": "750Hz",
+      "pos": 2,
+      "default": "0.0",
+      "min": -50.0,
+      "max": 50.0
+     },
+     {
+      "name": "2.2kHz",
+      "pos": 3,
+      "default": "0.0",
+      "min": -50.0,
+      "max": 50.0
+     },
+     {
+      "name": "6.6kHz",
+      "pos": 4,
+      "default": "0.0",
+      "min": -50.0,
+      "max": 50.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 30
+   },
+   {
+    "variant": "eq-2",
+    "nibble": 1,
+    "index": 58,
+    "name": "EQ 2",
+    "knobs": [
+     {
+      "name": "50Hz",
+      "pos": 0,
+      "default": "0.0",
+      "min": -50.0,
+      "max": 50.0
+     },
+     {
+      "name": "120Hz",
+      "pos": 1,
+      "default": "0.0",
+      "min": -50.0,
+      "max": 50.0
+     },
+     {
+      "name": "400Hz",
+      "pos": 2,
+      "default": "0.0",
+      "min": -50.0,
+      "max": 50.0
+     },
+     {
+      "name": "800Hz",
+      "pos": 3,
+      "default": "0.0",
+      "min": -50.0,
+      "max": 50.0
+     },
+     {
+      "name": "2kHz",
+      "pos": 4,
+      "default": "0.0",
+      "min": -50.0,
+      "max": 50.0
+     },
+     {
+      "name": "VOL ",
+      "pos": 5,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 20
+   }
+  ],
+  "MOD": [
+   {
+    "variant": "a-chorus",
+    "nibble": 4,
+    "index": 0,
+    "name": "A-Chorus",
+    "knobs": [
+     {
+      "name": "Depth",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Rate",
+      "pos": 1,
+      "default": "0.5",
+      "min": 0.1,
+      "max": 10.0
+     },
+     {
+      "name": "Tone",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [
+     {
+      "name": "Sync",
+      "pos": 3,
+      "options": [
+       "On",
+       "Off"
+      ],
+      "default": "0"
+     }
+    ],
+    "comboxes": [],
+    "observed_in_patches": 62
+   },
+   {
+    "variant": "b-chorus",
+    "nibble": 4,
+    "index": 8,
+    "name": "B-Chorus",
+    "knobs": [
+     {
+      "name": "Depth",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Rate",
+      "pos": 1,
+      "default": "0.5",
+      "min": 0.1,
+      "max": 10.0
+     },
+     {
+      "name": "Level",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [
+     {
+      "name": "Sync",
+      "pos": 3,
+      "options": [
+       "On",
+       "Off"
+      ],
+      "default": "0"
+     }
+    ],
+    "comboxes": [],
+    "observed_in_patches": 7
+   },
+   {
+    "variant": "vibe",
+    "nibble": 4,
+    "index": 31,
+    "name": "Vibe",
+    "knobs": [
+     {
+      "name": "Depth",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Rate",
+      "pos": 1,
+      "default": "0.5",
+      "min": 0.1,
+      "max": 10.0
+     }
+    ],
+    "switches": [
+     {
+      "name": "Sync",
+      "pos": 2,
+      "options": [
+       "On",
+       "Off"
+      ],
+      "default": "0"
+     }
+    ],
+    "comboxes": [],
+    "observed_in_patches": 7
+   },
+   {
+    "variant": "g-chorus",
+    "nibble": 4,
+    "index": 1,
+    "name": "G-Chorus",
+    "knobs": [
+     {
+      "name": "Depth",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Rate",
+      "pos": 1,
+      "default": "0.5",
+      "min": 0.1,
+      "max": 10.0
+     },
+     {
+      "name": "VOL",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [
+     {
+      "name": "Sync",
+      "pos": 3,
+      "options": [
+       "On",
+       "Off"
+      ],
+      "default": "0"
+     }
+    ],
+    "comboxes": [],
+    "observed_in_patches": 6
+   },
+   {
+    "variant": "opto-trem",
+    "nibble": 4,
+    "index": 33,
+    "name": "Opto Trem",
+    "knobs": [
+     {
+      "name": "Depth",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Rate",
+      "pos": 1,
+      "default": "0.5",
+      "min": 0.1,
+      "max": 10.0
+     }
+    ],
+    "switches": [
+     {
+      "name": "Sync",
+      "pos": 2,
+      "options": [
+       "On",
+       "Off"
+      ],
+      "default": "0"
+     }
+    ],
+    "comboxes": [],
+    "observed_in_patches": 6
+   },
+   {
+    "variant": "sine-trem",
+    "nibble": 4,
+    "index": 38,
+    "name": "Sine Trem",
+    "knobs": [
+     {
+      "name": "Depth",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Rate",
+      "pos": 1,
+      "default": "0.5",
+      "min": 0.1,
+      "max": 10.0
+     },
+     {
+      "name": "VOL",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [
+     {
+      "name": "Sync",
+      "pos": 3,
+      "options": [
+       "On",
+       "Off"
+      ],
+      "default": "0"
+     }
+    ],
+    "comboxes": [],
+    "observed_in_patches": 5
+   },
+   {
+    "variant": "phaser",
+    "nibble": 4,
+    "index": 25,
+    "name": "Phaser",
+    "knobs": [
+     {
+      "name": "Rate",
+      "pos": 0,
+      "default": "0.5",
+      "min": 0.1,
+      "max": 10.0
+     }
+    ],
+    "switches": [
+     {
+      "name": "Sync",
+      "pos": 1,
+      "options": [
+       "On",
+       "Off"
+      ],
+      "default": "0"
+     }
+    ],
+    "comboxes": [],
+    "observed_in_patches": 4
+   },
+   {
+    "variant": "flanger",
+    "nibble": 4,
+    "index": 17,
+    "name": "Flanger",
+    "knobs": [
+     {
+      "name": "Depth",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Rate",
+      "pos": 1,
+      "default": "0.5",
+      "min": 0.1,
+      "max": 10.0
+     },
+     {
+      "name": "PreDly",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "FdBk",
+      "pos": 3,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [
+     {
+      "name": "Sync",
+      "pos": 4,
+      "options": [
+       "On",
+       "Off"
+      ],
+      "default": "0"
+     }
+    ],
+    "comboxes": [],
+    "observed_in_patches": 2
+   },
+   {
+    "variant": "vibrato",
+    "nibble": 4,
+    "index": 21,
+    "name": "Vibrato",
+    "knobs": [
+     {
+      "name": "Depth",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Rate",
+      "pos": 1,
+      "default": "0.5",
+      "min": 0.1,
+      "max": 10.0
+     }
+    ],
+    "switches": [
+     {
+      "name": "Sync",
+      "pos": 2,
+      "options": [
+       "On",
+       "Off"
+      ],
+      "default": "0"
+     }
+    ],
+    "comboxes": [],
+    "observed_in_patches": 2
+   },
+   {
+    "variant": "bias-trem",
+    "nibble": 4,
+    "index": 40,
+    "name": "Bias Trem",
+    "knobs": [
+     {
+      "name": "Depth",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Rate",
+      "pos": 1,
+      "default": "0.5",
+      "min": 0.1,
+      "max": 10.0
+     },
+     {
+      "name": "VOL",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Bias",
+      "pos": 4,
+      "default": "0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [
+     {
+      "name": "Sync",
+      "pos": 3,
+      "options": [
+       "On",
+       "Off"
+      ],
+      "default": "0"
+     }
+    ],
+    "comboxes": [],
+    "observed_in_patches": 0
+   },
+   {
+    "variant": "detune",
+    "nibble": 1,
+    "index": 41,
+    "name": "Detune",
+    "knobs": [
+     {
+      "name": "Detune",
+      "pos": 0,
+      "default": "-25",
+      "min": -50.0,
+      "max": 50.0
+     },
+     {
+      "name": "Wet",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Dry",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [],
+    "comboxes": [],
+    "observed_in_patches": 0
+   },
+   {
+    "variant": "triangle-trem",
+    "nibble": 4,
+    "index": 39,
+    "name": "Triangle Trem",
+    "knobs": [
+     {
+      "name": "Depth",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Rate",
+      "pos": 1,
+      "default": "0.5",
+      "min": 0.1,
+      "max": 10.0
+     },
+     {
+      "name": "VOL",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [
+     {
+      "name": "Sync",
+      "pos": 3,
+      "options": [
+       "On",
+       "Off"
+      ],
+      "default": "0"
+     }
+    ],
+    "comboxes": [],
+    "observed_in_patches": 0
+   }
+  ],
+  "DLY": [
+   {
+    "variant": "sweet",
+    "nibble": 11,
+    "index": 13,
+    "name": "Sweet",
+    "knobs": [
+     {
+      "name": "Mix",
+      "pos": 0,
+      "default": "20.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Time",
+      "pos": 1,
+      "default": "500.0",
+      "min": 20.0,
+      "max": 4000.0
+     },
+     {
+      "name": "FdBk",
+      "pos": 2,
+      "default": "30.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [
+     {
+      "name": "Sync",
+      "pos": 3,
+      "options": [
+       "On",
+       "Off"
+      ],
+      "default": "0"
+     },
+     {
+      "name": "Tail",
+      "pos": 4,
+      "options": [
+       "On",
+       "Off"
+      ],
+      "default": "0"
+     }
+    ],
+    "comboxes": [],
+    "observed_in_patches": 54
+   },
+   {
+    "variant": "p-echo",
+    "nibble": 11,
+    "index": 0,
+    "name": "P-Echo",
+    "knobs": [
+     {
+      "name": "Mix",
+      "pos": 0,
+      "default": "20.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Time",
+      "pos": 1,
+      "default": "500.0",
+      "min": 20.0,
+      "max": 4000.0
+     },
+     {
+      "name": "FdBk",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [
+     {
+      "name": "Sync",
+      "pos": 3,
+      "options": [
+       "On",
+       "Off"
+      ],
+      "default": "0"
+     },
+     {
+      "name": "Tail",
+      "pos": 4,
+      "options": [
+       "On",
+       "Off"
+      ],
+      "default": "0"
+     }
+    ],
+    "comboxes": [],
+    "observed_in_patches": 9
+   },
+   {
+    "variant": "999-echo",
+    "nibble": 11,
+    "index": 18,
+    "name": "999 Echo",
+    "knobs": [
+     {
+      "name": "Mix",
+      "pos": 0,
+      "default": "20.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Time",
+      "pos": 1,
+      "default": "500.0",
+      "min": 20.0,
+      "max": 4000.0
+     },
+     {
+      "name": "FdBk",
+      "pos": 2,
+      "default": "30.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [
+     {
+      "name": "Sync",
+      "pos": 3,
+      "options": [
+       "On",
+       "Off"
+      ],
+      "default": "0"
+     },
+     {
+      "name": "Tail",
+      "pos": 4,
+      "options": [
+       "On",
+       "Off"
+      ],
+      "default": "0"
+     }
+    ],
+    "comboxes": [],
+    "observed_in_patches": 8
+   },
+   {
+    "variant": "m-echo",
+    "nibble": 11,
+    "index": 2,
+    "name": "M-Echo",
+    "knobs": [
+     {
+      "name": "Mix",
+      "pos": 0,
+      "default": "20.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Time",
+      "pos": 1,
+      "default": "500.0",
+      "min": 20.0,
+      "max": 4000.0
+     },
+     {
+      "name": "FdBk",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [
+     {
+      "name": "Sync",
+      "pos": 3,
+      "options": [
+       "On",
+       "Off"
+      ],
+      "default": "0"
+     },
+     {
+      "name": "Tail",
+      "pos": 4,
+      "options": [
+       "On",
+       "Off"
+      ],
+      "default": "0"
+     }
+    ],
+    "comboxes": [],
+    "observed_in_patches": 7
+   },
+   {
+    "variant": "t-echo",
+    "nibble": 11,
+    "index": 11,
+    "name": "T-Echo",
+    "knobs": [
+     {
+      "name": "Mix",
+      "pos": 0,
+      "default": "20.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Time",
+      "pos": 1,
+      "default": "500.0",
+      "min": 20.0,
+      "max": 4000.0
+     },
+     {
+      "name": "FdBk",
+      "pos": 2,
+      "default": "30.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [
+     {
+      "name": "Sync",
+      "pos": 3,
+      "options": [
+       "On",
+       "Off"
+      ],
+      "default": "0"
+     },
+     {
+      "name": "Tail",
+      "pos": 4,
+      "options": [
+       "On",
+       "Off"
+      ],
+      "default": "0"
+     }
+    ],
+    "comboxes": [],
+    "observed_in_patches": 7
+   },
+   {
+    "variant": "m-echo2",
+    "nibble": 11,
+    "index": 12,
+    "name": "M-Echo2",
+    "knobs": [
+     {
+      "name": "Mix",
+      "pos": 0,
+      "default": "20.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Time",
+      "pos": 1,
+      "default": "500.0",
+      "min": 20.0,
+      "max": 4000.0
+     },
+     {
+      "name": "FdBk",
+      "pos": 2,
+      "default": "30.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Tone",
+      "pos": 3,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [
+     {
+      "name": "Sync",
+      "pos": 4,
+      "options": [
+       "On",
+       "Off"
+      ],
+      "default": "0"
+     },
+     {
+      "name": "Trail",
+      "pos": 5,
+      "options": [
+       "On",
+       "Off"
+      ],
+      "default": "0"
+     }
+    ],
+    "comboxes": [],
+    "observed_in_patches": 4
+   },
+   {
+    "variant": "vin-rack",
+    "nibble": 11,
+    "index": 20,
+    "name": "Vin-Rack",
+    "knobs": [
+     {
+      "name": "Mix",
+      "pos": 0,
+      "default": "20.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "FdBk",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Time",
+      "pos": 2,
+      "default": "500.0",
+      "min": 20.0,
+      "max": 4000.0
+     },
+     {
+      "name": "Mod",
+      "pos": 3,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Tone",
+      "pos": 4,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [
+     {
+      "name": "Sync",
+      "pos": 5,
+      "options": [
+       "On",
+       "Off"
+      ],
+      "default": "0"
+     },
+     {
+      "name": "Trail",
+      "pos": 6,
+      "options": [
+       "On",
+       "Off"
+      ],
+      "default": "0"
+     }
+    ],
+    "comboxes": [],
+    "observed_in_patches": 4
+   },
+   {
+    "variant": "ping-pong",
+    "nibble": 11,
+    "index": 4,
+    "name": "Ping Pong",
+    "knobs": [
+     {
+      "name": "Mix",
+      "pos": 0,
+      "default": "20.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "FdBk",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Time",
+      "pos": 2,
+      "default": "500.0",
+      "min": 20.0,
+      "max": 4000.0
+     }
+    ],
+    "switches": [
+     {
+      "name": "Sync",
+      "pos": 3,
+      "options": [
+       "On",
+       "Off"
+      ],
+      "default": "0"
+     },
+     {
+      "name": "Trail",
+      "pos": 4,
+      "options": [
+       "On",
+       "Off"
+      ],
+      "default": "0"
+     }
+    ],
+    "comboxes": [],
+    "observed_in_patches": 3
+   },
+   {
+    "variant": "rev-echo",
+    "nibble": 11,
+    "index": 19,
+    "name": "Rev Echo",
+    "knobs": [
+     {
+      "name": "Mix",
+      "pos": 0,
+      "default": "20.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "FdBk",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Time",
+      "pos": 2,
+      "default": "500.0",
+      "min": 20.0,
+      "max": 4000.0
+     }
+    ],
+    "switches": [
+     {
+      "name": "Sync",
+      "pos": 3,
+      "options": [
+       "On",
+       "Off"
+      ],
+      "default": "0"
+     },
+     {
+      "name": "Tail",
+      "pos": 4,
+      "options": [
+       "On",
+       "Off"
+      ],
+      "default": "0"
+     }
+    ],
+    "comboxes": [],
+    "observed_in_patches": 3
+   },
+   {
+    "variant": "slapbk",
+    "nibble": 11,
+    "index": 5,
+    "name": "Slapbk",
+    "knobs": [
+     {
+      "name": "Mix",
+      "pos": 0,
+      "default": "20.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Time",
+      "pos": 1,
+      "default": "150.0",
+      "min": 20.0,
+      "max": 300.0
+     },
+     {
+      "name": "FdBk",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [
+     {
+      "name": "Tail",
+      "pos": 3,
+      "options": [
+       "On",
+       "Off"
+      ],
+      "default": "0"
+     }
+    ],
+    "comboxes": [],
+    "observed_in_patches": 2
+   },
+   {
+    "variant": "dual-echo",
+    "nibble": 11,
+    "index": 3,
+    "name": "Dual Echo",
+    "knobs": [
+     {
+      "name": "Mix A",
+      "pos": 0,
+      "default": "20.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "FdBk A",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Time A",
+      "pos": 2,
+      "default": "500.0",
+      "min": 20.0,
+      "max": 4000.0
+     },
+     {
+      "name": "Mix B",
+      "pos": 3,
+      "default": "20.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "FdBk B",
+      "pos": 4,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Time B",
+      "pos": 5,
+      "default": "400.0",
+      "min": 20.0,
+      "max": 4000.0
+     }
+    ],
+    "switches": [
+     {
+      "name": "Sync A",
+      "pos": 6,
+      "options": [
+       "On",
+       "Off"
+      ],
+      "default": "0"
+     },
+     {
+      "name": "Sync B",
+      "pos": 7,
+      "options": [
+       "On",
+       "Off"
+      ],
+      "default": "0"
+     },
+     {
+      "name": "Trail",
+      "pos": 8,
+      "options": [
+       "On",
+       "Off"
+      ],
+      "default": "0"
+     }
+    ],
+    "comboxes": [],
+    "observed_in_patches": 0
+   },
+   {
+    "variant": "swp-echo",
+    "nibble": 11,
+    "index": 6,
+    "name": "Swp Echo",
+    "knobs": [
+     {
+      "name": "Mix",
+      "pos": 0,
+      "default": "20.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Fdbk",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Time",
+      "pos": 2,
+      "default": "500.0",
+      "min": 20.0,
+      "max": 4000.0
+     },
+     {
+      "name": "S-Depth",
+      "pos": 3,
+      "default": "50",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "S-Rate",
+      "pos": 4,
+      "default": "50",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [
+     {
+      "name": "S-Sync",
+      "pos": 5,
+      "options": [
+       "On",
+       "Off"
+      ],
+      "default": "0"
+     },
+     {
+      "name": "T-Sync",
+      "pos": 6,
+      "options": [
+       "On",
+       "Off"
+      ],
+      "default": "0"
+     },
+     {
+      "name": "Trail",
+      "pos": 7,
+      "options": [
+       "On",
+       "Off"
+      ],
+      "default": "0"
+     }
+    ],
+    "comboxes": [],
+    "observed_in_patches": 0
+   }
+  ],
+  "RVB": [
+   {
+    "variant": "hall",
+    "nibble": 12,
+    "index": 1,
+    "name": "Hall",
+    "knobs": [
+     {
+      "name": "Mix",
+      "pos": 0,
+      "default": "30.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "PreDly",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 100.0
+     },
+     {
+      "name": "Decay",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [
+     {
+      "name": "Trail",
+      "pos": 3,
+      "options": [
+       "On",
+       "Off"
+      ],
+      "default": "0"
+     }
+    ],
+    "comboxes": [],
+    "observed_in_patches": 40
+   },
+   {
+    "variant": "plate",
+    "nibble": 12,
+    "index": 3,
+    "name": "Plate",
+    "knobs": [
+     {
+      "name": "Mix",
+      "pos": 0,
+      "default": "30.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Decay",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "H-Damp",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [
+     {
+      "name": "Trail",
+      "pos": 3,
+      "options": [
+       "On",
+       "Off"
+      ],
+      "default": "0"
+     }
+    ],
+    "comboxes": [],
+    "observed_in_patches": 18
+   },
+   {
+    "variant": "room",
+    "nibble": 12,
+    "index": 0,
+    "name": "Room",
+    "knobs": [
+     {
+      "name": "Mix",
+      "pos": 0,
+      "default": "30.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "PreDly",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 100.0
+     },
+     {
+      "name": "Decay",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [
+     {
+      "name": "Trail",
+      "pos": 3,
+      "options": [
+       "On",
+       "Off"
+      ],
+      "default": "0"
+     }
+    ],
+    "comboxes": [],
+    "observed_in_patches": 16
+   },
+   {
+    "variant": "spring",
+    "nibble": 12,
+    "index": 4,
+    "name": "Spring",
+    "knobs": [
+     {
+      "name": "Mix",
+      "pos": 0,
+      "default": "30.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Tone",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Decay",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [
+     {
+      "name": "Trail",
+      "pos": 3,
+      "options": [
+       "On",
+       "Off"
+      ],
+      "default": "0"
+     }
+    ],
+    "comboxes": [],
+    "observed_in_patches": 13
+   },
+   {
+    "variant": "church",
+    "nibble": 12,
+    "index": 2,
+    "name": "Church",
+    "knobs": [
+     {
+      "name": "Mix",
+      "pos": 0,
+      "default": "30.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "PreDly",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 100.0
+     },
+     {
+      "name": "Decay",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [
+     {
+      "name": "Trail",
+      "pos": 3,
+      "options": [
+       "On",
+       "Off"
+      ],
+      "default": "0"
+     }
+    ],
+    "comboxes": [],
+    "observed_in_patches": 5
+   },
+   {
+    "variant": "n-star",
+    "nibble": 12,
+    "index": 6,
+    "name": "N-Star",
+    "knobs": [
+     {
+      "name": "Mix",
+      "pos": 0,
+      "default": "30.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Decay",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [
+     {
+      "name": "Trail",
+      "pos": 2,
+      "options": [
+       "On",
+       "Off"
+      ],
+      "default": "0"
+     }
+    ],
+    "comboxes": [],
+    "observed_in_patches": 4
+   },
+   {
+    "variant": "mod-verb",
+    "nibble": 12,
+    "index": 8,
+    "name": "Mod Verb",
+    "knobs": [
+     {
+      "name": "Mix",
+      "pos": 0,
+      "default": "30.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "PreDly",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 100.0
+     },
+     {
+      "name": "Decay",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Lo End",
+      "pos": 3,
+      "default": "0.0",
+      "min": -50.0,
+      "max": 50.0
+     },
+     {
+      "name": "Hi End",
+      "pos": 4,
+      "default": "0.0",
+      "min": -50.0,
+      "max": 50.0
+     }
+    ],
+    "switches": [
+     {
+      "name": "Trail",
+      "pos": 5,
+      "options": [
+       "On",
+       "Off"
+      ],
+      "default": "0"
+     }
+    ],
+    "comboxes": [],
+    "observed_in_patches": 3
+   },
+   {
+    "variant": "clear-sky",
+    "nibble": 12,
+    "index": 5,
+    "name": "Clear Sky",
+    "knobs": [
+     {
+      "name": "Mix",
+      "pos": 0,
+      "default": "30.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Decay",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [
+     {
+      "name": "Trail",
+      "pos": 2,
+      "options": [
+       "On",
+       "Off"
+      ],
+      "default": "0"
+     }
+    ],
+    "comboxes": [],
+    "observed_in_patches": 1
+   },
+   {
+    "variant": "deep-sea",
+    "nibble": 12,
+    "index": 7,
+    "name": "Deep Sea",
+    "knobs": [
+     {
+      "name": "Mix",
+      "pos": 0,
+      "default": "30.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Decay",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     }
+    ],
+    "switches": [
+     {
+      "name": "Trail",
+      "pos": 2,
+      "options": [
+       "On",
+       "Off"
+      ],
+      "default": "0"
+     }
+    ],
+    "comboxes": [],
+    "observed_in_patches": 1
+   },
+   {
+    "variant": "shimmer",
+    "nibble": 12,
+    "index": 9,
+    "name": "Shimmer",
+    "knobs": [
+     {
+      "name": "Mix",
+      "pos": 0,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "PreDly",
+      "pos": 1,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 100.0
+     },
+     {
+      "name": "Decay",
+      "pos": 2,
+      "default": "50.0",
+      "min": 0.0,
+      "max": 99.0
+     },
+     {
+      "name": "Lo End",
+      "pos": 3,
+      "default": "0.0",
+      "min": -50.0,
+      "max": 50.0
+     },
+     {
+      "name": "Hi End",
+      "pos": 4,
+      "default": "0.0",
+      "min": -50.0,
+      "max": 50.0
+     }
+    ],
+    "switches": [
+     {
+      "name": "Trail",
+      "pos": 5,
+      "options": [
+       "On",
+       "Off"
+      ],
+      "default": "0"
+     }
+    ],
+    "comboxes": [],
+    "observed_in_patches": 0
+   }
+  ]
+ }
+}

@@ -5,12 +5,50 @@
 > de ambiente, configuração, revisão de spec ou extração de dados. Cada item é uma
 > issue com dependências e critério de aceite (Definition of Done) testável.
 >
-> **Status:** ✅ atual · **Última revisão:** 2026-09-29 · Mapa da doc: `docs/INDEX.md`
+> **Status:** ✅ atual · **Última revisão:** 2026-10-01 · Mapa da doc: `docs/INDEX.md`
 >
 > **Princípio do não-retrocesso:** nenhum passo de implementação pode depender de
 > descoberta nova. Tudo que exigia hardware/pesquisa já está fechado e validado
 > (§13 + golden 100%). Se durante a implementação uma premissa falhar, o fluxo é:
 > parar → captura nova → golden regenerado → validate 100% → então retomar (regra R3).
+
+---
+
+## 🎫 GESTÃO DE ISSUES — the single source for o trabalho aberto
+
+> **O plano vivo mora no GitHub, não neste documento.** Este ROADMAP guarda o
+> histórico do que já foi entregue (fases P/M0/ACHADOS/U/Q/V) e as regras do
+> projeto; **todo trabalho aberto é uma issue** com epic, labels e milestone.
+> Milestone único da primeira entrega: **v1.0.0**.
+
+### Epics abertos (milestone v1.0.0)
+
+| Epic | Escopo | Filhas |
+|---|---|---|
+| [#13](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/13) | **FASE U** — UI por etapas (casca → pedais) | [#19](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/19) |
+| [#14](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/14) | **FASE V** — UI/UX enterprise e modernização visual | #8 · #9 · #10 · #11 · #12 · #20 · #30 |
+| [#15](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/15) | **M2** — IR lab, SnapTone, biblioteca e empacotamento | #24 · #25 · #26 · #17 |
+| [#16](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/16) | **M3** — Diferenciais (live mode, cloud, tone match) | (panorama) |
+| [#17](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/17) | **Release v1.0.0** — binários, `.deb` e Arch | #27 · #28 · #29 |
+| [#18](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/18) | **Gate H** — validação em hardware real | #21 · #22 · #23 |
+
+### Issues filhas (por área)
+
+| # | Título | Área |
+|---|---|---|
+| [#19](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/19) | U-3: renderizar os 9 pedais no board | ui |
+| [#8](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/8)–[#12](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/12) | Modernização da UI (tuner, design system, topbar, biblioteca, looper) | ui/design |
+| [#20](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/20) | V-8: edge cases de IPC nível 2 | ui |
+| [#30](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/30) | i18n do editor (pt-BR/en/es/zh) | ui |
+| [#24](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/24)–[#26](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/26) | IR lab · SnapTone/NAM · biblioteca SQLite | core/ui |
+| [#27](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/27)–[#29](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/29) | Release multiplataforma (Win/macOS · `.deb` · Arch) | release |
+| [#21](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/21)–[#23](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/23) | Gate H: H1 leitura · H2 escrita · H3 congelamento | re |
+
+### Labels
+
+`area:ui` · `area:core` · `area:cli` · `area:api` · `area:ci` · `area:docs` ·
+`area:release` · `area:re` · `design` · `packaging` · `epic` · `feature` ·
+`bug` · `documentation` · `accessibility` · `priority:high|medium|low`.
 
 ---
 
@@ -337,11 +375,12 @@
   divergência, fluxo R3). Requisito de campo novo identificado: log de fio no
   CLI (`--log`) no schema das fixtures P4 — entrar na M0.7/prep-H1.
 - **Planejamento fino da M2** (IR lab, SnapTone manager, banco da biblioteca
-  [SQLite], empacotamento) — espelhar o formato do `docs/UI_PLAN.md` quando a
-  M1.0 fechar.
-- **M3** fica no nível de panorama (VISION §9) até o gate H passar.
+  [SQLite], empacotamento) → **epic #15** com as filhas #24–#26.
+- **M3** fica no nível de panorama (VISION §9) até o gate H passar → **epic #16**.
 - **ADR-7+** à medida que os spikes fecharem as decisões em aberto do
   `docs/UI_PLAN.md` §9.
+- **Distribuição/instaladores** (Windows/macOS · `.deb` · Arch) → **epic #17**
+  com as filhas #27–#29.
 
 ## FASE U — UI POR ETAPAS (casca → pedais; decisão do owner 30/09)
 
@@ -351,7 +390,7 @@
 > cada etapa termina com **teste manual** (roteiros em `docs/UI_TEST_PLAN.md`)
 > e aprovação antes da próxima.
 
-### U-1. Casca da UI + navegação de presets de fábrica (sem pedais) — 🔨 EM ANDAMENTO
+### U-1. Casca da UI + navegação de presets de fábrica (sem pedais) — ✅ FEITO
 - **Responsável:** Buffy (UI) · Depende: A-4, M1.1 · **Estimativa:** 1 sessão
 - **O quê:** organização geral da UI no layout do oficial (referencial §1 de
   UI_REFERENCE): topbar (logo, conexão, Stomp/DRUM/Master VOL prévia, ⚙),
@@ -363,7 +402,7 @@
   vazio com lugares definidos, roteiro de teste manual executado, aprovação do
   owner, CI verde (tsc/lint/vitest/build).
 
-### U-2. Modal Settings (6 abas) + trava do drag — 🔜
+### U-2. Modal Settings (6 abas) + trava do drag — ✅ FEITO (trava virou o cadeado 🔒/🔓 no palco)
 - **Responsável:** Buffy (UI) · Depende: U-1 · **Estimativa:** 1 sessão
 - **O quê:** modal Settings com as abas do oficial (General/Global EQ/About/Info
   Frame/Help/Release Note); General persiste LOCAL (localStorage, "prévia
@@ -372,7 +411,7 @@
 - **DoD:** modal navegável por teclado (Esc fecha, foco preso), aba General
   persiste local, CI verde + teste manual.
 
-### U-3. Pedais fase 2 (1 cadeia por entrega; 1 efeito por vez) — 🔜
+### U-3. Pedais fase 2 (1 cadeia por entrega; 1 efeito por vez) — 🔜 **issue #19**
 - **Responsável:** Buffy (UI) · Depende: U-1/U-2 aprovados · **Estimativa:** várias sessões
 - **O quê:** adicionar os pedais um por um na ordem da cadeia (PRE → DST → AMP
   → NR → CAB → EQ → MOD → DLY → RVB): modelagem SVG por variante, knobs do
@@ -567,7 +606,7 @@
     importadores; varredura por grep + tsc + lint confirmando) e suas chaves
     MSG. Mantidos DE PROPÓSITO: Pedal/Pedalboard/Knob/fxModels — fundação
     declarada da Fase 2 (pedais voltam ao board um efeito por vez).
-- **V-7. Pendências do plano enterprise (issues abertas)**
+- **V-7. Pendências do plano enterprise** — o que restou virou **issue #20** (edge cases de IPC nível 2); o demais está entregue:
   - ✅ FEITO 01/10 — Page Object Model nos e2e: `e2e/pages/_pages.ts`
     (Shell/Brand/Library/Board/Looper/Drum/Settings/VU) com os 5 specs
     reescritos 1:1 (mesmos asserts, zero mudança de comportamento);

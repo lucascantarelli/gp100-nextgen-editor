@@ -37,6 +37,12 @@ analysis/driver_ext/
 analysis/exe_strings.txt
 analysis/fw_strings.txt
 analysis/manual_streams.txt
+analysis/manual_decoded.txt
+# Manual oficial (documento proprietário da Valeton - README §7): o PDF e a
+# transcrição NÃO são distribuídos; os scripts de extração e a NOTA de
+# revisão (analysis/notes/) ficam versionados.
+analysis/manual_v18.pdf
+analysis/manual_v18.txt
 
 # Estado interno do cliente Freebuff
 .freebuff/

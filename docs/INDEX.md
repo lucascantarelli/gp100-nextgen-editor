@@ -4,7 +4,7 @@
 > fonte de verdade de cada assunto. Mantenha-o atualizado a cada novo documento
 > ou mudança de status — é o contrato de navegação entre agentes e humanos.
 
-**Última revisão:** 2026-10-01 (**M0 100% · M1.0 ✅ · M1.1 ✅** — DeviceActor (D8) + commands `device_*` + boot com barra de progresso; front `ui/` + backend `src-tauri` na CI multi-OS; ADR-1..8; Dependabot ativo (npm/actions/cargo src-tauri); FASE ACHADOS A-1..A-4 ✅ no ROADMAP; fluxo de contribuição documentado — CONTRIBUTING + fechamento automático de issue em develop + templates novos; RELEASE_PLAN criado (épicos/issues de lançamento multiplataforma)
+**Última revisão:** 2026-10-01 (**M0 100% · M1.0 ✅ · M1.1 ✅ · afinador entregue · gestão por issues ativa** — DeviceActor + commands `device_*` + boot; front `ui/` + backend `src-tauri` na CI multi-OS; ADR-1..8; **trabalho aberto agora vive em ISSUES do GitHub** (milestone **v1.0.0**; epics #13–#18, filhas #19–#30) — o ROADMAP aponta para elas; auditoria de 01/10 com todos os gates verdes)
 
 ---
 
@@ -14,7 +14,7 @@
 |---|---|
 | **Entender o projeto** | `README.md` → `docs/VISION.md` |
 | **Contribuir (issue → branch → PR → merge)** | `docs/CONTRIBUTING.md` (GitFlow, conventional commits, gates por área, fechamento automático da issue)
-| **Executar o plano de desenvolvimento** | `docs/ROADMAP.md` (P/M0/H em ordem, com DoD; **FASE ACHADOS = prioridade máxima**) + `docs/UI_PLAN.md` (M1, issues M1.0–M1.6) |
+| **Executar o plano de desenvolvimento** | **Issues do GitHub** (milestone **v1.0.0**: epics #13–#18 + filhas #19–#30) — o `docs/ROADMAP.md` guarda o histórico entregue e as regras (R1–R4) e aponta para as issues |
 | **Planejar o lançamento (release multiplataforma)** | `docs/RELEASE_PLAN.md` (épicos EPIC-01..05 + issues REL-*: binários para download direto na GitHub Release, smoke em ambiente limpo, assinatura, auto-update — sem stores por decisão do owner) |
 | **Levar o gp100-core à pedaleira (gate H1)** | `docs/H1_CHECKLIST.md` (checklist) + `docs/H1_REPORT.md` (relatório/plano de backup) + `scripts/h1_field.sh` (runbook: rehearsal/field) |
 | **Implementar o protocolo (gp100-core)** | `docs/protocol_golden.json` (especificação executável) + `docs/PROTOCOL.md` §13 (narrativa) |
@@ -75,7 +75,8 @@
 | **RE estática** | `FINDINGS_PROTOCOL/FSM/OBJECTS/COMMANDMAP.md`, `rtti_disasm.py`, `disasm_*.py`, `xrefs_opcodes.py`, `opcode_extract.py`, `find_817_imm.py`, `README_GHIDRA.md` | achados do binário do Suite (corroboram §13) |
 | **Proxy** | `build_proxy.py`, `midi_proxy.c`, `forwarders.def`, `winmm.def`, `winmm.dll` (+`suite_local/`) | instrumentação do Suite oficial |
 | **Catálogo** | `effect_catalog.csv`, `build_catalog.py`, `parse_*.py` | 909 slots catalogados |
-| **Strings/extração** | `extract_strings.py`, `exe_strings.txt`, `fw_strings.txt`, `rtf_text.py`, `pdf_text.py`, `manual_streams.txt`, `release_note.txt`, `screens.html` | matéria-prima textual |
+| **Strings/extração** | `extract_strings.py`, `exe_strings.txt`, `fw_strings.txt`, `rtf_text.py`, `pdf_text.py`, `manual_v18.pdf`, `manual_v18.txt`, `manual_*.py`, `manual_streams.txt`, `release_note.txt`, `screens.html` | matéria-prima textual (manual V1.8 extraído p/ o afinador) |
+| **Notas de revisão** | `notes/revision/` (ex.: `manual_v18_vs_firmware_v21.md`) | comparações manual × firmware com evidência |
 | **IR** | `gen_test_ir.py`, `test_ir_*.wav` | IRs sintéticos p/ teste |
 | **Material extraído** | `nsis_app/` (read-only), `driver_ext/`, `suite_local/` | não indexar; ver `.codebuffignore` |
 

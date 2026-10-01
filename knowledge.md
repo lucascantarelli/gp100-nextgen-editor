@@ -6,6 +6,16 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
 (local, sem depender de hardware para ~95% do trabalho). Resposta ao usuário SEMPRE em PT-BR.
 
 ## Estado vivo (atualizar aqui a cada marco)
+- 01/10 — **PAUSA PARA AUDITORIA + GESTÃO POR ISSUES**: revisão completa de ui/cli/app/docs/CI.
+  Gates verdes: front tsc/lint/unit 88/coverage 87,6%/build ✅; Rust fmt/clippy -D/test ✅
+  (corrigido 1 erro real de clippy — `needless_borrow` em `pedalboard.rs`); pytest 10/10 ✅.
+  **Afinador do palco** entregue (TunerPanel: display sempre visível no lugar do VU,
+  LED próprio, escala ♭→♯, botão on/off visual, REF PITCH 435–445; botão mover virou
+  cadeado 🔒/🔓; navbar com logo à esquerda e controles à direita; **kill switch** agora
+  tem ação real e reversível — mute global de master+drum).
+  **GitHub organizado:** milestone **v1.0.0** + labels por área/tipo/prioridade
+  (`area:*`, `design`, `packaging`, `priority:*`) + 6 epics (#13–#18) e 12 filhas
+  (#19–#30). O ROADMAP agora **aponta para as issues** (o plano vivo mora no GitHub).
 - 30/09 — **REFATORAÇÃO ESTRUTURAL packages/ ✅ + pipeline único reescrito**: monorepo
   `packages/{core,cli,app/{ui,api}}` (ver seção Monorepo abaixo), limpeza de gestão
   (M0.x/M1.x/ROADMAP/DoD) de todos os comentários de código, READMEs curtos em
