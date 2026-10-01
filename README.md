@@ -1,6 +1,7 @@
 # GP-100 NextGen Editor
 
-[![pipeline](https://github.com/lucascantarelli/gp100-nextgen-editor/actions/workflows/pipeline.yml/badge.svg)](https://github.com/lucascantarelli/gp100-nextgen-editor/actions/workflows/pipeline.yml)
+[![ci](https://github.com/lucascantarelli/gp100-nextgen-editor/actions/workflows/ci.yml/badge.svg)](https://github.com/lucascantarelli/gp100-nextgen-editor/actions/workflows/ci.yml)
+[![release](https://github.com/lucascantarelli/gp100-nextgen-editor/actions/workflows/release.yml/badge.svg)](https://github.com/lucascantarelli/gp100-nextgen-editor/actions/workflows/release.yml)
 
 > 📇 **Mapa da documentação:** `docs/INDEX.md` — rotas por objetivo, fonte de
 > verdade por assunto e inventário anotado. Comece por lá se está lost.
@@ -109,12 +110,14 @@ Windows + Git Bash (desenvolvido em `D:\GP-100 app`). Requisitos:
   `scripts/add_cargo_path.ps1` (uma vez, como admin). Gates de código Rust:
   `.agents/skills/rust-practices/SKILL.md`
 - **CI (GitHub Actions):** os mesmos gates (`uv run pytest` + `cargo fmt/clippy/test`)
-  rodam a cada push e PR (pipeline único: `.github/workflows/pipeline.yml` —
-  matrix 3-OS, security noturno, versionamento semver automático e release
-  por tag; passos reutilizáveis em `.github/actions/*`)
+  rodam na validação (`ci.yml` → reusable `_validate.yml`; matrix 3-OS com filtro
+  por caminho E por função de branch); a varredura de segurança é à parte
+  (`security.yml`, noturno) e a máquina de release (publish por tag + cadeia
+  rc→promote) vive em `release.yml` + `_publish.yml`. Passos reutilizáveis em
+  `.github/actions/*`; o fluxo completo está em `docs/CONTRIBUTING.md`.
 - Agente/IA: ver `knowledge.md` (armadilhas) e `.agents/skills/` (workflows:
-  proxy-build, capture-analyze, new-session, spec-baseline, protocol-validate,
-  core-dev, docs-sync, rust-practices)
+  github-flow, proxy-build, capture-analyze, new-session, spec-baseline,
+  protocol-validate, core-dev, docs-sync, rust-practices, ui-ux-practices)
 
 Armadilhas conhecidas (cp1252, `%TEMP%` real vs `/tmp`, log append-only, F7 embutido
 em mensagens paginadas) estão catalogadas no `knowledge.md`.

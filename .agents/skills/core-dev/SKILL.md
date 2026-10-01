@@ -7,7 +7,8 @@ metadata:
 
 # Desenvolvimento do gp100-core (Rust)
 
-Use para executar as issues M0.1–M0.7 do `docs/ROADMAP.md`, UMA por vez, na ordem.
+Use para executar as issues do gp100-core no GitHub (milestone `v1.0.0`),
+UMA por vez, na ordem — o ciclo issue→branch→PR→merge é a skill `github-flow`.
 
 ## Regras de ouro (não negociáveis)
 1. **Nunca adivinhar protocolo**: todo byte vem de `docs/protocol_golden.json`
@@ -21,30 +22,32 @@ Use para executar as issues M0.1–M0.7 do `docs/ROADMAP.md`, UMA por vez, na or
    o CLI exige `--real --i-know-what-im-doing` (política de hardware VISION §7).
 5. **Qualidade**: `cargo clippy -- -D warnings` + `cargo test` verdes a cada issue;
    teste novo sempre acompanha código novo (padrão de DoD da issue).
-6. **Encerramento inclui CI**: commit/push e `gh run watch <id> --repo
-   lucascantarelli/gp100-nextgen-editor --exit-status` ATÉ VERDE — só então ✅ na
-   issue do ROADMAP e linha no knowledge (marco com CI vermelha não é marco).
-7. **Commit tem labelling** (padrão do histórico do repo): `assunto: resumo` em
-   PT-BR — `M0.x: …` (issue), `docs-sync: …` (documentação pós-marco), `golden:`/
-   `preset:`/`codec:` (módulo), `testes:` (movimentação/organização de testes) —
-   + footer `🤖 Generated with Codebuff` + `Co-Authored-By: Codebuff
-   <noreply@codebuff.com>` (heredoc `git commit -m "$(cat <<'EOF' …)"`).
+6. **Encerramento inclui CI**: branch → commits → PR para `develop` → CI verde
+   (`gh pr checks --watch` ou `gh run watch <id> --exit-status`) ATÉ VERDE — só
+   então a issue fecha pelo merge (`Closes #N` no corpo do PR; job `close-linked`)
+   e entra a linha no knowledge (marco com CI vermelha não é marco).
+7. **Commit é CONVENTIONAL** (o gate da CI rejeita fora do padrão):
+   `tipo(escopo): resumo` — ex.: `fix(core): …`, `feat(cli): …`, `test(core): …`,
+   `refactor(core): …` — + footer `🤖 Generated with Codebuff` + `Co-Authored-By:
+   Codebuff <noreply@codebuff.com>` (heredoc `git commit -m "$(cat <<'EOF' …)"`).
+   O labelling antigo `M0.x: …` NÃO vale mais (o gate valida conventional).
 8. **Modo real não se adiciona fora do gate H**: `RealDevice` é bloqueado em DUAS
    camadas (feature `real-device` default OFF e o CLI exigir `--real
    --i-know-what-im-doing`; escrita real só pós-H2, `WRITE_VERIFIED`). Subcomando
    novo que "precisaria" de device real = parar e registrar ADR/ROADMAP — nunca
    feature flag ad-hoc nem bypass de camada.
 
-## Checklist por issue (M0.x)
-1. Ler a issue no ROADMAP (DoD define "pronto", não o feeling).
+## Checklist por issue
+1. Ler a issue no GitHub (DoD define "pronto", não o feeling); branch/PR pela
+   skill `github-flow`.
 2. Ler P5 (`docs/DECISIONS.md`) antes de escolher estrutura/API.
 3. Implementar + testes vetorizados com exemplos do golden.
 4. `cargo fmt && cargo clippy -- -D warnings && cargo test` — gates e estilo
    detalhados em `.agents/skills/rust-practices/SKILL.md` (doc-comments PT-BR
    com evidência, doc-tests, `deny(missing_docs)` no core, sem unwrap na lib).
-5. Commit/push + CI verde (`gh run watch … --exit-status`) — regras 6–8 acima
-   (labelling de commit incluído) — e SÓ ENTÃO marcar ✅ na issue do ROADMAP (com
-   data) e atualizar `knowledge.md` (1 linha).
+5. Branch + commits conventional + PR para `develop` + CI verde (regras 6–8
+   acima) — o merge fecha a issue (`Closes #N`); SÓ ENTÃO sincronizar
+   `knowledge.md` (1 linha) e o status da fase no ROADMAP pela skill `docs-sync`.
 
 ## Estrutura alvo do workspace
 ```

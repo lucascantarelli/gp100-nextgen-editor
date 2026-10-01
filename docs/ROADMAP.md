@@ -625,10 +625,10 @@
     parcial; idempotente por tag existente). Guard de prerelease no
     pipeline para tags -rc (CLI + instalador). Validação sintática dos
     workflows no gate do pipeline (`scripts/validate_workflows.py`:
-    YAML dos 9 arquivos + contrato de gatilhos do close-issues/
-    pipeline/release — o teste de integração real do close-issues
-    continua sendo o próprio merge em develop; act exigiria Docker no
-    gate). Proteção de branches = configuração do repo (não-workflow).
+    YAML dos workflows + contratos de fluxo ci/_validate/_publish/release/
+    security — o teste de integração real do close-linked continua sendo o
+    próprio merge em develop; act exigiria Docker no gate). Proteção de
+    branches = configuração do repo (não-workflow).
   - ✅ FEITO 01/10 — **simulação end-to-end da cadeia no gate**
     (`scripts/simulate_release.py`): extrai os blocos `run:` DO PRÓPRIO
     release.yml e os executa num sandbox git local (origin bare + clones
@@ -643,8 +643,9 @@
     atribuições/expansões no interop WSL do Windows, diagnosticado e
     documentado no próprio harness).
   - ✅ FEITO 30/09 — fechamento de issue no merge em develop (a parte
-    "vinculação issue↔PR" da nota): `.github/workflows/close-issues.yml`
-    extrai `Closes/Fixes/Resolves #N` do corpo do PR mergeado em develop e
+    "vinculação issue↔PR" da nota): o job `close-linked` do `ci.yml`
+    (era close-issues.yml; integrado em 01/10) extrai `Closes/Fixes/Resolves #N`
+    do corpo do PR mergeado em develop e
     fecha via API com comentário de rastreabilidade (PR + sha + run).
     Guards: PR do github-actions[bot], issues `achados-security` (fechamento
     manual) e idempotência (já fechada = confirmada). O GitHub nativo só
@@ -686,7 +687,7 @@
     centralização): `docs/CONTRIBUTING.md` liga o ciclo completo
     issue → branch (GitFlow, develop como integração) → conventional
     commits → gates por área (coverage 85% incluso) → PR (tabelas do
-    template) → fechamento automático da issue pelo close-issues.yml;
+    template) → fechamento automático da issue pelo job `close-linked`;
     regras de casa escritas (epic não fecha por filha, vínculo de
     fechamento no CORPO do PR, ci-lite, achados-security manual).
     Indexado no INDEX.md (rota + inventário) e no seletor de issues

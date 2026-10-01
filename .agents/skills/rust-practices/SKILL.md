@@ -26,12 +26,16 @@ cargo build
 
 ## CI (GitHub Actions) — mesma régua do local
 
-O CI (`.github/workflows/ci.yml`) roda os MESMOS gates por push/PR em runner
-`windows-latest` (o pin gnu do `rust-toolchain.toml` não compila no Linux).
-Armadilhas já mordidas — não reabrir:
+O CI roda os MESMOS gates no reusable `.github/workflows/_validate.yml`
+(job `rust`: matriz 3-OS — windows-latest, ubuntu-24.04, macos-26), disparado
+pelo `ci.yml` em PR/push das branches de INTEGRAÇÃO (push em `feature/*` etc.
+NÃO roda CI — validação acontece no PR). Armadilhas mordidas — não reabrir:
 
-- **Runner `windows-latest` é obrigatório** por causa do pin gnu; não
-  "simplificar" para ubuntu.
+- **Toolchain por OS/projeto (ADR-8)**: o pin gnu do `rust-toolchain.toml` da
+  raiz vale para o host Windows; a CI define `RUSTUP_TOOLCHAIN` por OS/projeto
+  (gnu na raiz, msvc em `packages/app/api`, stable fora do Windows) — sem
+  isso, qualquer cargo no Linux morre com "target tuple in channel name".
+  Não "simplificar" para runner único.
 - Instalar a toolchain pinada com `rustup toolchain install <pin> --component
   rustfmt --component clippy`. **`--component` é REPETÍVEL**: escrever
   `--component rustfmt clippy` faz o rustup ler `clippy` como uma toolchain
