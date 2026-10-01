@@ -1,6 +1,6 @@
 # DEPENDABOT — PRs automáticos de upgrade de dependências.
 #
-# Complementa o job `security` noturno do pipeline.yml: a varredura DETETA
+# Complementa o `security.yml` noturno: a varredura DETETA
 # (cargo/pnpm audit → issue ACHADOS), o Dependabot REMEDIA (PR pronto p/ review).
 # Upgrades continuam sendo decisão do owner (A-1/A-3 foram manuais); aqui
 # só muda a MECÂNICA: o PR abre pronto, com CI disparada (pull_request,

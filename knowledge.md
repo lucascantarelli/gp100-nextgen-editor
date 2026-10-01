@@ -392,8 +392,8 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
 - **MATRIZ VAZIA CRASHA A RUN INTEIRA (não use nunca)**: job com
   `strategy.matrix: ${{ fromJSON(...) }}` e matriz `"include":[]` NÃO materializa
   nenhum job e a RUN TERMINA `failure` sem NENHUM job failed (comportamento do
-  runner, community discussion 27096). FIX no pipeline.yml: o `plan` emite
-  BOOLEANOS (`run-rust/run-front/run-spec/run-tag/run-release`) e os jobs ganham
+  runner, community discussion 27096). FIX no `plan` (hoje em `_validate.yml`): emite
+  BOOLEANOS (`run-rust/run-front/run-spec`) e os jobs ganham
   `if:`; matrizes dinâmicas só onde o plan garante ≥1 item; tag-release/release-*
   usam matriz FIXA de 1 item. Job filtrado = "skipped" (0 min), run verde.
 - **CAUSA-RAIZ da failure 36747668222 era DUPLA**: além do crash da matriz vazia,
@@ -437,7 +437,28 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
   usuário que sombreiam por append) e caminho em ESTILO POSIX (Windows `C:\...`
   no PATH quebra a lista POSIX no `:` do drive).
 
-## Infra CI (30/09 — security + release; HOJE tudo dentro do pipeline.yml único)
+## Infra CI (30/09 — security + release; REESTRUTURADO em 01/10 em 5 workflows)
+- **Reestruturação 01/10 (issues #31–#34)**: o `pipeline.yml` (805 linhas, tudo
+  junto) virou `ci.yml` (triggers por FUNÇÃO de branch + close-linked integrado)
+  → `_validate.yml` (reusable com plan/gate/spec/rust/front/e2e/visual/smoke) +
+  `release.yml` (publish por tag + version/rc/promote) → `_publish.yml` (reusable)
+  e `security.yml` (auditorias noturnas). `close-issues.yml` deixou de existir
+  (job `close-linked` do ci.yml). Composite actions novas: `playwright-setup` e
+  `tauri-linux-deps`. `develop` foi CRIADA (antes: só main; o fluxo GitFlow
+  inteiro — close-issues, rc→promote — estava morto sem ela).
+- **LIÇÃO 01/10 (publish × GITHUB_TOKEN)**: tag empurrada com GITHUB_TOKEN NÃO
+  dispara workflows (`on: push: tags`) — por isso rc/promote/version publicam no
+  MESMO run via reusable `_publish.yml`; o trigger de tag cobre só tag humana.
+- **LIÇÃO 01/10 (baselines visuais no CI)**: em CI o Playwright NÃO cria baseline
+  nova (`updateSnapshots` resolvido não é sinal confiável) — o skip do
+  `visual.spec.ts` usa `UPDATE_SNAPSHOTS=true` (env do ci.yml) + `--update-snapshots=all`
+  para gerar. Run 36935738610: 48 falhas por depender do default.
+- **LIÇÃO 01/10 (smoke Tauri)**: `e2e/tauri.smoke.mjs` subia 3 níveis e caía em
+  `packages/` → procurava `packages/packages/app/api/target/debug/gp100-ui`
+  (4 níveis = raiz do repo).
+- **LIÇÃO 01/10 (Dependabot × glib)**: `security_update_not_possible` recorrente
+  (Tauri 2 trava gtk-rs 0.18; fix do RUSTSEC-2024-0429 só em 0.20+) → `ignore`
+  documentado no dependabot.yml + alerta dispensado como risco aceito no SECURITY.md.
 - **security.yml (noturno 06:30 UTC)**: pytest + cargo audit (2 lockfiles) +
   pnpm audit --prod + outdated informativo. Achado = **exit code das steps**
   (outcome), NUNCA grep de log (grep pegou crash de toolchain como "achado"

@@ -25,10 +25,10 @@ plataformas sem nova decisão do owner registrada aqui.
 | Empacotamento | **Só Windows x64**: instalador NSIS (app) + `gp100-cli.exe` (gnu) | `packages/app/api/tauri.conf.json` → `bundle.targets: ["nsis"]`; jobs `release-cli`/`release-installer` em `windows-latest` |
 | Versão nos bundlers | **`tauri.conf.json` com `version: "0.1.0"` hardcode** — o release-gitflow bumpa só `Cargo.toml`×2 + `version.json` → instaladores sairiam com a versão errada | `tauri.conf.json` vs steps do `.github/workflows/release.yml` |
 | Assinatura | Nenhuma (Windows nem macOS) — nada de cert/entitlements/notarization | ausente no pipeline |
-| Smoke de instalação | Só smoke de **hardware** (`hardware-smoke`) e testes de cargo — nenhum teste de instalador em ambiente limpo | `pipeline.yml` |
+| Smoke de instalação | Só smoke de **hardware** (`hardware-smoke`) e testes de cargo — nenhum teste de instalador em ambiente limpo | `_publish.yml` (build da release) |
 | Auto-update | Inexistente (`tauri-plugin-updater` ausente, sem endpoint/keys) | `tauri.conf.json` sem `plugins` |
 | Rollback | Manual e sem runbook | — |
-| Base que AJUDA | Matriz 3-OS já existe (windows-latest, ubuntu-24.04, macos-26); tags `v*` disparam release; guard de prerelease p/ `-rc`; cadeia rc→promote **simulada no gate** (`scripts/simulate_release.py`) | `pipeline.yml`, `release.yml` |
+| Base que AJUDA | Matriz 3-OS já existe (windows-latest, ubuntu-24.04, macos-26); tags `v*` disparam release; guard de prerelease p/ `-rc`; cadeia rc→promote **simulada no gate** (`scripts/simulate_release.py`) | `_validate.yml`, `release.yml`/`_publish.yml` |
 
 **Lacunas → 5 épicos, 22 issues.** Dependências críticas: assinatura (EPIC-03)
 é o que torna o download direto viável (sem ela, SmartScreen/Gatekeeper
@@ -342,7 +342,7 @@ encaixar nessa cadeia (rc publica binários de teste; promote publica os finais)
 - **ci_cd_workflow_spec:**
   - `trigger_event`: push de tag `v*`
   - `runner_matrix`: ubuntu-22.04, ubuntu-24.04, macos-26, windows-latest
-  - `steps_to_execute`: ["refatorar pipeline.yml", "smoke gates antes de publish", "summary com artefatos por plataforma"]
+  - `steps_to_execute`: ["consolidar release.yml + _publish.yml", "smoke gates antes de publish", "summary com artefatos por plataforma"]
   - `expected_artifacts`: ["todos os binários na MESMA release"]
 - **definition_of_done:**
   - [ ] Tag de rc gera release com todos os formatos marcados prerelease

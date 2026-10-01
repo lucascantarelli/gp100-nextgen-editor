@@ -1,0 +1,12 @@
+name: playwright-setup
+description: >
+  Chromium do Playwright + deps de sistema (Linux). Steps repetidos pelos
+  jobs e2e e e2e-visual do _validate.yml — um lugar por regra. Pré-requisito:
+  setup-node-pnpm já rodou (pnpm disponível).
+runs:
+  using: composite
+  steps:
+    - name: Chromium do Playwright (+ deps de sistema)
+      shell: bash
+      working-directory: packages/app/ui
+      run: pnpm exec playwright install --with-deps chromium

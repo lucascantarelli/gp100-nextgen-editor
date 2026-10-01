@@ -1,42 +1,56 @@
 # ═══════════════════════════════════════════════════════════════════════════
-# RELEASE (GitFlow) — cadeia de Release Candidates rc1→rcN→tag final.
+# RELEASE — máquina de release em UM arquivo (GitFlow).
 #
-# ▶ action=rc      A partir de develop: cria (ou reutiliza) a branch
-#                  release/x.y.z, aplica a versão x.y.z-rc.N nos manifests
-#                  (Cargo.toml ×2 + version.json), commita, etiqueta
-#                  vX.Y.Z-rc.N e empurra — o PIPELINE (push de tag v*) roda
-#                  a matriz cheia e publica o PRERELEASE com artefatos.
-#                  Correções entre rcs: PR para develop e rode rc de novo
-#                  (o N incrementa sozinho).
-# ▶ action=promote Toma a rc mais recente (ou a do input `version`), remove
-#                  o sufixo -rc.N, etiqueta vX.Y.Z FINAL (pipeline publica a
-#                  release real), faz merge em main e backport em develop,
-#                  e apaga a release branch. GitFlow fechado.
+# FUNÇÕES (input `action`):
+# ▶ version  (play)  valida (reusable _validate) → calcula o semver pelos
+#                    conventional commits desde a última tag (feat→minor,
+#                    fix/perf/revert/deps→patch, breaking→major), aplica nos
+#                    manifests, commita, corta a tag vX.Y.Z e PUBLICA.
+#                    Só corta com bump pendente; conferir a branch escolhida
+#                    no dispatch (rode de `main` para release).
+# ▶ rc       A partir de develop: cria (ou reutiliza) release/x.y.z, aplica
+#            x.y.z-rc.N, commita, etiqueta vX.Y.Z-rc.N e publica como
+#            PRERELEASE. Correções entre rcs: PR em develop + rc de novo.
+# ▶ promote  Toma a rc mais recente (ou a do input), remove o -rc.N, etiqueta
+#            vX.Y.Z FINAL (publica), merge --no-ff em main, backport em
+#            develop e apaga a release branch. Idempotente (tag existente
+#            recusa). Conflito de merge = falha explícita (nada parcial).
 #
-# Convenção de versão: semver dos conventional commits (action version-bump).
-# Guarde com o manual: gate = pipeline verde; promote NUNCA roda sozinho.
+# PUBLISH POR PUSH DE TAG (v*): o job `validate` roda e `publish-tag` publica.
+# ⚠️ LIÇÃO (auditoria 01/10): tag empurrada com GITHUB_TOKEN NÃO dispara
+# workflows — por isso rc/promote/version publicam NO MESMO RUN, chamando o
+# reusable `_publish.yml`; o trigger de tag cobre só tags criadas por HUMANO.
+#
+# Convenção: gate = validação verde (reusable). promote NUNCA roda sozinho.
 # ═══════════════════════════════════════════════════════════════════════════
 
-name: release-gitflow
+name: release
 
 on:
+  push:
+    tags: ["v*"]
   workflow_dispatch:
     inputs:
       action:
-        description: "rc = cortar/avançar release candidate · promote = rc → tag final + merge main/develop"
+        description: "version = cortar tag pelo semver (play) · rc = release candidate · promote = rc → tag final"
         type: choice
-        options: [rc, promote]
+        options: [version, rc, promote]
         required: true
+        default: version
       version:
-        description: "(rc) versão alvo sem o v, ex.: 0.2.0 — vazio = calcular pelos conventional commits (exige bump pendente)"
+        description: "(rc/promote) versão alvo sem o v, ex.: 0.2.0 — vazio = calcular pelos conventional commits"
+        type: string
+        required: false
+      publish-tag:
+        description: "(opcional) publicar uma tag v* EXISTENTE (emergência) — roda a validação antes"
         type: string
         required: false
 
 permissions:
-  contents: write # branches/tags/manifests + push
+  contents: write # branches/tags/manifests + GitHub Release
 
 concurrency:
-  group: release-gitflow
+  group: release-${{ github.ref }}
   cancel-in-progress: false # release é sequencial por definição
 
 env:
@@ -44,11 +58,83 @@ env:
   BOT_EMAIL: github-actions[bot]@users.noreply.github.com
 
 jobs:
+  # ── GATE: tag só publica com a régua de CI verde (mesmo reusable do ci.yml) ──
+  validate:
+    name: Gate — validação antes de publicar
+    if: startsWith(github.ref, 'refs/tags/v') || inputs.publish-tag != ''
+    uses: ./.github/workflows/_validate.yml
+
+  # ── PUBLISH: tag já criada (push humano ou input publish-tag) ──
+  publish-tag:
+    name: Publish — tag existente
+    needs: validate
+    if: startsWith(github.ref, 'refs/tags/v') || inputs.publish-tag != ''
+    uses: ./.github/workflows/_publish.yml
+    with:
+      tag: ${{ github.ref_type == 'tag' && github.ref_name || inputs.publish-tag }}
+      prerelease: ${{ contains(github.ref_name, '-rc') || contains(inputs.publish-tag, '-rc') }}
+
+  # ── VERSION (play): corta a tag pelo semver e publica ──
+  version:
+    name: version — cortar tag pelo semver (play)
+    if: inputs.action == 'version'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    outputs:
+      tag: ${{ steps.cut.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # git describe + tags
+
+      - name: Buscar tags
+        run: git fetch --tags --force
+
+      - name: Aplicar versão (determinística sobre o mesmo sha)
+        id: apply
+        uses: ./.github/actions/version-bump
+
+      - name: Criar commit + tag
+        id: cut
+        env:
+          NEXT: ${{ steps.apply.outputs.next-version }}
+          PENDING: ${{ steps.apply.outputs.release }}
+        run: |
+          if [ "$PENDING" != "true" ]; then
+            echo "::error::sem bump pendente (nenhum commit relevante desde a última tag) — nada a cortar"
+            exit 1
+          fi
+          TAG="v$NEXT"
+          git config user.name "$BOT_NAME"
+          git config user.email "$BOT_EMAIL"
+          # Só commita se a versão divergir dos manifests.
+          git add Cargo.toml packages/app/api/Cargo.toml version.json
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(release): $TAG (bump automático por conventional commits)"
+            git push origin HEAD
+          fi
+          git tag --force "$TAG"
+          git push --force origin "$TAG"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "tag **$TAG** criada (play por ${{ github.actor }})" >> "$GITHUB_STEP_SUMMARY"
+
+  publish-version:
+    name: Publish — tag do play
+    needs: version
+    if: inputs.action == 'version'
+    uses: ./.github/workflows/_publish.yml
+    with:
+      tag: ${{ needs.version.outputs.tag }}
+      prerelease: false
+
+  # ── RC: corta/avança o release candidate ──
   rc:
     name: rc — cortar/avançar release candidate
     if: inputs.action == 'rc'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    outputs:
+      tag: ${{ steps.prep.outputs.tag }}
     steps:
       - name: Checkout develop (histórico completo p/ semver + tags)
         uses: actions/checkout@v7
@@ -114,6 +200,7 @@ jobs:
             echo "branch=$BR"
             echo "rc=$N"
             echo "full=$NEXT-rc.$N"
+            echo "tag=v$NEXT-rc.$N"
           } >> "$GITHUB_OUTPUT"
 
       - name: Aplicar versão rc nos manifests
@@ -130,10 +217,10 @@ jobs:
           done
           echo "manifests em $FULL"
 
-      - name: Commit + tag + push (pipeline publica o PRERELEASE)
+      - name: Commit + tag + push (publish publica o PRERELEASE no MESMO run)
         env:
           BRANCH: ${{ steps.prep.outputs.branch }}
-          TAG: v${{ steps.prep.outputs.full }}
+          TAG: ${{ steps.prep.outputs.tag }}
         run: |
           set -euo pipefail
           git config user.name "$BOT_NAME"
@@ -151,11 +238,23 @@ jobs:
           echo "| branch | \`$BRANCH\` |" >> "$GITHUB_STEP_SUMMARY"
           echo "| próximo passo | testar o prerelease; correções em develop + \`action=rc\`; pronto? \`action=promote\` |" >> "$GITHUB_STEP_SUMMARY"
 
+  publish-rc:
+    name: Publish — release candidate
+    needs: rc
+    if: inputs.action == 'rc'
+    uses: ./.github/workflows/_publish.yml
+    with:
+      tag: ${{ needs.rc.outputs.tag }}
+      prerelease: true
+
+  # ── PROMOTE: rc → tag final (main + develop) ──
   promote:
     name: promote — rc → tag final (main + develop)
     if: inputs.action == 'promote'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    outputs:
+      tag: ${{ steps.cut.outputs.tag }}
     steps:
       - name: Checkout (histórico completo p/ localizar rc e branches)
         uses: actions/checkout@v7
@@ -213,7 +312,8 @@ jobs:
             fi
           done
 
-      - name: Commit + tag final + push (pipeline publica a release)
+      - name: Commit + tag final + push (publish publica a release no MESMO run)
+        id: cut
         env:
           BRANCH: ${{ steps.rc.outputs.branch }}
           TAG: v${{ steps.rc.outputs.version }}
@@ -227,11 +327,12 @@ jobs:
           git push origin "HEAD:refs/heads/$BRANCH"
           git tag "$TAG"
           git push origin "$TAG"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
 
       - name: Merge release → main
         env:
           BRANCH: ${{ steps.rc.outputs.branch }}
-          TAG: v${{ steps.rc.outputs.version }}
+          TAG: ${{ steps.cut.outputs.tag }}
         run: |
           set -euo pipefail
           git config user.name "$BOT_NAME"
@@ -249,7 +350,7 @@ jobs:
       - name: Backport release → develop + apagar branch
         env:
           BRANCH: ${{ steps.rc.outputs.branch }}
-          TAG: v${{ steps.rc.outputs.version }}
+          TAG: ${{ steps.cut.outputs.tag }}
         run: |
           set -euo pipefail
           git config user.name "$BOT_NAME"
@@ -267,7 +368,16 @@ jobs:
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "| | |" >> "$GITHUB_STEP_SUMMARY"
           echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
-          echo "| tag final | \`$TAG\` (pipeline publica a release com artefatos) |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| tag final | \`$TAG\` (publish roda no mesmo run) |" >> "$GITHUB_STEP_SUMMARY"
           echo "| main | merge \`--no-ff\` da release branch |" >> "$GITHUB_STEP_SUMMARY"
           echo "| develop | backport da versão final |" >> "$GITHUB_STEP_SUMMARY"
           echo "| branch | \`$BRANCH\` apagada (ciclo GitFlow fechado) |" >> "$GITHUB_STEP_SUMMARY"
+
+  publish-promote:
+    name: Publish — release final
+    needs: promote
+    if: inputs.action == 'promote'
+    uses: ./.github/workflows/_publish.yml
+    with:
+      tag: ${{ needs.promote.outputs.tag }}
+      prerelease: false

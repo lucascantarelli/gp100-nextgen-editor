@@ -172,9 +172,10 @@ REC→PLAY, digitação não dispara, precedência do Esc).
 5. Matriz de cobertura do manual: `docs/MANUAL_COVERAGE.md` (33 ✅ · 5 🟡 · 5 🔴 —
    nada silencioso; 🔴 = Fase 2/3 documentadas).
 
-**CI (pipeline.yml):** job `e2e` = setup pnpm → `playwright install --with-deps
+**CI (`_validate.yml`):** job `e2e` = setup pnpm → `playwright install --with-deps
 chromium` → `playwright test` (webServer sobe o `pnpm dev` na :5173);
-`tag-release` agora exige `e2e` no needs — tag não corta com casca quebrada.
+o publish (`release.yml`) só roda depois do `validate` completo — tag não
+corta com casca quebrada.
 
 ---
 
@@ -219,9 +220,9 @@ oficial Tauri v2 (webkit2gtk-driver + xvfb + WEBKIT_DISABLE_DMABUF_RENDERER).
 | Item | Estado |
 |---|---|
 | 9 baselines win32 geradas e estáveis | ✅ (rodada 30/09) |
-| job e2e-visual (Ubuntu) + input update-snapshots | ✅ pipeline.yml |
+| job e2e-visual (Ubuntu) + input update-snapshots | ✅ _validate.yml |
 | baselines linux commitadas | 🔜 1º run do input (artefato → commit) |
-| job e2e-tauri (smoke webview real) | ✅ pipeline.yml (não é gate de release ainda) |
+| job e2e-tauri (smoke webview real) | ✅ _validate.yml (gate de release via validate) |
 
 ---
 

@@ -312,12 +312,13 @@ FASE 3 — CONTO E POLIMENTO
 
 ### 7.5 CI: e2e da casca contra o `pnpm dev` + cobertura do manual (30/09)
 
-- **Job `e2e` no pipeline.yml** (ubuntu, Chromium via `playwright install
+- **Job `e2e` do `_validate.yml`** (ubuntu, Chromium via `playwright install
   --with-deps`): roda a suíte completa contra o dev server que o próprio
   `playwright.config.ts` sobe (`webServer` + strictPort + reuseExistingServer).
   Mesmo filtro de caminho do job front (mudança em `packages/app/ui/`).
-- **Gate de release:** `tag-release` (e os 2 jobs de release) têm `needs:
-  [plan, gate, spec, rust, front, e2e]` — **tag só sai com o e2e verde**.
+- **Gate de release:** o publish (`release.yml` → `_publish.yml`) só roda após
+  o reusable `_validate.yml` COMPLETO (gate+spec+matrizes+e2e+visual+smoke) —
+  **tag só sai com a casca verde**.
 - **Suíte total:** 14 e2e ✅ (R1–R6 + drum + looper + 3 atalhos + 3 responsivos)
   · 23 unit ✅. Asserts de alinhamento portados p/ `e2e/_helpers.ts`
   (`measureShell`/`expectShellAligned`) — alinhamento de componentes é testado

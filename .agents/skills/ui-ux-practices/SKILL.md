@@ -7,8 +7,9 @@ metadata:
 
 # Boas práticas UI/UX (ui/ — Tauri 2 + React/TS)
 
-Use ao escrever ou revisar QUALQUER código de front do projeto (issues M1.x do
-ROADMAP/UI_PLAN). Complementa a skill `rust-practices` (gates do lado Rust) e os
+Use ao escrever ou revisar QUALQUER código de front do projeto (issues do
+GitHub, milestone `v1.0.0`; fases UI no ROADMAP/UI_PLAN — branch/PR pela skill
+`github-flow`). Complementa a skill `rust-practices` (gates do lado Rust) e os
 ADRs de `docs/DECISIONS.md`. Fontes: [docs/UI_DESIGN.md](../../docs/UI_DESIGN.md)
 (tokens — FONTE ÚNICA de valores), [docs/UI_PLAN.md](../../docs/UI_PLAN.md)
 (arquitetura/issues) e as práticas citadas em cada seção (WCAG 2.2, Fitts,
@@ -67,10 +68,11 @@ Miller, escala 8pt/Fibonacci).
 ```
 design/       tokens.ts + design.css (tokens; nada de UI aqui)
 ipc/          invoke + tipos TS por domínio (única porta p/ o backend)
-components/   primitivos (Button, Knob, Panel…) — acessíveis por padrão
-features/      telas por domínio (device, library, chain, ir)
-hooks/        useDevice, useTheme… (estado de sessão; Zustand se crescer)
-locales/      pt-BR (base) + en/es/zh (UI_PLAN M1.5) — NENHUMA string crua
+components/   painéis e primitivos (TopBar, Pedalboard, Pedal, Knob, TunerPanel…)
+hooks/        useBoot, useGlobalShortcuts, usePushLog (estado de sessão)
+i18n/         messages.ts — NENHUMA string crua no JSX (pt-BR base; i18n = #30)
+tuner/        motor do afinador (autocorrelação) — separado da UI
+tests/        vitest (jsdom) · e2e/ spec do Playwright (roda do repo, na CI)
 ```
 
 - Componentes **sem lógica de negócio**: recebem dados prontos e callbacks.
@@ -80,18 +82,21 @@ locales/      pt-BR (base) + en/es/zh (UI_PLAN M1.5) — NENHUMA string crua
 ## Gates de qualidade (toda mudança de front passa)
 
 ```bash
-cd ui
-pnpm install
-pnpm lint        # eslint (inclui regra anti-invoke-espalhado e a11y)
-pnpm test        # vitest: tokens, a11y de primitivos, estados de tela
-pnpm build       # tsc -b && vite build (type-check + bundle)
+cd packages/app/ui
+pnpm install --frozen-lockfile
+pnpm tsc --noEmit  # type-check
+pnpm lint          # eslint (inclui regra anti-invoke-espalhado e a11y)
+pnpm test          # vitest: tokens, a11y de primitivos, estados de tela
+pnpm test:coverage # GATE 85% statements/functions/lines (vite.config.ts)
+pnpm build         # vite build (bundle; tsc já rodou acima)
 ```
 
 - **A11y é gate**: primitivos têm testes de papel/label/foco; regressão de
   contraste/foco = falha de CI, não sugestão.
-- Rust lado Tauri (`src-tauri/`): mesmos gates da `rust-practices` (fmt,
-  clippy -D warnings, testes).
-- CI roda os dois mundos (jobs separados; ver `.github/workflows/ci.yml`).
+- Rust lado Tauri (`packages/app/api/`, crate `gp100-ui` — ADR-7): mesmos
+  gates da `rust-practices` (fmt, clippy -D warnings, testes).
+- CI roda os dois mundos no reusable `.github/workflows/_validate.yml`
+  (job `front` 3-OS + job `rust`/ui-rust; e2e/e2e-visual/e2e-tauri por cima).
 
 ## Armadilhas específicas de Tauri 2 desktop
 

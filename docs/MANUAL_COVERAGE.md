@@ -93,7 +93,7 @@
 | X2 | Responsividade 1440/1280/1024 (9→3×3; biblioteca empilha; looper auto-fit) | ✅ | 3 e2e (asserts de layout) |
 | X3 | Boot com barra de progresso + pushes (protocolo §13.10) | ✅ | R5 e2e |
 | X4 | Alvos ≥32px, foco visível, reduced-motion | ✅ | R6 e2e |
-| X5 | e2e na CI contra `pnpm dev` (Chromium) — gate de release | ✅ pipeline.yml job `e2e` | CI |
+| X5 | e2e na CI contra `pnpm dev` (Chromium) — gate de release | ✅ _validate.yml job `e2e` | CI |
 | X6 | Regressão estética (toHaveScreenshot, 9 baselines por viewport/plataforma) | ✅ | e2e-visual (CI) + visual.spec |
 | X7 | Smoke do shell Tauri REAL no webview (tauri-driver, Linux) | ✅ | e2e-tauri (CI) |
 

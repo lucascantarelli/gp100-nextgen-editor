@@ -19,9 +19,9 @@
 4. **Gates locais** da sua área (§4) — o PR nasce verde.
 5. **PR** para `develop` com o [template](../.github/PULL_REQUEST_TEMPLATE.md),
    tabelas preenchidas e `Closes #N` no **corpo** (§5).
-6. **CI verde + merge** (squash) → o workflow
-   [fecha-issues-develop](../.github/workflows/close-issues.yml) fecha a issue
-   com comentário de rastreabilidade.
+6. **CI verde + merge** (squash) → o job `close-linked` do
+   [ci.yml](../.github/workflows/ci.yml) fecha a issue com comentário de
+   rastreabilidade.
 
 ---
 
@@ -40,9 +40,9 @@
 - **Epic não fecha pelo PR de uma filha.** Filhas nunca usam `Closes #N`
   apontando para o epic — referencie com menção simples `#N`. O epic fecha
   manualmente quando o checklist completa (ou vire o vínculo em menção).
-- **Label `achados-security`**: issue automática do job de security noturno
-  (`pipeline.yml`). Prioridade máxima; o workflow de fechamento **nunca** a
-  fecha — só manualmente, com a correção provada no PR.
+- **Label `achados-security`**: issue automática do
+  [security.yml](../.github/workflows/security.yml) noturno. Prioridade máxima;
+  o `close-linked` **nunca** a fecha — só manualmente, com a correção provada.
 - **Label `ci-lite`** no PR de WIP: a matriz da CI roda só o Windows (barato);
   tire a label para a revisão final.
 - **Vínculo de fechamento vive no CORPO do PR** (não no título, não em
@@ -64,9 +64,10 @@
   (rastreabilidade que sobrevive fora do GitHub).
 - ⚠️ **Por que o PR aponta para develop e a issue ainda fecha:** o GitHub
   nativo só fecha por `Closes #N` em merge na branch **default** (`main`).
-  No GitFlow a integração acontece em `develop` — o workflow
-  [fecha-issues-develop](../.github/workflows/close-issues.yml) cobre essa
-  lacuna via API (§5).
+  No GitFlow a integração acontece em `develop` — o job `close-linked`
+  ([ci.yml](../.github/workflows/ci.yml)) cobre essa lacuna via API (§5).
+- **Push em `feature/*`/`fix/*`/`chore/*` NÃO roda CI** (decisão de custo de
+  01/10): valide localmente e abra o PR — o CI dispara no PR e na integração.
 
 ```bash
 git checkout develop && git pull
@@ -121,11 +122,23 @@ tabela **antes → depois** · tabela de **gates executados** (marque o que rodo
 · ambiente verificado · R1–R4 · política de conteúdo (nenhum material
 proprietário do device).
 
-**CI** ([pipeline.yml](../.github/workflows/pipeline.yml)): gate (fmt +
-conventional commits) · spec (se `analysis/` mudou) · matrizes Rust/front
-3-OS **filtradas por caminhos** · e2e Playwright · e2e visual (baselines
-por plataforma) · smoke do shell Tauri real. Docs-only não sobe
-Rust/front (jobs aparecem como skipped, sem custo).
+**CI — 5 workflows com UMA função cada** (reestruturado em 01/10; issues #31–#34):
+
+| Arquivo | Função | Dispara em |
+|---|---|---|
+| [ci.yml](../.github/workflows/ci.yml) | triggers + `close-linked` | PR para develop/main/release · push develop/main/release/hotfix |
+| [_validate.yml](../.github/workflows/_validate.yml) | a régua completa (reusable) | chamado pelo ci.yml e pelo release.yml |
+| [release.yml](../.github/workflows/release.yml) | version/rc/promote + publish | tag `v*` · dispatch manual |
+| [_publish.yml](../.github/workflows/_publish.yml) | CLI + instalador (reusable) | chamado pelo release.yml |
+| [security.yml](../.github/workflows/security.yml) | audits RustSec/npm + issue ACHADOS | agendado (06:30 UTC) · dispatch |
+
+Dentro do `_validate`: gate (fmt + conventional commits) · spec (se
+`analysis/` mudou) · matrizes Rust/front 3-OS **filtradas por caminhos** ·
+e2e Playwright · e2e visual (baselines por plataforma) · smoke do shell
+Tauri real. Docs-only não sobe Rust/front (jobs aparecem como skipped, sem
+custo). **Push em `feature/*`/`fix/*`/`chore/*` não roda CI** — a validação
+acontece no PR (econômico de propósito). O publish depende do `validate`
+completo: tag não sai com a casca quebrada.
 
 **Merge** (squash): subject conventional limpo, base `develop`, CI verde
 (visual divergente só com decisão de baseline documentada).
@@ -152,11 +165,14 @@ Rust/front (jobs aparecem como skipped, sem custo).
 
 ## 6. Releases — cadeia rc1→rcN→tag final
 
-- **Push de tag `v*`** → pipeline roda a matriz cheia e publica a GitHub
+- **Push de tag `v*`** → `release.yml` valida (reusable) e publica a GitHub
   Release com CLI de campo (Windows/gnu) + instalador NSIS do app (MSVC).
-- **▶ Play (workflow_dispatch no `pipeline.yml`)**: valida tudo, calcula o
-  semver pelos conventional commits desde a última tag e só corta/ publica
-  se houver bump pendente (ou publica uma tag existente via input `tag`).
+  (Tags criadas pelo `rc`/`promote` não disparam workflow — o publish roda no
+  MESMO run que cortou a tag.)
+- **▶ Play (`release.yml`, `action=version`)**: valida tudo (reusable),
+  calcula o semver pelos conventional commits desde a última tag e só
+  corta/publica com bump pendente (ou publique uma tag existente via input
+  `publish-tag`).
 - **Cadeia de Release Candidates** ([release-gitflow](../.github/workflows/release.yml),
   `workflow_dispatch`):
   1. **`action=rc`** — corta `release/x.y.z` de develop (ou reutiliza a
