@@ -423,7 +423,12 @@ jobs:
         run: pnpm exec playwright install --with-deps chromium
       - name: Suíte visual (compara baselines; gera com update-snapshots)
         working-directory: packages/app/ui
-        run: pnpm exec playwright test visual.spec.ts ${{ github.event.inputs.update-snapshots == 'true' && '--update-snapshots' || '' }}
+        # UPDATE_SNAPSHOTS destrava o skip de baseline ausente no spec (o CI
+        # NÃO cria baseline nova por default — 48 falhas na run 36935738610);
+        # `=all` porque o input existe justamente p/ gerar o que falta.
+        env:
+          UPDATE_SNAPSHOTS: ${{ github.event.inputs.update-snapshots }}
+        run: pnpm exec playwright test visual.spec.ts ${{ github.event.inputs.update-snapshots == 'true' && '--update-snapshots=all' || '' }}
       - name: Baselines/diffs como artefato (inspeção e commit)
         if: always()
         uses: actions/upload-artifact@v7

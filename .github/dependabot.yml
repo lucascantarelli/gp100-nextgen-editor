@@ -1,7 +1,7 @@
 # DEPENDABOT — PRs automáticos de upgrade de dependências.
 #
-# Complementa o security.yml noturno: a varredura DETETA (cargo/pnpm audit
-# → issue ACHADOS), o Dependabot REMEDIA (PR de upgrade pronto p/ review).
+# Complementa o job `security` noturno do pipeline.yml: a varredura DETETA
+# (cargo/pnpm audit → issue ACHADOS), o Dependabot REMEDIA (PR pronto p/ review).
 # Upgrades continuam sendo decisão do owner (A-1/A-3 foram manuais); aqui
 # só muda a MECÂNICA: o PR abre pronto, com CI disparada (pull_request,
 # 14 jobs, cache quente) e o security noturno revalida os lockfiles.
@@ -94,6 +94,14 @@ updates:
       day: monday
       time: "09:00"
     open-pull-requests-limit: 5
+    # glib: o Tauri 2 (gtk-rs) trava a série 0.18 e o fix do RUSTSEC-2024-0429
+    # (unsound, alerta #1 / GHSA-wrw7-89jp-8q8g) só existe em 0.20+ — SEM
+    # upgrade possível enquanto o Tauri não migrar de gtk-rs. Sem o ignore, o
+    # Dependabot falha TODA semana com `security_update_not_possible` (run
+    # 36933732841) e o alerta fica aberto sem remédio. Risco aceito e
+    # documentado; reavaliar junto com o bump de gtk-rs do Tauri.
+    ignore:
+      - dependency-name: "glib"
     labels:
       - dependencies
       - rust

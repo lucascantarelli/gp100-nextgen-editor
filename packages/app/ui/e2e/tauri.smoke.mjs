@@ -19,7 +19,11 @@ import { fileURLToPath } from "node:url";
 import { Builder, By, Capabilities, until } from "selenium-webdriver";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const repoRoot = path.resolve(here, "..", "..", "..");
+/* e2e/ → ui/ → app/ → packages/ → RAIZ do repo (4 níveis).
+   Com 3 níveis o repoRoot caía em `packages/` e o candidato virava
+   `packages/packages/app/api/...` — o smoke falhava sempre no CI
+   (regressão achada na auditoria de 01/10). */
+const repoRoot = path.resolve(here, "..", "..", "..", "..");
 
 /** Resolve o binário do shell (env APP_PATH vence; senão, paths padrão). */
 function resolveAppBinary() {

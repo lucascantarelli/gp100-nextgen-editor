@@ -8,9 +8,10 @@
  *  - baseline POR PLATAFORMA (fontes divergem entre Windows/Linux — o CI
  *    compara com as baselines `linux`, o dev local com as `win32`);
  *  - animações congeladas + tolerância 1% (config do playwright.config);
- *  - SEM baseline: o teste é SKIP (não quebra a primeira execução); gere com
- *    `pnpm exec playwright test visual.spec.ts --update-snapshots` e commite
- *    os PNGs — no CI há o input `update-snapshots` do workflow.
+ *  - SEM baseline: local CRIA (dev-friendly) e no CI o teste é SKIP — gerar
+ *    no CI só pelo input `update-snapshots` do workflow, que liga
+ *    `UPDATE_SNAPSHOTS=true` + `--update-snapshots=all` (baixe o artefato e
+ *    commite os PNGs); ver skipIfBaselineMissing para a semântica completa.
  *
  * Refactor POM (V-7): seletores via pages/_pages.ts e a falha simulada pelo
  * shell.failDevice(). RESTAURADO (comportamento documentado no cabeçalho,
@@ -81,17 +82,31 @@ const ERROR_STATES = [
   },
 ] as const;
 
-/** skip quando NÃO há baseline e a execução não está atualizando.
- *  O sinal correto é `config.updateSnapshots` (o Playwright força `none` no
- *  CI e `missing` localmente) — depender de `process.env.CI` deixava os
- *  baselines ausentes falharem no job principal `e2e`, que roda TODOS os
- *  specs. Semântica: local cria (missing), CI compara ou SKIPa, e o input
- *  `update-snapshots` do workflow gera as baselines linux. */
+/** Estamos no CI? (GitHub Actions define CI=true; toHaveScreenshot NÃO cria
+ *  baseline nova automaticamente lá — o teste falha com "snapshot doesn't
+ *  exist, writing actual"). */
+const IS_CI = !!process.env.CI;
+
+/** Atualização EXPLÍCITA de baselines (o workflow liga via input):
+ *  env `UPDATE_SNAPSHOTS=true` (setada no step do pipeline) OU a flag de CLI
+ *  `--update-snapshots`/`=all` (o override de CLI vence o default de CI).
+ *  NUNCA depender do default de `config.updateSnapshots`: no CI o Playwright
+ *  só aceita a flag explícita, e o default `missing` local é indistinguível
+ *  de "quero gerar" (bug real da run 36935738610: 48 visuais falharam). */
+function isUpdatingSnapshots(): boolean {
+  if (process.env.UPDATE_SNAPSHOTS === "true") return true;
+  const mode = test.info().config.updateSnapshots;
+  return mode === "all" || mode === "changed";
+}
+
+/** skip quando NÃO há baseline, estamos no CI e ninguém pediu para gerar.
+ *  Semântica: local cria (dev-friendly); CI compara quando existe e SKIPa
+ *  quando não existe; o input `update-snapshots` do workflow gera as
+ *  baselines linux que faltam (artefato → commit). */
 async function skipIfBaselineMissing(name: string): Promise<void> {
-  const updating = test.info().config.updateSnapshots !== "none";
   test.skip(
-    !updating && !existsSync(baselinePath(name)),
-    "baseline ausente — gere com --update-snapshots (input do workflow) e commite",
+    IS_CI && !isUpdatingSnapshots() && !existsSync(baselinePath(name)),
+    "baseline ausente no CI — gere com o input update-snapshots e commite o PNG",
   );
 }
 
@@ -106,10 +121,10 @@ for (const [w, h] of VIEWPORTS) {
   for (const p of PANELS) {
     test(`R-VISUAL ${p.key} ${w}×${h}`, async ({ page }) => {
       const name = `${p.key}-${w}x${h}`;
-      // Semântica (updateSnapshots default = "missing"; CI trava a escrita):
+      // Semântica em skipIfBaselineMissing:
       //  - local sem baseline: CRIA e passa (developer-friendly);
       //  - CI sem baseline: SKIP (não falha a primeira execução);
-      //  - CI com --update-snapshots (input do workflow): escreve e passa;
+      //  - CI com input update-snapshots: escreve (=all) e passa;
       //  - com baseline: COMPARA (é a regressão estética de fato).
       await skipIfBaselineMissing(name);
 

@@ -1,6 +1,6 @@
 # Política de segurança
 
-> **Status:** ✅ atual · **Última revisão:** 2026-09-29
+> **Status:** ✅ atual · **Última revisão:** 2026-10-01
 
 ## Reportando uma vulnerabilidade
 
@@ -30,6 +30,22 @@
 4. Secret scanning/push protection do GitHub: manter habilitados quando
    disponíveis para o repo; bloqueios de push por secret **não** devem ser
    contornados com `--no-verify`/bypass.
+
+## Advisories tolerados (risco aceito, com gatilho de reavaliação)
+
+A varredura noturna (`cargo audit` ×2 + `pnpm audit --prod`) trata como
+**achado** qualquer exit ≠ 0. Advisories de categoria `unsound`/`unmaintained`
+não falham o `cargo audit` por padrão, mas continuam visíveis — a lista abaixo
+é o registro explícito do que foi avaliado e aceito:
+
+| Advisory | Crate | Motivo da tolerância | Reavaliar quando |
+|---|---|---|---|
+| RUSTSEC-2024-0429 (unsound, alerta Dependabot #1) | `glib` 0.18.x | o Tauri 2 (gtk-rs) trava a série 0.18; o fix só existe em 0.20+ — **não há upgrade possível** (Dependabot falha com `security_update_not_possible`) | o Tauri migrar de gtk-rs (bump ≥ 0.20) |
+| RUSTSEC-2024-0370 (unmaintained) | `proc-macro-error` | dependência transitiva de macros de terceiros; sem substituto no lockfile | o crate upstream trocar de macro |
+
+Regra: **novo** advisory (mesmo `unsound`/`unmaintained`) que apareça na
+varredura abre a issue ACHADOS e é avaliado — tolerar é decisão registrada
+aqui, nunca silêncio.
 
 ## Versões suportadas
 
