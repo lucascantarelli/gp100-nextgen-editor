@@ -159,4 +159,35 @@ describe("useBoot — máquina de estados do boot", () => {
     expect(captured!.progress).toBeNull();
     expect(captured!.stage).toBeNull();
   });
+
+  it("boot em voo + unmount: promessa tardia NÃO atualiza estado (guarda alive)", async () => {
+    /* Regressão da run 36937323423 (ui-rust macOS): o deviceBoot resolveu
+     * depois do ambiente de teste morrer → setState → o React resolve a
+     * prioridade do update e acessa `window` já destruído →
+     * "ReferenceError: window is not defined" (unhandled error que derruba
+     * a suíte). Aqui o caminho é exercitado: desmontamos com o boot em voo
+     * e resolvemos a promessa depois — sem a guarda, o setState agendaria
+     * update em componente morto. */
+    let resolveBoot!: (r: BootReport) => void;
+    mocks.deviceBoot.mockImplementationOnce(
+      () =>
+        new Promise<BootReport>((res) => {
+          resolveBoot = res;
+        }),
+    );
+
+    const { root } = mountProbe();
+    expect(captured!.state.kind).toBe("loading");
+
+    act(() => root.unmount());
+    captured = null;
+    await act(async () => {
+      resolveBoot({ transactions: 2297 } satisfies BootReport);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    // O hook não estourou e não há novo render (o probe foi desmontado).
+    expect(mocks.deviceBoot).toHaveBeenCalledTimes(1);
+  });
 });

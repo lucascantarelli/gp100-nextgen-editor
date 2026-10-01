@@ -84,8 +84,10 @@ try {
   capabilities.setBrowserName("wry");
   driver = await new Builder().withCapabilities(capabilities).usingServer("http://127.0.0.1:4444/").build();
 
-  // 1. casca bootou no webview: banner com a identidade do app
-  await driver.wait(until.elementLocated(By.css('[role="banner"]')), 20_000);
+  // 1. casca bootou no webview: banner com a identidade do app.
+  // 60s: o webview do CI roda em SOFTWARE RENDERING (xvfb + DRI3 indisponível)
+  // e o primeiro paint pode passar de 20s (run 36937323423 estourou o antigo).
+  await driver.wait(until.elementLocated(By.css('[role="banner"]')), 60_000);
   const banner = await driver.findElement(By.css('[role="banner"]')).getText();
   if (!banner.includes("GP-100 NextGen")) throw new Error(`banner inesperado: ${banner}`);
 
@@ -110,6 +112,18 @@ try {
   console.log("✅ SMOKE TAURI: casca bootou no webview e renderizou a casca completa");
 } catch (err) {
   console.error("✗ smoke tauri falhou:", err.message ?? err);
+  // DIAGNÓSTICO (o smoke nunca esteve verde — job criado em 30/09):
+  // "página vazia" (front não carregou) ≠ "DOM sem banner" (app montou e
+  // falhou no meio) ≠ "webview nem pintou". O page source separa os casos.
+  if (driver) {
+    try {
+      const src = await driver.getPageSource();
+      console.error(`—— page source (${String(src).length} chars, primeiros 2000) ——`);
+      console.error(String(src).slice(0, 2000));
+    } catch (e) {
+      console.error("(sem page source:", e.message ?? e, ")");
+    }
+  }
   process.exitCode = 1;
 } finally {
   exiting = true;
