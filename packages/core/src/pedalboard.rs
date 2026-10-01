@@ -269,7 +269,7 @@ pub fn board_view_for(
                 family,
                 archetype: archetype_of(family),
                 name: e.name().unwrap_or("").trim().to_string(),
-                variant: slug(&e.name().unwrap_or("")),
+                variant: slug(e.name().unwrap_or("")),
                 state: e.state() == Some("1"),
                 code,
                 knobs,
