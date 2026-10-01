@@ -1,0 +1,396 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# VALIDATE (reusable) — a régua de qualidade do projeto, em UM lugar.
+#
+# Chamado por:
+#   - ci.yml        (PR/push nas branches de integração)
+#   - release.yml   (gate antes de publicar uma tag)
+#
+# Contrato (mantido do pipeline.yml original — NÃO reabrir lições):
+#   - `plan` calcula os CAMINHOS mudados e liga/desliga jobs por booleano
+#     (run-rust/run-front/run-spec): docs-only não sobe Rust/front; mudança
+#     só no front não sobe core/cli (o ui-rust sobe: embute app/ui/dist).
+#   - Job filtrado aparece como "skipped" (0 min, não falha a run). ⚠️ NUNCA
+#     emitir matriz de 0 itens: matriz vazia CRASHA a run inteira como failure
+#     sem nenhum job failed (provado na run 36747668222).
+#   - `needs.plan` + `fromJSON(needs.plan.outputs.*-matrix)` em TODOS os jobs
+#     de matriz; `fail-fast: false` para ver o quadro completo.
+#   - Filtro de release de docs: o `spec` (pytest) roda quando analysis/docs
+#     mudam — é a trava da especificação (golden/hash/knob_map/fixtures).
+#   - timeout-minutes em todo job (runner preso não queima minutos).
+#   - `CI-lite` (label no PR) roda SÓ o Windows (WIP barato).
+# ═══════════════════════════════════════════════════════════════════════════
+
+name: _validate
+
+on:
+  workflow_call:
+    inputs:
+      update-snapshots:
+        description: "Gerar baselines visuais linux (=all) — input vindo do ci.yml"
+        type: string
+        required: false
+        default: "false"
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # ── PLANO: mudanças → matrizes filtradas ──
+  plan:
+    name: Plano (mudanças + matrizes)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      rust-matrix: ${{ steps.mat.outputs.rust-matrix }}
+      front-matrix: ${{ steps.mat.outputs.front-matrix }}
+      run-rust: ${{ steps.mat.outputs.run-rust }}
+      run-front: ${{ steps.mat.outputs.run-front }}
+      run-spec: ${{ steps.mat.outputs.run-spec }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # diff contra a base + tags
+
+      - name: Buscar tags
+        run: git fetch --tags --force
+
+      - name: Detectar mudanças (base → HEAD)
+        id: changes
+        run: |
+          PR_BASE="${{ github.event.pull_request.base.sha }}"
+          BEFORE="${{ github.event.before }}"
+          if [ -n "$PR_BASE" ]; then
+            BASE="$PR_BASE"
+          elif [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ] && git cat-file -e "$BEFORE" 2>/dev/null; then
+            BASE="$BEFORE"
+          else
+            BASE="" # tag push / primeira run: sem diff → ALL
+          fi
+          if [ -z "$BASE" ]; then
+            CHANGED="ALL"
+          else
+            CHANGED="$(git diff --name-only "$BASE..HEAD" || true)"
+            [ -z "$CHANGED" ] && CHANGED="(none)"
+          fi
+          {
+            echo "CHANGED<<CHANGED_EOF"
+            echo "$CHANGED"
+            echo "CHANGED_EOF"
+            echo "IS_SCHEDULE=${{ github.event_name == 'schedule' }}"
+          } >> "$GITHUB_ENV"
+
+      - name: Matrizes por projeto afetado
+        id: mat
+        env:
+          IS_LITE: ${{ github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'ci-lite') }}
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, os, re
+          sys_out = []
+          changed = os.environ.get("CHANGED", "ALL")
+          is_all = changed == "ALL"
+          # re.M OBRIGATÓRIO: CHANGED é multi-linha; sem ele o ^ só casa no
+          # início da string e NENHUM projeto "muda" (provado na run 36764807538:
+          # push de packages/ inteiro → tudo skipped).
+          def has(pat):
+              return is_all or re.search(pat, changed, re.I | re.M) is not None
+          core   = has(r'^(Cargo\.toml$|Cargo\.lock$|rust-toolchain\.toml$|packages/core/|packages/cli/)')
+          uirust = has(r'^(packages/app/|packages/core/|Cargo\.toml$|rust-toolchain\.toml$)')
+          front  = has(r'^packages/app/ui/')
+          spec   = has(r'^(analysis/|docs/|pyproject\.toml$|uv\.lock$)')
+          scheduled = os.environ.get("IS_SCHEDULE") == "true"
+          lite = os.environ.get("IS_LITE") == "true"
+          oss = ["windows-latest"] if lite else ["windows-latest", "ubuntu-24.04", "macos-26"]
+          rust = []
+          if not scheduled:
+              for o in oss:
+                  if core:
+                      rust.append({"os": o, "project": "core", "workdir": "."})
+                      rust.append({"os": o, "project": "cli", "workdir": "."})
+                  if uirust:
+                      rust.append({"os": o, "project": "ui-rust", "workdir": "packages/app/api"})
+          fr = [] if scheduled else [{"os": o} for o in oss if front]
+          compact = lambda d: json.dumps(d, separators=(",", ":"))
+          print(f"rust-matrix={compact({'include': rust})}")
+          print(f"front-matrix={compact({'include': fr})}")
+          print(f"run-rust={'true' if rust else 'false'}")
+          print(f"run-front={'true' if fr else 'false'}")
+          print(f"run-spec={'true' if (spec and not scheduled) else 'false'}")
+          PY
+
+  # ── GATE rápido (sempre): fmt + conventional commits + contratos dos workflows ──
+  gate:
+    name: Gate — fmt + conventional commits
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      RUSTUP_TOOLCHAIN: stable
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+
+      - name: Toolchain stable do runner
+        run: rustup update stable --no-self-update
+
+      - name: Cache do cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: .
+          key: gate
+
+      - name: Formatação (workspace gnu da raiz)
+        run: cargo fmt --check
+
+      - name: Conventional commits (push)
+        if: github.event_name == 'push' && !startsWith(github.ref, 'refs/tags/v')
+        run: |
+          BEFORE="${{ github.event.before }}"
+          if [ -z "$BEFORE" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "$BEFORE" 2>/dev/null; then
+            RANGE="HEAD~1..HEAD"
+          else
+            RANGE="$BEFORE..HEAD"
+          fi
+          FAIL=0
+          while IFS= read -r s; do
+            [ -z "$s" ] && continue
+            if echo "$s" | grep -qE '^[a-z][a-z0-9_-]*(\([^\)]+\))?!?: .+'; then
+              echo "OK: $s"
+            else
+              echo "FORA DO PADRÃO: $s  (esperado: tipo(escopo)?: assunto — ex.: feat(ui): …)"
+              FAIL=1
+            fi
+          done < <(git log --format='%s' "$RANGE" 2>/dev/null)
+          exit $FAIL
+
+      # Validação sintática + de gatilhos dos workflows (V-7): o teste de
+      # integração REAL do close-linked é o merge em develop; aqui o gate
+      # trava YAML válido e o contrato (trigger/permissions/guards).
+      - name: Workflows válidos (ci/_validate/_publish/release/security)
+        run: |
+          python3 -c "import yaml" 2>/dev/null || python3 -m pip install --quiet --user pyyaml
+          python3 scripts/validate_workflows.py
+
+      # Simulação END-TO-END da cadeia rc→promote (V-7): extrai os blocos
+      # run: DO release.yml e os executa num sandbox git local (origin bare
+      # + clones), provando rc1→rc2→promote + idempotência + guards ANTES
+      # de qualquer uso real. Só precisa de git+bash+python3 do runner.
+      - name: Simulação do release-gitflow (rc→promote)
+        run: |
+          python3 -c "import yaml" 2>/dev/null || python3 -m pip install --quiet --user pyyaml
+          python3 scripts/simulate_release.py
+
+  # ── SPEC: trava da especificação (pytest) — só quando ela muda ──
+  spec:
+    name: Python — trava da especificação
+    needs: plan
+    if: needs.plan.outputs.run-spec == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - name: Instalar uv
+        uses: astral-sh/setup-uv@v10.2.0
+        with:
+          enable-cache: true
+      - name: Sync do ambiente (capstone, pefile, ziglang, pytest)
+        run: uv sync --all-groups
+      - name: Suíte de regressão (golden, hash da baseline, knob_map, fixtures)
+        run: uv run pytest
+
+  # ── RUST: core / cli / ui-rust — matriz DINÂMICA (vazia = não aparece) ──
+  rust:
+    name: ${{ matrix.project }} (${{ matrix.os }})
+    needs: plan
+    if: needs.plan.outputs.run-rust == 'true'
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.rust-matrix) }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: ${{ matrix.workdir }}
+    steps:
+      - uses: actions/checkout@v7
+
+      # Regra por OS (a composite instala a toolchain; esta env garante que
+      # TODO cargo do job a use — runner.os só existe em STEP, daí o
+      # GITHUB_ENV): gnu na raiz (campo/dev), msvc na api (ADR-7),
+      # stable nativa fora do Windows (ADR-8).
+      - name: Definir RUSTUP_TOOLCHAIN por OS/projeto
+        run: echo "RUSTUP_TOOLCHAIN=${{ runner.os == 'Windows' && (matrix.workdir == 'packages/app/api' && 'stable-x86_64-pc-windows-msvc' || 'stable-x86_64-pc-windows-gnu') || 'stable' }}" >> "$GITHUB_ENV"
+
+      - name: Toolchain + cache do cargo
+        uses: ./.github/actions/setup-rust
+        with:
+          workdir: ${{ matrix.workdir }}
+          cache-key: ${{ matrix.project }}-${{ matrix.os }}
+
+      # midir → ALSA no Linux: alsa-sys compila C (pkg-config + asoundlib).
+      - name: Deps de sistema do ALSA (Linux — cli)
+        if: matrix.project == 'cli' && runner.os == 'Linux'
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y pkg-config libasound2-dev
+
+      - name: Clippy + testes (gp100-core)
+        if: matrix.project == 'core'
+        run: |
+          cargo clippy -p gp100-core --all-targets -- -D warnings
+          cargo test -p gp100-core
+
+      - name: Clippy + testes (gp100-cli, default + real-device)
+        if: matrix.project == 'cli'
+        run: |
+          cargo clippy -p gp100-cli --all-targets -- -D warnings
+          cargo clippy -p gp100-cli --all-targets --features real-device -- -D warnings
+          cargo test -p gp100-cli
+
+      - name: Build do binário de campo (real-device)
+        if: matrix.project == 'cli'
+        run: cargo build -p gp100-cli --features real-device
+
+      # Smoke da política SÓ no Windows (WinMM é o stack do campo).
+      - name: Smoke da política de hardware
+        if: matrix.project == 'cli' && runner.os == 'Windows'
+        uses: ./.github/actions/hardware-smoke
+        with:
+          profile: debug
+
+      # ── gp100-ui: front buildado ANTES (generate_context! embute ui/dist) ──
+      - name: Setup do front (Node/pnpm)
+        if: matrix.project == 'ui-rust'
+        uses: ./.github/actions/setup-node-pnpm
+
+      - name: Front (lint + test + build)
+        if: matrix.project == 'ui-rust'
+        uses: ./.github/actions/build-front
+
+      - name: Deps de sistema do Tauri (Linux — gtk/webkit)
+        if: matrix.project == 'ui-rust' && runner.os == 'Linux'
+        uses: ./.github/actions/tauri-linux-deps
+
+      - name: Formatação do crate (Ubuntu — como na M0/M1)
+        if: matrix.project == 'ui-rust' && runner.os == 'Linux'
+        run: cargo fmt -- --check
+
+      - name: Clippy + testes + build do shell (gp100-ui)
+        if: matrix.project == 'ui-rust'
+        run: |
+          cargo clippy -p gp100-ui --all-targets -- -D warnings
+          cargo test -p gp100-ui
+          cargo build -p gp100-ui
+
+  # ── FRONT (ui/): matriz dinâmica — lint/vitest+coverage/build ──
+  front:
+    name: app/ui — front (${{ matrix.os }})
+    needs: plan
+    if: needs.plan.outputs.run-front == 'true'
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.front-matrix) }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - name: Setup (Node 22 + pnpm 11)
+        uses: ./.github/actions/setup-node-pnpm
+      - name: Lint + testes + build
+        uses: ./.github/actions/build-front
+
+  # ── E2E: Playwright (casca completa) contra o pnpm dev no Chromium ──
+  # R1–R6 + drum + looper + atalhos globais + responsividade (3 viewports).
+  # O playwright.config sobe o próprio dev server (webServer + strictPort);
+  # roda no MESMO filtro do front (mudança em packages/app/ui/ ou ALL).
+  e2e:
+    name: e2e — Playwright (casca no Chromium)
+    needs: plan
+    if: needs.plan.outputs.run-front == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - name: Setup (Node 22 + pnpm 11)
+        uses: ./.github/actions/setup-node-pnpm
+      - name: Chromium do Playwright (+ deps de sistema)
+        uses: ./.github/actions/playwright-setup
+      - name: Suíte e2e (sobe o pnpm dev sozinha — reuseExistingServer)
+        working-directory: packages/app/ui
+        run: pnpm exec playwright test
+
+  # ── E2E VISUAL: regressão estética dos painéis (toHaveScreenshot) ──
+  # Baselines por viewport E por plataforma (e2e/__screenshots__/*-linux.png):
+  # fontes divergem entre Windows/Linux. Sem baseline no CI = SKIP (não falha
+  # a 1ª execução); com o input update-snapshots, o job GERA as baselines
+  # linux e sobe o artefato — commitar os PNGs para ativar a comparação.
+  e2e-visual:
+    name: e2e visual — regressão estética (toHaveScreenshot)
+    needs: plan
+    if: needs.plan.outputs.run-front == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - name: Setup (Node 22 + pnpm 11)
+        uses: ./.github/actions/setup-node-pnpm
+      - name: Chromium do Playwright (+ deps de sistema)
+        uses: ./.github/actions/playwright-setup
+      - name: Suíte visual (compara baselines; gera com update-snapshots)
+        working-directory: packages/app/ui
+        # UPDATE_SNAPSHOTS destrava o skip de baseline ausente no spec (o CI
+        # NÃO cria baseline nova por default — 48 falhas na run 36935738610);
+        # `=all` porque o input existe justamente p/ gerar o que falta.
+        env:
+          UPDATE_SNAPSHOTS: ${{ inputs.update-snapshots }}
+        run: pnpm exec playwright test visual.spec.ts ${{ inputs.update-snapshots == 'true' && '--update-snapshots=all' || '' }}
+      - name: Baselines/diffs como artefato (inspeção e commit)
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: visual-snapshots
+          path: packages/app/ui/e2e/__screenshots__/
+          retention-days: 14
+          if-no-files-found: ignore
+
+  # ── E2E SMOKE: shell TAURI REAL sobe no webview (tauri-driver, Linux) ──
+  # Prova a casca no WEBVIEW, não só no browser: build debug do gp100-ui
+  # (generate_context! embute ui/dist; backend mock — sem hardware), driver
+  # WebKitGTK sob xvfb e asserções de DOM via Selenium (receita oficial).
+  e2e-tauri:
+    name: e2e smoke — shell Tauri real (tauri-driver, Linux)
+    needs: plan
+    if: needs.plan.outputs.run-front == 'true' || needs.plan.outputs.run-rust == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      RUSTUP_TOOLCHAIN: stable
+    steps:
+      - uses: actions/checkout@v7
+      - name: Setup Rust (stable — pin gnu da raiz quebra Linux, ADR-7)
+        uses: ./.github/actions/setup-rust
+        with:
+          workdir: packages/app/api
+          cache-key: smoke-tauri
+      - name: Setup do front (Node 22 + pnpm 11)
+        uses: ./.github/actions/setup-node-pnpm
+      - name: Front (lint + test + build — ui/dist alimenta o binário)
+        uses: ./.github/actions/build-front
+      - name: Deps do Tauri + driver (WebKitGTK, xvfb, webkit2gtk-driver)
+        uses: ./.github/actions/tauri-linux-deps
+        with:
+          xvfb: "true"
+      - name: Build debug do gp100-ui (dist embutido, backend mock)
+        working-directory: packages/app/api
+        run: cargo build -p gp100-ui
+      - name: Instalar tauri-driver
+        run: cargo install tauri-driver --locked
+      - name: Smoke do shell (xvfb + tauri-driver na 4444)
+        working-directory: packages/app/ui
+        env:
+          WEBKIT_DISABLE_DMABUF_RENDERER: "1"
+          WEBKIT_DISABLE_COMPOSITING_MODE: "1"
+        run: xvfb-run -a node e2e/tauri.smoke.mjs

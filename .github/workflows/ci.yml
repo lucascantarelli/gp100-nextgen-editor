@@ -1,38 +1,71 @@
 # ═══════════════════════════════════════════════════════════════════════════
-# FECHAMENTO DE ISSUES no merge em develop (GitFlow).
+# CI — porteiro da integração contínua (GitFlow).
 #
-# POR QUÊ EXISTE: o GitHub só fecha a issue por "Closes #N" quando o merge
-# entra na branch DEFAULT (main). No GitFlow, o PR aponta para develop —
-# a issue ficaria aberta até o release para main. Este workflow fecha na
-# INTEGRAÇÃO (develop), onde o trabalho realmente é concluído.
+# FUNÇÃO ÚNICA: validar mudanças nas branches de INTEGRAÇÃO e fechar issues
+# vinculadas no merge. A validação em si mora no reusable `_validate.yml`;
+# o release tem workflow próprio (`release.yml`); a varredura noturna de
+# segurança, também (`security.yml`).
 #
-# COMO: extrai as palavras-chave de fechamento do corpo do PR (close[sd]/fix
-# [esd]/resolve[sd] #N, case-insensitive) e fecha via API com comentário de
-# rastreabilidade (PR + sha + link da run). Idempotente: issue já fechada é
-# apenas confirmada. Sem palavra-chave, registra no summary (não falha).
+# PAPÉIS DAS BRANCHES (quem dispara o quê — auditoria 01/10):
+#   feature/*, fix/*, chore/*, docs/*, refactor/*  → NADA no push.
+#       A validação roda no PR (types abaixo). Antes, cada push acendia a
+#       matriz 3-OS inteira: custo alto e fila de runs redundantes.
+#   develop            → push valida (integração; origem das releases).
+#   release/**         → push valida (freeze de rc).
+#   hotfix/**          → push valida (correção urgente; vai direto à main).
+#   main               → push valida (o publish acontece no release.yml, por tag).
 #
-# GUARDS:
-#   - só em PR MERGEADO na base develop (não dispara em close sem merge);
-#   - pula PRs criados pelo github-actions[bot] (evita loop de automação);
-#   - pula issues automáticas de security (label `achados-security`) — essas
-#     só se fecham manualmente, com a correção provada.
+# FECHAMENTO DE ISSUES (era close-issues.yml): integrado aqui como job
+# `close-linked` — mesmo evento (PR closed em develop), mesmos guards.
+# O GitHub nativo só fecha por `Closes #N` no merge da branch DEFAULT (main);
+# no GitFlow a integração é em develop, então o job cobre a lacuna via API.
 # ═══════════════════════════════════════════════════════════════════════════
 
-name: fecha-issues-develop
+name: ci
 
 on:
+  push:
+    branches: [develop, main, "release/**", "hotfix/**"]
   pull_request:
-    types: [closed]
-    branches: [develop]
+    # `closed` entra para o close-linked; os jobs de validação guardam
+    # `action != 'closed'` e não gastam runner em PR fechado.
+    branches: [develop, main, "release/**"]
+    types: [opened, synchronize, reopened, closed]
+  workflow_dispatch:
+    inputs:
+      update-snapshots:
+        description: "(Visual) Regenerar baselines de screenshot no Ubuntu — baixe o artefato e commite"
+        type: boolean
+        default: false
 
 permissions:
-  issues: write # fechar issue + comentário de rastreabilidade
-  pull-requests: read # ler corpo/labels do PR
+  contents: read # validação não escreve no repo
+  issues: write # close-linked fecha a issue + comentário de rastreabilidade
+
+concurrency:
+  # Por PR/ref: push intermediário cancela a validação anterior (padrão de
+  # monorepo). Em push de branch de integração NÃO cancela — a run do push
+  # é a prova daquela integração e pode ser referenciada por outro PR.
+  group: ci-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  # ── VALIDAÇÃO (reusable — a régua em um lugar só) ──
+  validate:
+    name: Validação (_validate.yml)
+    if: github.event.action != 'closed'
+    uses: ./.github/workflows/_validate.yml
+    with:
+      update-snapshots: ${{ github.event.inputs.update-snapshots || 'false' }}
+
+  # ── FECHAMENTO DE ISSUES no merge em develop ──
   close-linked:
     name: Fechar issues vinculadas (Closes #N)
-    if: ${{ github.event.pull_request.merged == true && github.event.pull_request.user.login != 'github-actions[bot]' }}
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.action == 'closed' &&
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.user.login != 'github-actions[bot]'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     env:
@@ -87,7 +120,7 @@ jobs:
             gh issue close "$N" --comment "$(cat <<MD
           ✅ Fechada automaticamente: integrada em \`develop\` pelo PR **#$PR — $TITLE** (sha \`$SHA\`).
 
-          _Rastreabilidade: workflow \`fecha-issues-develop\` — [run]($RUN_URL). A issue sai oficialmente no release para \`main\` (GitFlow)._
+          _Rastreabilidade: job \`close-linked\` do ci.yml — [run]($RUN_URL). A issue sai oficialmente no release para \`main\` (GitFlow)._
           MD
           )"
             echo "issue #$N ($TITLE_I) fechada via PR #$PR"

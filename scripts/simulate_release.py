@@ -29,6 +29,14 @@ import tempfile
 
 import yaml
 
+# Console do Windows (cp1252) não encoda os acentos/setas dos prints deste
+# script — o gate roda no runner Linux (UTF-8), mas o host de dev precisa
+# disto para a simulação não morrer no meio.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 WF = os.path.join(REPO, ".github", "workflows", "release.yml")
 BOT = {"BOT_NAME": "sim-bot", "BOT_EMAIL": "sim-bot@example.test"}
