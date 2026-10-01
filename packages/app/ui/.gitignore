@@ -1,0 +1,4 @@
+# Playwright: resultados de execução e relatório HTML (regeneráveis).
+# As baselines da regressão visual (e2e/__screenshots__/) são versionadas!
+test-results/
+playwright-report/
