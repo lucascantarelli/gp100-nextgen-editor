@@ -122,7 +122,8 @@ tabela **antes → depois** · tabela de **gates executados** (marque o que rodo
 · ambiente verificado · R1–R4 · política de conteúdo (nenhum material
 proprietário do device).
 
-**CI — 5 workflows com UMA função cada** (reestruturado em 01/10; issues #31–#34):
+**CI — 6 workflows com UMA função cada** (reestruturado em 01/10, issues
+#31–#34; imagem de container no #41):
 
 | Arquivo | Função | Dispara em |
 |---|---|---|
@@ -131,20 +132,56 @@ proprietário do device).
 | [release.yml](../.github/workflows/release.yml) | version/rc/promote + publish | tag `v*` · dispatch manual |
 | [_publish.yml](../.github/workflows/_publish.yml) | CLI + instalador (reusable) | chamado pelo release.yml |
 | [security.yml](../.github/workflows/security.yml) | audits RustSec/npm + issue ACHADOS | agendado (06:30 UTC) · dispatch |
+| [container.yml](../.github/workflows/container.yml) | imagem de CI Linux (`ci-linux`) no ghcr.io | push develop/main com mudança no Dockerfile/lockfile · PR que mexe no Dockerfile (build sem push) · dispatch |
 
 Dentro do `_validate`: gate (fmt + conventional commits) · spec (se
-`analysis/` mudou) · matrizes Rust/front 3-OS **filtradas por caminhos** ·
+`analysis/` mudou) · matrizes Rust/front **filtradas por caminhos** ·
 e2e Playwright · e2e visual (baselines por plataforma) · smoke do shell
 Tauri real. Docs-only não sobe Rust/front (jobs aparecem como skipped, sem
 custo). **Push em `feature/*`/`fix/*`/`chore/*` não roda CI** — a validação
 acontece no PR (econômico de propósito). O publish depende do `validate`
 completo: tag não sai com a casca quebrada.
 
+### Custo do CI — imagem de container e caches (#41)
+
+O que é **fixo** (toolchain, bibliotecas de sistema, driver) não pertence ao
+job: virou camada da imagem publicada no ghcr.io.
+
+- **Imagem `ci-linux`** (`:1` estável + `sha-<curto>` de auditoria;
+  Dockerfile em [.github/docker/ci-linux/](../.github/docker/ci-linux/Dockerfile)):
+  Rust stable+clippy+rustfmt, `tauri-driver` compilado, WebKitGTK 4.1/GTK3/
+  appindicator/rsvg/ALSA (dev), `webkit2gtk-driver`, `xvfb`, mesa (software
+  rendering) e Node 22 + pnpm 11 com **store aquecido** pelo lockfile do front.
+  Pacote público (repo público) → os jobs fazem pull anônimo.
+- **Onde o container roda:** `ui-rust (ubuntu · container)` e `e2e smoke —
+  shell Tauri real`. Ali o pull (~30s) se paga contra o que a imagem elimina:
+  apt do webkit/gtk (57s) e, no smoke, apt 45s + `cargo install tauri-driver`
+  17s. `front`, `e2e` e `e2e visual` **continuam no runner hospedado** — o pull
+  custaria mais que o Chromium que eles instalariam; ali a alavanca é o cache
+  do `~/.cache/ms-playwright` (chave = hash do `pnpm-lock.yaml`).
+- **Caches de Rust:** por **workspace** (`shared-key` = `ws-raiz` para
+  core/cli/gate/publish-cli; `ws-api` para ui-rust/smoke/installer). O input
+  `key` antigo somava à chave automática POR JOB — nenhum job compartilhava
+  cache. O ui-rust do Windows ainda usa `cache-workspace-crates`
+  (experimento: o MSVC recompilava o `gp100-ui` inteiro, ~269s).
+- **ui-rust em 2 OS:** Windows (MSVC, ADR-7) + Linux (container). O macOS do
+  front usa `macos-15-intel` (x86_64): todo label `macos-*` arm64 carrega a
+  anotação de fila do GitHub; o Intel não (suporte até ~08/2027).
+- **Rebuild da imagem:** `container.yml` publica sozinho quando o Dockerfile
+  ou o `pnpm-lock.yaml` mudam em `develop`/`main`; PR que mexe no Dockerfile
+  builda **sem** publicar. Bump de tag (`:1` → `:2`) é manual e só quando a
+  mudança for incompatível — os jobs de `_validate.yml` referenciam `:1`.
+  Bootstrap/rebuild manual: `gh workflow run container.yml` (o dispatch exige
+  o arquivo na branch **default**).
+- **Medição (antes/depois):** `python3 scripts/ci_timings.py <run-id> --steps`
+  e `--compare <antes> <depois>` — tabela por job/step direto da API do
+  Actions (só `gh` + stdlib). Mudança de custo entra com número.
+
 **Merge** (squash): subject conventional limpo, base `develop`, CI verde
 (visual divergente só com decisão de baseline documentada).
 
 **Fechamento automático**
-([close-issues.yml](../.github/workflows/close-issues.yml)):
+(job `close-linked` do [ci.yml](../.github/workflows/ci.yml)):
 
 1. No merge em `develop`, extrai `Closes/Fixes/Resolves #N` do **corpo**;
 2. Fecha cada issue via API com comentário de rastreabilidade

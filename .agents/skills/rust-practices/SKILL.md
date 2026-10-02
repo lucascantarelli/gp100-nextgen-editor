@@ -27,9 +27,11 @@ cargo build
 ## CI (GitHub Actions) — mesma régua do local
 
 O CI roda os MESMOS gates no reusable `.github/workflows/_validate.yml`
-(job `rust`: matriz 3-OS — windows-latest, ubuntu-24.04, macos-26), disparado
-pelo `ci.yml` em PR/push das branches de INTEGRAÇÃO (push em `feature/*` etc.
-NÃO roda CI — validação acontece no PR). Armadilhas mordidas — não reabrir:
+(job `rust`: matriz filtrada por caminhos — core/cli em 3-OS (windows-latest,
+ubuntu-24.04, macos-15-intel); **ui-rust em 2 OS**: Windows (MSVC) + Linux no
+container `ci-linux` — issue #41), disparado pelo `ci.yml` em PR/push das
+branches de INTEGRAÇÃO (push em `feature/*` etc. NÃO roda CI — validação
+acontece no PR). Armadilhas mordidas — não reabrir:
 
 - **Toolchain por OS/projeto (ADR-8)**: o pin gnu do `rust-toolchain.toml` da
   raiz vale para o host Windows; a CI define `RUSTUP_TOOLCHAIN` por OS/projeto

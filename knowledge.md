@@ -437,14 +437,16 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
   usuário que sombreiam por append) e caminho em ESTILO POSIX (Windows `C:\...`
   no PATH quebra a lista POSIX no `:` do drive).
 
-## Infra CI (30/09 — security + release; REESTRUTURADO em 01/10 em 5 workflows)
+## Infra CI (30/09 — security + release; 01/10 reestruturou em 5 workflows;
+02/10 adicionou `container.yml` — imagem ci-linux, #41)
 - **Reestruturação 01/10 (issues #31–#34)**: o `pipeline.yml` (805 linhas, tudo
   junto) virou `ci.yml` (triggers por FUNÇÃO de branch + close-linked integrado)
   → `_validate.yml` (reusable com plan/gate/spec/rust/front/e2e/visual/smoke) +
   `release.yml` (publish por tag + version/rc/promote) → `_publish.yml` (reusable)
   e `security.yml` (auditorias noturnas). `close-issues.yml` deixou de existir
   (job `close-linked` do ci.yml). Composite actions novas: `playwright-setup` e
-  `tauri-linux-deps`. `develop` foi CRIADA (antes: só main; o fluxo GitFlow
+  `tauri-linux-deps` (esta APOSENTADA no #41 — a imagem `ci-linux` cobre).
+  `develop` foi CRIADA (antes: só main; o fluxo GitFlow
   inteiro — close-issues, rc→promote — estava morto sem ela).
 - **LIÇÃO 01/10 (publish × GITHUB_TOKEN)**: tag empurrada com GITHUB_TOKEN NÃO
   dispara workflows (`on: push: tags`) — por isso rc/promote/version publicam no
@@ -464,8 +466,9 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
   (outcome), NUNCA grep de log (grep pegou crash de toolchain como "achado"
   → issue falso-positiva #1, fechada com documentação). RUSTUP_TOOLCHAIN=stable
   no job: o pin gnu da raiz quebra qualquer cargo no Linux (lição ADR-7 de novo).
-- **Dependabot (30/09)**: `.github/dependabot.yml` — 3 entries SEMANAIS
-  (github-actions `/`, npm `/packages/app/ui`, cargo `/packages/app/api`;
+- **Dependabot (30/09)**: `.github/dependabot.yml` — 4 entries SEMANAIS
+  (github-actions `/`, npm `/packages/app/ui`, cargo `/packages/app/api`,
+  docker `/.github/docker/ci-linux` — base Ubuntu da imagem de CI, #41;
   segunda 09:00 UTC = 06:00 BRT), groups p/ 1 PR/ecossistema/semana, limit 5.
   Entry npm tem `ignore: typescript >=7` (trava TS 7 — ver lições). Labels
   provisionadas ANTES via `gh label create --force` (dependencies, rust,
@@ -498,8 +501,42 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
 - **Actions node24:** checkout@v7, setup-node@v7, setup-uv@v10.2.0 (o repo
   do setup-uv NÃO publica major tag — pino sempre a versão exata!),
   upload-artifact@v7. setup-uv@v10 quebrou 2 jobs antes do pin.
-- **Labels:** ubuntu-24.04 (migração p/ 26 em 19/10/2026), macos-26
-  (arm64; macos-15-intel em aposentadoria — fonte do aviso de capacidade).
+- **LIÇÃO #41 (imagem de CI × hot path)**: o que é FIXO não pertence ao job.
+  Rust+clippy/rustfmt, `tauri-driver` compilado, WebKitGTK/GTK/ALSA dev,
+  `webkit2gtk-driver`, xvfb+mesa e Node/pnpm com store aquecido viraram camada
+  da imagem `ghcr.io/<repo>/ci-linux` (Dockerfile versionado em
+  `.github/docker/ci-linux/`), publicada pelo `container.yml` (`:1` estável +
+  `sha-<curto>`). Eliminou por run: apt 57s (ui-rust Linux) e apt 45s +
+  `cargo install` 17s (smoke Tauri). **ONDE o container NÃO se paga:**
+  e2e/e2e-visual/front — o pull da imagem custa mais que o Chromium que ele
+  substituiria; nesses a alavanca é o cache do `~/.cache/ms-playwright`
+  (chave = hash do pnpm-lock.yaml). Regra: container para toolchain/servidor
+  gráfico; cache para o resto. Medir com `scripts/ci_timings.py`.
+- **LIÇÃO #41 (bootstrap de workflow_dispatch)**: dispatch de workflow que só
+  existe numa branch de trabalho → 404 ("not found on the default branch"). A
+  1ª publicação da imagem precisou de um gatilho de push TEMPORÁRIO na própria
+  branch, removido no mesmo PR. Dispatch manual depois do merge: ok.
+- **LIÇÃO #41 (cache do cargo por WORKSPACE)**: o input `key` do
+  Swatinem/rust-cache apenas SOMA à chave automática POR JOB
+  (`add-job-id-key` default true) — nenhum job compartilhava cache. Compartilhar
+  é `shared-key` (por workspace: `ws-raiz` | `ws-api`) + `add-job-id-key:
+  "false"`. Guard extra (validado no gate): `gate` usa `cache: "false"` —
+  `cargo fmt` não compila e não deve baixar GB do cache compartilhado.
+- **LIÇÃO #41 (HOME nos jobs de container)**: o runner executa o container com
+  HOME=/github/home; por isso RUSTUP_HOME/CARGO_HOME da imagem vivem em `/opt`
+  (sem isso o rustup não acha toolchain nenhuma) e o store do pnpm em
+  `/opt/pnpm-store`, passado por env `npm_config_store_dir` (pnpm lê config por
+  env `npm_config_*`). Ferramenta faltando = falha no BUILD do Dockerfile
+  (camada de sanidade), nunca no job.
+- **LIÇÃO #41 (macOS arm64 × anotação de fila)**: TODO label `macos-*` padrão é
+  arm64 e carrega o aviso "capacity constraints ... longer queue times" do
+  GitHub (ruído de infra, não erro do repo). O front migrou para
+  `macos-15-intel` (x86_64; casa com Windows/Linux) e o ui-rust saiu do macOS —
+  2 OS (Windows MSVC + Linux/container), com a UI coberta pelo front/vitest
+  3-OS.
+- **Labels:** ubuntu-24.04 (migração p/ 26 em 19/10/2026), macos-15-intel
+  (x86_64 desde o #41 — mata a anotação de fila do arm64; EOL do Intel
+  ~08/2027, reavaliar antes do v1.0.0).
 - `zip` não existe no Git Bash do runner Windows: `7z a -tzip` fallback.
 - `gh issue create --label` falha se o label não existir: criar com --force
   antes (idempotente).
