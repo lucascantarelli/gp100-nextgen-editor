@@ -235,6 +235,14 @@ oficial Tauri v2 (webkit2gtk-driver + xvfb + WEBKIT_DISABLE_DMABUF_RENDERER).
 
 > Um efeito por vez, começando pelo COMP. A cada rodada: executar R7 com o efeito
 > em TODAS as 9 posições antes de aprovar e partir para o próximo.
+>
+> **Entregue (fatia 1 da issue #19):** o palco renderiza o board REAL
+> (`device_board`): COMP (PRE) no slot da família com os knobs do dicionário
+> editáveis (arrasto/teclado/valor por textbox; knob numérico →
+> `device_set_param` §13.11), LED verde/vermelho e footswitch por prévia LOCAL,
+> trava ⇄ mover com reordenação local (arrastar o pedal para qualquer posição)
+> e os 8 lugares restantes como placeholders. Ainda NÃO nesta fatia: modal de
+> edição (passo 9) e o liga/desliga do modo engenheiro do tooltip (passo 5).
 
 ### R7. Um pedal (ex.: COMP) em cada posição do board
 1. O efeito aparece no slot da vez; os 8 restantes continuam placeholders.
