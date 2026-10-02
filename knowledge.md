@@ -640,3 +640,36 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
   specs): gerar baseline pelo input deixa o `e2e` vermelho enquanto o
   `e2e-visual` escreve — é o sintoma de artefato velho, não de bug. Se um dia
   isso incomodar, separe os projects (visual × funcional) em vez de duplicar.
+
+---
+
+## DeviceGone ponta-a-ponta (02/10 — issue #48)
+
+- **Tipo perdido é bug de UI**: `TransportError::DeviceGone` existia desde o M0.5
+  e o `real.rs` documentava que desconexão física nem vira `DeviceGone` (vira
+  RecvTimeout) — resultado: NENHUM teste exercitava device morrendo e a FSM
+  ACHATAVA o erro em `InvalidShape` ("transporte saudável"). O front decide
+  diferente (LED off + retry explícito, sem retry automático), então o tipo agora
+  ATRAVESSA: `tx_err`/`wait_for` mapeiam para `ProtocolError::DeviceGone { why }`
+  e o `open()` do mock pós-morte também devolve `DeviceGone` (device não
+  ressuscita).
+- **A falha entra no MOCK — nunca num transporte novo**: `MockFault::DieAfter(n)`
+  + `with_fault()` (e `transactions()` para asserção) no `MockDevice`. O mock é
+  o test double DECLARADO do projeto: o caminho testado é exatamente o de
+  produção (transporte → FSM → actor → command → UI) e o `RealDevice` fica
+  intocado (ADR-4/5). A morte PRECEDE o parse: `sent` incrementa ANTES do
+  decode e devolve `DeviceGone` — quem sumiu do fio não avalia shape.
+- **Gancho de shell por env**: `GP100_DEBUG_FAULT=die-after:<n>` lido no `run()`
+  do gp100-ui (parser puro `parse_debug_fault`; valor malformado = backend
+  saudável — env de debug não derruba app). Exclusivo do backend MOCK; o
+  transporte real nunca lê.
+- **O smoke prova o cenário com UMA sessão**: o tauri-driver sobe com o env no
+  `spawn` (herança wrapper → WebKitWebDriver → app) e `die-after:2300` deixa o
+  boot do mount (2297 transações, contrato pinado) terminar saudável; o ⟳ da
+  navbar dispara o 2º boot e o device morre na largada. O smoke assere alerta
+  amigável (sem vazar "MockFault"/"die-after"), LED off, NENHUMA barra de
+  progresso e retry reabilitado; um 2º clique falha de novo sem travar.
+- **Morte não espera a janela de 3 s**: o teste do actor (`DieAfter(300)`) falha
+  em <2 s — se o tipo voltasse a ser achatado num timeout, levaria 3 s+ e o
+  teste pega isso (o boot completo de 2297 leva ~0,2 s; 300 transações são
+  instantâneas).
