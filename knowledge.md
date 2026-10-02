@@ -630,3 +630,13 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
 - **`--update-snapshots=all` reescreve TAMBÉM o que já batia** (re-encode muda o
   byte do PNG): use `=changed` no local e filtre por `-g "<nome>"` quando o alvo é
   um grupo só (evita commitar baseline alheia sem mudança real de pixels).
+- **Baseline gerada ANTES do rebase ENVELHECE** (aconteceu no #45): as `-linux`
+  nasceram numa árvore sem o botão de retry que o #46 adicionou e o banner do
+  `erro-preset` ficou 38px contra 50px do código — o PR abriu vermelho com
+  "Expected an image 1400px by 38px, received 1400px by 50px". Regra: gere/baixe
+  o artefato DEPOIS do rebase final (ou re-dispare o `update-snapshots`); e
+  compare com `cmp -s` antes de copiar, para commit só do que mudou de verdade.
+- **O job `e2e` também roda o `visual.spec.ts`** (`playwright test` pega todos os
+  specs): gerar baseline pelo input deixa o `e2e` vermelho enquanto o
+  `e2e-visual` escreve — é o sintoma de artefato velho, não de bug. Se um dia
+  isso incomodar, separe os projects (visual × funcional) em vez de duplicar.
