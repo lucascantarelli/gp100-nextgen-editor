@@ -69,7 +69,8 @@ RUN curl -fsSL https://sh.rustup.rs -o /tmp/rustup.sh \
 # O binário vai para /usr/local/bin (PATH global; o job roda com HOME=/github/home).
 RUN cargo install tauri-driver --locked \
  && cp "$CARGO_HOME/bin/tauri-driver" /usr/local/bin/ \
- && tauri-driver --version
+ # --help (não --version): o tauri-driver 2.x não tem --version e sai 1.
+ && tauri-driver --help > /dev/null
 
 # ── Node + pnpm: jobs de front dentro do container não baixam Node ──
 RUN case "$(dpkg --print-architecture)" in \
