@@ -419,9 +419,10 @@ jobs:
 
   # ── E2E VISUAL: regressão estética dos painéis (toHaveScreenshot) ──
   # Baselines por viewport E por plataforma (e2e/__screenshots__/*-linux.png):
-  # fontes divergem entre Windows/Linux. Sem baseline no CI = SKIP (não falha
-  # a 1ª execução); com o input update-snapshots, o job GERA as baselines
-  # linux e sobe o artefato — commitar os PNGs para ativar a comparação.
+  # fontes divergem entre Windows/Linux. É GATE de verdade (issue #45): as 48
+  # baselines `linux` estão commitadas e baseline ausente FALHA o job (sem
+  # skip silencioso). Teste visual novo = rodar o input update-snapshots,
+  # baixar o artefato e commitar os PNGs.
   e2e-visual:
     name: e2e visual — regressão estética (toHaveScreenshot)
     needs: plan
@@ -436,11 +437,9 @@ jobs:
         uses: ./.github/actions/playwright-setup
       - name: Suíte visual (compara baselines; gera com update-snapshots)
         working-directory: packages/app/ui
-        # UPDATE_SNAPSHOTS destrava o skip de baseline ausente no spec (o CI
-        # NÃO cria baseline nova por default — 48 falhas na run 36935738610);
-        # `=all` porque o input existe justamente p/ gerar o que falta.
-        env:
-          UPDATE_SNAPSHOTS: ${{ inputs.update-snapshots }}
+        # `--update-snapshots=all` (só com o input) é o ÚNICO caminho de escrita
+        # no CI — o default lá é comparar e FALHAR no que faltar; localmente o
+        # default `missing` cria o que falta (dev-friendly).
         run: pnpm exec playwright test visual.spec.ts ${{ inputs.update-snapshots == 'true' && '--update-snapshots=all' || '' }}
       - name: Baselines/diffs como artefato (inspeção e commit)
         if: always()
