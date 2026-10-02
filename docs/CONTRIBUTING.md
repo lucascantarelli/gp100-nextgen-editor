@@ -176,6 +176,15 @@ job: virou camada da imagem publicada no ghcr.io.
 - **Medição (antes/depois):** `python3 scripts/ci_timings.py <run-id> --steps`
   e `--compare <antes> <depois>` — tabela por job/step direto da API do
   Actions (só `gh` + stdlib). Mudança de custo entra com número.
+- **Números do #41** (runs `36946076269` → `36954177254`, matriz completa):
+  parede **405s → 140s (−65%)**; `ui-rust (windows)` **388s → 119s** (o
+  `cache-workspace-crates` cortou 234s do clippy/test/build MSVC — o maior
+  ganho isolado); `e2e smoke` **240s → 85s** (apt + `cargo install` fora do
+  caminho e cache da api compartilhado); `ui-rust (macos)` saiu (96s).
+  Contrapartidas honestas: o front do macOS em `macos-15-intel` custou +34s
+  (runner Intel é mais lento; o preço de matar a anotação de fila do arm64) e
+  e2e/e2e-visual ficaram ~neutros (o cache de browser evita download, não o
+  resto do job).
 
 **Merge** (squash): subject conventional limpo, base `develop`, CI verde
 (visual divergente só com decisão de baseline documentada).
