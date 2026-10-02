@@ -241,8 +241,12 @@ oficial Tauri v2 (webkit2gtk-driver + xvfb + WEBKIT_DISABLE_DMABUF_RENDERER).
 > editáveis (arrasto/teclado/valor por textbox; knob numérico →
 > `device_set_param` §13.11), LED verde/vermelho e footswitch por prévia LOCAL,
 > trava ⇄ mover com reordenação local (arrastar o pedal para qualquer posição)
-> e os 8 lugares restantes como placeholders. Ainda NÃO nesta fatia: modal de
-> edição (passo 9) e o liga/desliga do modo engenheiro do tooltip (passo 5).
+> e os 8 lugares restantes como placeholders.
+>
+> **Entregue (fatia 2):** liga/desliga do **modo engenheiro** na aba General do
+> Settings (persistido local) — o tooltip do knob passa a mostrar
+> `addr/code/ctrl`, sem a referência interna `§13.11` (passo 5 do R7).
+> Ainda NÃO: modal de edição (passo 9).
 
 ### R7. Um pedal (ex.: COMP) em cada posição do board
 1. O efeito aparece no slot da vez; os 8 restantes continuam placeholders.

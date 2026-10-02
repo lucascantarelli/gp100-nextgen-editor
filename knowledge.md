@@ -733,3 +733,14 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
   (erro-boot 1920: 153→39px; lib 1440: 463→909px). Além de `board-*`, `lib-*` e
   `erro-boot-*` precisam de baseline nova nas DUAS plataformas (win32 local com
   `--update-snapshots=changed`; linux via dispatch `update-snapshots=true`).
+
+### Modo engenheiro do knob (02/10 — fatia 2 da #19)
+
+- **O `engineer` já estava pronto em `Pedal`/`Knob`/`Pedalboard` — faltava só o
+  liga/desliga**: agora vive na aba **General** do Settings (`engineerMode` no
+  `GeneralSettings`, persistido no mesmo `gp100.settings.general.v1`; default
+  `false`, então nenhuma baseline visual muda) e atravessa App → Stage → Pedal →
+  Knob. O tooltip formatado (`SET · addr · code · ctrl · payload`) não mudou.
+- **Lição Q-8 travada por teste**: o tooltip do modo engenheiro NÃO pode citar a
+  doc interna (`§13.11`) — há asserts negativos no unit (`stage.foundation`) e no
+  e2e (R7), então o vazamento não volta sem quebrar a suíte.
