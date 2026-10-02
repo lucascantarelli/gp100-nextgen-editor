@@ -43,6 +43,8 @@ interface Props {
   onToggle: (slot: BoardSlot) => void;
   onKnobChange: (slot: BoardSlot, pos: number, value: string) => void;
   onKnobReset: (slot: BoardSlot, pos: number) => void;
+  /** Abre o modal de edição (clique/Enter no pedal; trava OFF). */
+  onEdit: (slot: BoardSlot) => void;
 }
 
 const stage: CSSProperties = {
@@ -160,6 +162,7 @@ export function Stage({
   onToggle,
   onKnobChange,
   onKnobReset,
+  onEdit,
 }: Props) {
   // Reordenação LOCAL (prévia): ordem[display] = slot do board na posição.
   // Reset ao trocar de preset — editar um knob NÃO pode reordenar o palco.
@@ -264,15 +267,39 @@ export function Stage({
             },
           };
           if (s != null && ready) {
+            // clique/Enter no pedal abre o modal de edição — EXCETO sobre os
+            // controles (knob, textbox, footswitch) e com a trava ativa
+            // (modo arranjo: o clique pertence ao drag-and-drop)
+            const isControl = (t: EventTarget | null) =>
+              t instanceof Element &&
+              t.closest(
+                'input, select, textarea, foreignObject, [role="slider"], [role="button"], [data-control]',
+              ) != null;
             return (
               <div
                 key={chainIdx}
                 aria-label={MSG.slotAria(pos + 1, fam)}
+                role="group"
+                tabIndex={0}
+                title={MSG.pedalExpandTitle}
                 draggable={arrangeMode}
                 onDragStart={(e) => {
                   if (!arrangeMode) return;
                   dragFrom.current = pos;
                   if (e.dataTransfer) e.dataTransfer.effectAllowed = "move";
+                }}
+                onClick={(e) => {
+                  if (arrangeMode || isControl(e.target)) return;
+                  onEdit(s);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key !== "Enter" && e.key !== " ") return;
+                  if (arrangeMode || isControl(e.target)) return;
+                  // não roubar o atalho global do Espaço (drum) quando o foco
+                  // está no PRÓPRIO grupo do pedal
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onEdit(s);
                 }}
                 {...dropHandlers}
                 style={socketPedal(isOver, arrangeMode)}
