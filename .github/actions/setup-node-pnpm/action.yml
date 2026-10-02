@@ -1,7 +1,8 @@
 name: setup-node-pnpm
 description: >
-  Node 22 + pnpm 11 com cache do store (padrão do front packages/app/ui —
-  usados pelos jobs front, ui-rust e release-installer).
+  Node 22 + pnpm 11 do front (packages/app/ui). Em runner hospedado baixa do
+  zero e cacheia o store; na imagem ci-linux usa o Node/pnpm e o store
+  AQUECIDO da imagem (zero download por run). Um lugar por regra.
 inputs:
   install:
     description: 'Rodar `pnpm install --frozen-lockfile` após o setup'
@@ -10,16 +11,34 @@ inputs:
 runs:
   using: composite
   steps:
+    - name: Node/pnpm já estão na imagem de CI?
+      id: in-image
+      shell: bash
+      run: |
+        # Só a imagem ci-linux conta como "pronto": runners hospedados até têm
+        # node/pnpm pré-instalados, mas queremos o setup-node (e o cache do
+        # store) de sempre lá. A checagem de versão é o guard da deriva.
+        IN_IMAGE=false
+        if [ "${GP100_CI_IMAGE:-}" = "1" ] && command -v node >/dev/null 2>&1 && command -v pnpm >/dev/null 2>&1; then
+          MAJOR="$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null || echo nenhum)"
+          PNPM_MAJOR="$(pnpm --version 2>/dev/null | cut -d. -f1)"
+          if [ "$MAJOR" = "22" ] && [ "$PNPM_MAJOR" = "11" ]; then IN_IMAGE=true; fi
+        fi
+        echo "in_image=$IN_IMAGE" >> "$GITHUB_OUTPUT"
+        echo "node=$(node --version 2>/dev/null || echo nenhum) · pnpm=$(pnpm --version 2>/dev/null || echo nenhum) · in_image=$IN_IMAGE"
+
     - uses: actions/setup-node@v7
+      if: steps.in-image.outputs.in_image != 'true'
       with:
         node-version: 22
 
     - name: Instalar pnpm 11
+      if: steps.in-image.outputs.in_image != 'true'
       shell: bash
       run: npm install -g pnpm@11
 
-    - name: Cache do store pnpm
-      if: inputs.install == 'true'
+    - name: Cache do store pnpm (só em runner hospedado)
+      if: steps.in-image.outputs.in_image != 'true' && inputs.install == 'true'
       uses: actions/setup-node@v7
       with:
         node-version: 22
@@ -30,4 +49,11 @@ runs:
       if: inputs.install == 'true'
       shell: bash
       working-directory: packages/app/ui
-      run: pnpm install --frozen-lockfile
+      run: |
+        # Na imagem, o store vive em /opt/pnpm-store (env npm_config_store_dir,
+        # aquecido no build com ESTE lockfile) — install praticamente offline.
+        if [ -n "${npm_config_store_dir:-}" ]; then
+          pnpm install --frozen-lockfile --store-dir "$npm_config_store_dir"
+        else
+          pnpm install --frozen-lockfile
+        fi

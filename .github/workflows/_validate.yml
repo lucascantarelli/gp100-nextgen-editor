@@ -18,6 +18,22 @@
 #     mudam — é a trava da especificação (golden/hash/knob_map/fixtures).
 #   - timeout-minutes em todo job (runner preso não queima minutos).
 #   - `CI-lite` (label no PR) roda SÓ o Windows (WIP barato).
+#
+# CUSTO (issue #41 — medido, não estimado):
+#   - Jobs de container (imagem ghcr.io/<repo>/ci-linux:1) para o que precisa
+#     de WebKitGTK/GTK/xvfb/tauri-driver: o pull (~30s) é pago contra o que a
+#     imagem ELIMINA (apt 45–57s + cargo install 17s + rustup 8–10s).
+#   - Jobs de API/browser (e2e, e2e visual, front) ficam no runner hospedado:
+#     o pull não se paga (lição CI-11 no knowledge.md) — lá a alavanca é o
+#     cache do ~/.cache/ms-playwright (playwright-setup).
+#   - mesmos jobs de Rust compartilham cache POR WORKSPACE (shared-key
+#     ws-raiz | ws-api) — antes era um cache por job (`key`), sempre frio.
+#   - ui-rust em 2 OS: Windows (MSVC, ADR-7) + Linux (container). O macOS
+#     saiu — a UI segue coberta pelo matrix do front (vitest 3-OS).
+#   - macOS do front usa `macos-15-intel` (x86_64): TODO runner macos-* arm64
+#     carrega a anotação "capacity constraints ... longer queue times" do
+#     GitHub — ruído de infra que não controlamos; o label Intel não a emite e
+#     casa com a arquitetura de Windows/Linux (suporte até ~08/2027).
 # ═══════════════════════════════════════════════════════════════════════════
 
 name: _validate
@@ -33,9 +49,12 @@ on:
 
 permissions:
   contents: read
+  packages: read # pull da imagem ci-linux (público hoje; cinto e suspensório)
 
 env:
   CARGO_TERM_COLOR: always
+  # Fonte única da imagem de CI Linux — publicada por container.yml (`:1`).
+  CI_IMAGE: ghcr.io/${{ github.repository }}/ci-linux:1
 
 jobs:
   # ── PLANO: mudanças → matrizes filtradas ──
@@ -49,6 +68,7 @@ jobs:
       run-rust: ${{ steps.mat.outputs.run-rust }}
       run-front: ${{ steps.mat.outputs.run-front }}
       run-spec: ${{ steps.mat.outputs.run-spec }}
+      rust-ui-linux: ${{ steps.mat.outputs.rust-ui-linux }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -89,7 +109,6 @@ jobs:
         run: |
           python3 - <<'PY' >> "$GITHUB_OUTPUT"
           import json, os, re
-          sys_out = []
           changed = os.environ.get("CHANGED", "ALL")
           is_all = changed == "ALL"
           # re.M OBRIGATÓRIO: CHANGED é multi-linha; sem ele o ^ só casa no
@@ -103,15 +122,23 @@ jobs:
           spec   = has(r'^(analysis/|docs/|pyproject\.toml$|uv\.lock$)')
           scheduled = os.environ.get("IS_SCHEDULE") == "true"
           lite = os.environ.get("IS_LITE") == "true"
-          oss = ["windows-latest"] if lite else ["windows-latest", "ubuntu-24.04", "macos-26"]
           rust = []
+          ui_linux = False
           if not scheduled:
+              # macos-15-intel (x86_64): evita a anotação de fila dos runners
+              # macOS arm64 e casa com a arquitetura de Windows/Linux.
+              oss = ["windows-latest"] if lite else ["windows-latest", "macos-15-intel", "ubuntu-24.04"]
               for o in oss:
                   if core:
                       rust.append({"os": o, "project": "core", "workdir": "."})
                       rust.append({"os": o, "project": "cli", "workdir": "."})
-                  if uirust:
+                  # ui-rust em 2 OS (issue #41): Windows aqui (MSVC, ADR-7) e o
+                  # Linux no job de CONTAINER ui-rust-linux. O macOS saiu: o
+                  # front/vitest 3-OS é quem cobre a UI; compilar o shell Tauri
+                  # no macOS (~96s) não pegava classe de bug própria.
+                  if uirust and o == "windows-latest":
                       rust.append({"os": o, "project": "ui-rust", "workdir": "packages/app/api"})
+              ui_linux = uirust and not lite
           fr = [] if scheduled else [{"os": o} for o in oss if front]
           compact = lambda d: json.dumps(d, separators=(",", ":"))
           print(f"rust-matrix={compact({'include': rust})}")
@@ -119,6 +146,7 @@ jobs:
           print(f"run-rust={'true' if rust else 'false'}")
           print(f"run-front={'true' if fr else 'false'}")
           print(f"run-spec={'true' if (spec and not scheduled) else 'false'}")
+          print(f"rust-ui-linux={'true' if ui_linux else 'false'}")
           PY
 
   # ── GATE rápido (sempre): fmt + conventional commits + contratos dos workflows ──
@@ -136,11 +164,12 @@ jobs:
       - name: Toolchain stable do runner
         run: rustup update stable --no-self-update
 
+      # `cargo fmt` não compila nada: cache do rust-cache aqui só baixaria
+      # GB do cache compartilhado para nada (cache: "false").
       - name: Cache do cargo
-        uses: Swatinem/rust-cache@v2
+        uses: ./.github/actions/setup-rust
         with:
-          workspaces: .
-          key: gate
+          cache: "false"
 
       - name: Formatação (workspace gnu da raiz)
         run: cargo fmt --check
@@ -169,7 +198,7 @@ jobs:
       # Validação sintática + de gatilhos dos workflows (V-7): o teste de
       # integração REAL do close-linked é o merge em develop; aqui o gate
       # trava YAML válido e o contrato (trigger/permissions/guards).
-      - name: Workflows válidos (ci/_validate/_publish/release/security)
+      - name: Workflows válidos (ci/_validate/_publish/release/security/container)
         run: |
           python3 -c "import yaml" 2>/dev/null || python3 -m pip install --quiet --user pyyaml
           python3 scripts/validate_workflows.py
@@ -201,7 +230,7 @@ jobs:
       - name: Suíte de regressão (golden, hash da baseline, knob_map, fixtures)
         run: uv run pytest
 
-  # ── RUST: core / cli / ui-rust — matriz DINÂMICA (vazia = não aparece) ──
+  # ── RUST: core / cli / ui-rust(Windows) — matriz DINÂMICA (vazia = não aparece) ──
   rust:
     name: ${{ matrix.project }} (${{ matrix.os }})
     needs: plan
@@ -224,18 +253,26 @@ jobs:
       - name: Definir RUSTUP_TOOLCHAIN por OS/projeto
         run: echo "RUSTUP_TOOLCHAIN=${{ runner.os == 'Windows' && (matrix.workdir == 'packages/app/api' && 'stable-x86_64-pc-windows-msvc' || 'stable-x86_64-pc-windows-gnu') || 'stable' }}" >> "$GITHUB_ENV"
 
-      - name: Toolchain + cache do cargo
+      - name: Toolchain + cache do cargo (compartilhado por workspace)
         uses: ./.github/actions/setup-rust
         with:
           workdir: ${{ matrix.workdir }}
-          cache-key: ${{ matrix.project }}-${{ matrix.os }}
+          shared-key: ${{ matrix.project == 'ui-rust' && 'ws-api' || 'ws-raiz' }}
+          # Experimento do issue #41: cachear os crates DO workspace só no
+          # ui-rust do Windows (269s de clippy/test/build no MSVC é o maior
+          # custo restante do CI); nos demais o custo não paga o espaço.
+          cache-workspace-crates: ${{ matrix.project == 'ui-rust' && matrix.os == 'windows-latest' && 'true' || 'false' }}
 
       # midir → ALSA no Linux: alsa-sys compila C (pkg-config + asoundlib).
-      - name: Deps de sistema do ALSA (Linux — cli)
+      # Cache de apt (awalsh128) em vez de instalar a cada run — é o único
+      # pacote de sistema que sobrou no caminho quente (o resto virou camada
+      # da imagem ci-linux).
+      - name: Deps de sistema do ALSA (Linux — cli) — cache de apt
         if: matrix.project == 'cli' && runner.os == 'Linux'
-        run: |
-          sudo apt-get update -y
-          sudo apt-get install -y pkg-config libasound2-dev
+        uses: awalsh128/cache-apt-pkgs-action@v1
+        with:
+          packages: pkg-config libasound2-dev
+          version: 1.0
 
       - name: Clippy + testes (gp100-core)
         if: matrix.project == 'core'
@@ -266,20 +303,59 @@ jobs:
         if: matrix.project == 'ui-rust'
         uses: ./.github/actions/setup-node-pnpm
 
-      - name: Front (lint + test + build)
+      # Aqui só o BUILD: lint/coverage/vitest são o trabalho dos jobs `front`
+      # (matrix 3-OS) e do ui-rust-linux — este job precisa do ui/dist.
+      - name: Front (build — dist alimenta o shell)
         if: matrix.project == 'ui-rust'
         uses: ./.github/actions/build-front
-
-      - name: Deps de sistema do Tauri (Linux — gtk/webkit)
-        if: matrix.project == 'ui-rust' && runner.os == 'Linux'
-        uses: ./.github/actions/tauri-linux-deps
-
-      - name: Formatação do crate (Ubuntu — como na M0/M1)
-        if: matrix.project == 'ui-rust' && runner.os == 'Linux'
-        run: cargo fmt -- --check
+        with:
+          full: "false"
 
       - name: Clippy + testes + build do shell (gp100-ui)
         if: matrix.project == 'ui-rust'
+        run: |
+          cargo clippy -p gp100-ui --all-targets -- -D warnings
+          cargo test -p gp100-ui
+          cargo build -p gp100-ui
+
+  # ── UI-RUST (Linux): o shell Tauri compila DENTRO da imagem ci-linux ──
+  # Antes: 57s de apt (webkit/gtk) + 21s de toolchain/cache no runner
+  # hospedado. Agora: pull da imagem (~30s) — WebKitGTK/GTK, Node 22 + pnpm 11
+  # com store aquecido e o toolchain já vêm prontos (issue #41).
+  ui-rust-linux:
+    name: ui-rust (ubuntu-24.04 · container)
+    needs: plan
+    if: needs.plan.outputs.rust-ui-linux == 'true'
+    runs-on: ubuntu-24.04
+    container:
+      image: ghcr.io/${{ github.repository }}/ci-linux:1
+    timeout-minutes: 30
+    env:
+      # O pin gnu do rust-toolchain.toml da raiz quebra Linux (ADR-7).
+      RUSTUP_TOOLCHAIN: stable
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Cache do cargo (workspace da api — compartilhado com o smoke)
+        uses: ./.github/actions/setup-rust
+        with:
+          workdir: packages/app/api
+          shared-key: ws-api
+
+      - name: Setup do front (Node/pnpm — já na imagem)
+        uses: ./.github/actions/setup-node-pnpm
+
+      - name: Front (build — lint/testes ficam no matrix do front)
+        uses: ./.github/actions/build-front
+        with:
+          full: "false"
+
+      - name: Formatação do crate (como na M0/M1)
+        working-directory: packages/app/api
+        run: cargo fmt -- --check
+
+      - name: Clippy + testes + build do shell (gp100-ui)
+        working-directory: packages/app/api
         run: |
           cargo clippy -p gp100-ui --all-targets -- -D warnings
           cargo test -p gp100-ui
@@ -306,6 +382,8 @@ jobs:
   # R1–R6 + drum + looper + atalhos globais + responsividade (3 viewports).
   # O playwright.config sobe o próprio dev server (webServer + strictPort);
   # roda no MESMO filtro do front (mudança em packages/app/ui/ ou ALL).
+  # Fica no runner HOSPEDADO (não no container): o pull da imagem custaria
+  # mais do que o Chromium que o cache do playwright-setup já elimina (CI-11).
   e2e:
     name: e2e — Playwright (casca no Chromium)
     needs: plan
@@ -316,7 +394,7 @@ jobs:
       - uses: actions/checkout@v7
       - name: Setup (Node 22 + pnpm 11)
         uses: ./.github/actions/setup-node-pnpm
-      - name: Chromium do Playwright (+ deps de sistema)
+      - name: Chromium do Playwright (cache por versão + deps de sistema)
         uses: ./.github/actions/playwright-setup
       - name: Suíte e2e (sobe o pnpm dev sozinha — reuseExistingServer)
         working-directory: packages/app/ui
@@ -337,7 +415,7 @@ jobs:
       - uses: actions/checkout@v7
       - name: Setup (Node 22 + pnpm 11)
         uses: ./.github/actions/setup-node-pnpm
-      - name: Chromium do Playwright (+ deps de sistema)
+      - name: Chromium do Playwright (cache por versão + deps de sistema)
         uses: ./.github/actions/playwright-setup
       - name: Suíte visual (compara baselines; gera com update-snapshots)
         working-directory: packages/app/ui
@@ -360,34 +438,34 @@ jobs:
   # Prova a casca no WEBVIEW, não só no browser: build debug do gp100-ui
   # (generate_context! embute ui/dist; backend mock — sem hardware), driver
   # WebKitGTK sob xvfb e asserções de DOM via Selenium (receita oficial).
+  # Container ci-linux: o driver do WebKit, o xvfb, o mesa (software rendering)
+  # e o tauri-driver COMPILADO já vêm da imagem — zero apt/cargo install aqui.
   e2e-tauri:
     name: e2e smoke — shell Tauri real (tauri-driver, Linux)
     needs: plan
     if: needs.plan.outputs.run-front == 'true' || needs.plan.outputs.run-rust == 'true'
     runs-on: ubuntu-24.04
+    container:
+      image: ghcr.io/${{ github.repository }}/ci-linux:1
     timeout-minutes: 30
     env:
       RUSTUP_TOOLCHAIN: stable
     steps:
       - uses: actions/checkout@v7
-      - name: Setup Rust (stable — pin gnu da raiz quebra Linux, ADR-7)
+      - name: Cache do cargo (workspace da api — compartilhado com o ui-rust)
         uses: ./.github/actions/setup-rust
         with:
           workdir: packages/app/api
-          cache-key: smoke-tauri
-      - name: Setup do front (Node 22 + pnpm 11)
+          shared-key: ws-api
+      - name: Setup do front (Node 22 + pnpm 11 — já na imagem)
         uses: ./.github/actions/setup-node-pnpm
-      - name: Front (lint + test + build — ui/dist alimenta o binário)
+      - name: Front (build — ui/dist alimenta o binário)
         uses: ./.github/actions/build-front
-      - name: Deps do Tauri + driver (WebKitGTK, xvfb, webkit2gtk-driver)
-        uses: ./.github/actions/tauri-linux-deps
         with:
-          xvfb: "true"
+          full: "false"
       - name: Build debug do gp100-ui (dist embutido, backend mock)
         working-directory: packages/app/api
         run: cargo build -p gp100-ui
-      - name: Instalar tauri-driver
-        run: cargo install tauri-driver --locked
       # LIÇÃO (run 36943668915): build DEBUG carrega o `devUrl` do
       # tauri.conf.json (http://localhost:5173) — o dist embutido só entra em
       # RELEASE. Sem servidor no runner o webview mostra "Could not connect to

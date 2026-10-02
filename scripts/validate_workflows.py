@@ -15,7 +15,15 @@ o close-linked fecha issue no merge em develop; a cadeia rc->promote roda no
   5. release.yml: inputs action (version|rc|promote), jobs rc/promote e os
      publishes do MESMO run (lição: tag do bot não dispara workflow);
   6. security.yml: schedule + issue ACHADOS;
-  7. os workflows legados (pipeline.yml, close-issues.yml) NÃO existem mais.
+  7. container.yml + .github/docker/ci-linux/Dockerfile: a imagem de CI (o
+     toolset que os jobs deixam de instalar a cada run);
+  8. _validate.yml em modo CUSTO (issue #41): os jobs de container
+     (ui-rust-linux, e2e-tauri) rodam na imagem SEM apt/cargo install no
+     caminho quente, o cache do cargo é por workspace (shared-key) e o ui-rust
+     ficou em 2 OS; as composites guardam o contrato (shared-key, browsers do
+     Playwright, store/node da imagem);
+  9. os workflows legados (pipeline.yml, close-issues.yml) NÃO existem mais e o
+     composite tauri-linux-deps foi aposentado pela imagem ci-linux.
 
 Uso: python3 scripts/validate_workflows.py  (exit 1 na primeira violação de
 contrato; YAML inválido acumula falhas e lista todas).
@@ -43,6 +51,16 @@ def load(path: str) -> dict | None:
 def triggers(doc: dict) -> dict:
     """`on:` — PyYAML 1.1 parseia a chave `on` como booleano True."""
     return doc.get("on") or doc.get(True) or {}
+
+
+def raw(path: str) -> str:
+    """Texto cru do arquivo ("" se não existir) — para contratos de presença
+    de palavra (ações, imagens, ferramentas do Dockerfile)."""
+    try:
+        with open(path, encoding="utf-8") as fh:
+            return fh.read()
+    except OSError:
+        return ""
 
 
 def main() -> int:
@@ -111,8 +129,9 @@ def main() -> int:
     val = docs.get(".github/workflows/_validate.yml") or {}
     if "workflow_call" not in triggers(val):
         FAILURES.append("_validate: precisa de on.workflow_call (reusable)")
-    val_jobs = set((val.get("jobs") or {}).keys())
-    for job in ("plan", "gate", "spec", "rust", "front", "e2e", "e2e-visual", "e2e-tauri"):
+    val_job_defs = val.get("jobs") or {}
+    val_jobs = set(val_job_defs.keys())
+    for job in ("plan", "gate", "spec", "rust", "ui-rust-linux", "front", "e2e", "e2e-visual", "e2e-tauri"):
         if job not in val_jobs:
             FAILURES.append(f"_validate: job '{job}' ausente")
 
@@ -166,6 +185,94 @@ def main() -> int:
             if word not in sec_runs:
                 FAILURES.append(f"security: job perdeu '{word}'")
 
+    # ── container.yml: publica a imagem de CI no ghcr.io (issue #41) ──
+    cont_path = ".github/workflows/container.yml"
+    cont = docs.get(cont_path) or {}
+    cont_on = triggers(cont)
+    if not cont:
+        FAILURES.append("container: workflow ausente (imagem ci-linux do ghcr.io)")
+    else:
+        cont_push = cont_on.get("push") or {}
+        if not {"develop", "main"} <= set(cont_push.get("branches") or []):
+            FAILURES.append("container: push deve mirar develop+main (publica a imagem)")
+        if not any(str(p).startswith(".github/docker/") for p in (cont_push.get("paths") or [])):
+            FAILURES.append("container: push.paths precisa cobrir .github/docker/**")
+        if "workflow_dispatch" not in cont_on:
+            FAILURES.append("container: precisa de workflow_dispatch (rebuild manual)")
+        if (cont.get("permissions") or {}).get("packages") != "write":
+            FAILURES.append("container: permissions.packages precisa ser 'write' (push no ghcr.io)")
+        cont_raw = raw(cont_path)
+        for word in (
+            "docker/build-push-action",
+            "docker/login-action",
+            "ghcr.io",
+            "github.event_name != 'pull_request'",
+        ):
+            if word not in cont_raw:
+                FAILURES.append(f"container: perdeu '{word}'")
+
+    # ── Dockerfile: contrato do TOOLSET (o que o hot path deixa de instalar) ──
+    dockerfile_path = ".github/docker/ci-linux/Dockerfile"
+    dockerfile_raw = raw(dockerfile_path)
+    if not dockerfile_raw:
+        FAILURES.append("container: .github/docker/ci-linux/Dockerfile ausente")
+    else:
+        for word in (
+            "tauri-driver",
+            "libwebkit2gtk-4.1-dev",
+            "webkit2gtk-driver",
+            "xvfb",
+            "rustup.sh",
+            "pnpm fetch",
+        ):
+            if word not in dockerfile_raw:
+                FAILURES.append(f"Dockerfile ci-linux: perdeu '{word}' (toolset da imagem)")
+
+    # ── _validate: ONDE o container se paga + zero instalação por run ──
+    val_raw = raw(".github/workflows/_validate.yml")
+    for job in ("ui-rust-linux", "e2e-tauri"):
+        job_def = val_job_defs.get(job) or {}
+        image = str((job_def.get("container") or {}).get("image") or "")
+        if "ghcr.io/" not in image or "ci-linux" not in image:
+            FAILURES.append(f"_validate: job '{job}' precisa rodar na imagem ci-linux")
+        runs = " ".join(str(s.get("run") or "") for s in (job_def.get("steps") or []))
+        for instala in ("apt-get", "cargo install"):
+            if instala in runs:
+                FAILURES.append(f"_validate: '{job}' voltou a instalar por run ('{instala}') — isso é da imagem")
+    for aposentado in ("tauri-linux-deps", "apt-get"):
+        if aposentado in val_raw:
+            FAILURES.append(f"_validate: '{aposentado}' voltou ao caminho quente (imagem ci-linux + cache-apt)")
+    plan_def = val_job_defs.get("plan") or {}
+    plan_runs = " ".join(str(s.get("run") or "") for s in (plan_def.get("steps") or []))
+    if "rust-ui-linux=" not in plan_runs:
+        FAILURES.append("_validate: plano precisa emitir rust-ui-linux (job de container)")
+    if 'o == "windows-latest"' not in plan_runs:
+        FAILURES.append("_validate: ui-rust deve ficar em 2 OS (Windows no host + Linux no container)")
+    if "shared-key" not in val_raw:
+        FAILURES.append("_validate: cache do cargo precisa ser por workspace (shared-key)")
+    if "add-job-id-key" not in raw(".github/actions/setup-rust/action.yml"):
+        FAILURES.append("setup-rust: shared-key exige add-job-id-key: false (senão a chave por job volta)")
+
+    # ── composites: contrato de cada alavanca de custo ──
+    composite_contracts = {
+        ".github/actions/setup-rust/action.yml": ("shared-key", "cache-workspace-crates", "GP100_CI_IMAGE"),
+        ".github/actions/setup-node-pnpm/action.yml": ("GP100_CI_IMAGE", "npm_config_store_dir"),
+        ".github/actions/build-front/action.yml": ("full",),
+        ".github/actions/playwright-setup/action.yml": ("actions/cache", "ms-playwright", "--with-deps"),
+    }
+    for path, words in composite_contracts.items():
+        text = raw(path)
+        if not text:
+            FAILURES.append(f"{path}: action ausente")
+            continue
+        for word in words:
+            if word not in text:
+                FAILURES.append(f"{path}: perdeu '{word}'")
+    if raw(".github/actions/tauri-linux-deps/action.yml"):
+        FAILURES.append(".github/actions/tauri-linux-deps: aposentado pela imagem ci-linux (remover)")
+    if "shared-key" not in raw(".github/workflows/_publish.yml"):
+        FAILURES.append("_publish: setup-rust precisa de shared-key (cache por workspace)")
+
     # ── relatório ──
     PREFIX_TO_FILE = {
         "ci": ".github/workflows/ci.yml",
@@ -173,6 +280,7 @@ def main() -> int:
         "_publish": ".github/workflows/_publish.yml",
         "release": ".github/workflows/release.yml",
         "security": ".github/workflows/security.yml",
+        "container": ".github/workflows/container.yml",
     }
     broken_files = {PREFIX_TO_FILE[f.split(":")[0]] for f in FAILURES if f.split(":")[0] in PREFIX_TO_FILE}
     for path in workflows + templates:

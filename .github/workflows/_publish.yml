@@ -44,11 +44,11 @@ jobs:
         with:
           ref: ${{ inputs.tag }}
 
-      - name: Toolchain + cache
+      - name: Toolchain + cache (workspace da raiz — compartilhado com a validação)
         uses: ./.github/actions/setup-rust
         with:
           workdir: .
-          cache-key: release-cli
+          shared-key: ws-raiz
 
       # Gates reconfirmados: a tag pode ter sido criada a partir de um ref
       # que não passou pelo ci.yml (ex.: input publish-tag de emergência).
@@ -134,11 +134,11 @@ jobs:
       - name: Front (lint + test + build — ui/dist alimenta o bundle)
         uses: ./.github/actions/build-front
 
-      - name: Toolchain + cache (MSVC da api — ADR-7)
+      - name: Toolchain + cache (MSVC da api, ADR-7 — compartilhado com a validação)
         uses: ./.github/actions/setup-rust
         with:
           workdir: packages/app/api
-          cache-key: release-installer
+          shared-key: ws-api
 
       # O tauri-cli acha o conf DESCENDO do cwd; exige workspace (o próprio
       # de packages/app/api) e usa o shim do ui/ (packages/app não é pacote pnpm).
