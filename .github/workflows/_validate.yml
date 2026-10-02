@@ -388,6 +388,24 @@ jobs:
         run: cargo build -p gp100-ui
       - name: Instalar tauri-driver
         run: cargo install tauri-driver --locked
+      # LIÇÃO (run 36943668915): build DEBUG carrega o `devUrl` do
+      # tauri.conf.json (http://localhost:5173) — o dist embutido só entra em
+      # RELEASE. Sem servidor no runner o webview mostra "Could not connect to
+      # localhost: Connection refused" (içado pelo page source do próprio
+      # smoke). Servimos o dist de produção na devUrl: o smoke segue provando
+      # o WEBVIEW real (WebKitGTK + tauri-driver + DOM), que é o objeto dele.
+      - name: Servir o dist na devUrl (build debug consome localhost:5173)
+        working-directory: packages/app/ui
+        run: |
+          nohup pnpm exec vite preview --port 5173 --strictPort > /tmp/preview.log 2>&1 &
+          for _ in $(seq 1 60); do
+            if curl -sf http://localhost:5173 >/dev/null; then
+              echo "preview do dist no ar na :5173"
+              exit 0
+            fi
+            sleep 0.5
+          done
+          echo "::error::preview não subiu — log:"; cat /tmp/preview.log; exit 1
       - name: Smoke do shell (xvfb + tauri-driver na 4444)
         working-directory: packages/app/ui
         env:

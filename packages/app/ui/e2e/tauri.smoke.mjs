@@ -1,7 +1,13 @@
 /**
  * Smoke e2e do shell TAURI REAL (tauri-driver + WebKitWebDriver no Linux CI).
  * Prova que a casca sobe no WEBVIEW (não só no browser): binário gp100-ui
- * debug (frontendDist embutido, backend mock) → tauri-driver :4444 → Selenium.
+ * debug (backend mock) → tauri-driver :4444 → Selenium.
+ *
+ * ⚠️ BUILD DEBUG CARREGA O `devUrl` (http://localhost:5173) — o dist embutido
+ * só é usado em release. Por isso o job serve o dist de produção ali
+ * (`vite preview --port 5173`) antes deste script; sem isso o webview mostra
+ * "Could not connect to localhost: Connection refused" (causa raiz fechada na
+ * run 36943668915 pelo page source do diagnóstico deste script).
  *
  * Receita oficial (v2.tauri.app/develop/tests/webdriver): capabilities
  * `tauri:options: { application }` + `browserName: "wry"`; no CI roda sob
