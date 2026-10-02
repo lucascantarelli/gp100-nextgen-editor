@@ -300,6 +300,13 @@ export function Pedal({
       role="group"
       aria-label={MSG.pedalGroupAria(fam.kind, slot.name, on)}
       style={{
+        // PALCO: o desenho acompanha a coluna do .board-slots (100% da
+        // célula, nunca além da largura real do catálogo) — o aspect do
+        // viewBox é preservado, então os 9 cabem numa fileira em qualquer
+        // largura; o MODAL mantém a escala de edição (W×H atributos)
+        width: compact ? "100%" : W,
+        maxWidth: compact ? W : undefined,
+        height: compact ? "auto" : H,
         // nunca deixa o flex do board ENCOLHER o desenho (escala distorcida)
         flexShrink: 0,
         filter: compact
@@ -317,6 +324,14 @@ export function Pedal({
           <stop offset="0%" stopColor="#fff" stopOpacity="0.16" />
           <stop offset="45%" stopColor="#fff" stopOpacity="0.04" />
           <stop offset="100%" stopColor="#000" stopOpacity="0.12" />
+        </linearGradient>
+        {/* LUZ DO SISTEMA (#9): direção única cima/esquerda — risco
+            especular na diagonal + sombreado na ponta oposta */}
+        <linearGradient id={`spec-${slot.slot}`} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#fff" stopOpacity="0.2" />
+          <stop offset="30%" stopColor="#fff" stopOpacity="0.04" />
+          <stop offset="62%" stopColor="#fff" stopOpacity="0" />
+          <stop offset="100%" stopColor="#000" stopOpacity="0.1" />
         </linearGradient>
         <radialGradient id={`led-${slot.slot}`} cx="35%" cy="30%">
           <stop offset="0%" stopColor="#fff" />
@@ -352,6 +367,24 @@ export function Pedal({
         height={H - (compact ? 12 : 20)}
         rx={compact ? 10 : 14}
         fill={`url(#sheen-${slot.slot})`}
+      />
+      {/* brilho especular + fio de luz na aresta de cima do enclosure */}
+      <rect
+        x={compact ? 4 : 6}
+        y={compact ? 6 : 8}
+        width={W - (compact ? 8 : 12)}
+        height={H - (compact ? 12 : 20)}
+        rx={compact ? 10 : 14}
+        fill={`url(#spec-${slot.slot})`}
+      />
+      <rect
+        x={compact ? 10 : 13}
+        y={compact ? 7.5 : 9.5}
+        width={W - (compact ? 20 : 26)}
+        height="1.6"
+        rx="0.8"
+        fill="#ffffff"
+        opacity="0.14"
       />
 
       {/* LED + parafusos */}

@@ -17,7 +17,7 @@ interface Props {
 
 export function PushLog({ log, onClear }: Props) {
   return (
-    <section aria-label={MSG.pushTitle} style={styles.panel}>
+    <section aria-label={MSG.pushTitle} className="gp-surface gp-surface--flat" style={styles.panel}>
       <div style={styles.header}>
         <h2 style={styles.title}>{MSG.pushTitle}</h2>
         <button type="button" onClick={onClear} style={styles.clear}>
@@ -48,9 +48,6 @@ export function PushLog({ log, onClear }: Props) {
 
 const styles: Record<string, React.CSSProperties> = {
   panel: {
-    background: "var(--bg-raised)",
-    border: "1px solid color-mix(in srgb, var(--text-muted) 30%, transparent)",
-    borderRadius: "var(--space-12)",
     padding: "var(--space-20)",
     display: "flex",
     flexDirection: "column",

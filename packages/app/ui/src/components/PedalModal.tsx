@@ -35,16 +35,13 @@ const overlay: CSSProperties = {
   placeItems: "center",
   zIndex: 60,
 };
+/* modal = superfície FLUTUANTE do sistema (luz/sombra dos tokens) */
 const dialog: CSSProperties = {
   width: "min(640px, 96vw)",
   maxHeight: "92vh",
   overflow: "hidden",
   display: "grid",
   gridTemplateRows: "auto 1fr",
-  background: "var(--bg-raised)",
-  border: "1px solid color-mix(in srgb, var(--text-muted) 30%, transparent)",
-  borderRadius: 14,
-  boxShadow: "0 24px 60px rgba(0,0,0,.6)",
 };
 const close: CSSProperties = {
   background: "var(--bg)",
@@ -84,6 +81,7 @@ export function PedalModal({
         aria-modal="true"
         aria-label={MSG.pedalModalAria(slot.name)}
         tabIndex={-1}
+        className="gp-surface gp-surface--floating"
         style={dialog}
         onKeyDown={(e) => e.key === "Escape" && onClose()}
       >

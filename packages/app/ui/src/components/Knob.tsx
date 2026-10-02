@@ -140,6 +140,13 @@ export function Knob({
           <stop offset="0%" stopColor="#4a4f58" />
           <stop offset="100%" stopColor="#191c22" />
         </radialGradient>
+        {/* luz do design system (#9): luz em CIMA/esquerda — o vidro do
+            knob recebe um gradiente de topo e um brilho especular */}
+        <linearGradient id={`kshine-${knob.pos}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#ffffff" stopOpacity="0.5" />
+          <stop offset="55%" stopColor="#ffffff" stopOpacity="0.05" />
+          <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
+        </linearGradient>
       </defs>
       {/* marcações */}
       {[-135, -90, -45, 0, 45, 90, 135].map((a) => {
@@ -150,8 +157,33 @@ export function Knob({
         const y2 = c - Math.cos(rad) * (r + 4);
         return <line key={a} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#77808c" strokeWidth="1.2" />;
       })}
-      {/* corpo */}
-      <circle cx={c} cy={c} r={r} fill={`url(#kb-${knob.pos})`} stroke="#0c0e12" strokeWidth="1.8" />
+      {/* corpo (com sombra de contato projetada na placa) */}
+      <circle
+        cx={c}
+        cy={c}
+        r={r}
+        fill={`url(#kb-${knob.pos})`}
+        stroke="#0c0e12"
+        strokeWidth="1.8"
+        style={{ filter: "drop-shadow(0 2px 3px rgba(0,0,0,.5))" }}
+      />
+      {/* vidro iluminado por cima + brilho ESPECULAR pontual + recorte */}
+      <circle cx={c} cy={c} r={r - 1} fill={`url(#kshine-${knob.pos})`} />
+      <ellipse
+        cx={c - r * 0.32}
+        cy={c - r * 0.46}
+        rx={r * 0.3}
+        ry={r * 0.17}
+        fill="#ffffff"
+        opacity="0.22"
+      />
+      <circle
+        cx={c}
+        cy={c}
+        r={r - 0.7}
+        style={{ fill: "none", stroke: "var(--light-rim)" }}
+        strokeWidth="1"
+      />
       <circle cx={c} cy={c} r={Math.max(1, r - 14)} fill="none" stroke="#000" strokeOpacity="0.35" strokeWidth="1" />
       {/* indicador */}
       <line

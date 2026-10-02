@@ -63,7 +63,8 @@ export function loadTuner(): TunerSettings {
   return { on: false, mode: "mute", refPitch: REF_PITCH_DEFAULT };
 }
 
-/* MESMA identidade da caixa LED do palco (#0a0d10 + inset preto) */
+/* MESMA identidade da caixa LED do palco: superfície ESCAVADA do sistema
+   (`gp-sunken`) + brilho especular do vidro (`gp-specular`). */
 const box: CSSProperties = {
   display: "grid",
   gap: 6,
@@ -71,31 +72,18 @@ const box: CSSProperties = {
   minWidth: 280,
   maxWidth: 430,
   padding: "8px 12px",
-  background: "#0a0d10",
-  border: "1px solid #1d242c",
-  borderRadius: 6,
-  boxShadow: "inset 0 0 12px #000",
   fontFamily: "var(--font-mono)",
 };
 
-/* botão de controle com iluminação premium (superior mais claro) */
-const ctrl = (on: boolean): CSSProperties => ({
-  background: `linear-gradient(180deg, ${on ? "#2a1f0a" : "#1a1510"} 0%, ${on ? "#140f05" : "#0f0c08"} 100%)`,
-  border: `1px solid ${on ? "#8a6a24" : "#3d3220"}`,
-  color: on ? "#ffb85c" : "#d8c9a8",
-  fontWeight: on ? 700 : 400,
+/* controle do painel: o botão de hardware do sistema (`gp-btn`), com o
+   estado ligado pelo aria-pressed/gp-btn--on — a cor sozinha nunca decide */
+const ctrlCls = (on: boolean) => `gp-btn${on ? " gp-btn--on" : ""}`;
+const ctrl: CSSProperties = {
   fontFamily: "var(--font-mono)",
   fontSize: "var(--text-xs)",
   padding: "4px 10px",
-  cursor: "pointer",
-  borderRadius: 6,
-  minHeight: 32,
   whiteSpace: "nowrap",
-  boxShadow: on
-    ? "0 2px 0 #0a0703, inset 0 1px 0 rgba(255,255,255,0.08), inset 0 -1px 0 rgba(0,0,0,0.4)"
-    : "0 2px 0 #080604, inset 0 1px 0 rgba(255,255,255,0.03)",
-  transition: "all var(--motion-fast) var(--ease-out)",
-});
+};
 
 const meter: CSSProperties = {
   position: "relative",
@@ -250,6 +238,7 @@ export function TunerPanel({
 
   return (
     <div
+      className="gp-sunken gp-specular"
       style={box}
       role="group"
       aria-label={MSG.tunerAria}
@@ -281,8 +270,9 @@ export function TunerPanel({
       <div style={row("auto auto 1fr auto")}>
         {/* MONITOR: botão VISUAL on/off — ícone ♪ + LED verde/vermelho */}
         <button
+          className={ctrlCls(active)}
           style={{
-            ...ctrl(active),
+            ...ctrl,
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
@@ -315,7 +305,8 @@ export function TunerPanel({
 
         {/* MODO: bypass (seco) / thru (com efeito) / mute (silencioso) */}
         <button
-          style={{ ...ctrl(settings.mode === "bypass"), minWidth: 62 }}
+          className={ctrlCls(settings.mode === "bypass")}
+          style={{ ...ctrl, minWidth: 62 }}
           onClick={() => set({ mode: MODES[(MODES.indexOf(settings.mode) + 1) % MODES.length] })}
           aria-label={MSG.tunerModeAria}
           title={MSG.tunerModeTitle}
@@ -338,14 +329,19 @@ export function TunerPanel({
             title={MSG.tunerRefTitle}
             style={{ flex: 1, minWidth: 52, accentColor: "#ffb85c", minHeight: 32 }}
           />
-          <span data-tuner-ref style={{ fontSize: "var(--text-xs)", color: "#ffb85c", minWidth: 40 }}>
+          <span
+            data-tuner-ref
+            className="gp-tabular"
+            style={{ fontSize: "var(--text-xs)", color: "#ffb85c", minWidth: 40 }}
+          >
             {MSG.tunerRefValue(settings.refPitch)}
           </span>
         </label>
 
         {/* DEMO: amostra sintética pelo motor real (liga o monitor se preciso) */}
         <button
-          style={ctrl(demo)}
+          className={ctrlCls(demo)}
+          style={ctrl}
           onClick={() => {
             if (!active) set({ on: true }); /* demonstrar exige o monitor ouvindo */
             setDemo((v) => !v);

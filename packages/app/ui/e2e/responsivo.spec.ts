@@ -1,8 +1,9 @@
 /**
  * R-RESPONSIVO (docs/UI_TEST_PLAN.md) — alinhamento da casca em 1440/1280/1024
  * no Chromium (CI e local). Asserts portados de analysis/responsivo_checks.js
- * (27/27 validados no Chrome do sistema): overflow, colunas do board (9 → 3×3),
- * biblioteca lado a lado/empilhada, looper sem sobreposição e sem texto clipado.
+ * (27/27 validados no Chrome do sistema): overflow, cadeia do board numa
+ * ÚNICA fileira de 9 pedais, biblioteca lado a lado/empilhada, looper sem
+ * sobreposição e sem texto clipado.
  *
  * Refactor POM (V-7): _helpers.ts segue como módulo de MEDIDAS (não é page
  * object — é geometria de página inteira); o spec usa o ShellPage só para

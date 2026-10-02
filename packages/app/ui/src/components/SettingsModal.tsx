@@ -60,16 +60,14 @@ const overlay: CSSProperties = {
   placeItems: "center",
   zIndex: 50,
 };
+/* modal = superfície FLUTUANTE do sistema (gp-surface--floating): a luz e a
+   sombra vêm dos tokens; aqui só geometria/estrutura */
 const dialog: CSSProperties = {
   width: "min(640px, 92vw)",
   maxHeight: "86vh",
   overflow: "hidden",
   display: "grid",
   gridTemplateRows: "auto auto 1fr",
-  background: "var(--bg-raised)",
-  border: "1px solid color-mix(in srgb, var(--text-muted) 30%, transparent)",
-  borderRadius: 14,
-  boxShadow: "0 24px 60px rgba(0,0,0,.6)",
 };
 const tabRow: CSSProperties = { display: "flex", gap: "var(--space-4)", padding: "var(--space-12) var(--space-12) 0", flexWrap: "wrap" };
 const tabStyle = (on: boolean): CSSProperties => ({
@@ -184,6 +182,7 @@ export function SettingsModal({ open, general, onChangeGeneral, onClose }: Props
         aria-modal="true"
         aria-label={MSG.settingsDialogAria}
         tabIndex={-1}
+        className="gp-surface gp-surface--floating"
         style={dialog}
         onKeyDown={(e) => e.key === "Escape" && onClose()}
       >

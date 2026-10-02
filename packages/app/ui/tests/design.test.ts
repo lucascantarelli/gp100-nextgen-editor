@@ -6,8 +6,13 @@
 import { describe, expect, it } from "vitest";
 import {
   CONTRAST_RATIOS,
+  FONT_STACKS,
+  LIGHT,
+  LIGHT_VAR,
+  RADIUS,
   SPACE,
   TEXT_PAIRS,
+  TYPE,
   WCAG,
 } from "../src/design/tokens";
 import { readFileSync } from "node:fs";
@@ -39,6 +44,41 @@ describe("escala de espaçamento (Fibonacci base 4)", () => {
     const css = readFileSync(uiFile("src", "design", "design.css"), "utf8");
     for (const [k, px] of Object.entries(SPACE)) {
       expect(css).toContain(`--space-${k}: ${px}px`);
+    }
+  });
+});
+
+/*
+ * Luz/profundidade (#9): tokens.ts declara OS VALORES (alfa) e design.css
+ * os declara como custom properties — o comentário dos dois arquivos diz que
+ * ESTE teste garante o espelho. Escuro = base; o tema claro sobrescreve os
+ * mesmos nomes com alfas próprios (por isso a busca é pelo par rgb+alfa).
+ */
+describe("luz e profundidade (tokens de luz × design.css)", () => {
+  const css = readFileSync(uiFile("src", "design", "design.css"), "utf8");
+
+  it("cada alfa de LIGHT existe no CSS com o MESMO valor no tema escuro", () => {
+    for (const [key, alpha] of Object.entries(LIGHT)) {
+      const varName = LIGHT_VAR[key as keyof typeof LIGHT];
+      const rgb = key.startsWith("shade") ? "0, 0, 0" : "255, 255, 255";
+      expect(css, `${varName} espelha LIGHT.${key} = ${alpha}`).toContain(
+        `${varName}: rgba(${rgb}, ${alpha})`,
+      );
+    }
+  });
+
+  it("raios e passos de texto do CSS batem com RADIUS/TYPE", () => {
+    for (const [k, px] of Object.entries(RADIUS)) {
+      expect(css).toContain(`--radius-${k}: ${px}px`);
+    }
+    for (const [k, px] of Object.entries(TYPE)) {
+      expect(css).toContain(`--text-${k}: ${px}px`);
+    }
+  });
+
+  it("stacks de fonte do CSS batem com FONT_STACKS", () => {
+    for (const [k, stack] of Object.entries(FONT_STACKS)) {
+      expect(css).toContain(`--font-${k}: ${stack}`);
     }
   });
 });

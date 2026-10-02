@@ -3,7 +3,7 @@
  * Fase 2 de pedais, antes coberta só "de raspão" pelo App):
  *   - fxModels: variante conhecida, fallback por archetype e capacidade
  *     para TODOS os slots possíveis do mock (contrato de nunca-undefined);
- *   - Pedalboard: 3 linhas de pedais, display LED, ordem custom com slots
+ *   - Pedalboard: 1 fileira de 9 pedais, display LED, ordem custom com slots
  *     ausentes preservados e pulsos de sinal por par ON;
  *   - Pedal: LED on/off, truncamento de nome e ValueBox (Enter commit,
  *     Esc restaura);
@@ -105,7 +105,7 @@ describe("fxModels — catálogo de modelos por variante", () => {
   });
 });
 
-describe("Pedalboard — o palco em 3 linhas", () => {
+describe("Pedalboard — o palco em 1 fileira de 9 pedais", () => {
   it("monta os 9 pedais com display LED do preset (pp + nome + contagem ON)", () => {
     const { root, host } = mount(
       <Pedalboard
@@ -122,6 +122,8 @@ describe("Pedalboard — o palco em 3 linhas", () => {
     expect(status?.textContent).toContain("00");
     expect(status?.textContent).toContain("Preset Teste");
     expect(status?.textContent).toContain("9/9"); // states vazio = estado do slot (todos ON)
+    // cadeia inteira em 1 fileira: 9 pedais lado a lado, nenhum vazio
+    expect(host.querySelectorAll('svg[role="group"]').length).toBe(9);
     act(() => root.unmount());
     host.remove();
   });
@@ -131,7 +133,7 @@ describe("Pedalboard — o palco em 3 linhas", () => {
       <Pedalboard
         board={BOARD}
         states={{}}
-        order={[4, 0, 1, 2, 3, 5, 6, 7]} // NR vai para a 1ª posição; RVB-8 fica de fora
+        order={[4, 0, 1, 2, 3, 5, 6, 7]} // CAB vai para a 1ª posição; RVB-8 fica de fora
         onToggle={noopSlot}
         onKnobChange={noopSlot}
         onKnobReset={noopSlot}
@@ -142,6 +144,8 @@ describe("Pedalboard — o palco em 3 linhas", () => {
     expect(labels.length).toBe(9); // nenhum slot perdido
     expect(labels[0]).toContain("CAB-4"); // slot 4 (CAB) vai para a 1ª posição
     expect(labels[8]).toContain("RVB-8"); // slot 8, ausente da ordem → preservado no fim
+    // depois do reorder a cadeia ainda é 1 fileira de 9 pedais
+    expect(host.querySelectorAll('svg[role="group"]').length).toBe(9);
     act(() => root.unmount());
     host.remove();
   });
@@ -157,7 +161,8 @@ describe("Pedalboard — o palco em 3 linhas", () => {
         onReorder={noop}
       />,
     );
-    // 3 linhas × 3 pedais = 2 cabos por linha, todos com pulso
+    // o Pedalboard artístico monta 3 fileiras de 3 pedais; cada fileira tem
+    // 2 cabos entre vizinhos → 3 × 2 = 6 pulsos com todos os pares ON
     expect(host.querySelectorAll('circle[fill="#ffd23f"]').length).toBe(6);
     act(() => root.unmount());
     host.remove();
@@ -436,7 +441,7 @@ describe("Knob — controle rotativo paramétrico", () => {
   });
 });
 
-describe("Stage — palco real da Fase 2 (1 efeito por vez)", () => {
+describe("Stage — palco real da Fase 2 (cadeia inteira)", () => {
   const stageProps = {
     celebrate: false,
     arrangeMode: false,
@@ -449,23 +454,24 @@ describe("Stage — palco real da Fase 2 (1 efeito por vez)", () => {
     onEdit: noopSlot,
   };
 
-  it("famílias validadas (PRE + DST) viram pedais REAIS; as outras 7 seguem placeholders", () => {
+  it("a cadeia INTEIRA vira pedal REAL: as 9 famílias (visão completa)", () => {
     const { root, host } = mount(<Stage board={BOARD} {...stageProps} />);
-    expect(PEDAL_FAMILIES_READY.has("PRE"), "PRE é família validada").toBe(true);
-    expect(PEDAL_FAMILIES_READY.has("DST"), "DST entrou na 2ª rodada do R7").toBe(true);
-    expect(groupLabels(host).length, "2 pedais no palco").toBe(2);
+    for (const fam of CHAIN_FAMILIES) {
+      expect(PEDAL_FAMILIES_READY.has(fam), `${fam} desenha pedal no palco`).toBe(true);
+    }
+    expect(groupLabels(host).length, "9 pedais no palco").toBe(9);
     expect(groupLabels(host)[0]).toContain("PRE-0");
-    expect(groupLabels(host)[1]).toContain("DST-1");
+    expect(groupLabels(host)[8]).toContain("RVB-8");
     expect(
-      host.querySelector('[aria-label="Slot 1: PRE"] svg[role="group"]'),
+      host.querySelector('[aria-label="Slot 5: CAB"] svg[role="group"]'),
       "o pedal ocupa o slot da própria família",
     ).toBeTruthy();
-    // 9 lugares no total; os 7 sem pedal mostram o hint de vazio
+    // 9 lugares, nenhum vazio: o hint só existe ANTES da 1ª leitura do board
     expect(host.querySelectorAll('[aria-label^="Slot "]').length).toBe(9);
     const hints = Array.from(host.querySelectorAll("span")).filter(
       (s) => s.textContent === "vazio",
     );
-    expect(hints.length, "7 placeholders").toBe(7);
+    expect(hints.length, "0 lugares vazios").toBe(0);
     act(() => root.unmount());
     host.remove();
   });
@@ -489,7 +495,7 @@ describe("Stage — palco real da Fase 2 (1 efeito por vez)", () => {
       slot(5, "CAB").dispatchEvent(new Event("drop", { bubbles: true }));
     });
     expect(slot(5, "PRE").querySelector('svg[role="group"]')).toBeTruthy();
-    expect(groupLabels(host).length).toBe(2);
+    expect(groupLabels(host).length).toBe(9);
     expect(host.querySelectorAll('[aria-label^="Slot "]').length).toBe(9);
     act(() => root.unmount());
     host.remove();

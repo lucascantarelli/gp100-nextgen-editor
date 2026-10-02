@@ -577,7 +577,7 @@ describe("Palco — afinador e drag-and-drop dos slots (Stage)", () => {
   });
 });
 
-describe("Palco — COMP (U-3: 1 efeito por vez)", () => {
+describe("Palco — COMP (U-3: pedais reais na cadeia inteira)", () => {
   it("palco: knobs travados com o valor em texto; o knob do MODAL manda device_set_param (slot do fio 1..9)", async () => {
     const { root, host } = mount();
     await settle();
@@ -586,8 +586,9 @@ describe("Palco — COMP (U-3: 1 efeito por vez)", () => {
     const pedal = host.querySelector('[aria-label="Slot 1: PRE"] svg[role="group"]');
     expect(pedal, "COMP no slot PRE").toBeTruthy();
     expect(pedal!.getAttribute("aria-label")).toContain("COMP");
-    // os outros 8 lugares seguem placeholders
+    // a cadeia inteira desenha pedal real (visor completo das 9 posições)
     expect(host.querySelectorAll('[aria-label^="Slot "]').length).toBe(9);
+    expect(host.querySelectorAll('svg[role="group"]').length).toBe(9);
 
     // palco: valor REAL do dicionário em texto e nenhum knob ajustável
     const stageValues = () =>
@@ -663,7 +664,8 @@ describe("Palco — COMP (U-3: 1 efeito por vez)", () => {
     const { root, host } = mount();
     await settle();
 
-    expect(host.querySelector('[data-led="off"]'), "COMP ligado de fábrica").toBeNull();
+    // COMP de fábrica PRE vem ligado no mock (estado first-of da cadeia)
+    expect(host.querySelector('[data-led="on"]'), "COMP ligado de fábrica").toBeTruthy();
     const foot = Array.from(host.querySelectorAll('[role="button"]')).find((b) =>
       (b.getAttribute("aria-label") ?? "").startsWith("Desligar efeito"),
     );
