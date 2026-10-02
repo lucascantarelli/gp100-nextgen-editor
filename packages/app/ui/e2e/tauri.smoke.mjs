@@ -16,6 +16,13 @@
  * Uso local/CI (após `cargo build -p gp100-ui` em packages/app/api):
  *   APP_PATH=/caminho/gp100-ui node e2e/tauri.smoke.mjs
  * Saída: exit 0 = casca bootou no webview e renderizou os painéis.
+ *
+ * Cobre TAMBÉM o DeviceGone PONTA-A-PONTA (#48): o driver sobe com
+ * `GP100_DEBUG_FAULT=die-after:2300` (lido pelo backend MOCK do gp100-ui) —
+ * o boot do mount (2297 transações; contrato pinado no core e em
+ * ui/src/ipc/device.ts) termina saudável e o 2º boot (⟳ da navbar) MORRE na
+ * largada: a UI tem que mostrar o alerta amigável, derrubar o LED, sumir com
+ * a barra de progresso e reabilitar o retry.
  */
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
@@ -87,12 +94,25 @@ async function waitForPort(port, tries = 40) {
 const application = resolveAppBinary();
 console.log(`▸ shell: ${application}`);
 
+/* #48 — cenário do USB removido NO MEIO da sessão (DeviceGone ponta-a-ponta).
+ * O backend MOCK do gp100-ui lê `GP100_DEBUG_FAULT=die-after:<n>` no boot do
+ * processo (packages/app/api/src/lib.rs): depois de n transmissões o
+ * transporte "cai". O 1º boot consome 2297 transações (contrato pinado em
+ * `boot_via_actor_completa_e_responde` do actor.rs e no BOOT_TOTAL do
+ * ui/src/ipc/device.ts) — `die-after:2300` deixa o boot do mount terminar
+ * saudável e mata o ⟳ (2º boot) já na largada. O app herda o env pelo
+ * tauri-driver (wrapper → WebKitWebDriver → app); valor malformado = mock
+ * saudável e o transporte REAL nunca lê este gancho (ADR-4/5 intocados). */
+const DEBUG_FAULT = "die-after:2300";
+console.log(`▸ fault armado no mock: GP100_DEBUG_FAULT=${DEBUG_FAULT}`);
+
 // tauri-driver (wrapper) — PATH primeiro (imagem de CI), ~/.cargo/bin como
 // fallback (cargo install do runner hospedado / host local).
 const driverBin = resolveTauriDriver();
 console.log(`▸ driver: ${driverBin}`);
 const tauriDriver = spawn(driverBin, [], {
   stdio: ["ignore", "inherit", "inherit"],
+  env: { ...process.env, GP100_DEBUG_FAULT: DEBUG_FAULT },
 });
 let exiting = false;
 tauriDriver.on("exit", (code) => {
@@ -154,7 +174,49 @@ try {
   if (options.length !== 99) throw new Error(`biblioteca com ${options.length} opções (esperado 99)`);
   console.log("  ✓ biblioteca com os 99 presets de fábrica");
 
-  console.log("✅ SMOKE TAURI: casca bootou no webview e renderizou a casca completa");
+  // 5. o boot do MOUNT terminou: o LED só vira "on" depois dele — o info do
+  // mount entra na fila do actor (FIFO, D8) DEPOIS do auto-boot, e o fault
+  // armado só é letal depois de 2300 transmissões (ver topo do script).
+  const conn = await driver.findElement(By.css('[role="status"][aria-label="Conexão e boot"]'));
+  await driver.wait(until.elementTextContains(conn, "on"), 60_000);
+  console.log("  ✓ boot do mount completo (2297 transações) e LED on");
+
+  // 6. #48 — DeviceGone PONTA-A-PONTA: o device MORRE no meio da sessão. O ⟳
+  // (retry explícito do boot) dispara o 2º boot; o transporte cai na largada
+  // e a UI tem que: alerta amigável (MSG.connBootError), LED off (nunca "on"
+  // mentiroso), NENHUMA barra de progresso eterna e retry operável de novo.
+  const rescan = await driver.findElement(By.css('[aria-label="Reescanear device"]'));
+  await rescan.click();
+  const bootAlert = By.xpath('//*[@role="alert" and contains(., "Falha no boot do device")]');
+  await driver.wait(until.elementLocated(bootAlert), 30_000);
+  const alertText = await driver.findElement(bootAlert).getText();
+  if (alertText.includes("MockFault") || alertText.includes("die-after")) {
+    throw new Error(`detalhe técnico do transporte vazou no alerta: ${alertText}`);
+  }
+  await driver.wait(until.elementTextContains(conn, "off"), 10_000);
+  await driver.wait(
+    async () => (await driver.findElements(By.css('[role="progressbar"]'))).length === 0,
+    10_000,
+  );
+  console.log("  ✓ device morto: alerta amigável, LED off e sem barra eterna");
+
+  // Retry vivo: o ⟳ volta habilitado (nunca spinner eterno) e um novo clique
+  // falha igual — o device morto não ressuscita, mas o actor segue de pé e a
+  // UI continua responsiva. O estado assenta na janela: alerta de volta, ⟳
+  // habilitado e nenhuma barra de progresso (se qualquer um falhar, falha o
+  // smoke — é exatamente o bug "spinner eterno" que o #48 fecha).
+  await rescan.click();
+  await sleep(500); // 2º boot morre na 1ª transação; deixa o loading passar
+  await driver.wait(async () => {
+    const alerta = (await driver.findElements(bootAlert)).length > 0;
+    const habilitado = await rescan.isEnabled();
+    const semBarra = (await driver.findElements(By.css('[role="progressbar"]'))).length === 0;
+    return alerta && habilitado && semBarra;
+  }, 15_000);
+  await driver.wait(until.elementTextContains(conn, "off"), 10_000);
+  console.log("  ✓ retry (⟳) reabilitado e falha de novo — casca viva, sem trap");
+
+  console.log("✅ SMOKE TAURI: casca completa no webview + DeviceGone provado ponta-a-ponta");
 } catch (err) {
   console.error("✗ smoke tauri falhou:", err.message ?? err);
   // DIAGNÓSTICO (o smoke nunca esteve verde — job criado em 30/09):

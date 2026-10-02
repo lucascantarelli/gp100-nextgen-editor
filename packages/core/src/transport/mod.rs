@@ -25,7 +25,7 @@
 
 pub mod mock;
 
-pub use mock::{MockDevice, MockState};
+pub use mock::{MockDevice, MockFault, MockState};
 
 use std::time::Duration;
 

@@ -639,6 +639,9 @@ impl<T: DeviceTransport> Session<T> {
                         timeout_ms,
                         addr: format!("{func:02x}/{}", addr_hex(addr)),
                     },
+                    // DeviceGone tem TIPO próprio (o front decide diferente:
+                    // LED off + retry explícito, sem retry automático).
+                    TransportError::DeviceGone { why } => ProtocolError::DeviceGone { why },
                     other => ProtocolError::InvalidShape {
                         expected: "transporte saudável".into(),
                         got: other.to_string(),
@@ -674,12 +677,17 @@ impl<T: DeviceTransport> Session<T> {
 }
 
 /// Mapeia erro de transporte para erro de transação (D6/D5).
+///
+/// `DeviceGone` NÃO é achatado em `InvalidShape`: o device ausente é uma
+/// falha com tipo próprio (a UI para de tentar e mostra recuperação; o H1
+/// trata como divergência de campo).
 fn tx_err(e: TransportError) -> ProtocolError {
     match e {
         TransportError::SendFailed { why } => ProtocolError::InvalidShape {
             expected: "frame aceito pelo device".into(),
             got: why,
         },
+        TransportError::DeviceGone { why } => ProtocolError::DeviceGone { why },
         other => ProtocolError::InvalidShape {
             expected: "transporte saudável".into(),
             got: other.to_string(),

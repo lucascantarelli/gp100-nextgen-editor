@@ -414,6 +414,7 @@ impl DeviceActor {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use gp100_core::transport::mock::MockFault;
 
     /// Boot completo via actor (2297 transações no inventário default
     /// 0..198) e o resultado chega ao chamador pelo canal de resposta.
@@ -507,6 +508,53 @@ mod tests {
         let report = actor.boot(None).expect("boot após infos");
         assert_eq!(st.preset_count, 99);
         assert_eq!(report.transactions, 2297);
+        actor.shutdown();
+    }
+
+    /// #48 — ponta-a-ponta no shell: o transporte MORRE no meio da sessão
+    /// (`MockFault::DieAfter`) e o erro sobe TIPADO (`ProtocolError::DeviceGone`)
+    /// até a borda do actor — nunca achatado em `InvalidShape` ("transporte
+    /// saudável"). O actor segue vivo (info responde), a morte aborta na hora
+    /// (jamais espera a janela de 3 s) e o retry (⟳ da navbar) falha de novo,
+    /// estável: o mock não ressuscita.
+    #[test]
+    fn device_morrendo_no_meio_da_sessao_nao_mata_o_actor() {
+        let mock = MockDevice::new()
+            .expect("mock montado")
+            .with_fault(MockFault::DieAfter(300));
+        let actor = DeviceActor::spawn(mock);
+
+        let t0 = std::time::Instant::now();
+        let err = actor.boot(None).expect_err("boot com o device morrendo");
+        assert!(
+            err.contains("device sumiu no meio da sessão"),
+            "erro tipado do DeviceGone até o actor: {err}"
+        );
+        assert!(
+            !err.contains("transporte saudável"),
+            "DeviceGone não pode virar InvalidShape: {err}"
+        );
+        assert!(
+            t0.elapsed() < std::time::Duration::from_secs(2),
+            "a morte aborta a transação na hora (sem janela de 3 s): {:?}",
+            t0.elapsed()
+        );
+
+        // O actor continua operante: o snapshot do mock não toca o fio.
+        let st = actor.info().expect("info após a morte do device");
+        assert_eq!(st.preset_count, 99);
+
+        // Retry estável: a falha se repete rápida e tipada (device não volta).
+        let t1 = std::time::Instant::now();
+        let err2 = actor
+            .boot(None)
+            .expect_err("retry com o device ainda morto");
+        assert!(err2.contains("device sumiu no meio da sessão"), "{err2}");
+        assert!(
+            t1.elapsed() < std::time::Duration::from_secs(2),
+            "retry aborta na hora: {:?}",
+            t1.elapsed()
+        );
         actor.shutdown();
     }
 }
