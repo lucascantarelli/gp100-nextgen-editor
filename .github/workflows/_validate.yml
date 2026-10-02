@@ -26,6 +26,9 @@
 #   - Jobs de API/browser (e2e, e2e visual, front) ficam no runner hospedado:
 #     o pull não se paga (lição CI-11 no knowledge.md) — lá a alavanca é o
 #     cache do ~/.cache/ms-playwright (playwright-setup).
+#   - o gate do front (lint + vitest --coverage) roda em UM OS (ubuntu; no
+#     ci-lite, Windows) — os outros só fazem build/typecheck (tsc + vite),
+#     que é a parte que de fato varia por plataforma (issue #43).
 #   - mesmos jobs de Rust compartilham cache POR WORKSPACE (shared-key
 #     ws-raiz | ws-api) — antes era um cache por job (`key`), sempre frio.
 #   - ui-rust em 2 OS: Windows (MSVC, ADR-7) + Linux (container). O macOS
@@ -139,7 +142,13 @@ jobs:
                   if uirust and o == "windows-latest":
                       rust.append({"os": o, "project": "ui-rust", "workdir": "packages/app/api"})
               ui_linux = uirust and not lite
-          fr = [] if scheduled else [{"os": o} for o in oss if front]
+          # Gate de lint/coverage em UM OS (issue #43): o trio lint + vitest
+          # --coverage é plataforma-independente (jsdom/eslint puros) — rodar
+          # 3× só duplicava custo. Os demais OS seguem no `pnpm build`
+          # (tsc + vite), que é o que precisa de validação por plataforma.
+          # No ci-lite o `oss` é só o Windows, e o gate acompanha.
+          gate_os = "windows-latest" if lite else "ubuntu-24.04"
+          fr = [] if scheduled else [{"os": o, "full": o == gate_os} for o in oss if front]
           compact = lambda d: json.dumps(d, separators=(",", ":"))
           print(f"rust-matrix={compact({'include': rust})}")
           print(f"front-matrix={compact({'include': fr})}")
@@ -367,7 +376,9 @@ jobs:
 
   # ── FRONT (ui/): matriz dinâmica — lint/vitest+coverage/build ──
   front:
-    name: app/ui — front (${{ matrix.os }})
+    # O modo no nome do check deixa claro quem carrega o gate (lint+coverage)
+    # e quem só valida o build/typecheck da plataforma.
+    name: app/ui — front (${{ matrix.os }} · ${{ matrix.full && 'lint+coverage' || 'build' }})
     needs: plan
     if: needs.plan.outputs.run-front == 'true'
     strategy:
@@ -379,8 +390,10 @@ jobs:
       - uses: actions/checkout@v7
       - name: Setup (Node 22 + pnpm 11)
         uses: ./.github/actions/setup-node-pnpm
-      - name: Lint + testes + build
+      - name: ${{ matrix.full && 'Lint + testes + build (gate completo)' || 'Build (tsc + vite)' }}
         uses: ./.github/actions/build-front
+        with:
+          full: ${{ matrix.full }}
 
   # ── E2E: Playwright (casca completa) contra o pnpm dev no Chromium ──
   # R1–R6 + drum + looper + atalhos globais + responsividade (3 viewports).
