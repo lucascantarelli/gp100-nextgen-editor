@@ -17,6 +17,8 @@ import { beforeAll, describe, expect, it, vi } from "vitest";
 import { Pedalboard } from "../src/components/Pedalboard";
 import { Pedal } from "../src/components/Pedal";
 import { Knob } from "../src/components/Knob";
+import { PEDAL_FAMILIES_READY, Stage } from "../src/components/Stage";
+import { loadTuner } from "../src/components/TunerPanel";
 import { modelFor } from "../src/artifacts/fxModels";
 import { CHAIN_FAMILIES } from "../src/ipc/types";
 import type { BoardKnob, BoardSlot, BoardView } from "../src/ipc/types";
@@ -391,5 +393,76 @@ describe("Knob — controle rotativo paramétrico", () => {
     expect(onChange.mock.calls.length).toBe(before);
     h3.root.unmount();
     h3.host.remove();
+  });
+});
+
+describe("Stage — palco real da Fase 2 (1 efeito por vez)", () => {
+  const stageProps = {
+    celebrate: false,
+    arrangeMode: false,
+    onToggleArrange: noop,
+    tuner: loadTuner(),
+    onTunerChange: noop,
+    onToggle: noopSlot,
+    onKnobChange: noopSlot,
+    onKnobReset: noopSlot,
+  };
+
+  it("família validada (PRE) vira pedal REAL; as outras 8 posições seguem placeholders", () => {
+    const { root, host } = mount(<Stage board={BOARD} {...stageProps} />);
+    expect(PEDAL_FAMILIES_READY.has("PRE"), "PRE é a família da vez").toBe(true);
+    expect(groupLabels(host).length, "1 pedal no palco").toBe(1);
+    expect(groupLabels(host)[0]).toContain("PRE-0");
+    expect(
+      host.querySelector('[aria-label="Slot 1: PRE"] svg[role="group"]'),
+      "o pedal ocupa o slot da própria família",
+    ).toBeTruthy();
+    // 9 lugares no total; os 8 sem pedal mostram o hint de vazio
+    expect(host.querySelectorAll('[aria-label^="Slot "]').length).toBe(9);
+    const hints = Array.from(host.querySelectorAll("span")).filter(
+      (s) => s.textContent === "vazio",
+    );
+    expect(hints.length, "8 placeholders").toBe(8);
+    act(() => root.unmount());
+    host.remove();
+  });
+
+  it("board ausente (1ª leitura): 9 placeholders, nenhum pedal", () => {
+    const { root, host } = mount(<Stage board={null} {...stageProps} />);
+    expect(groupLabels(host).length).toBe(0);
+    expect(host.querySelectorAll('[aria-label^="Slot "]').length).toBe(9);
+    act(() => root.unmount());
+    host.remove();
+  });
+
+  it("com a trava ATIVA o pedal reordena (prévia local) sem perder nenhum lugar", () => {
+    const { root, host } = mount(<Stage board={BOARD} {...stageProps} arrangeMode />);
+    const slot = (n: number, fam: string) =>
+      host.querySelector(`[aria-label="Slot ${n}: ${fam}"]`)!;
+    // arrasta o pedal do slot 1 (PRE) para a posição 5
+    act(() => {
+      slot(1, "PRE").dispatchEvent(new Event("dragstart", { bubbles: true }));
+      slot(5, "CAB").dispatchEvent(new Event("dragover", { bubbles: true }));
+      slot(5, "CAB").dispatchEvent(new Event("drop", { bubbles: true }));
+    });
+    expect(slot(5, "PRE").querySelector('svg[role="group"]')).toBeTruthy();
+    expect(groupLabels(host).length).toBe(1);
+    expect(host.querySelectorAll('[aria-label^="Slot "]').length).toBe(9);
+    act(() => root.unmount());
+    host.remove();
+  });
+
+  it("sem a trava o arrasto do pedal não reordena (protege o knob)", () => {
+    const { root, host } = mount(<Stage board={BOARD} {...stageProps} />);
+    const slot = (n: number, fam: string) =>
+      host.querySelector(`[aria-label="Slot ${n}: ${fam}"]`)!;
+    act(() => {
+      slot(1, "PRE").dispatchEvent(new Event("dragstart", { bubbles: true }));
+      slot(5, "CAB").dispatchEvent(new Event("dragover", { bubbles: true }));
+      slot(5, "CAB").dispatchEvent(new Event("drop", { bubbles: true }));
+    });
+    expect(slot(1, "PRE").querySelector('svg[role="group"]')).toBeTruthy();
+    act(() => root.unmount());
+    host.remove();
   });
 });

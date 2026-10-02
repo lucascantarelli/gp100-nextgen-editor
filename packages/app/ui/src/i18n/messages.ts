@@ -284,6 +284,7 @@ export const MSG = {
   /* ── erros amigáveis (detalhe técnico vai pro console) ── */
   errOpenPreset: "Não foi possível abrir o preset — tente novamente.",
   errSelectPreset: "O device não aceitou a troca de preset — a UI segue no preset atual.",
+  errSetParam: "O device não aceitou o ajuste do knob — tente novamente.",
   errRetry: "Tentar de novo",
   errRetryAria: "Tentar novamente a operação que falhou",
 } as const;

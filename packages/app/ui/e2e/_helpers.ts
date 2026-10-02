@@ -10,8 +10,7 @@ export interface ShellMeasure {
   slotCols: number;
   slotRows: number;
   cssCols: number;
-  sameSlotWidth: boolean;
-  pitchUniform: boolean;
+  slotOverlap: number;
   board: { x: number; w: number; right: number; bottom: number; y: number };
   lib: { x: number; w: number; y: number; bottom: number; sameRowAsBoard: boolean };
   looper: { x: number; w: number; tracks: number; trackWs: number[] };
@@ -39,25 +38,30 @@ export async function measureShell(page: Page): Promise<ShellMeasure> {
     const lib = rectOf(libEl);
     const looper = rectOf(looperEl);
 
-    // slots: grade derivada das caixas (colunas = x únicos, linhas = y únicos)
+    // slots: colunas/linhas contadas POR LINHA (as larguras variam: o pedal
+    // real da Fase 2 é bem mais largo que um lugar vazio) + sobreposição
     const slotRects = [...document.querySelectorAll('[aria-label^="Slot "]')].map(rectOf);
-    const uniq = (arr: number[]) => {
-      const s = [...arr].sort((a, b) => a - b);
-      const out = [s[0]];
-      for (const v of s.slice(1)) if (v - out[out.length - 1] > 2) out.push(v);
-      return out;
-    };
-    const xs = uniq(slotRects.map((r) => r.x));
-    const ys = uniq(slotRects.map((r) => r.y));
-    const widths = slotRects.map((r) => r.w);
-    const dx = xs.slice(1).map((v, i) => v - xs[i]);
-    const pitchUniform = dx.length === 0 || Math.max(...dx) - Math.min(...dx) < 1;
-
-    // looper: filhos diretos (deck | VU/transporte | rack) sem sobreposição
-    const kids = [...looperEl.children].map(rectOf);
     const overlapArea = (a: ReturnType<typeof rectOf>, b: ReturnType<typeof rectOf>) =>
       Math.max(0, Math.min(a.right, b.right) - Math.max(a.x, b.x)) *
       Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.y, b.y));
+    const byRow = new Map<number, number[]>();
+    for (const r of slotRects) {
+      const key = Math.round(r.y);
+      byRow.set(key, [...(byRow.get(key) ?? []), r.x]);
+    }
+    const rowXs = [...byRow.values()].map((xs) => {
+      const s = [...xs].sort((a, b) => a - b);
+      const out = [s[0]];
+      for (const v of s.slice(1)) if (v - out[out.length - 1] > 2) out.push(v);
+      return out.length;
+    });
+    let slotOverlap = 0;
+    for (let i = 0; i < slotRects.length; i++)
+      for (let j = i + 1; j < slotRects.length; j++)
+        slotOverlap += overlapArea(slotRects[i], slotRects[j]);
+
+    // looper: filhos diretos (deck | VU/transporte | rack) sem sobreposição
+    const kids = [...looperEl.children].map(rectOf);
     let kidOverlap = 0;
     for (let i = 0; i < kids.length; i++)
       for (let j = i + 1; j < kids.length; j++) kidOverlap += overlapArea(kids[i], kids[j]);
@@ -82,11 +86,10 @@ export async function measureShell(page: Page): Promise<ShellMeasure> {
       .map((v) => parseFloat(v));
     return {
       overflowX: document.documentElement.scrollWidth - window.innerWidth,
-      slotCols: xs.length,
-      slotRows: ys.length,
+      slotCols: rowXs.length ? Math.max(...rowXs) : 0,
+      slotRows: byRow.size,
       cssCols: getComputedStyle(q(".board-slots")!).gridTemplateColumns.split(" ").length,
-      sameSlotWidth: Math.max(...widths) - Math.min(...widths) < 1,
-      pitchUniform,
+      slotOverlap: r1(slotOverlap),
       board: { x: r1(board.x), w: r1(board.w), right: r1(board.right), bottom: r1(board.bottom), y: r1(board.y) },
       lib: { x: r1(lib.x), w: r1(lib.w), y: r1(lib.y), bottom: r1(lib.bottom), sameRowAsBoard: Math.abs(lib.y - board.y) < 2 },
       looper: { x: r1(looper.x), w: r1(looper.w), tracks: looperCols.length, trackWs: looperCols.map(r1) },
@@ -131,11 +134,12 @@ export async function expectShellAligned(page: Page, width: number): Promise<voi
     expect(Math.abs(m.lib.y - m.board.y), `topos alinhados @${width}`).toBeLessThanOrEqual(1);
   }
 
-  const wantCols = width <= 1340 ? 3 : 9; // breakpoint .board-slots (design.css)
+  // breakpoint .board-slots (design.css): colunas por CONTEÚDO — 3 até 1700,
+  // 9 acima (o pedal real da Fase 2 não cabe em colunas iguais de 1fr)
+  const wantCols = width < 1700 ? 3 : 9;
   expect(m.slotCols, `colunas dos slots @${width}`).toBe(wantCols);
   expect(m.cssCols, `colunas do CSS @${width}`).toBe(wantCols);
-  expect(m.sameSlotWidth, `slots com larguras iguais @${width}`).toBe(true);
-  expect(m.pitchUniform, `pitch uniforme @${width}`).toBe(true);
+  expect(m.slotOverlap, `slots sem sobreposição @${width}`).toBe(0);
 
   expect(m.kidOverlap, `sobreposição dos blocos do looper @${width}`).toBe(0);
   expect(m.rackW ?? 0, `rack do looper ≥ 240 @${width}`).toBeGreaterThanOrEqual(239.5);

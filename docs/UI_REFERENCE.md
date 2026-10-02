@@ -121,19 +121,24 @@ completamente funcional"):** importar/gerar a lista REAL dos 99 presets de fábr
 > NADA disso se perde: vira o checklist da fase 2 (issue U-3+).
 
 ### 3.1 Comportamento (aprovado pelo owner)
-- [ ] **Trava do drag-and-drop** — toggle no CABEÇALHO DO PALCO ("⇄ mover",
-      `aria-pressed`): drag
-  SÓ funciona com ela ativa. Motivo: sem trava, arrastar knob errado move o pedal.
-- [ ] **Um efeito por vez primeiro** — validar CADA efeito isolado (o COMP primeiro)
+- [x] **Trava do drag-and-drop** — toggle no CABEÇALHO DO PALCO ("⇄ mover",
+      `aria-pressed`): drag só com ela ativa; no palco real (fatia 1) o pedal
+      arrasta para QUALQUER posição com a trava destravada (`draggable`).
+- [x] **Um efeito por vez primeiro** — validar CADA efeito isolado (o COMP primeiro)
   antes de devolver os 9 slots ao board. Owner: "primeiro vc deve ajustar todos os
-  efeitos de comp, apenas com esse efeito visível".
+  efeitos de comp, apenas com esse efeito visível". *Fatia 1 (PR da #19):* o
+  Stage renderiza só as famílias de `PEDAL_FAMILIES_READY` (PRE/COMP) e mantém
+  os 8 lugares restantes como placeholders.
 - [ ] **Modal de edição do pedal** — clicar no pedal amplifica para edição dos
   parâmetros (estilo painel grande do oficial). Board = visão geral; modal = edição.
-- [ ] **Nome do patch fora do board** — display LED (estilo hardware) no topo e/ou
-  navbar; o board é só a cadeia.
-- [ ] **Toggle/LED** — LED VERDE = ON, VERMELHO = OFF, em todos os pedais.
-- [ ] **Valor editável via textbox** sob/ junto ao knob (Enter aplica, Esc cancela,
-  duplo-clique no knob = default; setas ±1%, Shift ±5%).
+  *(pendente — fatia 2)*
+- [x] **Nome do patch fora do board** — display LED (estilo hardware) no cabeçalho
+  do palco (e na navbar); o board é só a cadeia.
+- [x] **Toggle/LED** — LED VERDE = ON, VERMELHO = OFF. *Fatia 1:* footswitch
+  alterna por prévia LOCAL (o protocolo capturado não tem comando de toggle).
+- [x] **Valor editável via textbox** sob/ junto ao knob (Enter aplica, Esc cancela,
+  duplo-clique no knob = default; setas ±1%, Shift ±5%). *Fatia 1:* aplica local e
+  manda `device_set_param` quando o knob é numérico (switch/combox só local).
 
 ### 3.2 Geometria/tamanhos (aprendidos com os testes)
 - [ ] Knob grande (64px testado; base p/ modal: 72–80px). Pitch da grade ≥ 116px
@@ -145,6 +150,7 @@ completamente funcional"):** importar/gerar a lista REAL dos 99 presets de fábr
 - [ ] Testar CADA pedal em TODAS as 9 posições do board (tamanho/espaçamento/linhas).
 - [ ] Knobs bidirecionais (min>max = centro físico) normalizados; EQ usa sliders.
 - [ ] Tooltip do modo engenheiro: `addr 10 0X 00 02 · code 0x… · ctrl N · payload §13.11`.
+      *(pendente — falta um liga/desliga do modo engenheiro na UI)*
 
 ### 3.3 Lições de engenharia (não repetir)
 - ⚠️ `str_replace` com texto parcial já quebrou o `Pedal.tsx` 2× — sempre reler o

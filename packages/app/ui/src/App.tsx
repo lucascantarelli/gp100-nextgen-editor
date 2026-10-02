@@ -10,22 +10,24 @@
  * a navbar). A trava ⇄ mover pertence ao PALCO (EmptyBoard); o rodapé
  * é o chassi da pedaleira (IN · GP · OUT) — ações globais na navbar.
  *
- * O board ainda não renderiza pedais: knobs/toggle/set_param entram um
- * efeito por vez — até lá o palco mostra só os lugares da cadeia.
+ * O board é REAL (`device_board`): o palco desenha o pedal das famílias já
+ * validadas (hoje só o PRE/COMP) e mantém placeholders nas demais — "1
+ * efeito por vez" da Fase 2 (U-3). Knob numérico vira `device_set_param`;
+ * toggle e switch/combox ainda são prévia local (sem comando no protocolo).
  *
  * Atalhos globais (doc na aba Help do Settings): Espaço = drum play/stop,
  * R = REC do looper, Esc = fecha o painel do topo (Settings → Drum → pushes).
  */
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { DeviceInfo } from "./ipc/types";
-import { deviceBoard, deviceInfo, deviceSelectPreset } from "./ipc/device";
+import type { BoardSlot, BoardView, DeviceInfo } from "./ipc/types";
+import { deviceBoard, deviceInfo, deviceSelectPreset, deviceSetParam } from "./ipc/device";
 import { useBoot } from "./hooks/useBoot";
 import { BOOT_STAGE_LABEL } from "./hooks/useBoot";
 import { usePushLog } from "./hooks/usePushLog";
 import { useGlobalShortcuts } from "./hooks/useGlobalShortcuts";
 import { TopBar } from "./components/TopBar";
 import { LibraryPanel } from "./components/LibraryPanel";
-import { EmptyBoard } from "./components/EmptyBoard";
+import { Stage } from "./components/Stage";
 import { SettingsModal, loadGeneral } from "./components/SettingsModal";
 import type { GeneralSettings } from "./components/SettingsModal";
 import { loadTuner, TUNER_KEY } from "./components/TunerPanel";
@@ -68,7 +70,8 @@ export default function App() {
   const [info, setInfo] = useState<DeviceInfo | null>(null);
   const [pp, setPp] = useState(0);
   const [presetName, setPresetName] = useState("…");
-  const [ppTypeName, setPpTypeName] = useState("…");
+  /** Board REAL do preset (device_board): slots/knobs do dicionário. */
+  const [board, setBoard] = useState<BoardView | null>(null);
   const [masterVol, setMasterVol] = useState(() => {
     try {
       const raw = localStorage.getItem(MASTER_KEY);
@@ -128,7 +131,7 @@ export default function App() {
       const b = await deviceBoard(target);
       setPp(b.pp);
       setPresetName(b.name);
-      setPpTypeName(b.ppTypeName);
+      setBoard(b);
       setErr(null);
     } catch (e) {
       // O usuário vê a mensagem amigável; o detalhe técnico fica no console.
@@ -149,6 +152,53 @@ export default function App() {
     },
     [pp, openPreset],
   );
+
+  // Knob do pedal (Fase 2 — U-3): aplica LOCAL (o valor aparece na hora) e
+  // manda o SET ao device (§13.11: `slot` do fio = posição 1..9, `ctrl` =
+  // pos do dicionário, value f32). Switch/combox ainda não têm canal (o SET
+  // é f32) — prévia local. Falha permanente vira banner com retry, como no
+  // #20: nada de estado otimista silencioso.
+  const applyKnob = useCallback((slot: BoardSlot, pos: number, value: string) => {
+    setBoard((b) =>
+      b == null
+        ? b
+        : {
+            ...b,
+            slots: b.slots.map((s) =>
+              s.slot === slot.slot
+                ? { ...s, knobs: s.knobs.map((k) => (k.pos === pos ? { ...k, value } : k)) }
+                : s,
+            ),
+          },
+    );
+    const knob = slot.knobs.find((k) => k.pos === pos);
+    if (knob?.kind !== "knob") return;
+    const num = Number(value);
+    if (!Number.isFinite(num)) return;
+    void deviceSetParam(slot.slot + 1, slot.code, pos, num).catch((e: unknown) => {
+      console.error("device_set_param falhou:", e);
+      setErr({ message: MSG.errSetParam, retry: () => applyKnob(slot, pos, value) });
+    });
+  }, []);
+  const onKnobReset = useCallback(
+    (slot: BoardSlot, pos: number) => {
+      const knob = slot.knobs.find((k) => k.pos === pos);
+      if (knob?.default != null) applyKnob(slot, pos, knob.default);
+    },
+    [applyKnob],
+  );
+  // Footswitch: sem comando de toggle capturado no protocolo — alterna LOCAL
+  // (LED verde/vermelho) até o fluxo do device existir.
+  const onToggle = useCallback((slot: BoardSlot) => {
+    setBoard((b) =>
+      b == null
+        ? b
+        : {
+            ...b,
+            slots: b.slots.map((s) => (s.slot === slot.slot ? { ...s, state: !s.state } : s)),
+          },
+    );
+  }, []);
   // abertura INICIAL: o device é a fonte da verdade do preset corrente
   useEffect(() => {
     void openPreset(0);
@@ -309,10 +359,8 @@ export default function App() {
         {/* linha biblioteca ↔ pedalboard: alturas iguais (stretch), sem lacunas */}
         <div className="shell-main">
           <LibraryPanel currentPp={pp} onSelect={(target) => void openPreset(target)} />
-          <EmptyBoard
-            pp={pp}
-            presetName={presetName}
-            ppTypeName={ppTypeName}
+          <Stage
+            board={board}
             celebrate={celebrate}
             arrangeMode={arrangeMode}
             onToggleArrange={() => setArrangeMode((v) => !v)}
@@ -325,9 +373,9 @@ export default function App() {
                 /* noop */
               }
             }}
-            onReorder={() => {
-              /* a reordenação real chega quando os pedais forem renderizados */
-            }}
+            onToggle={onToggle}
+            onKnobChange={applyKnob}
+            onKnobReset={onKnobReset}
           />
         </div>
       </div>

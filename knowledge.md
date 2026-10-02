@@ -700,3 +700,36 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
   em <2 s — se o tipo voltasse a ser achatado num timeout, levaria 3 s+ e o
   teste pega isso (o boot completo de 2297 leva ~0,2 s; 300 transações são
   instantâneas).
+
+---
+
+## Pedal real no palco (02/10 — issue #19, fatia 1)
+
+- **`Pedal`/`Pedalboard` existiam desde o `8eb40af`, mas estavam DESLIGADOS**: o
+  App renderizava o `EmptyBoard` (só os 9 lugares) e o comentário do topo dizia
+  "knobs/toggle/set_param entram um efeito por vez". A fatia 1 troca o palco por
+  `Stage` (cabeçalho LED/trava/tuner + sockets): `PEDAL_FAMILIES_READY` (hoje
+  `PRE`) decide quais slots viram pedal REAL do `device_board`; o resto fica
+  placeholder. `Pedalboard` (3 linhas + cabos) segue como o ALVO da fase em que
+  os 9 pedais estiverem no ar — não é código morto.
+- **Semântica do set_param no fio**: `device_set_param(slot, code, ctrl, value)`
+  usa o `slot` em 1..=9 (o `BoardSlot.slot` da UI é 0..8 → `+1`); `ctrl` = `pos`
+  do dicionário; `value` f32 em unidades de display. O `code` do efeito vem do
+  ARTEFATO (`(nibble<<24)|index` — no COMP do mock, `0`).
+- **Toggle/switch/combox ainda são LOCAIS**: o protocolo capturado só tem o SET
+  f32 (§13.11) — não existe comando de toggle de efeito nem encoding de opção de
+  switch/combox. O LED verde/vermelho e o ciclo de opções são prévia local; o
+  único caminho de escrita do pedal é o knob numérico (com `errSetParam` novo no
+  banner do App para falha permanente — nada silencioso, regra do #20).
+- **Layout do palco por CONTEÚDO**: o `.board-slots` deixou o `repeat(9, 1fr)`
+  (placeholders iguais) por `minmax(132px, max-content)` — um pedal real tem
+  ~420px de largura mínima e não cabe num `1fr` de 3×3; agora são 3 colunas até
+  1700px e 9 acima, com `overflow-x: auto` de segurança. O `measureShell` do e2e
+  passou a contar colunas POR LINHA e a medir sobreposição (larguras diferentes
+  quebraram o `sameSlotWidth`/`pitchUniform` antigos de propósito).
+- **Baselines mudam em cascata**: o palco mais alto estica a biblioteca
+  (`stretch`, alturas iguais) e ENCURTA a faixa de alerta — a `main` usa
+  `auto 1fr auto` e, com alerta visível, é ele que ocupa a linha `1fr`
+  (erro-boot 1920: 153→39px; lib 1440: 463→909px). Além de `board-*`, `lib-*` e
+  `erro-boot-*` precisam de baseline nova nas DUAS plataformas (win32 local com
+  `--update-snapshots=changed`; linux via dispatch `update-snapshots=true`).

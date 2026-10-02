@@ -36,20 +36,20 @@ import { FACTORY_PRESETS } from "../src/artifacts/presetData";
 
 // Mock PARCIAL: onDevicePush continua registrando no Set real do device.ts
 // (o App funciona normalmente), mas o vi.fn captura o callback que o App
-// passou — permite INJETAR pushes direto no consumidor da UI.
+// passou — permite INJETAR pushes direto no consumidor da UI. deviceSetParam
+// idem: o vi.fn captura os argumentos REAIS que o palco manda ao device.
 vi.mock("../src/ipc/device", async (importOriginal) => {
   const mod = await importOriginal<typeof import("../src/ipc/device")>();
-  return { ...mod, onDevicePush: vi.fn(mod.onDevicePush) };
+  return { ...mod, onDevicePush: vi.fn(mod.onDevicePush), deviceSetParam: vi.fn(mod.deviceSetParam) };
 });
 
 beforeAll(() => {
   (globalThis as Record<string, unknown>).IS_REACT_ACT_ENVIRONMENT = true;
-});
-
-beforeEach(() => {
-  localStorage.clear();
-  vi.mocked(onDevicePush).mockClear();
-});
+});  beforeEach(() => {
+    localStorage.clear();
+    vi.mocked(onDevicePush).mockClear();
+    vi.mocked(deviceSetParam).mockClear();
+  });
 
 function mount(): { root: Root; host: HTMLElement } {
   const host = document.createElement("div");
@@ -503,7 +503,7 @@ describe("Sliders do shell — drum (persistência local)", () => {
   });
 });
 
-describe("Palco — afinador e drag-and-drop dos slots (EmptyBoard)", () => {
+describe("Palco — afinador e drag-and-drop dos slots (Stage)", () => {
   it("afinador no cabeçalho está sempre visível e o drag de slots só com a trava destrancada", async () => {
     const { root, host } = mount();
     await settle();
@@ -525,16 +525,79 @@ describe("Palco — afinador e drag-and-drop dos slots (EmptyBoard)", () => {
     expect(toggle.getAttribute("aria-pressed")).toBe("true");
 
     const slot = (n: number, fam: string) =>
-      host.querySelector(`[aria-label="Slot ${n}: ${fam}"]`)!;
+      host.querySelector(`[aria-label="Slot ${n}: ${fam}"]`);
+    // o PRE agora é o pedal REAL (COMP): o arrasto sai DELE
+    const pedal = slot(1, "PRE")!;
+    expect(pedal).toBeTruthy();
+    expect(pedal.querySelector('svg[role="group"]'), "COMP no slot 1").toBeTruthy();
     act(() => {
-      slot(1, "PRE").dispatchEvent(new Event("dragstart", { bubbles: true }));
-      slot(2, "DST").dispatchEvent(new Event("dragover", { bubbles: true }));
+      pedal.dispatchEvent(new Event("dragstart", { bubbles: true }));
+      slot(2, "DST")!.dispatchEvent(new Event("dragover", { bubbles: true }));
     });
     await settle();
-    act(() => slot(2, "DST").dispatchEvent(new Event("drop", { bubbles: true })));
+    act(() => slot(2, "DST")!.dispatchEvent(new Event("drop", { bubbles: true })));
     await settle();
-    // onReorder do App é stub (pedais reais chegam na Fase 2): o palco segue íntegro
-    expect(slot(1, "PRE")).toBeTruthy();
+    // prévia LOCAL: o pedal vai para a posição 2 e o lugar 1 volta a ser o DST
+    expect(slot(2, "PRE")!.querySelector('svg[role="group"]')).toBeTruthy();
+    expect(slot(1, "DST")).toBeTruthy();
+    expect(host.querySelectorAll('[aria-label^="Slot "]').length).toBe(9);
+    teardown(root, host);
+  });
+});
+
+describe("Palco — COMP (U-3: 1 efeito por vez)", () => {
+  it("knob do dicionário aplica LOCAL e manda device_set_param (slot do fio 1..9)", async () => {
+    const { root, host } = mount();
+    await settle();
+
+    // o board do mock traz PRE/COMP (fxData: Sustain 20.0, Output 50.0)
+    const pedal = host.querySelector('[aria-label="Slot 1: PRE"] svg[role="group"]');
+    expect(pedal, "COMP no slot PRE").toBeTruthy();
+    expect(pedal!.getAttribute("aria-label")).toContain("COMP");
+    // os outros 8 lugares seguem placeholders
+    expect(host.querySelectorAll('[aria-label^="Slot "]').length).toBe(9);
+
+    // knob Sustain: ArrowUp 20 → 21 e SET no device (code do COMP = 0,
+    // ctrl = pos 0, slot do fio = 1)
+    const sustain = host.querySelector('svg[role="slider"][aria-label="Sustain"]')!;
+    act(() => sustain.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true })));
+    await settle();
+    expect(vi.mocked(deviceSetParam)).toHaveBeenLastCalledWith(1, 0, 0, 21);
+    const boxes = host.querySelectorAll<HTMLInputElement>('input[aria-label="Valor (Enter para editar)"]');
+    expect(boxes[0].value, "valor local do Sustain").toBe("21");
+
+    // ValueBox: digitar 42 + Enter aplica ao device e o valor fica na caixa
+    act(() => boxes[0].dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    const editing = host.querySelector<HTMLInputElement>('input[aria-label^="Valor do knob"]')!;
+    act(() => {
+      const setter = Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype,
+        "value",
+      )!.set!;
+      setter.call(editing, "42");
+      editing.dispatchEvent(new Event("input", { bubbles: true }));
+      editing.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    });
+    await settle();
+    expect(vi.mocked(deviceSetParam)).toHaveBeenLastCalledWith(1, 0, 0, 42);
+    expect(
+      host.querySelectorAll<HTMLInputElement>('input[aria-label="Valor (Enter para editar)"]')[0].value,
+    ).toBe("42");
+    teardown(root, host);
+  });
+
+  it("footswitch alterna LOCAL (LED verde → vermelho), sem comando de toggle no protocolo", async () => {
+    const { root, host } = mount();
+    await settle();
+
+    expect(host.querySelector('[data-led="off"]'), "COMP ligado de fábrica").toBeNull();
+    const foot = Array.from(host.querySelectorAll('[role="button"]')).find((b) =>
+      (b.getAttribute("aria-label") ?? "").startsWith("Desligar efeito"),
+    );
+    expect(foot, "footswitch presente").toBeTruthy();
+    act(() => foot!.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    await settle();
+    expect(host.querySelector('[data-led="off"]'), "LED vermelho após o clique").toBeTruthy();
     teardown(root, host);
   });
 });

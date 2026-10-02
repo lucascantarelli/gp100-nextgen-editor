@@ -1,6 +1,6 @@
 /**
  * Roteiros de teste manual (docs/UI_TEST_PLAN.md) executados no Chromium.
- * Cada teste referencia o ID do roteiro (R1–R6 + drum/looper). O resultado
+ * Cada teste referencia o ID do roteiro (R1–R7 + drum/looper). O resultado
  * desta suíte é registrado na tabela de execução do próprio UI_TEST_PLAN.
  *
  * Refactor POM (V-7): seletores encapsulados em e2e/pages/_pages.ts —
@@ -86,7 +86,7 @@ test("R2 biblioteca: 99 presets reais, busca, seleção e empty state", async ({
   await expect(lib.userTab()).toBeDisabled();
 });
 
-/* ── R3. Board vazio (9 lugares) + trava ⇄ mover ── */
+/* ── R3. Board (9 lugares: pedal real no PRE + 8 vazios) + trava ⇄ mover ── */
 test("R3 board: 9 slots na ordem do sinal e trava do drag", async () => {
   const board = shell.board;
   const fams = ["PRE", "DST", "AMP", "NR", "CAB", "EQ", "MOD", "DLY", "RVB"];
@@ -98,6 +98,8 @@ test("R3 board: 9 slots na ordem do sinal e trava do drag", async () => {
   // display LED: nº (2 dígitos) + nome + tipo
   await expect(board.display()).toContainText("01");
 
+  // o slot 1 é o pedal REAL (COMP): o arrasto sai dele; o hint "arraste ⇄"
+  // vive nos placeholders quando a trava destrava
   await board.expectMoverPressed(false);
   const slot = board.slot(1, "PRE");
   await expect(slot).not.toHaveAttribute("draggable", "true");
@@ -105,11 +107,51 @@ test("R3 board: 9 slots na ordem do sinal e trava do drag", async () => {
   await board.toggleMover();
   await board.expectMoverPressed(true);
   await expect(slot).toHaveAttribute("draggable", "true");
-  await expect(slot).toContainText("arraste ⇄");
+  await expect(board.slot(2, "DST")).toContainText("arraste ⇄");
 
   // kill/drum/master não soltam erro
   await shell.killSwitch().click();
   await expect(shell.alerts).toHaveCount(0);
+});
+
+/* ── R7. Pedal real no palco (Fase 2/U-3 — COMP primeiro) ── */
+test("R7 COMP: knob do dicionário, valor editável, LED/footswitch e trava", async () => {
+  const board = shell.board;
+  const pedalSlot = board.slot(1, "PRE");
+  const pedal = pedalSlot.locator('svg[role="group"]');
+  await expect(pedal).toBeVisible();
+  await expect(pedal).toHaveAttribute("aria-label", /COMP/);
+  // os outros 8 lugares seguem placeholders (1 efeito por vez)
+  await expect(board.root.getByText("vazio")).toHaveCount(8);
+
+  // knobs REAIS do dicionário (fxData: COMP = Sustain/Output) com valor visível
+  await expect(pedalSlot.locator('svg[role="slider"]')).toHaveCount(2);
+  const sustain = pedalSlot.getByLabel("Sustain");
+  await expect(sustain).toHaveAttribute("aria-valuenow", "20");
+  const box = pedalSlot.locator('input[aria-label="Valor (Enter para editar)"]').first();
+  await expect(box).toHaveValue("20.0");
+  await sustain.press("ArrowUp");
+  await expect(sustain).toHaveAttribute("aria-valuenow", "21");
+  await expect(box).toHaveValue("21");
+
+  // valor EDITÁVEL: clicar → digitar 42 → Enter (vira device_set_param no real)
+  await box.click();
+  const editing = pedalSlot.locator('input[aria-label^="Valor do knob"]');
+  await editing.fill("42");
+  await editing.press("Enter");
+  await expect(box).toHaveValue("42");
+
+  // LED verde = ON; footswitch alterna para vermelho (prévia local — sem
+  // comando de toggle no protocolo capturado)
+  const led = pedalSlot.locator("[data-led]");
+  await expect(led).toHaveAttribute("data-led", "on");
+  await pedalSlot.locator('[role="button"][aria-label^="Desligar efeito"]').click();
+  await expect(led).toHaveAttribute("data-led", "off");
+
+  // trava ⇄ mover: OFF protege o knob (pedal não arrastável); ON libera
+  await expect(pedalSlot).not.toHaveAttribute("draggable", "true");
+  await board.toggleMover();
+  await expect(pedalSlot).toHaveAttribute("draggable", "true");
 });
 
 /* ── R4. Modal Settings (⚙) ── */
