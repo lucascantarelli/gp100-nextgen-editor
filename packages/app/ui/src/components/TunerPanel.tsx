@@ -246,7 +246,8 @@ export function TunerPanel({
     >
       {/* LINHA 1 — DISPLAY (nunca colapsa): LED + escala ♭→♯ + nota central */}
       <div style={row("auto 1fr")}>
-        {/* LED próprio (esquerda, fixo) */}        <span data-tuner-led style={ledDot(tunerLed)} aria-hidden="true" />
+        {/* LED próprio (esquerda, fixo) */}
+        <span data-tuner-led style={ledDot(tunerLed)} aria-hidden="true" />
 
         {/* escala com nota centralizada sobre a agulha */}
         <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 0 }}>

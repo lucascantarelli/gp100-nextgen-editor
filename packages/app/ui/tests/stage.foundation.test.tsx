@@ -150,7 +150,7 @@ describe("Pedalboard — o palco em 1 fileira de 9 pedais", () => {
     host.remove();
   });
 
-  it("pulsos de sinal: só em cabos entre pares ON (em 1 fileira de 9, com todos ON: 8 segmentos)", () => {
+  it("pulsos de sinal: só em cabos entre pares ON (com todos ON: 6 segmentos)", () => {
     const { root, host } = mount(
       <Pedalboard
         board={BOARD}
@@ -161,11 +161,8 @@ describe("Pedalboard — o palco em 1 fileira de 9 pedais", () => {
         onReorder={noop}
       />,
     );
-    // 1 fileira de 9 pedais ON = 8 pulsos (segmentos entre vizinhos partilhados)
-    // Os pedalboards reais (3×3) usavam 2 por linha = 6; aqui, fileira única =
-    // 3 vizinhos por linha, 9 pedais = 8 vizinhos total (não 8 cabos reais —
-    // é uma metáfora: cada segmento vizinho ↔ pulso/linha de ‘sinal’ entre
-    // os dois deles).
+    // o Pedalboard artístico monta 3 fileiras de 3 pedais; cada fileira tem
+    // 2 cabos entre vizinhos → 3 × 2 = 6 pulsos com todos os pares ON
     expect(host.querySelectorAll('circle[fill="#ffd23f"]').length).toBe(6);
     act(() => root.unmount());
     host.remove();
