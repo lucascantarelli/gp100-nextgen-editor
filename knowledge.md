@@ -586,6 +586,17 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
 - `zip` não existe no Git Bash do runner Windows: `7z a -tzip` fallback.
 - `gh issue create --label` falha se o label não existir: criar com --force
   antes (idempotente).
+- **LIÇÃO #51 (outputs de step × id)**: `steps.<id>.outputs` só existe com
+  `id` EXPLÍCITO no step que escreveu o `$GITHUB_OUTPUT`. O resumo do
+  `close-linked` referenciava `steps.close-linked.*` num step SEM id: o
+  actionlint acusou ("property não definida") e os totais saíam VAZIOS em toda
+  run — sem falhar, então ninguém notava. Fix: `id: close-linked` no step de
+  fechamento; os totais agora aparecem no `$GITHUB_STEP_SUMMARY`.
+- **LIÇÃO #51 (título de PR no run = injeção)**: `github.event.pull_request.title`
+  interpolado INLINE num `run:` é entrada NÃO confiável — qualquer pessoa abre
+  um PR com título `"; curl …` e o shell executa. Regra: SEMPRE por `env:`
+  (ex.: `PR_TITLE`) e `"$PR_TITLE"` no script; o actionlint checa isso a cada
+  run (mesma classe do `BODY` da extração, que já nasceu por env).
 
 ---
 
