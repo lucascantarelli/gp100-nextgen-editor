@@ -820,3 +820,30 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
   mostra 2 pedais reais e **7** placeholders — os contadores de "vazio" do R3 e
   do R7 e o teste unit do Stage acompanham. A validação manual do owner (R7 em
   todas as 9 posições) segue pendente e é o gate para a próxima família.
+
+## Afinador do palco — refinamento (#8, 02/10)
+
+- **Painel que NÃO colapsa**: o modo e o REF PITCH existiam só com o monitor
+  ligado — com ele desligado sobrava um buraco na linha e o painel ainda mudava
+  de altura ao ligar (78→82px). Agora os 4 controles (monitor · modo · ref ·
+  demo) vivem numa grade FIXA `auto auto 1fr auto`: o slider do REF absorve a
+  sobra (zero espaço vazio) e a altura é a mesma nos dois estados. Ordem de
+  fluxo: on/off junto do display, demo (ferramenta de teste) na ponta.
+- **Botão do monitor é VISUAL** (ícone ♪ + LED verde/vermelho, sem texto): o
+  rótulo acessível foi para o `aria-label`/`title` — que agora informa o ESTADO
+  atual (`tunerPowerTitle(on)`). `tunerPowerOn/Off` saíram do `messages.ts`
+  (não ficou string morta). `data-tuner-power`/`data-tuner-power-led` são os
+  ganchos de teste.
+- **Monitor é o GATE da leitura** (honestidade): `reading = monitor ? device ??
+  demo : null`. Antes a agulha dançava com o monitor desligado se a demo
+  estivesse rodando. Efeito colateral útil: "▶ demo" com o monitor desligado
+  liga o monitor junto (demonstrar exige ouvir) e desligar o monitor para a
+  demo — nada roda em background.
+- **Sem canal de áudio ainda**: o tuner do GP-100 entra por gesto de hardware
+  (segurar os 2 footswitches) e o protocolo capturado não tem comando de tuner —
+  a UI é prévia LOCAL persistida (`gp100.tuner.v1`) e a leitura real entra pela
+  prop `reading` quando o canal existir. Nada de "integrar" um comando que não
+  existe.
+- **O painel vive no screenshot do BOARD**: como o TunerPanel fica dentro da
+  região `Pedalboard`, qualquer mudança nele regenera as baselines `board-*`
+  (e possivelmente `lib-*`/`erro-boot-*` pela altura) nas duas plataformas.

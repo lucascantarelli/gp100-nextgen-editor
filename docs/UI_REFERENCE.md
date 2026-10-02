@@ -196,7 +196,26 @@ completamente funcional"):** importar/gerar a lista REAL dos 99 presets de fábr
 - ⚠️ `control_count` no fxData quebrou o tsc (removido).
 - ⚠️ Crate `gp100-ui` NÃO compila no host (MSVC ausente — ADR-7); CI é a prova.
 
-### 3.4 Referências externas (VISION §8.1)
+### 3.4 Afinador do palco (issue #8 — refinamento profissional)
+- **Botão do monitor é VISUAL**: ícone ♪ + LED verde (ligado) / vermelho
+  (desligado), sem palavra de estado; o rótulo acessível mora no
+  `aria-label`/`title` (que já diz o estado). `data-tuner-power` para teste.
+- **Grade FIXA de 4 colunas** (`auto auto 1fr auto` = monitor · modo · ref ·
+  demo) que **nunca colapsa**: antes, com o monitor desligado, modo e REF
+  PITCH sumiam e sobrava um buraco na linha (o painel ainda mudava de altura
+  78→82px ao ligar). O slider do REF absorve a sobra — zero espaço vazio.
+- **Ordem = fluxo**: on/off junto do display (LED/escala) e a demo — que é
+  ferramenta de teste — na ponta direita.
+- **O monitor MANDA na leitura**: desligado = não ouve (nota “—”, agulha
+  centrada, LED próprio cinza) e nenhuma demo roda em background. Clicar em
+  “▶ demo” com o monitor desligado **liga o monitor junto** (demonstrar exige
+  ouvir) e desligar o monitor para a demo.
+- **Nada vai para o device**: o tuner do GP-100 entra por gesto de hardware
+  (segurar os 2 footswitches) e o protocolo capturado ainda não tem comando —
+  os ajustes são prévia LOCAL persistida (`gp100.tuner.v1`). A leitura real
+  entra pela prop `reading` quando o canal de áudio existir.
+
+### 3.5 Referências externas (VISION §8.1)
 - Neural DSP (cadeia visual drag-and-drop), Line 6 Helix Native (editores grandes
   por bloco, snapping), Boss Tone Studio (biblioteca+editor numa tela).
 - Padrão vencedor: **cadeia horizontal + painel contextual + biblioteca lateral** —

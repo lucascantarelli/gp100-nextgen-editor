@@ -66,10 +66,13 @@ export const MSG = {
 
   /* ── afinador do palco (ocupa o lugar do antigo VU; manual V1.8 p.5) ── */
   tunerAria: "Afinador",
-  tunerPowerOn: "Ligado",
-  tunerPowerOff: "Desligado",
   tunerPowerAria: "Ligar ou desligar a monitoração de afinação",
-  tunerPowerTitle: "Monitor de afinação: acompanha o que você toca em tempo real (no device: segure os 2 footswitches)",
+  /** botão VISUAL do monitor (sem texto): ícone ♪ + LED verde/vermelho */
+  tunerPowerIcon: "♪",
+  tunerPowerTitle: (on: boolean) =>
+    on
+      ? "Monitor de afinação LIGADO — mostra o que você toca em tempo real (no device: segure os 2 footswitches)"
+      : "Monitor de afinação desligado — clique para acompanhar a afinação em tempo real (no device: segure os 2 footswitches)",
   tunerModeAria: "Modo do afinador — alternar entre bypass, thru e mute",
   tunerModeTitle: "O que o device faz com o sinal enquanto você afina: bypass (seco), thru (com efeito) ou mute (silencioso)",
   tunerModeLabel: (mode: "bypass" | "thru" | "mute") => mode,
@@ -78,6 +81,7 @@ export const MSG = {
   tunerRefTitle: "REF PITCH: 435–445 Hz (padrão 440 Hz)",
   tunerRefValue: (hz: number) => `${hz}Hz`,
   tunerDemoLabel: "▶ demo",
+  tunerDemoRunning: "■ demo",
   tunerDemoAria: "Tocar demonstração do afinador com tom sintético",
   tunerDemoTitle: "Amostra sintética varrendo ±30 cents em A2 pelo motor real do afinador — não é áudio do device",
   tunerIdleNote: "—",
@@ -256,7 +260,11 @@ export const MSG = {
   helpNotes:
     "Notas: os atalhos de transporte não disparam enquanto você digita em busca, BPM ou selects; Espaço sobre um botão focado ativa o PRÓPRIO botão (comportamento nativo de acessibilidade); Ctrl/Alt/⌘ + tecla é ignorado; com o modal Settings aberto, Espaço e R ficam inativos e Esc fecha o modal.",
   helpControlsIntro: "Controles:",
-  helpControls: ["Tab navega todos os controles; foco visível", "Esc fecha este modal (global — de qualquer foco)"] as string[],
+  helpControls: [
+    "Tab navega todos os controles; foco visível",
+    "Afinador (cabeçalho do palco): o ♪ liga/desliga o monitor (LED verde/vermelho); modo e REF PITCH ficam sempre visíveis; ▶ demo liga o monitor e toca uma amostra sintética",
+    "Esc fecha este modal (global — de qualquer foco)",
+  ] as string[],
 
   /* ── Help → Informações do sistema (dados reais do ambiente) ── */
   sysInfoTitle: "Informações do sistema",
@@ -272,7 +280,7 @@ export const MSG = {
   sysNote:
     "No app instalado (Tauri), a versão do app vem do pacote; em navegador é a versão de desenvolvimento.",
   releaseNote:
-    `Versão de prévia: biblioteca de fábrica (${PRESET_COUNT} presets), bateria com ${DRUM_COUNT} ritmos, looper de fita (90 s PRE / 45 s POST), atalhos de teclado e layout responsivo. O board já renderiza os pedais do preset — no palco cada pedal é compacto e os knobs são SÓ LEITURA (mostram o valor de cada controle): clicar no pedal abre a edição ampliada, e o que se ajusta lá aparece no palco na hora.`,
+    `Versão de prévia: biblioteca de fábrica (${PRESET_COUNT} presets), bateria com ${DRUM_COUNT} ritmos, looper de fita (90 s PRE / 45 s POST), afinador de palco com monitor contínuo (LED verde/vermelho, REF PITCH 435–445 Hz), atalhos de teclado e layout responsivo. O board já renderiza os pedais do preset — no palco cada pedal é compacto e os knobs são SÓ LEITURA (mostram o valor de cada controle): clicar no pedal abre a edição ampliada, e o que se ajusta lá aparece no palco na hora.`,
 
   /* ── pedais (textos catálogados antes dos componentes entrarem no board) ── */
   pedalGroupAria: (kind: string, name: string, on: boolean) =>
