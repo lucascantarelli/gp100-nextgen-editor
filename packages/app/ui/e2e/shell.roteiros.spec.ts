@@ -115,7 +115,7 @@ test("R3 board: 9 slots na ordem do sinal e trava do drag", async () => {
 });
 
 /* ── R7. Pedal real no palco (Fase 2/U-3 — COMP primeiro) ── */
-test("R7 COMP: knob do dicionário, valor editável, LED/footswitch e trava", async () => {
+test("R7 COMP: knob do dicionário, valor editável, LED/footswitch e trava", async ({ page }) => {
   const board = shell.board;
   const pedalSlot = board.slot(1, "PRE");
   const pedal = pedalSlot.locator('svg[role="group"]');
@@ -166,6 +166,23 @@ test("R7 COMP: knob do dicionário, valor editável, LED/footswitch e trava", as
   await expect(tip).toContainText("addr 10 01 00 02");
   await expect(tip).toContainText("ctrl 0");
   await expect(tip).not.toContainText("§13.11");
+
+  // modal de edição (passo 9): a trava precisa voltar ao repouso antes —
+  // com ela ativa o clique pertence ao drag, não à ampliação
+  await board.toggleMover();
+  await expect(board.mover()).toHaveAttribute("aria-pressed", "false");
+  await pedalSlot.locator('svg[role="group"]').click({ position: { x: 210, y: 68 } });
+  const dlg = page.getByRole("dialog", { name: /Edição do pedal/ });
+  await expect(dlg).toBeVisible();
+  await expect(dlg.locator('svg[role="slider"]')).toHaveCount(2);
+  await expect(dlg.locator('input[aria-label="Valor (Enter para editar)"]').first()).toHaveValue("42");
+
+  // o knob AMPLIADO ajusta o MESMO estado: ArrowUp → 43 no modal e no palco
+  await dlg.locator('svg[role="slider"]').first().press("ArrowUp");
+  await expect(dlg.locator('input[aria-label="Valor (Enter para editar)"]').first()).toHaveValue("43");
+  await page.keyboard.press("Escape");
+  await expect(dlg).toHaveCount(0);
+  await expect(box).toHaveValue("43");
 });
 
 /* ── R4. Modal Settings (⚙) ── */
