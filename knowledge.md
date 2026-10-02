@@ -764,3 +764,16 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
 - **Fixture do Playwright**: teste que usa `page` precisa do fixture
   (`async ({ page }) =>`) — sem ele o erro é `ReferenceError: page is not
   defined` em runtime, não no typecheck.
+
+### PR empilhado não acende o CI sozinho (02/10 — PRs #55/#56)
+
+- O `ci.yml` dispara `pull_request` só com base em `develop`, `main` ou
+  `release/**` (os tipos válidos de alvo). Um PR com base em OUTRA BRANCH
+  (empilhado) fica sem checks — a validação tem de vir do
+  `workflow_dispatch --ref <branch>` (CHANGED=ALL; o run 37021286106 provou
+  18/18 no #56). Quando o PR de baixo mergeia, o GitHub re-aponta a base e o
+  CI do de cima volta a rodar sozinho.
+- **Empilhar é o caminho para dependência real** (o modal usa
+  `general.engineerMode`, da fatia anterior): branch nova a partir da branch
+  do PR de baixo, PR com `--base <branch-de-baixo>`; nada de reescrever as
+  duas fatias no mesmo branch (o #55 continuou com o diff limpo).
