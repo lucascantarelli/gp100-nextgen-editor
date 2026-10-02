@@ -286,6 +286,24 @@ def main() -> int:
                     f"imagem de container — sem o grant o run morre no LOAD)"
                 )
 
+    # ── runtime das actions: geração node24 (aviso de deprecação do runner) ──
+    # O runner avisa "Node.js 20 is deprecated... forced to run on Node.js 24"
+    # e o fix é subir o MAJOR da action. Trava aqui para um PR conservador de
+    # Dependabot não reintroduzir a geração antiga sem discussão.
+    node20_refs = (
+        "actions/cache@v4",
+        "docker/setup-buildx-action@v3",
+        "docker/login-action@v3",
+        "docker/metadata-action@v5",
+        "docker/build-push-action@v6",
+    )
+    for path in workflows + sorted(glob.glob(".github/actions/*/action.yml")):
+        path = path.replace("\\", "/")
+        text = raw(path)
+        for ref in node20_refs:
+            if ref in text:
+                FAILURES.append(f"{path}: '{ref}' mira Node 20 (deprecado) — usar o major node24")
+
     # ── relatório ──
     PREFIX_TO_FILE = {
         "ci": ".github/workflows/ci.yml",

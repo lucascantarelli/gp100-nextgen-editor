@@ -35,9 +35,12 @@ acontece no PR). Armadilhas mordidas — não reabrir:
 
 - **Toolchain por OS/projeto (ADR-8)**: o pin gnu do `rust-toolchain.toml` da
   raiz vale para o host Windows; a CI define `RUSTUP_TOOLCHAIN` por OS/projeto
-  (gnu na raiz, msvc em `packages/app/api`, stable fora do Windows) — sem
-  isso, qualquer cargo no Linux morre com "target tuple in channel name".
-  Não "simplificar" para runner único.
+  (gnu na raiz, msvc em `packages/app/api`, stable fora do Windows), no
+  `env:` do JOB (não via GITHUB_ENV: o probe `rustc -vV` do rust-cache roda
+  dentro da composite e não enxerga a var exportada — o pin gnu da raiz vence
+  e aparece "target tuple in channel name" nas annotations) — sem isso,
+  qualquer cargo no Linux morre com o mesmo erro. Não "simplificar" para
+  runner único.
 - Instalar a toolchain pinada com `rustup toolchain install <pin> --component
   rustfmt --component clippy`. **`--component` é REPETÍVEL**: escrever
   `--component rustfmt clippy` faz o rustup ler `clippy` como uma toolchain

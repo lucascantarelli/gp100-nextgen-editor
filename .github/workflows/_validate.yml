@@ -240,18 +240,22 @@ jobs:
       matrix: ${{ fromJSON(needs.plan.outputs.rust-matrix) }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
+    env:
+      # ADR-8: gnu na raiz (campo/dev), msvc na api (ADR-7), stable fora do
+      # Windows. JOB-LEVEL, não via GITHUB_ENV: o probe `rustc -vV` do
+      # rust-cache roda DENTRO da composite setup-rust e não enxergava a var
+      # exportada — o pin gnu do rust-toolchain.toml da raiz vencia e o rustup
+      # respondia "target tuple in channel name" (##[error] no job, verde mas
+      # sujo; pré-existente, fechado no #41). Env de job vale para todo step,
+      # inclusive dentro de composite actions. A toolchain exata vem daqui — o
+      # `matrix` é o único contexto disponível em env de job (runner.os é de
+      # step).
+      RUSTUP_TOOLCHAIN: ${{ matrix.os == 'windows-latest' && (matrix.workdir == 'packages/app/api' && 'stable-x86_64-pc-windows-msvc' || 'stable-x86_64-pc-windows-gnu') || 'stable' }}
     defaults:
       run:
         working-directory: ${{ matrix.workdir }}
     steps:
       - uses: actions/checkout@v7
-
-      # Regra por OS (a composite instala a toolchain; esta env garante que
-      # TODO cargo do job a use — runner.os só existe em STEP, daí o
-      # GITHUB_ENV): gnu na raiz (campo/dev), msvc na api (ADR-7),
-      # stable nativa fora do Windows (ADR-8).
-      - name: Definir RUSTUP_TOOLCHAIN por OS/projeto
-        run: echo "RUSTUP_TOOLCHAIN=${{ runner.os == 'Windows' && (matrix.workdir == 'packages/app/api' && 'stable-x86_64-pc-windows-msvc' || 'stable-x86_64-pc-windows-gnu') || 'stable' }}" >> "$GITHUB_ENV"
 
       - name: Toolchain + cache do cargo (compartilhado por workspace)
         uses: ./.github/actions/setup-rust

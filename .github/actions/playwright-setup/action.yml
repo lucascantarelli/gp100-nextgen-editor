@@ -10,7 +10,8 @@ runs:
   using: composite
   steps:
     - name: Cache dos browsers (chave = versão do lockfile)
-      uses: actions/cache@v4
+      # v6 = geração node24 (a @v4 mirava Node 20 e o runner avisava deprecação).
+      uses: actions/cache@v6
       with:
         path: ~/.cache/ms-playwright
         key: playwright-${{ runner.os }}-${{ hashFiles('packages/app/ui/pnpm-lock.yaml') }}

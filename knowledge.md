@@ -500,7 +500,19 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
   é pacote pnpm) — usar o shim `packages/app/ui/node_modules/.bin/tauri(.cmd)`.
 - **Actions node24:** checkout@v7, setup-node@v7, setup-uv@v10.2.0 (o repo
   do setup-uv NÃO publica major tag — pino sempre a versão exata!),
-  upload-artifact@v7. setup-uv@v10 quebrou 2 jobs antes do pin.
+  upload-artifact@v7, rust-cache@v2. Geração nova das actions do Docker
+  (setup-buildx@v4, login@v4, metadata@v6, build-push@v7) e actions/cache@v6
+  (até 01/10: @v3/@v5/@v6 e cache@v4 miravam Node 20 — o runner avisa
+  "Node.js 20 is deprecated... forced to run on Node.js 24"). Contrato no
+  validate_workflows.py: referência node20 falha o gate.
+- **LIÇÃO #41 (rust-cache `rustc -vV` × pin da raiz)**: o probe do cache roda
+  DENTRO da composite `setup-rust` e NÃO enxergava o `RUSTUP_TOOLCHAIN`
+  exportado via GITHUB_ENV — o pin gnu do `rust-toolchain.toml` da raiz vencia
+  e o rustup respondia "target tuple in channel name" (##[error] no job: o
+  cache cai no fallback e o job fica verde, mas a annotation suja; era
+  PRÉ-EXISTENTE ao #41). Fix: `RUSTUP_TOOLCHAIN` no `env:` do JOB, com
+  expressão sobre `matrix` (o `runner.os` só existe em step; `matrix` vale em
+  env de job) — env de job chega a todo step, inclusive dentro de composite.
 - **LIÇÃO #41 (imagem de CI × hot path)**: o que é FIXO não pertence ao job.
   Rust+clippy/rustfmt, `tauri-driver` compilado, WebKitGTK/GTK/ALSA dev,
   `webkit2gtk-driver`, xvfb+mesa e Node/pnpm com store aquecido viraram camada
