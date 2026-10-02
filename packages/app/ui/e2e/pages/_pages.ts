@@ -456,6 +456,16 @@ export class TunerPage {
     return this.group.getByRole("button", { name: /Ligar ou desligar a monitoração/ });
   }
 
+  /** LED do próprio botão do monitor: verde ligado, vermelho desligado (#8) */
+  powerLed(): Locator {
+    return this.group.locator("[data-tuner-power-led]");
+  }
+
+  /** botão de modo (bypass/thru/mute) — SEMPRE presente, mesmo com o monitor off */
+  modeButton(): Locator {
+    return this.group.getByRole("button", { name: /Modo do afinador/ });
+  }
+
   demoButton(): Locator {
     return this.group.getByRole("button", { name: /demonstração do afinador/ });
   }
