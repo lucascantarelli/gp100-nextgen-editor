@@ -8,6 +8,10 @@
  * (MockDevice) e SIMULA o boot com progresso determinístico (mesmos totais
  * do script real: 2297 transações no inventário default), para a faixa de
  * progresso do boot e o log de pushes serem exercitados fora do shell.
+ *
+ * Todo command passa por RETRY COM BACKOFF + TIMEOUT por tentativa (issue
+ * #20): falha transitória (USB instável) não chega ao usuário; falha
+ * permanente vira erro visível com recuperação — nunca spinner eterno.
  */
 import type {
   BoardView,
@@ -24,21 +28,126 @@ import { FACTORY_PRESETS } from "../artifacts/presetData";
 /** Total de transações do script de boot real (inventário default 0..198). */
 const BOOT_TOTAL = 2297;
 
+/** Operações do fallback com gancho de falha simulada (issue #20). */
+type FailOp = "info" | "boot" | "board" | "select" | "set_param";
+
 /**
- * Gancho de teste/e2e: com `localStorage[gp100.debug.failDevice]`
- * = "info" | "boot" | "board" | "all", o fallback correspondente REJEITA —
- * permite exercitar os estados de erro da UI no browser. Fora do fallback
- * (webview real) não tem efeito; sem a chave, custo zero.
+ * Gancho de teste/e2e — `localStorage[gp100.debug.failDevice]`:
+ *   - `"<op>"` (info|boot|board|select|set_param) ou `"all"` — falha SEMPRE;
+ *   - `"<op>:<n>"` — falha as PRÓXIMAS n chamadas (falha TRANSITÓRIA: o
+ *     retry/backoff a esconde do usuário — cenário do USB instável);
+ *   - `"boot-mid"` — o boot emite progresso até ~40% e REJEITA (device
+ *     desconectado NO MEIO do boot).
+ * Fora do fallback (webview real) não tem efeito; sem a chave, custo zero.
  */
 const DEBUG_FAIL_KEY = "gp100.debug.failDevice";
-function debugFail(op: "info" | "boot" | "board"): void {
-  let raw: string | null;
+
+function readFailRaw(): string | null {
   try {
-    raw = localStorage.getItem(DEBUG_FAIL_KEY);
+    return localStorage.getItem(DEBUG_FAIL_KEY);
   } catch {
-    return; // sem localStorage (teste sem storage) — ganho inativo
+    return null; // sem localStorage (teste sem storage) — ganho inativo
   }
-  if (raw === op || raw === "all") throw new Error(`debug: falha simulada de device em ${op}`);
+}
+
+/** Consome 1 uso do plano `op:n` (decrementa; em 0 remove a chave). */
+function consumeTransient(op: string, left: number): void {
+  try {
+    if (left <= 1) localStorage.removeItem(DEBUG_FAIL_KEY);
+    else localStorage.setItem(DEBUG_FAIL_KEY, `${op}:${left - 1}`);
+  } catch {
+    /* noop */
+  }
+}
+
+/** Falha simulada da operação `op` (no-op sem a chave/para outra operação). */
+function debugFail(op: FailOp): void {
+  const raw = readFailRaw();
+  if (raw === null) return;
+  if (raw === "all" || raw === op) {
+    throw new Error(`debug: falha simulada de device em ${op}`);
+  }
+  const [nome, n] = raw.split(":");
+  if (nome === op) {
+    const left = Number(n);
+    if (Number.isInteger(left) && left > 0) {
+      consumeTransient(op, left);
+      throw new Error(`debug: falha simulada de device em ${op} (${left} restantes)`);
+    }
+  }
+}
+
+/* ─── Retry/backoff e timeout de command (issue #20) ──────────────────────
+ * A política vive AQUI (porta única do front) porque a garantia pedida é de
+ * UI: "recuperação visível, nunca spinner eterno". O backend já tem timeout
+ * POR TRANSAÇÃO (D6 do ADR-6); retry aqui = nova transação na fila
+ * serializada do actor (D8) — mesmo caminho, observável em teste.
+ *
+ * Leitura é sempre retentável (idempotente). `select`/`set_param` reenviam o
+ * MESMO destino/valor (set de knob é fire-and-forget §13.11 — reaplicar o
+ * mesmo valor não acumula efeito). O `device_boot` fica FORA da política:
+ * são 2297 transações e um retry automático mascararia device morto — a
+ * recuperação ali é o ⟳ explícito do usuário.
+ */
+export const COMMAND_ATTEMPTS = 3;
+/** Base do backoff exponencial (120 → 240 ms entre tentativas). */
+export const COMMAND_BASE_MS = 120;
+/** Timeout POR TENTATIVA — o command mais longo (board) fica bem abaixo. */
+export const COMMAND_TIMEOUT_MS = 8_000;
+
+/** Timeout do command (classe própria: o teste distingue de erro do device). */
+export class CommandTimeoutError extends Error {}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+/**
+ * Backoff exponencial com jitter de ±30% — retries simultâneos não batem no
+ * device no mesmo instante.
+ *
+ * @param attempt Nº da tentativa que FALHOU (1 = primeira falha).
+ * @param rand Fonte de aleatoriedade (injetável no teste).
+ * @returns Atraso em ms antes da próxima tentativa.
+ */
+export function retryDelayMs(attempt: number, rand: () => number = Math.random): number {
+  const base = COMMAND_BASE_MS * 2 ** (attempt - 1);
+  const jitter = base * 0.3 * (rand() * 2 - 1);
+  return Math.max(0, Math.round(base + jitter));
+}
+
+/** Corrida do command contra o timeout da tentativa. */
+function withTimeout<T>(run: Promise<T>, op: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(
+      () => reject(new CommandTimeoutError(`command ${op} excedeu ${COMMAND_TIMEOUT_MS} ms`)),
+      COMMAND_TIMEOUT_MS,
+    );
+    run.then(
+      (v) => {
+        clearTimeout(timer);
+        resolve(v);
+      },
+      (e: unknown) => {
+        clearTimeout(timer);
+        reject(e);
+      },
+    );
+  });
+}
+
+/** Executa o command com timeout por tentativa e retry com backoff. */
+async function withRetry<T>(op: string, run: () => Promise<T>): Promise<T> {
+  let last: unknown;
+  for (let attempt = 1; attempt <= COMMAND_ATTEMPTS; attempt += 1) {
+    try {
+      return await withTimeout(run(), op);
+    } catch (e) {
+      last = e;
+      if (attempt < COMMAND_ATTEMPTS) await sleep(retryDelayMs(attempt));
+    }
+  }
+  throw last;
 }
 
 /** Detecta o ambiente Tauri (webview) vs browser/teste. */
@@ -65,10 +174,12 @@ function localMockInfo(): DeviceInfo {
 export async function deviceInfo(): Promise<DeviceInfo> {
   if (inTauri()) {
     const { invoke } = await import("@tauri-apps/api/core");
-    return invoke<DeviceInfo>("device_info");
+    return withRetry("info", () => invoke<DeviceInfo>("device_info"));
   }
-  debugFail("info");
-  return localMockInfo();
+  return withRetry("info", async () => {
+    debugFail("info");
+    return localMockInfo();
+  });
 }
 
 /**
@@ -79,9 +190,14 @@ export async function deviceInfo(): Promise<DeviceInfo> {
 export async function deviceBoot(): Promise<BootReport> {
   if (inTauri()) {
     const { invoke } = await import("@tauri-apps/api/core");
+    // SEM retry (política da issue #20): boot é longo e não-idempotente em
+    // custo; falha → erro visível com ⟳.
     return invoke<BootReport>("device_boot");
   }
   debugFail("boot");
+  // "boot-mid": o device cai no MEIO do boot — progresso real aparece e só
+  // então o command rejeita (o que um cabo puxado faz com a UI aberta).
+  const midFail = readFailRaw() === "boot-mid";
   // Fallback: progresso sintético determinístico (mesmos stages do script).
   const stages: Array<[BootProgress["stage"], number]> = [
     ["tables", 40],
@@ -95,7 +211,7 @@ export async function deviceBoot(): Promise<BootReport> {
   // Lote CAP: 2297 beats síncronos travam a main thread (~300 ms congelados).
   // Emite em lotes de 64 via macrotask — o rAF do useBoot segue fluindo e a
   // UI nunca congela; mesmos totais/stages do script real.
-  return new Promise<BootReport>((resolve) => {
+  return new Promise<BootReport>((resolve, reject) => {
     const emit = (stage: BootProgress["stage"]) =>
       listeners.forEach((l) =>
         l({ stage, done, total: BOOT_TOTAL, currentPp: Math.min(done % 198, 197) }),
@@ -112,6 +228,12 @@ export async function deviceBoot(): Promise<BootReport> {
           si += 1;
           i = 0;
         }
+      }
+      if (midFail && done >= Math.floor(BOOT_TOTAL * 0.4)) {
+        reject(
+          new Error(`debug: device desconectado durante o boot (${done}/${BOOT_TOTAL} transações)`),
+        );
+        return;
       }
       if (si < stages.length) setTimeout(tick, 0);
       else resolve({ transactions: BOOT_TOTAL });
@@ -213,30 +335,38 @@ function localMockLibrary(): PresetLibrary {
 export async function deviceBoard(pp?: number): Promise<BoardView> {
   if (inTauri()) {
     const { invoke } = await import("@tauri-apps/api/core");
-    return invoke<BoardView>("device_board", { pp: pp ?? null });
+    return withRetry("board", () => invoke<BoardView>("device_board", { pp: pp ?? null }));
     // NOTE: quando o backend real responder, os knobs vêm do dicionário.
   }
-  debugFail("board");
-  return localMockBoard(pp);
+  return withRetry("board", async () => {
+    debugFail("board");
+    return localMockBoard(pp);
+  });
 }
 
 /** `device_preset_library` — biblioteca completa + corrente. */
 export async function devicePresetLibrary(): Promise<PresetLibrary> {
   if (inTauri()) {
     const { invoke } = await import("@tauri-apps/api/core");
-    return invoke<PresetLibrary>("device_preset_library");
+    return withRetry("library", () => invoke<PresetLibrary>("device_preset_library"));
   }
-  return localMockLibrary();
+  // A biblioteca vem de ARTEFATO local (nunca do fio) — sem gancho de falha;
+  // timeout/retry valem por uniformidade da porta única.
+  return withRetry("library", async () => localMockLibrary());
 }
 
 /** `device_select_preset` — select real no device (fallback troca local). */
 export async function deviceSelectPreset(pp: number): Promise<void> {
   if (inTauri()) {
     const { invoke } = await import("@tauri-apps/api/core");
-    await invoke("device_select_preset", { pp });
+    await withRetry("select", () => invoke("device_select_preset", { pp }));
     return;
   }
-  // fallback: sem estado global local além do corrente informado
+  // fallback: sem estado global local além do corrente informado.
+  // Retentável: reenviar o MESMO pp não acumula efeito (o select é destino).
+  await withRetry("select", async () => {
+    debugFail("select");
+  });
 }
 
 /** `device_set_param` — ajuste de knob real no device (fallback aceita e segue). */
@@ -248,8 +378,14 @@ export async function deviceSetParam(
 ): Promise<void> {
   if (inTauri()) {
     const { invoke } = await import("@tauri-apps/api/core");
-    await invoke("device_set_param", { slot, code, ctrl, value });
+    await withRetry("set_param", () => invoke("device_set_param", { slot, code, ctrl, value }));
+    return;
   }
+  // Retentável: set de knob é fire-and-forget (D4) e reaplicar o MESMO valor
+  // é idempotente no device.
+  await withRetry("set_param", async () => {
+    debugFail("set_param");
+  });
 }
 
 /**

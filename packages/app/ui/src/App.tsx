@@ -39,6 +39,19 @@ import { MSG } from "./i18n/messages";
 const DRUM_KEY = "gp100.drum.v2";
 const MASTER_KEY = "gp100.master.v1";
 
+/** Ação de recuperação do banner de erro (alvo ≥32px — a11y). */
+const retryBtn: React.CSSProperties = {
+  minHeight: 32,
+  padding: "var(--space-4) var(--space-12)",
+  borderRadius: "var(--space-4)",
+  border: "1px solid currentColor",
+  background: "transparent",
+  color: "inherit",
+  cursor: "pointer",
+  font: "inherit",
+  whiteSpace: "nowrap",
+};
+
 function loadDrum(): DrumState {
   try {
     const raw = localStorage.getItem(DRUM_KEY);
@@ -70,7 +83,8 @@ export default function App() {
   const [arrangeMode, setArrangeMode] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [celebrate, setCelebrate] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
+  /** Erro amigável + AÇÃO de recuperação (issue #20: nunca spinner eterno). */
+  const [err, setErr] = useState<{ message: string; retry: () => void } | null>(null);
   const [drumOpen, setDrumOpen] = useState(false); // popover do drum (subiu do TopBar p/ precedência do Esc)
   const [recRequest, setRecRequest] = useState(0); // pulso do atalho R (looper)
   const [tuner, setTuner] = useState<TunerSettings>(loadTuner);
@@ -86,33 +100,59 @@ export default function App() {
     // `device_preset_library` volta a alimentar esta lista na integração real.
   }, []);
 
-  // abre um preset (select real no device; fallback local do device.ts)
+  // Boot FALHOU = o device não respondeu: a UI não pode continuar exibindo
+  // "on" (LED mentiroso). Boot OK → re-lê o device: a recuperação pelo ⟳
+  // devolve a conexão ao estado real (idem após um disconnect mid-boot).
+  useEffect(() => {
+    if (boot.state.kind === "error") {
+      setInfo(null);
+      return;
+    }
+    if (boot.state.kind === "ready") {
+      void deviceInfo()
+        .then(setInfo)
+        .catch(() => setInfo(null));
+    }
+  }, [boot.state.kind]);
+
+  // abre um preset: select no device + leitura do board. O estado `pp`/nome
+  // só muda DEPOIS do device confirmar — estado otimista nunca contamina a
+  // UI (select falho deixaria navbar/LED/biblioteca mostrando um preset que
+  // o device não aceitou). Falha vira banner com AÇÃO de retry: recuperação
+  // visível, nunca spinner eterno (issue #20).
   const openPreset = useCallback(async (target: number) => {
+    let selected = false;
     try {
       await deviceSelectPreset(target);
+      selected = true;
       const b = await deviceBoard(target);
       setPp(b.pp);
       setPresetName(b.name);
       setPpTypeName(b.ppTypeName);
       setErr(null);
     } catch (e) {
-      // Usuário vê mensagem amigável; o detalhe técnico fica no console.
+      // O usuário vê a mensagem amigável; o detalhe técnico fica no console.
+      // Select OK + board falho: o curso certo é reler (retry) — a mensagem
+      // diz "não foi possível abrir", não "o preset não trocou".
       console.error("openPreset falhou:", e);
-      setErr(MSG.errOpenPreset);
+      setErr({
+        message: selected ? MSG.errOpenPreset : MSG.errSelectPreset,
+        retry: () => void openPreset(target),
+      });
     }
   }, []);
 
   // ◀ ▶ reproduzem a coluna do patch do app oficial: 0..98 em ciclo.
-  // Efeito FORA do updater (updater tem que ser puro — StrictMode chama 2×).
   const stepPreset = useCallback(
     (delta: 1 | -1) => {
-      setPp((cur) => (cur + delta + 99) % 99);
+      void openPreset((pp + delta + 99) % 99);
     },
-    [],
+    [pp, openPreset],
   );
+  // abertura INICIAL: o device é a fonte da verdade do preset corrente
   useEffect(() => {
-    void openPreset(pp);
-  }, [pp, openPreset]);
+    void openPreset(0);
+  }, [openPreset]);
 
   // LED display: flip só no boot MANUAL (re-escanear) — o auto-boot do
   // mount é silencioso (a navbar já mostra "on"; flip automático deixaria
@@ -223,8 +263,24 @@ export default function App() {
         </div>
       )}
       {err != null && (
-        <div role="alert" style={{ background: "#2a1414", border: "1px solid #5b2626", color: "#ffb3b3", padding: "8px 12px", borderRadius: 8, fontSize: 13 }}>
-          {err}
+        <div
+          role="alert"
+          style={{
+            background: "#2a1414",
+            border: "1px solid #5b2626",
+            color: "#ffb3b3",
+            padding: "8px 12px",
+            borderRadius: 8,
+            fontSize: 13,
+            display: "flex",
+            alignItems: "center",
+            gap: "var(--space-12)",
+          }}
+        >
+          <span>{err.message}</span>
+          <button type="button" onClick={err.retry} aria-label={MSG.errRetryAria} style={retryBtn}>
+            {MSG.errRetry}
+          </button>
         </div>
       )}      {/* MEIO da mesa (única área que rola): looper no topo, pushes,
           biblioteca (300px, lista rolável) à esquerda e palco à direita */}

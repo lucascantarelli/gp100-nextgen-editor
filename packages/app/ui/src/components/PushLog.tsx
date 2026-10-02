@@ -3,6 +3,9 @@
  * `device://push` → hex cru (F0…F7). Lista em ordem de chegada, com botão
  * limpar; mono e truncado
  * (hover/focus revela a linha inteira — overflow-x).
+ *
+ * Repetições CONSECUTIVAS do mesmo hex (o boot repete a resposta de tabela)
+ * ficam na MESMA linha com contador `×N` — parsing/dedupe no ipc/push.
  */
 import type { PushLogEntry } from "../ipc/types";
 import { MSG } from "../i18n/messages";
@@ -30,6 +33,11 @@ export function PushLog({ log, onClear }: Props) {
           {log.map((e, i) => (
             <li key={`${e.at}-${i}`} style={styles.item}>
               <span style={styles.hex}>{e.hex}</span>
+              {e.count > 1 && (
+                <span style={styles.repeat} title={MSG.pushRepeats}>
+                  {MSG.pushRepeatMark}{e.count}
+                </span>
+              )}
             </li>
           ))}
         </ol>
@@ -91,4 +99,9 @@ const styles: Record<string, React.CSSProperties> = {
     borderBottom: "1px solid color-mix(in srgb, var(--text-muted) 15%, transparent)",
   },
   hex: { letterSpacing: "0.02em" },
+  repeat: {
+    marginLeft: "var(--space-8)",
+    color: "var(--accent-text)",
+    fontWeight: 600,
+  },
 };

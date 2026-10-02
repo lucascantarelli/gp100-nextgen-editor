@@ -59,11 +59,37 @@ export class ShellPage {
     await expect(this.banner).toBeVisible();
   }
 
-  /** ganho de teste: falha simulada de device ANTES do load (mount lê o storage) */
-  async failDevice(op: "info" | "boot" | "board" | "all"): Promise<void> {
+  /**
+   * Ganho de teste: falha simulada de device ANTES do load (o mount lê o
+   * storage). Valores (src/ipc/device.ts):
+   *   - `info|boot|board|select|set_param|all` — falha SEMPRE;
+   *   - `<op>:<n>` — falha TRANSITÓRIA (retry/backoff cobre; issue #20);
+   *   - `boot-mid` — device cai NO MEIO do boot (progresso real e então erro).
+   */
+  async failDevice(op: string): Promise<void> {
     await this.page.addInitScript((o) => {
       localStorage.setItem("gp100.debug.failDevice", o);
     }, op);
+  }
+
+  /**
+   * Arma o gancho DEPOIS do load (o mount já rodou limpo) — para cenários
+   * de falha do MEIO da sessão (ex.: select só falha no clique do usuário).
+   */
+  async armFailDevice(op: string): Promise<void> {
+    await this.page.evaluate((o) => localStorage.setItem("gp100.debug.failDevice", o), op);
+  }
+
+  /** Desarma o gancho no meio do teste (prova a recuperação). */
+  async clearFailDevice(): Promise<void> {
+    await this.page.evaluate(() => localStorage.removeItem("gp100.debug.failDevice"));
+  }
+
+  /** Ação de recuperação do banner de erro (botão DENTRO do role="alert"). */
+  alertRetry(): Locator {
+    return this.page
+      .getByRole("alert")
+      .getByRole("button", { name: "Tentar novamente a operação que falhou" });
   }
 
   /** patch corrente exibido na navbar: Pnn + nome (1-based, app oficial) */
