@@ -95,7 +95,10 @@ try {
   // e o primeiro paint pode passar de 20s (run 36937323423 estourou o antigo).
   await driver.wait(until.elementLocated(By.css('[role="banner"]')), 60_000);
   const banner = await driver.findElement(By.css('[role="banner"]')).getText();
-  if (!banner.includes("GP-100 NextGen")) throw new Error(`banner inesperado: ${banner}`);
+  // A marca no DOM é `MSG.brand` = "GP-100" (o "NextGen Editor" é só o TÍTULO
+  // da janela). O assert antigo procurava "GP-100 NextGen" NO BANNER — nunca
+  // existiu ali, e o smoke ficou vermelho desde que nasceu (issue #39).
+  if (!banner.includes("GP-100")) throw new Error(`banner sem a marca (MSG.brand): ${banner}`);
 
   // 2. device mock conectado (o smoke não precisa de hardware)
   await driver.wait(until.elementLocated(By.css('[role="status"]')), 20_000);
