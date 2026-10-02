@@ -285,6 +285,27 @@ oficial Tauri v2 (webkit2gtk-driver + xvfb + WEBKIT_DISABLE_DMABUF_RENDERER).
 3. Tamanho/espaçamento revisados em cada uma das 9 posições.
 4. Roteiro R6 (a11y) reexecutado com os pedais no ar.
 
+### R9. Afinador do palco (issue #8 — refinamento profissional)
+> Executado no e2e (`e2e/interacoes.spec.ts`, "Afinador: painel fixo, monitor
+> visual, demo move agulha e nota, ref pitch"); o que sobra é julgamento visual.
+1. O painel está sempre visível no cabeçalho, do tamanho do display do patch
+   (nada de colapsar/saltar de altura ao ligar o monitor).
+2. **Grade fixa**: monitor, modo, REF PITCH e demo na MESMA linha, com o
+   monitor desligado também — zero buraco no meio, zero quebra de linha.
+3. **Botão do monitor é visual**: ícone ♪ + LED VERDE ligado / VERMELHO
+   desligado, sem palavra de estado (tooltip explica e diz o estado atual).
+4. Ordem de fluxo: on/off junto do display (LED/escala) e a demo na ponta.
+5. LED próprio do painel: cinza desligado, âmbar ouvindo, verde/vermelho pela
+   banda — o LED do patch (pp/nome) nunca é tomado.
+6. Monitor DESLIGADO = repouso honesto: nota “—”, agulha centrada, nenhuma demo
+   rodando; ligar mostra a leitura e a cor da banda.
+7. “▶ demo” com o monitor desligado liga o monitor junto (vira “■ demo”);
+   desligar o monitor para a demo na hora.
+8. REF PITCH 435–445 Hz persiste (`gp100.tuner.v1`), junto do monitor e do modo;
+   modo em ciclo bypass→thru→mute.
+9. Nada disso vai ao device (o tuner do GP-100 é gesto de hardware) — sem
+   promessa de comando inexistente na UI.
+
 ---
 
 ## 🧪 EXECUÇÃO — Q-1/Q-6/Q-7: CATÁLOGO ÚNICO + INTERAÇÃO + ERROS (30/09, Vitest + Playwright · Chromium)

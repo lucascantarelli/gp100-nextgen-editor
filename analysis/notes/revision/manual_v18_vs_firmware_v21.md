@@ -159,12 +159,33 @@ O LED do patch segue intocado — zero conflito.
 ### 4. Funcionalidades no painel
 
 **Decisão**: O TunerPanel expõe:
-- **Monitor on/off**: botão "♪ monitorar" (aria-pressed)
-- **Modo**: Bypass/Thru/Mute em ciclo (botão com aria-label)
-- **REF PITCH**: slider 435–445 Hz com display numérico
-- **Demo**: botão "▶ demo" que alimenta o motor real com senoide sintética
+- **Monitor on/off**: botão VISUAL (ícone ♪ + LED verde/vermelho, sem texto —
+  issue #8), `aria-pressed` + `aria-label`/`title` com o estado;
+- **Modo**: Bypass/Thru/Mute em ciclo (botão com aria-label);
+- **REF PITCH**: slider 435–445 Hz com display numérico;
+- **Demo**: botão "▶ demo"/"■ demo" que alimenta o motor real com senoide sintética.
 
-### 5. Botão mover vira cadeado 🔒/🔓
+### 5. Grade fixa de controles (issue #8)
+
+**Motivo**: com o monitor desligado o painel escondia modo + REF PITCH e
+abria um buraco no meio da linha (o painel ainda mudava de altura ao ligar).
+
+**Decisão**: os 4 controles vivem numa grade FIXA
+(`auto auto 1fr auto` = monitor · modo · ref · demo) que **nunca colapsa**; o
+slider do REF absorve a sobra (zero espaço vazio) e a ordem põe o on/off
+junto do display (LED/escala), deixando a demo (ferramenta de teste) na ponta.
+
+### 6. Monitor manda na leitura (issue #8)
+
+**Motivo**: honestidade — "monitor desligado" e agulha se mexendo (demo)
+contradiziam o próprio estado.
+
+**Decisão**: `reading = monitor ? (device ?? demo) : null`. Com o monitor
+DESLIGADO o display fica em repouso (nota "—", agulha centrada, LED cinza) e
+a demo não roda em background; clicar em "▶ demo" com o monitor desligado
+LIGA o monitor (demonstrar exige ouvir) e desligar o monitor para a demo.
+
+### 7. Botão mover vira cadeado 🔒/🔓
 
 **Motivo**: Reutilizar o espaço onde era o botão mover para
 uma trava visual mais intuitiva.
@@ -204,4 +225,7 @@ uma trava visual mais intuitiva.
 - Firmware strings: `analysis/fw_strings.txt`
 - Motor de afinação: `packages/app/ui/src/tuner/pitch.ts`
 - Painel: `packages/app/ui/src/components/TunerPanel.tsx`
-- Componente: `packages/app/ui/src/components/EmptyBoard.tsx`
+- Onde ele mora: cabeçalho do `packages/app/ui/src/components/Stage.tsx`
+  (à direita do display do patch + cadeado) — teste unit em
+  `packages/app/ui/tests/tuner.test.tsx` e e2e em
+  `packages/app/ui/e2e/interacoes.spec.ts` ("Afinador: ...")
