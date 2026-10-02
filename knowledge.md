@@ -597,6 +597,14 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
   um PR com título `"; curl …` e o shell executa. Regra: SEMPRE por `env:`
   (ex.: `PR_TITLE`) e `"$PR_TITLE"` no script; o actionlint checa isso a cada
   run (mesma classe do `BODY` da extração, que já nasceu por env).
+- **LIÇÃO #50 (job próprio × parede do front)**: o gate do front (lint +
+  `vitest --coverage`) morava na leg ubuntu da matriz `front`, atrás do Setup
+  Node e ANTES do build — soma no caminho crítico. Extraído para o job
+  `front-gate` (ubuntu; Windows no ci-lite) ele roda EM PARALELO com os 3
+  builds: a parede vira o MÁXIMO (gate × builds), não a soma. O `build-front`
+  ficou só build (o input `full` morreu) e os contratos do
+  `validate_workflows.py` acompanharam (job novo na lista, `gate-os` no plano,
+  `pnpm build` no composite).
 
 ---
 
