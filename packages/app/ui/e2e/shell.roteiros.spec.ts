@@ -152,6 +152,20 @@ test("R7 COMP: knob do dicionário, valor editável, LED/footswitch e trava", as
   await expect(pedalSlot).not.toHaveAttribute("draggable", "true");
   await board.toggleMover();
   await expect(pedalSlot).toHaveAttribute("draggable", "true");
+
+  // modo engenheiro (Settings → General): o tooltip do knob passa a mostrar
+  // addr/code/ctrl do comando SET — sem a referência interna à doc (§13.11)
+  const settings = await shell.openSettings();
+  const eng = settings.role("switch", "Modo engenheiro");
+  await expect(eng).toHaveAttribute("aria-checked", "false");
+  await eng.click();
+  await expect(eng).toHaveAttribute("aria-checked", "true");
+  await settings.pressEscape();
+  await settings.expectHidden();
+  const tip = pedalSlot.locator('svg[role="slider"] title').first();
+  await expect(tip).toContainText("addr 10 01 00 02");
+  await expect(tip).toContainText("ctrl 0");
+  await expect(tip).not.toContainText("§13.11");
 });
 
 /* ── R4. Modal Settings (⚙) ── */

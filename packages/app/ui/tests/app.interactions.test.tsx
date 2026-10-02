@@ -343,6 +343,38 @@ describe("Settings — as 6 abas", () => {
     teardown(root, host);
   });
 
+  it("modo engenheiro: switch na aba General liga o tooltip addr/code/ctrl e persiste", async () => {
+    const { root, host } = mount();
+    await settle();
+
+    act(() => byAria(host, "Abrir configurações")!.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    await settle();
+    const sw = host.querySelector<HTMLElement>(
+      '[role="switch"][aria-label^="Modo engenheiro"]',
+    );
+    expect(sw, "switch do modo engenheiro na aba General").toBeTruthy();
+    expect(sw!.getAttribute("aria-checked"), "default desligado").toBe("false");
+
+    act(() => sw!.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    await settle();
+    expect(sw!.getAttribute("aria-checked")).toBe("true");
+    expect(JSON.parse(localStorage.getItem("gp100.settings.general.v1")!)).toMatchObject({
+      engineerMode: true,
+    });
+
+    // fecha o modal: o tooltip do knob do COMP passa a mostrar o endereço do SET
+    act(() =>
+      host
+        .querySelector("[role='dialog']")!
+        .dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })),
+    );
+    await settle();
+    const title = host.querySelector('[aria-label="Slot 1: PRE"] svg[role="slider"] title');
+    expect(title?.textContent).toContain("addr 10 01 00 02");
+    expect(title?.textContent).toContain("ctrl 0");
+    teardown(root, host);
+  });
+
   it("cada aba ativa e renderiza seu conteúdo (tabela onde aplicável)", async () => {
     const { root, host } = mount();
     await settle();

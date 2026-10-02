@@ -362,6 +362,7 @@ export default function App() {
           <Stage
             board={board}
             celebrate={celebrate}
+            engineer={general.engineerMode}
             arrangeMode={arrangeMode}
             onToggleArrange={() => setArrangeMode((v) => !v)}
             tuner={tuner}

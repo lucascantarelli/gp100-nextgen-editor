@@ -14,6 +14,8 @@ export interface GeneralSettings {
   usbAudio: boolean;
   normalLevel: number;
   hintMode: "left" | "right";
+  /** Tooltip dos knobs com addr/code/ctrl do SET (U-3 — checklist §3.2). */
+  engineerMode: boolean;
   tapTempo: { pre: boolean; mod: boolean; dly: boolean };
   language: "pt-BR" | "en" | "es" | "zh";
 }
@@ -23,6 +25,7 @@ const DEFAULTS: GeneralSettings = {
   usbAudio: false,
   normalLevel: 100,
   hintMode: "left",
+  engineerMode: false,
   tapTempo: { pre: true, mod: false, dly: false },
   language: "pt-BR",
 };
@@ -227,6 +230,21 @@ export function SettingsModal({ open, general, onChangeGeneral, onClose }: Props
                   <option value="left">{MSG.hintLeft}</option>
                   <option value="right">{MSG.hintRight}</option>
                 </select>
+              </div>
+              <div style={line}>
+                <span style={lbl}>
+                  {MSG.engineerModeLabel}
+                  <span
+                    style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}
+                  >
+                    {MSG.engineerModeSub}
+                  </span>
+                </span>
+                <Toggle
+                  on={general.engineerMode}
+                  onChange={(v) => set({ engineerMode: v })}
+                  label={MSG.engineerModeAria}
+                />
               </div>
               <div style={line}>
                 <span style={lbl}>{MSG.tapTempoLabel}</span>
