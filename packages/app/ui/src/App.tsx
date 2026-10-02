@@ -29,6 +29,7 @@ import { TopBar } from "./components/TopBar";
 import { LibraryPanel } from "./components/LibraryPanel";
 import { Stage } from "./components/Stage";
 import { SettingsModal, loadGeneral } from "./components/SettingsModal";
+import { PedalModal } from "./components/PedalModal";
 import type { GeneralSettings } from "./components/SettingsModal";
 import { loadTuner, TUNER_KEY } from "./components/TunerPanel";
 import type { TunerSettings } from "./components/TunerPanel";
@@ -85,6 +86,8 @@ export default function App() {
   const [looper, setLooper] = useState<LooperSettings>(loadLooper);
   const [arrangeMode, setArrangeMode] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  /** Slot da cadeia em edição ampliada (PedalModal; null = fechado). */
+  const [editing, setEditing] = useState<number | null>(null);
   const [celebrate, setCelebrate] = useState(false);
   /** Erro amigável + AÇÃO de recuperação (issue #20: nunca spinner eterno). */
   const [err, setErr] = useState<{ message: string; retry: () => void } | null>(null);
@@ -132,6 +135,7 @@ export default function App() {
       setPp(b.pp);
       setPresetName(b.name);
       setBoard(b);
+      setEditing(null); // trocar de preset fecha a edição ampliada
       setErr(null);
     } catch (e) {
       // O usuário vê a mensagem amigável; o detalhe técnico fica no console.
@@ -245,13 +249,15 @@ export default function App() {
   // aberto (Esc fecha o modal antes).
   useGlobalShortcuts({
     onDrumToggle: () => {
-      if (!settingsOpen) setDrum((d) => ({ ...d, on: !d.on }));
+      if (!settingsOpen && editing == null) setDrum((d) => ({ ...d, on: !d.on }));
     },
     onLooperRec: () => {
-      if (!settingsOpen) setRecRequest((n) => n + 1);
+      if (!settingsOpen && editing == null) setRecRequest((n) => n + 1);
     },
     onEscape: () => {
-      if (settingsOpen) setSettingsOpen(false);
+      // precedência do painel do TOPO: edição do pedal → settings → drum → pushes
+      if (editing != null) setEditing(null);
+      else if (settingsOpen) setSettingsOpen(false);
       else if (drumOpen) setDrumOpen(false);
       else pushRef.current?.removeAttribute("open");
     },
@@ -377,6 +383,7 @@ export default function App() {
             onToggle={onToggle}
             onKnobChange={applyKnob}
             onKnobReset={onKnobReset}
+            onEdit={(s) => setEditing(s.slot)}
           />
         </div>
       </div>
@@ -393,6 +400,14 @@ export default function App() {
       </footer>
 
       <SettingsModal open={settingsOpen} general={general} onChangeGeneral={onChangeGeneral} onClose={() => setSettingsOpen(false)} />
+      <PedalModal
+        slot={editing == null ? null : (board?.slots.find((s) => s.slot === editing) ?? null)}
+        engineer={general.engineerMode}
+        onToggle={onToggle}
+        onKnobChange={applyKnob}
+        onKnobReset={onKnobReset}
+        onClose={() => setEditing(null)}
+      />
     </main>
   );
 }

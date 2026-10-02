@@ -744,3 +744,41 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
 - **Lição Q-8 travada por teste**: o tooltip do modo engenheiro NÃO pode citar a
   doc interna (`§13.11`) — há asserts negativos no unit (`stage.foundation`) e no
   e2e (R7), então o vazamento não volta sem quebrar a suíte.
+
+### Modal de edição do pedal (02/10 — fatia 3 da #19)
+
+- **O estado do modal mora no App, não no Stage**: assim os atalhos globais
+  ficam inertes enquanto ele está aberto (mesma guarda do Settings) e o Esc tem
+  precedência de painel do TOPO (modal → settings → drum → pushes). Trocar de
+  preset fecha a edição ampliada.
+- **Clique vs controles**: o clique abre a edição por um filtro no wrapper do
+  pedal (`input, select, textarea, foreignObject, [role=slider], [role=button],
+  [data-control]` ficam de fora) — knob/textbox/footswitch preservam a função.
+  Com a trava ⇄ ATIVA o clique pertence ao drag. Teclado: Enter/Espaço no grupo
+  do pedal abre (o handler do Espaço para a propagação para não tocar o drum).
+- **Ampliação sem duplicar o pedal**: o MESMO `Pedal` dentro de um wrapper com
+  `transform: scale(1.25)` (o wrapper tem o tamanho×1.25 para o layout) —
+  enquadramento na faixa do §3.2 (knob 64 → 80px) e zero fork do componente.
+  Os handlers são os mesmos do palco: o estado é único (ajuste no modal aparece
+  no board na hora).
+- **Fixture do Playwright**: teste que usa `page` precisa do fixture
+  (`async ({ page }) =>`) — sem ele o erro é `ReferenceError: page is not
+  defined` em runtime, não no typecheck.
+
+### PR empilhado não acende o CI sozinho (02/10 — PRs #55/#56)
+
+- O `ci.yml` dispara `pull_request` só com base em `develop`, `main` ou
+  `release/**` (os tipos válidos de alvo). Um PR com base em OUTRA BRANCH
+  (empilhado) fica sem checks — a validação tem de vir do
+  `workflow_dispatch --ref <branch>` (CHANGED=ALL; o run 37021286106 provou
+  18/18 no #56).
+- **O GitHub NÃO re-aponta PR empilhado quando a base é deletada — ele FECHA o
+  PR** (o `--delete-branch` do merge de baixo matou o #56 junto: o PR virou
+  `CLOSED` e o status `DIRTY`). O caminho certo depois do merge de baixo: `git rebase --onto
+  develop <tip-da-base-antiga>`, `push --force-with-lease` e `gh pr reopen` +
+  `gh pr edit --base develop` — o diff volta a mostrar SÓ a fatia de cima
+  (aqui: 10 arquivos/365 linhas, sem nada do #55).
+- **Empilhar continua válido para dependência real** (o modal usa
+  `general.engineerMode`, da fatia anterior): branch nova a partir da branch
+  do PR de baixo, PR com `--base <branch-de-baixo>`; nada de reescrever as
+  duas fatias no mesmo branch (o #55 continuou com o diff limpo).

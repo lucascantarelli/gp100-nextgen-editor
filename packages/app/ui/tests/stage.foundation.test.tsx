@@ -18,6 +18,7 @@ import { Pedalboard } from "../src/components/Pedalboard";
 import { Pedal } from "../src/components/Pedal";
 import { Knob } from "../src/components/Knob";
 import { PEDAL_FAMILIES_READY, Stage } from "../src/components/Stage";
+import { MODAL_SCALE, PedalModal } from "../src/components/PedalModal";
 import { loadTuner } from "../src/components/TunerPanel";
 import { modelFor } from "../src/artifacts/fxModels";
 import { CHAIN_FAMILIES } from "../src/ipc/types";
@@ -406,6 +407,7 @@ describe("Stage — palco real da Fase 2 (1 efeito por vez)", () => {
     onToggle: noopSlot,
     onKnobChange: noopSlot,
     onKnobReset: noopSlot,
+    onEdit: noopSlot,
   };
 
   it("família validada (PRE) vira pedal REAL; as outras 8 posições seguem placeholders", () => {
@@ -452,6 +454,44 @@ describe("Stage — palco real da Fase 2 (1 efeito por vez)", () => {
     host.remove();
   });
 
+  it("clique no corpo do pedal sobe onEdit (abre a edição); clique no knob NÃO", () => {
+    const onEdit = vi.fn();
+    const { root, host } = mount(<Stage board={BOARD} {...stageProps} onEdit={onEdit} />);
+    // knob/controle é filtrado — o clique pertence ao ajuste, não à abertura
+    const knob = host.querySelector('[aria-label="Slot 1: PRE"] svg[role="slider"]')!;
+    act(() => knob.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    expect(onEdit).not.toHaveBeenCalled();
+
+    // corpo do pedal (svg do grupo) abre com o slot certo
+    const pedal = host.querySelector('[aria-label="Slot 1: PRE"] svg[role="group"]')!;
+    act(() => pedal.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    expect(onEdit).toHaveBeenCalledTimes(1);
+    expect(onEdit.mock.calls[0][0]).toMatchObject({ slot: 0, family: "PRE" });
+
+    // teclado: Enter no grupo do pedal também abre (R7 — acessível sem mouse)
+    act(() =>
+      host
+        .querySelector('[aria-label="Slot 1: PRE"]')!
+        .dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true })),
+    );
+    expect(onEdit).toHaveBeenCalledTimes(2);
+    act(() => root.unmount());
+    host.remove();
+  });
+
+  it("com a trava ATIVA o clique não abre a edição (o clique pertence ao drag)", () => {
+    const onEdit = vi.fn();
+    const { root, host } = mount(<Stage board={BOARD} {...stageProps} arrangeMode onEdit={onEdit} />);
+    act(() =>
+      host
+        .querySelector('[aria-label="Slot 1: PRE"] svg[role="group"]')!
+        .dispatchEvent(new MouseEvent("click", { bubbles: true })),
+    );
+    expect(onEdit).not.toHaveBeenCalled();
+    act(() => root.unmount());
+    host.remove();
+  });
+
   it("modo engenheiro: tooltip com addr/code/ctrl; desligado fica o texto simples", () => {
     // desligado (default): tooltip de uso, SEM endereço e SEM vocabulário interno
     const off = mount(<Stage board={BOARD} {...stageProps} />);
@@ -483,6 +523,60 @@ describe("Stage — palco real da Fase 2 (1 efeito por vez)", () => {
       slot(5, "CAB").dispatchEvent(new Event("drop", { bubbles: true }));
     });
     expect(slot(1, "PRE").querySelector('svg[role="group"]')).toBeTruthy();
+    act(() => root.unmount());
+    host.remove();
+  });
+});
+
+describe("PedalModal — edição ampliada do pedal (U-3)", () => {
+  it("amplia o pedal (1.25×) com os mesmos controles; ✕, Esc e backdrop fecham", () => {
+    const onClose = vi.fn();
+    const slot = mkSlot(0, "PRE");
+    const { root, host } = mount(
+      <PedalModal
+        slot={slot}
+        onToggle={noopSlot}
+        onKnobChange={noopSlot}
+        onKnobReset={noopSlot}
+        onClose={onClose}
+      />,
+    );
+    const dlg = host.querySelector('[role="dialog"]')!;
+    expect(dlg).toBeTruthy();
+    expect(dlg.getAttribute("aria-label")).toBe("Edição do pedal PRE-0");
+    // pedal AMPLIADO: transform scale(1.25) (knob 64 → 80px) e controles vivos
+    const scaled = Array.from(dlg.querySelectorAll<HTMLDivElement>("div")).find(
+      (d) => d.style.transform !== "",
+    );
+    expect(scaled?.style.transform).toBe(`scale(${MODAL_SCALE})`);
+    expect(dlg.querySelectorAll('svg[role="slider"], svg[role="button"]').length).toBe(3);
+
+    // três saídas: ✕, Esc e clique no backdrop
+    act(() =>
+      dlg.querySelector<HTMLButtonElement>("button")!.dispatchEvent(new MouseEvent("click", { bubbles: true })),
+    );
+    expect(onClose).toHaveBeenCalledTimes(1);
+    act(() => dlg.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })));
+    expect(onClose).toHaveBeenCalledTimes(2);
+    act(() =>
+      dlg.parentElement!.dispatchEvent(new MouseEvent("mousedown", { bubbles: true })),
+    );
+    expect(onClose).toHaveBeenCalledTimes(3);
+    act(() => root.unmount());
+    host.remove();
+  });
+
+  it("slot null não renderiza nada (fechado)", () => {
+    const { root, host } = mount(
+      <PedalModal
+        slot={null}
+        onToggle={noopSlot}
+        onKnobChange={noopSlot}
+        onKnobReset={noopSlot}
+        onClose={noop}
+      />,
+    );
+    expect(host.querySelector('[role="dialog"]')).toBeNull();
     act(() => root.unmount());
     host.remove();
   });

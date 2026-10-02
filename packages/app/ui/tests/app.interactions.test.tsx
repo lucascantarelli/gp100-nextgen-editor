@@ -618,6 +618,35 @@ describe("Palco — COMP (U-3: 1 efeito por vez)", () => {
     teardown(root, host);
   });
 
+  it("clique no COMP abre a edição ampliada; knob de lá ajusta o MESMO estado e Esc fecha", async () => {
+    const { root, host } = mount();
+    await settle();
+
+    const pedal = host.querySelector('[aria-label="Slot 1: PRE"] svg[role="group"]')!;
+    act(() => pedal.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    await settle();
+    const dlg = host.querySelector('[role="dialog"]')!;
+    expect(dlg, "modal de edição aberto").toBeTruthy();
+    expect(dlg.getAttribute("aria-label")).toContain("COMP");
+
+    // knob AMPLIADO: mesmo handler → SET no device e valor volta ao palco
+    const knob = dlg.querySelector('svg[role="slider"][aria-label="Sustain"]')!;
+    expect(knob.getAttribute("aria-valuenow")).toBe("20");
+    act(() => knob.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true })));
+    await settle();
+    expect(vi.mocked(deviceSetParam)).toHaveBeenLastCalledWith(1, 0, 0, 21);
+    const stageBox = host.querySelector<HTMLInputElement>(
+      '[aria-label="Slot 1: PRE"] input[aria-label="Valor (Enter para editar)"]',
+    );
+    expect(stageBox!.value, "estado único: o palco já mostra 21").toBe("21");
+
+    // Esc (global do App, precedência do painel do topo) fecha
+    act(() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" })));
+    await settle();
+    expect(host.querySelector('[role="dialog"]')).toBeNull();
+    teardown(root, host);
+  });
+
   it("footswitch alterna LOCAL (LED verde → vermelho), sem comando de toggle no protocolo", async () => {
     const { root, host } = mount();
     await settle();
