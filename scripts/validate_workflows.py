@@ -131,7 +131,7 @@ def main() -> int:
         FAILURES.append("_validate: precisa de on.workflow_call (reusable)")
     val_job_defs = val.get("jobs") or {}
     val_jobs = set(val_job_defs.keys())
-    for job in ("plan", "gate", "spec", "rust", "ui-rust-linux", "front", "e2e", "e2e-visual", "e2e-tauri"):
+    for job in ("plan", "gate", "spec", "rust", "ui-rust-linux", "front", "front-gate", "e2e", "e2e-visual", "e2e-tauri"):
         if job not in val_jobs:
             FAILURES.append(f"_validate: job '{job}' ausente")
 
@@ -249,15 +249,20 @@ def main() -> int:
     if 'o == "windows-latest"' not in plan_runs:
         FAILURES.append("_validate: ui-rust deve ficar em 2 OS (Windows no host + Linux no container)")
 
-    # ── gate do front em UM OS (issue #43) ──
-    # A matriz carrega `full` por OS e o job repassa ao build-front. Rodar
-    # lint+coverage nos 3 OS não comprava nada (vitest/jsdom e eslint são
-    # plataforma-independentes); o build/typecheck segue nos 3.
+    # ── gate do front em JOB PRÓPRIO (issue #50; antes: OS único do #43) ──
+    # O gate (lint + coverage) roda em job próprio, EM PARALELO com a matriz
+    # de build 3-OS: antes ele ficava atrás do Setup Node da leg ubuntu e
+    # serializava o caminho crítico. Plataforma-independente (eslint/jsdom) —
+    # 1 OS basta (racional do #43), escolhido pelo plan (gate-os).
+    gate_def = val_job_defs.get("front-gate") or {}
+    gate_runs = " ".join(str(s.get("run") or "") for s in (gate_def.get("steps") or []))
+    if "pnpm lint" not in gate_runs or "test:coverage" not in gate_runs:
+        FAILURES.append("_validate: job front-gate precisa rodar lint + test:coverage (gate do #50)")
     front_def = val_job_defs.get("front") or {}
-    if not any("matrix.full" in str(step.get("with") or "") for step in front_def.get("steps") or []):
-        FAILURES.append("_validate: job front precisa repassar `full: ${{ matrix.full }}` ao build-front")
-    if '"full": o == gate_os' not in plan_runs:
-        FAILURES.append("_validate: a matriz do front precisa marcar o OS do gate (`full` por OS — issue #43)")
+    if any("full" in str(step.get("with") or "") for step in front_def.get("steps") or []):
+        FAILURES.append("_validate: job front não deve repassar `full` — o gate saiu para o front-gate (#50)")
+    if "gate-os=" not in plan_runs:
+        FAILURES.append("_validate: plano precisa emitir gate-os (OS do gate do front — #50)")
     if "shared-key" not in val_raw:
         FAILURES.append("_validate: cache do cargo precisa ser por workspace (shared-key)")
     if "add-job-id-key" not in raw(".github/actions/setup-rust/action.yml"):
@@ -267,7 +272,7 @@ def main() -> int:
     composite_contracts = {
         ".github/actions/setup-rust/action.yml": ("shared-key", "cache-workspace-crates", "GP100_CI_IMAGE"),
         ".github/actions/setup-node-pnpm/action.yml": ("GP100_CI_IMAGE", "npm_config_store_dir"),
-        ".github/actions/build-front/action.yml": ("full",),
+        ".github/actions/build-front/action.yml": ("pnpm build",),
         ".github/actions/playwright-setup/action.yml": ("actions/cache", "ms-playwright", "--with-deps"),
     }
     for path, words in composite_contracts.items():

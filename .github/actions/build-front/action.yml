@@ -1,29 +1,12 @@
 name: build-front
 description: >
-  Front packages/app/ui: deps congeladas + lint + vitest + build (tsc + vite).
-  Pré-requisito: setup-node-pnpm já rodou. `full: false` roda só o BUILD — para
-  os jobs que precisam do ui/dist alimentando o shell (ui-rust/smoke), onde
-  lint e gate de coverage são o trabalho dos jobs `front` (matrix 3-OS).
-inputs:
-  full:
-    description: 'true = lint + testes com gate de coverage + build; false = só o build'
-    required: false
-    default: "true"
+  Front packages/app/ui: build (tsc + vite). Pré-requisito: setup-node-pnpm já
+  rodou (deps congeladas). Nasce daqui o ui/dist que alimenta o shell
+  (ui-rust/smoke). Lint e coverage moram no job `front-gate` (issue #50) —
+  rodar o gate também aqui só duplicaria custo.
 runs:
   using: composite
   steps:
-    - name: Lint (R1 no front — invoke só em ipc/)
-      if: inputs.full != 'false'
-      shell: bash
-      working-directory: packages/app/ui
-      run: pnpm lint
-
-    - name: Testes + GATE de coverage (85% lines/fns/stmts — vite.config.ts)
-      if: inputs.full != 'false'
-      shell: bash
-      working-directory: packages/app/ui
-      run: pnpm test:coverage
-
     - name: Build (tsc + vite)
       shell: bash
       working-directory: packages/app/ui
