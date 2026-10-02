@@ -102,6 +102,10 @@ jobs:
           echo "encontradas: ${COUNT:-0} → $(echo "$NUMBERS" | tr '\n' ' ')"
 
       - name: Fechar issues vinculadas
+        # `id` EXPLÍCITO: o Resumo abaixo lê steps.close-linked.outputs.closed/
+        # skipped — sem o id esses valores saíam VAZIOS em toda run (warning
+        # latente do actionlint, corrigido na #51).
+        id: close-linked
         if: ${{ steps.linked.outputs.numbers != '' }}
         env:
           NUMBERS: ${{ steps.linked.outputs.numbers }}
@@ -149,11 +153,14 @@ jobs:
           NUMBERS: ${{ steps.linked.outputs.numbers }}
           CLOSED: ${{ steps.close-linked.outputs.closed }}
           SKIPPED: ${{ steps.close-linked.outputs.skipped }}
+          # Título do PR = entrada NÃO confiável: SEMPRE por env, nunca
+          # ${{ }} inline no run (injeção de comando — #51).
+          PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
           {
             echo "### 🔗 Fechamento de issues (merge em develop)"
             echo ""
-            echo "PR **#$PR — ${{ github.event.pull_request.title }}** (merge: \`develop\`)"
+            echo "PR **#$PR — $PR_TITLE** (merge: \`develop\`)"
             echo ""
             if [ -z "$NUMBERS" ]; then
               echo "> Nenhuma palavra-chave de fechamento no corpo do PR."
@@ -168,5 +175,7 @@ jobs:
                   echo "| #$n — $titulo | $icone ($detalhe) |"
                 done < /tmp/issues.tsv
               fi
+              echo ""
+              echo "**${CLOSED:-0} fechada(s) · ${SKIPPED:-0} pulada(s).**"
             fi
           } >> "$GITHUB_STEP_SUMMARY"
