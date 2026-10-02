@@ -41,6 +41,12 @@ on:
 permissions:
   contents: read # validação não escreve no repo
   issues: write # close-linked fecha a issue + comentário de rastreabilidade
+  # O reusable _validate.yml PEDE packages: read (pull da imagem ci-linux).
+  # Callee não pode pedir escopo que o caller não concede — sem esta linha o
+  # GitHub recusa o LOAD do workflow inteiro (startup_failure, mensagem só na
+  # annotation da run: "requesting 'packages: read', but is only allowed
+  # 'packages: none'"). Contrato travado em scripts/validate_workflows.py.
+  packages: read
 
 concurrency:
   # Por PR/ref: push intermediário cancela a validação anterior (padrão de

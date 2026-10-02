@@ -516,6 +516,13 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
   existe numa branch de trabalho → 404 ("not found on the default branch"). A
   1ª publicação da imagem precisou de um gatilho de push TEMPORÁRIO na própria
   branch, removido no mesmo PR. Dispatch manual depois do merge: ok.
+- **LIÇÃO #41 (callee × caller: startup_failure no LOAD)**: declarar
+  `permissions: packages: read` no reusable `_validate.yml` derrubou TODO o run
+  antes de qualquer job — "The workflow is requesting 'packages: read', but is
+  only allowed 'packages: none'" (o caller ci.yml/release.yml não concedia).
+  A mensagem NÃO aparece em log (a run nem tem logs) e o actionlint não pega:
+  só na aba **Annotations** da run. Callee pede, caller CONCEDE. Contrato
+  travado no `validate_workflows.py` (lição de leitura obrigatória).
 - **LIÇÃO #41 (cache do cargo por WORKSPACE)**: o input `key` do
   Swatinem/rust-cache apenas SOMA à chave automática POR JOB
   (`add-job-id-key` default true) — nenhum job compartilhava cache. Compartilhar

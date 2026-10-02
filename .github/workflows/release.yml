@@ -48,6 +48,7 @@ on:
 
 permissions:
   contents: write # branches/tags/manifests + GitHub Release
+  packages: read # gate chama o reusable _validate.yml (imagem ci-linux)
 
 concurrency:
   group: release-${{ github.ref }}

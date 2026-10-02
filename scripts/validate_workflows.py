@@ -273,6 +273,19 @@ def main() -> int:
     if "shared-key" not in raw(".github/workflows/_publish.yml"):
         FAILURES.append("_publish: setup-rust precisa de shared-key (cache por workspace)")
 
+    # ── permissão do CALLEE × CALLER (lição #41: startup_failure no LOAD) ──
+    # O reusable declara o que precisa; o caller tem que CONCEDER. Se o callee
+    # pede packages e o caller não dá, o GitHub recusa o workflow inteiro antes
+    # de rodar qualquer job (mensagem só na annotation da run).
+    if (val.get("permissions") or {}).get("packages"):
+        for caller_path in (".github/workflows/ci.yml", ".github/workflows/release.yml"):
+            caller = docs.get(caller_path) or {}
+            if not (caller.get("permissions") or {}).get("packages"):
+                FAILURES.append(
+                    f"{caller_path}: precisa conceder packages: read (o _validate.yml pede "
+                    f"imagem de container — sem o grant o run morre no LOAD)"
+                )
+
     # ── relatório ──
     PREFIX_TO_FILE = {
         "ci": ".github/workflows/ci.yml",
