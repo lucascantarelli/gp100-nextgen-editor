@@ -1,12 +1,25 @@
 name: playwright-setup
 description: >
   Chromium do Playwright + deps de sistema (Linux). Steps repetidos pelos
-  jobs e2e e e2e-visual do _validate.yml — um lugar por regra. Pré-requisito:
-  setup-node-pnpm já rodou (pnpm disponível).
+  jobs e2e e e2e-visual do _validate.yml — um lugar por regra. O browser fica
+  em ~/.cache/ms-playwright e é cacheado pela VERSÃO (hash do pnpm-lock.yaml):
+  no hit, o install só confere o que já está no runner. Esta é a alavanca
+  destes jobs — o pull da imagem de container custaria mais (lição CI-11).
+  Pré-requisito: setup-node-pnpm já rodou (pnpm disponível).
 runs:
   using: composite
   steps:
+    - name: Cache dos browsers (chave = versão do lockfile)
+      # v6 = geração node24 (a @v4 mirava Node 20 e o runner avisava deprecação).
+      uses: actions/cache@v6
+      with:
+        path: ~/.cache/ms-playwright
+        key: playwright-${{ runner.os }}-${{ hashFiles('packages/app/ui/pnpm-lock.yaml') }}
+        restore-keys: playwright-${{ runner.os }}-
+
     - name: Chromium do Playwright (+ deps de sistema)
       shell: bash
       working-directory: packages/app/ui
+      # --with-deps segue: as libs de sistema NÃO estão no cache de browser e
+      # o apt é idempotente (~10s). O download do browser é o que o cache corta.
       run: pnpm exec playwright install --with-deps chromium

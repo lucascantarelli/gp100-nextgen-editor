@@ -39,6 +39,10 @@ vale o que estiver em `docs/CONTRIBUTING.md` + `.github/workflows/`.
   integração.
 - Tags `v*` disparam o **release** (publish CLI+instalador); a cadeia
   rc→promote é manual (`release.yml`, input `action`).
+- A **imagem de CI** (`container.yml`, ghcr.io) é artefato versionado: mudou o
+  Dockerfile/lockfile em `develop`/`main` → a imagem `:1` é republicada; PR que
+  mexe no Dockerfile só BUILDAA (sem push). Jobs de container referenciam `:1`
+  (nunca `sha-<curto>`); bump de tag é manual e só quando incompatível.
 
 ## Ciclo operacional (agente)
 

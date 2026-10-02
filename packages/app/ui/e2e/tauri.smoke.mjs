@@ -46,6 +46,24 @@ function resolveAppBinary() {
   return found;
 }
 
+/** Resolve o binário do tauri-driver: env TAURI_DRIVER vence; senão o PATH
+ *  (imagem ci-linux instala em /usr/local/bin); senão ~/.cargo/bin, que é onde
+ *  o `cargo install` põe no runner hospedado e no host local.
+ *  Lição #41: dentro do container o HOME é /github/home — resolver só por
+ *  $HOME dava `spawn /github/home/.cargo/bin/tauri-driver ENOENT` mesmo com o
+ *  driver instalado. */
+function resolveTauriDriver() {
+  const explicit = process.env.TAURI_DRIVER;
+  if (explicit && existsSync(explicit)) return explicit;
+  for (const dir of (process.env.PATH || "").split(path.delimiter)) {
+    for (const name of ["tauri-driver", "tauri-driver.exe"]) {
+      const candidate = path.join(dir, name);
+      if (existsSync(candidate)) return candidate;
+    }
+  }
+  return path.resolve(os.homedir(), ".cargo", "bin", "tauri-driver");
+}
+
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /** Espera o tauri-driver aceitar conexões na porta. */
@@ -69,8 +87,11 @@ async function waitForPort(port, tries = 40) {
 const application = resolveAppBinary();
 console.log(`▸ shell: ${application}`);
 
-// tauri-driver (wrapper) — o binário vem de ~/.cargo/bin (cargo install)
-const tauriDriver = spawn(path.resolve(os.homedir(), ".cargo", "bin", "tauri-driver"), [], {
+// tauri-driver (wrapper) — PATH primeiro (imagem de CI), ~/.cargo/bin como
+// fallback (cargo install do runner hospedado / host local).
+const driverBin = resolveTauriDriver();
+console.log(`▸ driver: ${driverBin}`);
+const tauriDriver = spawn(driverBin, [], {
   stdio: ["ignore", "inherit", "inherit"],
 });
 let exiting = false;
@@ -88,7 +109,22 @@ try {
   const capabilities = new Capabilities();
   capabilities.set("tauri:options", { application });
   capabilities.setBrowserName("wry");
-  driver = await new Builder().withCapabilities(capabilities).usingServer("http://127.0.0.1:4444/").build();
+
+  // RACE do CI (container ci-linux, run 36953492697): a porta do tauri-driver
+  // abre ANTES do WebKitWebDriver NATIVO responder — a 1ª criação de sessão
+  // morria com `Connection refused (os error 111)` ("Error serving connection"
+  // no proxy). Retenta por até ~60s: o native driver leva alguns segundos no
+  // software rendering. Esperar só a porta 4444 não basta.
+  const SESSION_DEADLINE = Date.now() + 60_000;
+  for (let tentativa = 1; !driver; tentativa++) {
+    try {
+      driver = await new Builder().withCapabilities(capabilities).usingServer("http://127.0.0.1:4444/").build();
+    } catch (err) {
+      if (Date.now() > SESSION_DEADLINE) throw err;
+      console.log(`… sessão ainda não acordou (tentativa ${tentativa}: ${err.message ?? err}) — retry`);
+      await sleep(3000);
+    }
+  }
 
   // 1. casca bootou no webview: banner com a identidade do app.
   // 60s: o webview do CI roda em SOFTWARE RENDERING (xvfb + DRI3 indisponível)

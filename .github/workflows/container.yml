@@ -1,0 +1,120 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# CONTAINER — publica a imagem de CI Linux no ghcr.io (issue #41).
+#
+# FUNÇÃO ÚNICA: manter viva a imagem `ci-linux` que os jobs de container do
+# _validate.yml consomem. O caminho quente do CI deixa de pagar apt-get do
+# WebKitGTK/GTK, `cargo install tauri-driver` e rustup por run — tudo isso vira
+# camada da imagem.
+#
+# TAGS:
+#   :1          estável, é a que os jobs referenciam (bump manual p/ :2 quando
+#               a mudança for incompatível — ex.: renomear ferramenta)
+#   :sha-<curto> imutável, auditoria de "qual Dockerfile gerou a imagem em uso"
+#
+# DISPAROS:
+#   - push em develop/main        → publica (paths: Dockerfile/pnpm-lock)
+#   - PR com mudança no Dockerfile → build SEM push (valida que ainda compila)
+#   - workflow_dispatch            → rebuild manual (ex.: base Ubuntu nova)
+#
+# CICLO DO LOCKFILE: `packages/app/ui/pnpm-lock.yaml` está nos paths para o
+# store do pnpm nascer aquecido no commit certo — lockfile novo = imagem nova.
+#
+# BOOTSTRAP (1ª publicação): dispare com `gh workflow run container.yml
+# --ref <branch>` (ou API `.../actions/workflows/container.yml/dispatches`) e
+# espere a run verde ANTES de abrir/atualizar o PR que usa a imagem.
+#
+# VISIBILIDADE: repositório público → o pacote é público (pull anônimo nos
+# jobs, sem credentials). `gh api -X PATCH user/packages/container/<nome>
+# -f visibility=public` se algum dia virar privado.
+# ═══════════════════════════════════════════════════════════════════════════
+
+name: container
+
+on:
+  push:
+    # Publica a imagem (lição #41: o workflow_dispatch só aceita workflows que
+    # JÁ existem na branch default — para a 1ª publicação use um gatilho de push
+    # temporário na branch de trabalho e remova-o no mesmo PR, como foi feito
+    # na introdução desta imagem).
+    branches: [develop, main]
+    paths:
+      - ".github/docker/**"
+      - ".github/workflows/container.yml"
+      - "packages/app/ui/pnpm-lock.yaml"
+      - "packages/app/ui/package.json"
+  pull_request:
+    # Só valida o build (sem push): um Dockerfile quebrado não chega na develop.
+    paths:
+      - ".github/docker/**"
+      - ".github/workflows/container.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read # contexto/repo
+  packages: write # push no ghcr.io
+
+concurrency:
+  # Uma build por ref; push novo cancela a anterior (imagem é substituível).
+  group: container-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  IMAGE: ghcr.io/${{ github.repository }}/ci-linux
+
+jobs:
+  build:
+    name: build — ci-linux (ghcr.io)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v7
+
+      # Actions do Docker na geração node24 (as @v3/@v5/@v6 miravam Node 20 e o
+      # runner avisava "Node.js 20 is deprecated... forced to run on Node.js 24").
+      - name: Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Login no GHCR (só quando publica)
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Tags (:1 estável + sha-<curto> auditável)
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.IMAGE }}
+          tags: |
+            type=raw,value=1
+            type=sha,format=short,prefix=sha-
+
+      - name: Build da imagem (push só fora de PR)
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: .github/docker/ci-linux/Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # Cache de camadas no próprio cache do Actions (gha): rebuild em
+          # ~1–2 min quando só o lockfile/Node mudou.
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Resumo (imagem + tags)
+        if: github.event_name != 'pull_request'
+        env:
+          TAGS: ${{ steps.meta.outputs.tags }}
+        run: |
+          {
+            echo "### 🐳 Imagem de CI publicada"
+            echo ""
+            echo '```'
+            echo "$TAGS"
+            echo '```'
+            echo ""
+            echo "Os jobs de container do \`_validate.yml\` referenciam \`:1\`."
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -2,6 +2,7 @@
 
 [![ci](https://github.com/lucascantarelli/gp100-nextgen-editor/actions/workflows/ci.yml/badge.svg)](https://github.com/lucascantarelli/gp100-nextgen-editor/actions/workflows/ci.yml)
 [![release](https://github.com/lucascantarelli/gp100-nextgen-editor/actions/workflows/release.yml/badge.svg)](https://github.com/lucascantarelli/gp100-nextgen-editor/actions/workflows/release.yml)
+[![container](https://github.com/lucascantarelli/gp100-nextgen-editor/actions/workflows/container.yml/badge.svg)](https://github.com/lucascantarelli/gp100-nextgen-editor/actions/workflows/container.yml)
 
 > 📇 **Mapa da documentação:** `docs/INDEX.md` — rotas por objetivo, fonte de
 > verdade por assunto e inventário anotado. Comece por lá se está lost.

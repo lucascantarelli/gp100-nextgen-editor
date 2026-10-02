@@ -1,0 +1,12 @@
+# Contexto do build da imagem de CI (.github/docker/ci-linux/Dockerfile):
+# só o lockfile/package.json do front entram no COPY — o resto do repo não é
+# contexto útil e só faria o upload de contexto crescer.
+.git
+.github
+analysis
+docs
+packages/app/ui/node_modules
+packages/app/ui/dist
+packages/app/ui/e2e
+target
+**/target
