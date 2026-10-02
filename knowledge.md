@@ -744,3 +744,23 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
 - **Lição Q-8 travada por teste**: o tooltip do modo engenheiro NÃO pode citar a
   doc interna (`§13.11`) — há asserts negativos no unit (`stage.foundation`) e no
   e2e (R7), então o vazamento não volta sem quebrar a suíte.
+
+### Modal de edição do pedal (02/10 — fatia 3 da #19)
+
+- **O estado do modal mora no App, não no Stage**: assim os atalhos globais
+  ficam inertes enquanto ele está aberto (mesma guarda do Settings) e o Esc tem
+  precedência de painel do TOPO (modal → settings → drum → pushes). Trocar de
+  preset fecha a edição ampliada.
+- **Clique vs controles**: o clique abre a edição por um filtro no wrapper do
+  pedal (`input, select, textarea, foreignObject, [role=slider], [role=button],
+  [data-control]` ficam de fora) — knob/textbox/footswitch preservam a função.
+  Com a trava ⇄ ATIVA o clique pertence ao drag. Teclado: Enter/Espaço no grupo
+  do pedal abre (o handler do Espaço para a propagação para não tocar o drum).
+- **Ampliação sem duplicar o pedal**: o MESMO `Pedal` dentro de um wrapper com
+  `transform: scale(1.25)` (o wrapper tem o tamanho×1.25 para o layout) —
+  enquadramento na faixa do §3.2 (knob 64 → 80px) e zero fork do componente.
+  Os handlers são os mesmos do palco: o estado é único (ajuste no modal aparece
+  no board na hora).
+- **Fixture do Playwright**: teste que usa `page` precisa do fixture
+  (`async ({ page }) =>`) — sem ele o erro é `ReferenceError: page is not
+  defined` em runtime, não no typecheck.

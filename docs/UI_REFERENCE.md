@@ -129,9 +129,12 @@ completamente funcional"):** importar/gerar a lista REAL dos 99 presets de fábr
   efeitos de comp, apenas com esse efeito visível". *Fatia 1 (PR da #19):* o
   Stage renderiza só as famílias de `PEDAL_FAMILIES_READY` (PRE/COMP) e mantém
   os 8 lugares restantes como placeholders.
-- [ ] **Modal de edição do pedal** — clicar no pedal amplifica para edição dos
-  parâmetros (estilo painel grande do oficial). Board = visão geral; modal = edição.
-  *(pendente — fatia 2)*
+- [x] **Modal de edição do pedal** — clique (ou Enter) no corpo do pedal amplia
+  para edição dos parâmetros (estilo painel grande do oficial): **1.25×**
+  (knob 64 → 80px), mesmos handlers (estado ÚNICO com o palco), fecha com
+  **Esc / ✕ / clique fora** e o transporte global fica inerte enquanto aberto.
+  Com a trava ⇄ ativa o clique pertence ao drag (não amplia). Board = visão
+  geral; modal = edição.
 - [x] **Nome do patch fora do board** — display LED (estilo hardware) no cabeçalho
   do palco (e na navbar); o board é só a cadeia.
 - [x] **Toggle/LED** — LED VERDE = ON, VERMELHO = OFF. *Fatia 1:* footswitch

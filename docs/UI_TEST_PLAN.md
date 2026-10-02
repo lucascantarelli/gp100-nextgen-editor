@@ -246,7 +246,13 @@ oficial Tauri v2 (webkit2gtk-driver + xvfb + WEBKIT_DISABLE_DMABUF_RENDERER).
 > **Entregue (fatia 2):** liga/desliga do **modo engenheiro** na aba General do
 > Settings (persistido local) — o tooltip do knob passa a mostrar
 > `addr/code/ctrl`, sem a referência interna `§13.11` (passo 5 do R7).
-> Ainda NÃO: modal de edição (passo 9).
+>
+> **Entregue (fatia 3):** **modal de edição** — clique/Enter no corpo do pedal
+> (com a trava ⇄ em repouso) amplia 1.25× (knob 80px); Esc/✕/clique fora fecham
+> e o valor ajustado no modal aparece no palco na hora (estado único). Rodada do
+> COMP completa no código (passos 1–12 do R7 cobertos por unit/e2e): falta a
+> **validação manual do owner** (R7 em todas as 9 posições) antes de partir
+> para o DST.
 
 ### R7. Um pedal (ex.: COMP) em cada posição do board
 1. O efeito aparece no slot da vez; os 8 restantes continuam placeholders.
