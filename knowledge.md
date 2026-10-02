@@ -764,3 +764,21 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
 - **Fixture do Playwright**: teste que usa `page` precisa do fixture
   (`async ({ page }) =>`) — sem ele o erro é `ReferenceError: page is not
   defined` em runtime, não no typecheck.
+
+### PR empilhado não acende o CI sozinho (02/10 — PRs #55/#56)
+
+- O `ci.yml` dispara `pull_request` só com base em `develop`, `main` ou
+  `release/**` (os tipos válidos de alvo). Um PR com base em OUTRA BRANCH
+  (empilhado) fica sem checks — a validação tem de vir do
+  `workflow_dispatch --ref <branch>` (CHANGED=ALL; o run 37021286106 provou
+  18/18 no #56).
+- **O GitHub NÃO re-aponta PR empilhado quando a base é deletada — ele FECHA o
+  PR** (o `--delete-branch` do merge de baixo matou o #56 junto: o PR virou
+  `CLOSED` e o status `DIRTY`). O caminho certo depois do merge de baixo: `git rebase --onto
+  develop <tip-da-base-antiga>`, `push --force-with-lease` e `gh pr reopen` +
+  `gh pr edit --base develop` — o diff volta a mostrar SÓ a fatia de cima
+  (aqui: 10 arquivos/365 linhas, sem nada do #55).
+- **Empilhar continua válido para dependência real** (o modal usa
+  `general.engineerMode`, da fatia anterior): branch nova a partir da branch
+  do PR de baixo, PR com `--base <branch-de-baixo>`; nada de reescrever as
+  duas fatias no mesmo branch (o #55 continuou com o diff limpo).
