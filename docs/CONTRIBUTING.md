@@ -137,10 +137,11 @@ proprietário do device).
 Dentro do `_validate`: gate (fmt + conventional commits) · spec (se
 `analysis/` mudou) · matrizes Rust/front **filtradas por caminhos** ·
 e2e Playwright · e2e visual (baselines por plataforma) · smoke do shell
-Tauri real. O gate do front (lint + `vitest --coverage`) roda em **um** OS
-(ubuntu; no `ci-lite`, que só sobe Windows, o gate acompanha) — os outros
-validam build/typecheck (tsc + vite), que é a parte sensível à plataforma; o
-modo aparece no próprio nome do check (`· lint+coverage` / `· build`).
+Tauri real. O gate do front (lint + `vitest --coverage`) roda em **job
+próprio** (`app/ui — gate`), em **paralelo** com a matriz de build 3-OS — o
+Setup Node dele não serializa mais com a leg ubuntu (issue #50; no `ci-lite`,
+que só sobe Windows, o gate acompanha o Windows). Os demais checks são
+build/typecheck (tsc + vite), a parte sensível à plataforma.
 Docs-only não sobe Rust/front (jobs aparecem como skipped, sem
 custo). **Push em `feature/*`/`fix/*`/`chore/*` não roda CI** — a validação
 acontece no PR (econômico de propósito). O publish depende do `validate`
