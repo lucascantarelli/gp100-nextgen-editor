@@ -1,7 +1,13 @@
 /**
  * Smoke e2e do shell TAURI REAL (tauri-driver + WebKitWebDriver no Linux CI).
  * Prova que a casca sobe no WEBVIEW (não só no browser): binário gp100-ui
- * debug (frontendDist embutido, backend mock) → tauri-driver :4444 → Selenium.
+ * debug (backend mock) → tauri-driver :4444 → Selenium.
+ *
+ * ⚠️ BUILD DEBUG CARREGA O `devUrl` (http://localhost:5173) — o dist embutido
+ * só é usado em release. Por isso o job serve o dist de produção ali
+ * (`vite preview --port 5173`) antes deste script; sem isso o webview mostra
+ * "Could not connect to localhost: Connection refused" (causa raiz fechada na
+ * run 36943668915 pelo page source do diagnóstico deste script).
  *
  * Receita oficial (v2.tauri.app/develop/tests/webdriver): capabilities
  * `tauri:options: { application }` + `browserName: "wry"`; no CI roda sob
@@ -84,10 +90,15 @@ try {
   capabilities.setBrowserName("wry");
   driver = await new Builder().withCapabilities(capabilities).usingServer("http://127.0.0.1:4444/").build();
 
-  // 1. casca bootou no webview: banner com a identidade do app
-  await driver.wait(until.elementLocated(By.css('[role="banner"]')), 20_000);
+  // 1. casca bootou no webview: banner com a identidade do app.
+  // 60s: o webview do CI roda em SOFTWARE RENDERING (xvfb + DRI3 indisponível)
+  // e o primeiro paint pode passar de 20s (run 36937323423 estourou o antigo).
+  await driver.wait(until.elementLocated(By.css('[role="banner"]')), 60_000);
   const banner = await driver.findElement(By.css('[role="banner"]')).getText();
-  if (!banner.includes("GP-100 NextGen")) throw new Error(`banner inesperado: ${banner}`);
+  // A marca no DOM é `MSG.brand` = "GP-100" (o "NextGen Editor" é só o TÍTULO
+  // da janela). O assert antigo procurava "GP-100 NextGen" NO BANNER — nunca
+  // existiu ali, e o smoke ficou vermelho desde que nasceu (issue #39).
+  if (!banner.includes("GP-100")) throw new Error(`banner sem a marca (MSG.brand): ${banner}`);
 
   // 2. device mock conectado (o smoke não precisa de hardware)
   await driver.wait(until.elementLocated(By.css('[role="status"]')), 20_000);
@@ -110,6 +121,18 @@ try {
   console.log("✅ SMOKE TAURI: casca bootou no webview e renderizou a casca completa");
 } catch (err) {
   console.error("✗ smoke tauri falhou:", err.message ?? err);
+  // DIAGNÓSTICO (o smoke nunca esteve verde — job criado em 30/09):
+  // "página vazia" (front não carregou) ≠ "DOM sem banner" (app montou e
+  // falhou no meio) ≠ "webview nem pintou". O page source separa os casos.
+  if (driver) {
+    try {
+      const src = await driver.getPageSource();
+      console.error(`—— page source (${String(src).length} chars, primeiros 2000) ——`);
+      console.error(String(src).slice(0, 2000));
+    } catch (e) {
+      console.error("(sem page source:", e.message ?? e, ")");
+    }
+  }
   process.exitCode = 1;
 } finally {
   exiting = true;

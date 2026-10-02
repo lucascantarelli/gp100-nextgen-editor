@@ -29,6 +29,20 @@ export function useBoot() {
   // refs do throttle: último frame agendado + beat pendente
   const raf = useRef<number | null>(null);
   const pending = useRef<BootProgress | null>(null);
+  // FIX (auditoria 01/10): a promise do deviceBoot pode resolver DEPOIS do
+  // unmount (teste que termina antes do boot acabar) — sem esta guarda o
+  // setState roda com o ambiente já destruído e o React estoura
+  // `ReferenceError: window is not defined` ao resolver a prioridade do
+  // update (vitest marcou como unhandled error e o job ui-rust do macOS
+  // caiu: run 36937323423). Em produção é a mesma regra: componente morto
+  // não recebe update.
+  const alive = useRef(true);
+  useEffect(() => {
+    alive.current = true;
+    return () => {
+      alive.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     let unlisten: (() => void) | undefined;
@@ -63,10 +77,12 @@ export function useBoot() {
     setProgress(0);
     deviceBoot()
       .then((report) => {
+        if (!alive.current) return; // promessa resolveu após o unmount
         setProgress(100);
         setState({ kind: "ready", data: report });
       })
       .catch((e: unknown) => {
+        if (!alive.current) return; // idem (evita update em componente morto)
         setProgress(null);
         setState({
           kind: "error",

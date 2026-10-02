@@ -189,7 +189,8 @@ export function TunerPanel({
       setDemoReading(null);
       return;
     }
-    if (typeof window.matchMedia !== "function") return; /* jsdom/teste */
+    /* ambiente pode estar destruído quando o efeito reexecuta (teste) */
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     engine.current ??= new TunerEngine(settings.refPitch);
     engine.current.setRefPitch(settings.refPitch);
