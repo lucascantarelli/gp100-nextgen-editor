@@ -176,6 +176,8 @@ export const MSG = {
   pushEmpty: "Nenhum push recebido ainda.",
   pushClear: "Limpar",
   pushListAria: "Log de pushes",
+  pushRepeats: "Repetições seguidas deste push",
+  pushRepeatMark: "×",
 
   /* ── settings ── */
   previewBadge: "prévia local",
@@ -281,4 +283,7 @@ export const MSG = {
 
   /* ── erros amigáveis (detalhe técnico vai pro console) ── */
   errOpenPreset: "Não foi possível abrir o preset — tente novamente.",
+  errSelectPreset: "O device não aceitou a troca de preset — a UI segue no preset atual.",
+  errRetry: "Tentar de novo",
+  errRetryAria: "Tentar novamente a operação que falhou",
 } as const;

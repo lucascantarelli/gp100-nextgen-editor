@@ -6,6 +6,17 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
 (local, sem depender de hardware para ~95% do trabalho). Resposta ao usuário SEMPRE em PT-BR.
 
 ## Estado vivo (atualizar aqui a cada marco)
+- 02/10 — **EDGE CASES DE IPC NÍVEL 2 ✅ (issue #20)**: falha/retry/backoff na
+  porta única do front (3 tentativas, backoff 120→240 ms com jitter ±30%, timeout
+  8 s POR tentativa; **boot fora da política**), gancho `gp100.debug.failDevice`
+  com modo TRANSITÓRIO (`op:n`) e `boot-mid` (disconnect no meio do boot) e log de
+  pushes validado/deduplicado (push inválido ignorado; repetição consecutiva vira
+  `×N`). A navegação de preset deixou de ser otimista (o `pp` só muda DEPOIS do
+  select confirmado — a UI nunca mostra preset que o device recusou).
+  Front: 111 unit ✅ (cobertura 88,4% stmts · 85,9% fns · 90,2% lines) e e2e 63 ✅
+  + 3 novos de `ipc.edge` (select transitório/permanente e mid-boot).
+  **Achado registrado: A-5 / issue #45** — 12 baselines win32 desatualizadas e o
+  visual SKIPado no CI (0 baselines `-linux` no repo); lição na seção de IPC abaixo.
 - 01/10 — **PAUSA PARA AUDITORIA + GESTÃO POR ISSUES**: revisão completa de ui/cli/app/docs/CI.
   Gates verdes: front tsc/lint/unit 88/coverage 87,6%/build ✅; Rust fmt/clippy -D/test ✅
   (corrigido 1 erro real de clippy — `needless_borrow` em `pedalboard.rs`); pytest 10/10 ✅.
@@ -571,3 +582,38 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
 - `zip` não existe no Git Bash do runner Windows: `7z a -tzip` fallback.
 - `gh issue create --label` falha se o label não existir: criar com --force
   antes (idempotente).
+
+---
+
+## Edge cases de IPC nível 2 (02/10 — issue #20)
+
+- **Estado otimista é mentira**: `stepPreset` trocava o `pp` e um
+  `useEffect([pp])` disparava o select — quando o select falhava, navbar/LED/
+  biblioteca exibiam um preset que o device NÃO aceitou. Fix: `pp`/nome só mudam
+  depois do `deviceBoard` confirmar (o `openPreset` faz select+leitura e é a
+  única fonte); falha vira banner com AÇÃO (retry) e a UI fica no preset REAL.
+- **Retry/backoff mora na PORTA ÚNICA do front** (`ipc/device.ts`): o backend já
+  tem timeout por TRANSAÇÃO (D6, ADR-6) e o actor serializa a fila (D8) — retry
+  no front é uma nova transação, observável em teste. Leitura sempre retentável;
+  `select`/`set_param` reenviam o MESMO destino/valor (fire-and-forget §13.11 é
+  idempotente). **Boot FORA da política** (2297 transações: retry automático
+  mascararia device morto) — a recuperação dele é o ⟳ do usuário.
+- **Gancho de falha com modo TRANSITÓRIO**: `gp100.debug.failDevice = "op:n"`
+  falha as n PRÓXIMAS chamadas e DECREMENTA a chave — o que sobra na chave vira o
+  contador de tentativas que o teste usa para PROVAR o backoff (`info:5` → sobra
+  `info:2` quando a política faz 3 tentativas). `"boot-mid"` emite progresso real
+  até ~40% e então rejeita: o cenário de cabo puxado com a UI aberta, sem mexer
+  no core (que não tem transporte que falha).
+- **Timeout é o que impede o spinner eterno**: cada tentativa corre contra
+  `COMMAND_TIMEOUT_MS` (8 s), provado no branch Tauri com `invoke` que nunca
+  resolve (fake timers: 3 timeouts + 2 backoffs).
+- **Log de push só serve se for legível**: validar (`F0…F7`, tamanho par, só hex)
+  e deduplicar repetição CONSECUTIVA na MESMA linha (`×N`) — o boot repete a
+  resposta de tabela dezenas de vezes (backlog D7). Push inválido devolve o MESMO
+  array (zero render). Parsing/dedupe é PURO (`ipc/push.ts`) — testável sem DOM.
+- **Achado A-5 (issue #45)**: `toHaveScreenshot` compara a baseline da PLATAFORMA
+  (`{arg}-{platform}`); o repo tem 54 `-win32` e **0 `-linux`** → no CI ubuntu tudo
+  SKIPA (o visual não é gate de nada) e o dev local acumula drift silencioso (12
+  diffs na árvore limpa). Antes de culpar o próprio PR: rode `pnpm e2e` e PROVE com
+  `git stash` (mesmo nº de pixels = pré-existente) antes de regenerar baseline
+  alheia — e regenere só o que o seu diff mudou (`-g "<nome>" --update-snapshots`).

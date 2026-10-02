@@ -69,8 +69,11 @@ test("failDevice=all: casca segue viva com todos os fluxos falhando", async () =
   // boot falha com alerta amigável…
   await shell.rescanButton.click();
   await expect(shell.alerts.filter({ hasText: "Falha no boot do device" })).toBeVisible();
-  // …e abrir preset falha com o banner amigável, sem crash
+  // …e abrir preset falha com o banner amigável, sem crash. Com "all" o
+  // PRIMEIRO command a falhar é o select — a mensagem é a do select (a do
+  // board só aparece quando o select passa; caso coberto no spec abaixo).
   await shell.library.optionAt(0).click();
-  await expect(shell.alerts.filter({ hasText: "Não foi possível abrir o preset" })).toBeVisible();
+  await expect(shell.alerts.filter({ hasText: "não aceitou a troca de preset" })).toBeVisible();
+  await expect(shell.alertRetry()).toBeVisible(); // ação de recuperação
   await expect(shell.banner).toBeVisible();
 });

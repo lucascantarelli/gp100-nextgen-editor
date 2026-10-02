@@ -123,10 +123,12 @@ export interface PresetLibrary {
 
 /** Entrada de log de pushes (evento `device://push` — log da UI). */
 export interface PushLogEntry {
-  /** Hex cru da mensagem (F0…F7). */
+  /** Hex cru da mensagem (F0…F7), já validado/normalizado pelo ipc/push. */
   hex: string;
-  /** Instante da chegada (Date.now() do front, só para exibição). */
+  /** Instante da chegada mais recente (Date.now() do front, só exibição). */
   at: number;
+  /** Repetições CONSECUTIVAS do mesmo hex (1 = linha única — boot repete muito). */
+  count: number;
 }
 
 /** Estado de tela canônico: idle → loading → ready | error. */

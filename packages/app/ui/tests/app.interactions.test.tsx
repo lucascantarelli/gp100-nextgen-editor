@@ -182,10 +182,43 @@ describe("Faixas de boot e erro", () => {
       o.textContent?.includes("Mist"),
     );
     act(() => mist!.dispatchEvent(new MouseEvent("click", { bubbles: true })));
-    await settle();
+    // o command falha 3× com backoff real (~360 ms) antes de virar banner
+    await waitFor(() => host.querySelector('[role="alert"]') !== null, "banner do board");
 
     const alert = host.querySelector('[role="alert"]');
-    expect(alert?.textContent).toBe("Não foi possível abrir o preset — tente novamente.");
+    expect(alert?.textContent).toContain("Não foi possível abrir o preset");
+    // recuperação VISÍVEL: o banner carrega a ação (issue #20)
+    expect(byAria(host, "Tentar novamente a operação que falhou")).toBeTruthy();
+    teardown(root, host);
+  });
+
+  it("falha de SELECT: a UI fica no preset REAL e o retry do banner aplica a intenção", async () => {
+    const { root, host } = mount();
+    await settle();
+    const label = () =>
+      Array.from(host.querySelectorAll("strong")).find((s) => /^P\d{2}/.test(s.textContent ?? ""))
+        ?.textContent ?? "";
+    expect(label()).toBe(`P01 ${FACTORY_PRESETS[0].name}`);
+
+    localStorage.setItem("gp100.debug.failDevice", "select");
+    act(() => byAria(host, "Próximo patch")!.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    // retry/backoff real (~360 ms até desistir): espera o banner
+    await waitFor(() => host.querySelector('[role="alert"]') !== null, "banner da falha de select");
+    expect(host.querySelector('[role="alert"]')!.textContent).toContain(
+      "O device não aceitou a troca de preset",
+    );
+    // a UI NÃO mente: segue no preset confirmado pelo device (P01), sem P02 fantasma
+    expect(label()).toBe(`P01 ${FACTORY_PRESETS[0].name}`);
+
+    // recuperação: gancho fora + ação do banner → a INTENÇÃO original (P02) aplica
+    localStorage.removeItem("gp100.debug.failDevice");
+    act(() =>
+      byAria(host, "Tentar novamente a operação que falhou")!.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      ),
+    );
+    await waitFor(() => label() === `P02 ${FACTORY_PRESETS[1].name}`, "P02 após o retry");
+    expect(host.querySelector('[role="alert"]')).toBeNull();
     teardown(root, host);
   });
 });
@@ -344,9 +377,11 @@ describe("Push log — pushes do device", () => {
     const summary = host.querySelector("details summary")!;
     expect(summary.textContent).toContain("(0)");
 
-    // 120 pushes → cap de MAX_ENTRIES segura o log em 100
+    // 120 pushes VÁLIDOS e distintos → cap de PUSH_LOG_MAX segura o log em 100
     await act(async () => {
-      for (let i = 0; i < 120; i += 1) appPush(`12|1200100${i % 10}`);
+      for (let i = 0; i < 120; i += 1) {
+        appPush(`F021257F47502D6412001000${i.toString(16).padStart(2, "0")}F7`);
+      }
     });
     await settle();
 
@@ -361,6 +396,47 @@ describe("Push log — pushes do device", () => {
     );
     await settle();
     expect(summary.textContent).toContain("(0)");
+    teardown(root, host);
+  });
+
+  it("push INVÁLIDO é ignorado e repetição consecutiva vira contador (×N)", async () => {
+    const { root, host } = mount();
+    await settle();
+
+    const appPush = vi.mocked(onDevicePush).mock.calls[0][0];
+    const summary = host.querySelector("details summary")!;
+    const items = () => host.querySelectorAll('[aria-label="Log de pushes"] li');
+
+    // lixo do fio (não-SysEx, ímpar, char não-hex, vazio) NÃO entra no log
+    await act(async () => {
+      appPush("12|12001008");
+      appPush("F02125");
+      appPush("F021257F47502D64 00F7");
+      appPush("");
+      appPush(undefined as unknown as string);
+    });
+    await settle();
+    expect(summary.textContent).toContain("(0)");
+    expect(items().length).toBe(0);
+
+    // o boot REPETE a mesma resposta: 3× o mesmo hex = 1 linha com ×3
+    const repetido = "F021257F47502D6412001000F7";
+    await act(async () => {
+      appPush(repetido);
+      appPush(repetido);
+      appPush(repetido);
+    });
+    await settle();
+    expect(summary.textContent).toContain("(1)");
+    expect(items().length).toBe(1);
+    expect(items()[0].textContent).toContain("×3");
+
+    // hex DIFERENTE depois da repetição abre linha nova (dedupe é CONSECUTIVO)
+    await act(async () => {
+      appPush("F021257F47502D6412001001F7");
+    });
+    await settle();
+    expect(summary.textContent).toContain("(2)");
     teardown(root, host);
   });
 });
