@@ -15,8 +15,12 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
   select confirmado — a UI nunca mostra preset que o device recusou).
   Front: 111 unit ✅ (cobertura 88,4% stmts · 85,9% fns · 90,2% lines) e e2e 63 ✅
   + 3 novos de `ipc.edge` (select transitório/permanente e mid-boot).
-  **Achado registrado: A-5 / issue #45** — 12 baselines win32 desatualizadas e o
-  visual SKIPado no CI (0 baselines `-linux` no repo); lição na seção de IPC abaixo.
+  **Achado A-5 / issue #45 RESOLVIDO no mesmo dia** — 12 baselines win32
+  desatualizadas (drift pré-existente, provado com `git stash`) e 0 `-linux` no
+  repo (o visual SKIPava no CI): win32 regeradas + 48 `linux` geradas pelo
+  dispatch `update-snapshots` (artefato `visual-snapshots`) e o skip silencioso
+  removido do spec — baseline ausente agora FALHA o job. Lições na seção de IPC
+  abaixo.
 - 01/10 — **PAUSA PARA AUDITORIA + GESTÃO POR ISSUES**: revisão completa de ui/cli/app/docs/CI.
   Gates verdes: front tsc/lint/unit 88/coverage 87,6%/build ✅; Rust fmt/clippy -D/test ✅
   (corrigido 1 erro real de clippy — `needless_borrow` em `pedalboard.rs`); pytest 10/10 ✅.
@@ -611,9 +615,18 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
   e deduplicar repetição CONSECUTIVA na MESMA linha (`×N`) — o boot repete a
   resposta de tabela dezenas de vezes (backlog D7). Push inválido devolve o MESMO
   array (zero render). Parsing/dedupe é PURO (`ipc/push.ts`) — testável sem DOM.
-- **Achado A-5 (issue #45)**: `toHaveScreenshot` compara a baseline da PLATAFORMA
-  (`{arg}-{platform}`); o repo tem 54 `-win32` e **0 `-linux`** → no CI ubuntu tudo
-  SKIPA (o visual não é gate de nada) e o dev local acumula drift silencioso (12
-  diffs na árvore limpa). Antes de culpar o próprio PR: rode `pnpm e2e` e PROVE com
-  `git stash` (mesmo nº de pixels = pré-existente) antes de regenerar baseline
-  alheia — e regenere só o que o seu diff mudou (`-g "<nome>" --update-snapshots`).
+- **Achado A-5 (issue #45, RESOLVIDO)**: `toHaveScreenshot` compara a baseline da
+  PLATAFORMA (`{arg}-{platform}`); o repo tinha 54 `-win32` e **0 `-linux`** → no CI
+  ubuntu tudo SKIPAVA (o visual não era gate de nada) e o dev local acumulava drift
+  silencioso (12 diffs na árvore limpa). **Receita para nascer/adicionar baseline:**
+  1) local, `npx playwright test visual.spec.ts --update-snapshots=changed` (só o que
+  difere); 2) no CI, `gh workflow run ci.yml --ref <branch> -f update-snapshots=true`
+  → o job ubuntu escreve as `-linux` e sobe o artefato `visual-snapshots`;
+  3) `gh run download <id> -n visual-snapshots -D /tmp/x` e copiar SÓ os `-linux`;
+  4) commitar os dois. O `test.skip` por baseline ausente **não existe mais**: no CI
+  a ausência falha o job (o Playwright lá nunca escreve baseline sozinho). Antes de
+  culpar o próprio PR, PROVE com `git stash` (mesmo nº de pixels = pré-existente) —
+  foi assim que o drift de 12 baselines ficou separado do #20.
+- **`--update-snapshots=all` reescreve TAMBÉM o que já batia** (re-encode muda o
+  byte do PNG): use `=changed` no local e filtre por `-g "<nome>"` quando o alvo é
+  um grupo só (evita commitar baseline alheia sem mudança real de pixels).

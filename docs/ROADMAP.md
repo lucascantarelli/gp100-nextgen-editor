@@ -325,7 +325,7 @@
   mock do ipc) + CI.
 - **Depois dela:** M1.1 (DeviceActor + boot).
 
-### A-5. Baselines visuais win32 desatualizadas + visual SKIPado no CI — 🔴 aberto (issue #45)
+### A-5. Baselines visuais win32 desatualizadas + visual SKIPado no CI — ✅ FEITO 02/10 (issue #45)
 - **Origem:** `pnpm e2e` local na árvore LIMPA enquanto a #20 fechava (02/10) ·
   **Prioridade:** alta (achado)
 - **O quê:** 12 baselines visuais falham no local (topbar ×7 viewports, board
@@ -338,9 +338,16 @@
 - **Buraco maior:** as baselines são por plataforma e o repo tem **54 `-win32`
   e 0 `-linux`** → no ubuntu o `skipIfBaselineMissing` SKIPA todo o visual (a
   regressão estética não é gate de nada no CI).
-- **DoD:** baselines win32 regeneradas + linux geradas pelo input
-  `update-snapshots` (artefato → commit) + `e2e-visual` comparando nas duas
-  plataformas.
+- **O quê (feito):** ✅ as 12 `win32` regeneradas (`--update-snapshots=changed`)
+  e as **48 `linux`** geradas pelo dispatch `update-snapshots=true`
+  (run 36963207774) → artefato `visual-snapshots` baixado e commitado. O
+  `skipIfBaselineMissing` SAIU do spec: como as duas plataformas agora têm
+  baseline, no CI baseline ausente **FALHA** o job (é gate de verdade) e no
+  local o default `missing` segue criando. 6 baselines `win32` órfãs
+  (sufixo `-light` simples — o teste escreve `-light-light`) foram removidas
+  com a limpeza.
+- **DoD:** ✅ `pnpm e2e` 48/48 no local (win32) e o job `e2e-visual`
+  COMPARANDO no ubuntu (PR #47).
 
 ### A-3. Toolchain/versões base — ✅ FEITO 29/09
 - **Origem:** `cargo update --dry-run` + `pnpm outdated` · **Prioridade:** máxima
