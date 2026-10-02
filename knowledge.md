@@ -664,11 +664,19 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
   saudável — env de debug não derruba app). Exclusivo do backend MOCK; o
   transporte real nunca lê.
 - **O smoke prova o cenário com UMA sessão**: o tauri-driver sobe com o env no
-  `spawn` (herança wrapper → WebKitWebDriver → app) e `die-after:2300` deixa o
-  boot do mount (2297 transações, contrato pinado) terminar saudável; o ⟳ da
-  navbar dispara o 2º boot e o device morre na largada. O smoke assere alerta
-  amigável (sem vazar "MockFault"/"die-after"), LED off, NENHUMA barra de
-  progresso e retry reabilitado; um 2º clique falha de novo sem travar.
+  `spawn` (herança wrapper → WebKitWebDriver → app) e `die-after:60` derruba o
+  device no MEIO do boot do mount (transação 61, início do scan). O smoke
+  assere o alerta amigável (XPath `contains(., …)` — e um XPath NEGATIVO prova
+  que "MockFault"/"die-after" não vazam), depois clica o ⟳: a 2ª falha FIXA o
+  estado — LED off (classe `.idle-dot`, sem depender de `getText`), NENHUMA
+  barra de progresso e retry habilitado. Nada de esperar boot saudável.
+- **LIÇÃO #48 (beats de boot × webview do CI)**: o boot de 2297 transações
+  emite 2297 eventos `device://progress`; o webview do CI (WebKitGTK sob xvfb,
+  software rendering) leva **~65 s** para drená-los (run 36999196897: o
+  `.live-dot` apareceu exatamente quando o wait de 60 s estourou). Por isso o
+  smoke do #48 NÃO espera o boot terminar — e um wait de LED "on" com 60 s era
+  flake por construção. Fica registrado como candidato a otimização (o front
+  já throttla por rAF; o custo está na travessia dos eventos).
 - **Morte não espera a janela de 3 s**: o teste do actor (`DieAfter(300)`) falha
   em <2 s — se o tipo voltasse a ser achatado num timeout, levaria 3 s+ e o
   teste pega isso (o boot completo de 2297 leva ~0,2 s; 300 transações são

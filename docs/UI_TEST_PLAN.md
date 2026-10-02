@@ -217,8 +217,9 @@ dist embutido (mock, sem hardware) → `tauri-driver` + `WebKitWebDriver` sob
 `xvfb-run` → Selenium (`e2e/tauri.smoke.mjs`): banner no webview, os 3 painéis
 no DOM e a biblioteca com os **99 presets reais dentro do webview**. Cobre
 também o **DeviceGone ponta-a-ponta** (#48): o app sobe com
-`GP100_DEBUG_FAULT=die-after:2300`, o ⟳ mata o 2º boot e o smoke exige alerta
-amigável + LED off + zero barra de progresso + retry vivo. Receita
+`GP100_DEBUG_FAULT=die-after:60`, o device morre no meio do boot e o smoke
+clicla o ⟳ exigindo, após a 2ª falha: alerta amigável (sem vazar o detalhe
+técnico), LED off, zero barra de progresso e retry vivo. Receita
 oficial Tauri v2 (webkit2gtk-driver + xvfb + WEBKIT_DISABLE_DMABUF_RENDERER).
 
 | Item | Estado |
