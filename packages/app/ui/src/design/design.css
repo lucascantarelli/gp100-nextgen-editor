@@ -276,16 +276,23 @@ body {
   }
 }
 /* Board: 9 slots lado a lado no wide; 3×3 abaixo de 1340px (sem órfãos). */
+/* Posições da cadeia: colunas dimensionadas pelo CONTEÚDO — na Fase 2 um
+   pedal real (~420px) é bem mais largo que um lugar vazio (132px). Em
+   telas largas as 9 posições cabem numa linha; se não couberem, a própria
+   faixa rola na horizontal (nunca sobrepõe). */
 .board-slots {
   display: grid;
-  grid-template-columns: repeat(9, 1fr);
+  grid-template-columns: repeat(3, minmax(132px, max-content));
+  justify-content: start;
   gap: var(--space-8);
   position: relative;
   z-index: 4;
+  overflow-x: auto;
+  padding-bottom: 4px;
 }
-@media (max-width: 1340px) {
+@media (min-width: 1700px) {
   .board-slots {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(9, minmax(118px, max-content));
   }
 }
 

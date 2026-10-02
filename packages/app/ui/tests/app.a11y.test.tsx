@@ -1,8 +1,8 @@
 /**
  * Teste de A11Y/estados do App — casca: biblioteca de fábrica (99 presets
- * reais do all.prst), board vazio com os 9 lugares marcados, trava ⇄ mover
- * no header e modal Settings. Pedais/knobs ganham testes próprios por
- * pedal quando entrarem no board.
+ * reais do all.prst), palco com os 9 lugares marcados e o pedal REAL das
+ * famílias já validadas (Fase 2: COMP no PRE), trava ⇄ mover no header e
+ * modal Settings. Cada pedal novo ganha testes próprios na sua rodada.
  */
 import { describe, expect, it, beforeAll } from "vitest";
 import { act } from "react";
@@ -33,7 +33,7 @@ async function settle() {
 }
 
 describe("App — casca (a11y e estados)", () => {
-  it("renderiza topbar, biblioteca de fábrica e board vazio com 9 lugares", async () => {
+  it("renderiza topbar, biblioteca de fábrica e os 9 lugares (COMP no PRE)", async () => {
     const { root, host } = mount(<App />);
     await settle();
 
@@ -47,6 +47,12 @@ describe("App — casca (a11y e estados)", () => {
     expect(fams).toContain("Slot 1: PRE");
     expect(fams).toContain("Slot 5: CAB");
     expect(fams).toContain("Slot 9: RVB");
+
+    // o PRE já é o pedal real (1 efeito por vez — U-3): SVG no slot 1
+    expect(
+      host.querySelector('[aria-label="Slot 1: PRE"] svg[role="group"]'),
+      "COMP (PRE) renderizado",
+    ).toBeTruthy();
 
     // biblioteca: os 99 de fábrica aparecem (lista com role listbox)
     const listbox = host.querySelector('[role="listbox"]');
