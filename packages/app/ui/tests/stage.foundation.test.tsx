@@ -452,6 +452,27 @@ describe("Stage — palco real da Fase 2 (1 efeito por vez)", () => {
     host.remove();
   });
 
+  it("modo engenheiro: tooltip com addr/code/ctrl; desligado fica o texto simples", () => {
+    // desligado (default): tooltip de uso, SEM endereço e SEM vocabulário interno
+    const off = mount(<Stage board={BOARD} {...stageProps} />);
+    const titleOff = off.host.querySelector('svg[role="slider"] title')!.textContent ?? "";
+    expect(titleOff).toContain("duplo clique = default");
+    expect(titleOff).not.toContain("addr");
+    act(() => off.root.unmount());
+    off.host.remove();
+
+    // ligado: addr do SET (10 01 00 02), code do efeito e ctrl do knob
+    const on = mount(<Stage board={BOARD} {...stageProps} engineer />);
+    const titleOn = on.host.querySelector('svg[role="slider"] title')!.textContent ?? "";
+    expect(titleOn).toContain("SET");
+    expect(titleOn).toContain("addr 10 01 00 02");
+    expect(titleOn).toContain("code 0x00000001");
+    expect(titleOn).toContain("ctrl 0");
+    expect(titleOn, "referência à doc interna não vaza (Q-8)").not.toContain("§13.11");
+    act(() => on.root.unmount());
+    on.host.remove();
+  });
+
   it("sem a trava o arrasto do pedal não reordena (protege o knob)", () => {
     const { root, host } = mount(<Stage board={BOARD} {...stageProps} />);
     const slot = (n: number, fam: string) =>

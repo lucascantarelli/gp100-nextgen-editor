@@ -33,6 +33,8 @@ interface Props {
   /** Board do preset corrente (device_board); null antes da 1ª leitura. */
   board: BoardView | null;
   celebrate?: boolean;
+  /** Modo engenheiro (Settings → General): tooltip do knob com addr/code/ctrl. */
+  engineer?: boolean;
   arrangeMode: boolean;
   onToggleArrange: () => void;
   /** afinador (V-7): mora AQUI no cabeçalho, ao lado do LED e do cadeado */
@@ -150,6 +152,7 @@ const BASE_ORDER = CHAIN_FAMILIES.map((_, i) => i);
 export function Stage({
   board,
   celebrate = false,
+  engineer = false,
   arrangeMode,
   onToggleArrange,
   tuner,
@@ -276,6 +279,7 @@ export function Stage({
               >
                 <Pedal
                   slot={s}
+                  engineer={engineer}
                   onToggle={onToggle}
                   onKnobChange={onKnobChange}
                   onKnobReset={onKnobReset}

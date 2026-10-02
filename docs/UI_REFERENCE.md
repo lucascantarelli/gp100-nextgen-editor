@@ -149,8 +149,10 @@ completamente funcional"):** importar/gerar a lista REAL dos 99 presets de fábr
   DLY pode ter 9 controles (6 knobs + 3 switches); wah = treadle com rocker.
 - [ ] Testar CADA pedal em TODAS as 9 posições do board (tamanho/espaçamento/linhas).
 - [ ] Knobs bidirecionais (min>max = centro físico) normalizados; EQ usa sliders.
-- [ ] Tooltip do modo engenheiro: `addr 10 0X 00 02 · code 0x… · ctrl N · payload §13.11`.
-      *(pendente — falta um liga/desliga do modo engenheiro na UI)*
+- [x] Tooltip do modo engenheiro — **liga/desliga na aba General do Settings**
+      (persistido local): `Sustain: 42 · SET · addr 10 01 00 02 · code 0x… · ctrl 0 ·
+      payload [code u32 LE][ctrl][00][f32 LE]`. Sem referência à doc interna
+      (`§13.11`) — lição Q-8 travada por teste (unit + e2e).
 
 ### 3.3 Lições de engenharia (não repetir)
 - ⚠️ `str_replace` com texto parcial já quebrou o `Pedal.tsx` 2× — sempre reler o
