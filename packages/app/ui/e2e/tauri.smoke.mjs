@@ -46,6 +46,24 @@ function resolveAppBinary() {
   return found;
 }
 
+/** Resolve o binário do tauri-driver: env TAURI_DRIVER vence; senão o PATH
+ *  (imagem ci-linux instala em /usr/local/bin); senão ~/.cargo/bin, que é onde
+ *  o `cargo install` põe no runner hospedado e no host local.
+ *  Lição #41: dentro do container o HOME é /github/home — resolver só por
+ *  $HOME dava `spawn /github/home/.cargo/bin/tauri-driver ENOENT` mesmo com o
+ *  driver instalado. */
+function resolveTauriDriver() {
+  const explicit = process.env.TAURI_DRIVER;
+  if (explicit && existsSync(explicit)) return explicit;
+  for (const dir of (process.env.PATH || "").split(path.delimiter)) {
+    for (const name of ["tauri-driver", "tauri-driver.exe"]) {
+      const candidate = path.join(dir, name);
+      if (existsSync(candidate)) return candidate;
+    }
+  }
+  return path.resolve(os.homedir(), ".cargo", "bin", "tauri-driver");
+}
+
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /** Espera o tauri-driver aceitar conexões na porta. */
@@ -69,8 +87,11 @@ async function waitForPort(port, tries = 40) {
 const application = resolveAppBinary();
 console.log(`▸ shell: ${application}`);
 
-// tauri-driver (wrapper) — o binário vem de ~/.cargo/bin (cargo install)
-const tauriDriver = spawn(path.resolve(os.homedir(), ".cargo", "bin", "tauri-driver"), [], {
+// tauri-driver (wrapper) — PATH primeiro (imagem de CI), ~/.cargo/bin como
+// fallback (cargo install do runner hospedado / host local).
+const driverBin = resolveTauriDriver();
+console.log(`▸ driver: ${driverBin}`);
+const tauriDriver = spawn(driverBin, [], {
   stdio: ["ignore", "inherit", "inherit"],
 });
 let exiting = false;
