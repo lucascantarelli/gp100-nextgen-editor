@@ -24,6 +24,15 @@ import subprocess
 import sys
 from datetime import datetime
 
+# Console do Windows (cp1252) não encoda as setas/≥ do relatório e o `gh`
+# devolve UTF-8 — mesma lição do simulate_release.py (erro real na 1ª medição
+# do #41: UnicodeDecodeError no pipe + UnicodeEncodeError no print).
+try:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+except (AttributeError, OSError):  # stream trocado (ex.: captura de teste)
+    pass
+
 
 def gh_api(path: str) -> list[dict]:
     """GET paginado na API do GitHub (--slurp junta as páginas num array)."""
@@ -31,6 +40,8 @@ def gh_api(path: str) -> list[dict]:
         ["gh", "api", path, "--paginate", "--slurp"],
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
     )
     if proc.returncode != 0:
         sys.exit(f"gh api falhou para {path}:\n{proc.stderr.strip()}")
@@ -48,6 +59,8 @@ def repo_slug() -> str:
         ["gh", "repo", "view", "--json", "nameWithOwner", "-q", ".nameWithOwner"],
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
     )
     if proc.returncode != 0:
         sys.exit("não consegui descobrir o repo (rode dentro do checkout ou use --repo)")
@@ -68,19 +81,23 @@ def run_info(run_id: int, repo: str) -> dict:
 
 
 def job_timings(run_id: int, repo: str) -> dict[str, dict]:
-    jobs = gh_api(f"repos/{repo}/actions/runs/{run_id}/jobs")
+    # ⚠️ `--paginate --slurp` devolve um array de PÁGINAS (cada uma com a chave
+    # `jobs`) — iterar as páginas direto dava tabela vazia (a página não tem
+    # `name`/`started_at`). Achado na 1ª medição do #41.
     out: dict[str, dict] = {}
-    for job in jobs:
-        steps = []
-        for step in job.get("steps") or []:
-            dur = seconds(step.get("started_at"), step.get("completed_at"))
-            if dur is not None:
-                steps.append((step.get("name") or "?", dur))
-        out[job.get("name") or f"job-{job.get('id')}"] = {
-            "total": seconds(job.get("started_at"), job.get("completed_at")),
-            "conclusion": job.get("conclusion"),
-            "steps": steps,
-        }
+    for page in gh_api(f"repos/{repo}/actions/runs/{run_id}/jobs"):
+        pagina = page.get("jobs") if isinstance(page, dict) else page
+        for job in pagina or []:
+            steps = []
+            for step in job.get("steps") or []:
+                dur = seconds(step.get("started_at"), step.get("completed_at"))
+                if dur is not None:
+                    steps.append((step.get("name") or "?", dur))
+            out[job.get("name") or f"job-{job.get('id')}"] = {
+                "total": seconds(job.get("started_at"), job.get("completed_at")),
+                "conclusion": job.get("conclusion"),
+                "steps": steps,
+            }
     return out
 
 
