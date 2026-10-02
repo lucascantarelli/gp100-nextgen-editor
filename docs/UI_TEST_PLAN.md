@@ -207,22 +207,27 @@ issues Q-6/Q-7 (sliders/kill/error states).
 + erro-boot/erro-preset × 1440/1280/1024), animações congeladas, tolerância 1%,
 **baseline por
 plataforma** (`{arg}-{platform}`; fontes divergem Win/Linux). Estado atual:
-baselines `win32` commitadas e estáveis (2 rodadas idênticas ✅); baselines
-`linux` geram-se no CI pelo **input `update-snapshots`** do pipeline (job
-`e2e-visual` sobe o artefato → commitar). Sem baseline no CI = SKIP.
+baselines `win32` **e `linux`** commitadas e comparando no CI ✅ (issue #45);
+baselines novas nascem pelo **input `update-snapshots`** do pipeline (job
+`e2e-visual` sobe o artefato → commitar). Sem baseline no CI = job VERMELHO (o
+skip silencioso não existe mais).
 
 **U-7 — e2e-tauri (job na CI, Ubuntu):** build debug do `gp100-ui` com o
 dist embutido (mock, sem hardware) → `tauri-driver` + `WebKitWebDriver` sob
 `xvfb-run` → Selenium (`e2e/tauri.smoke.mjs`): banner no webview, os 3 painéis
-no DOM e a biblioteca com os **99 presets reais dentro do webview**. Receita
+no DOM e a biblioteca com os **99 presets reais dentro do webview**. Cobre
+também o **DeviceGone ponta-a-ponta** (#48): o app sobe com
+`GP100_DEBUG_FAULT=die-after:60`, o device morre no meio do boot e o smoke
+clicla o ⟳ exigindo, após a 2ª falha: alerta amigável (sem vazar o detalhe
+técnico), LED off, zero barra de progresso e retry vivo. Receita
 oficial Tauri v2 (webkit2gtk-driver + xvfb + WEBKIT_DISABLE_DMABUF_RENDERER).
 
 | Item | Estado |
 |---|---|
 | 9 baselines win32 geradas e estáveis | ✅ (rodada 30/09) |
 | job e2e-visual (Ubuntu) + input update-snapshots | ✅ _validate.yml |
-| baselines linux commitadas | 🔜 1º run do input (artefato → commit) |
-| job e2e-tauri (smoke webview real) | ✅ _validate.yml (gate de release via validate) |
+| baselines linux commitadas | ✅ 48 PNGs (issue #45; 1º run do input) |
+| job e2e-tauri (smoke webview real + DeviceGone) | ✅ _validate.yml (gate de release via validate) |
 
 ---
 

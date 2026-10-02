@@ -92,6 +92,19 @@ pub enum ProtocolError {
         addr: String,
     },
 
+    /// O device SUMIU no meio da sessão (USB removido/cabo puxado): o
+    /// transporte reportou [`TransportError::DeviceGone`] e a transação foi
+    /// abortada. **Distinto de [`InvalidShape`](Self::InvalidShape) de
+    /// propósito:** a UI trata diferente (LED off + retry explícito, sem
+    /// retry automático) e o H1 registra como divergência de campo — a
+    /// decisão está documentada em `transport::TransportError::DeviceGone`.
+    #[error("device sumiu no meio da sessão: {why}")]
+    DeviceGone {
+        /// Detalhe humano do motivo (do transporte: SO/driver ou plano de
+        /// falha do mock).
+        why: String,
+    },
+
     /// Resposta/ACK chegou com conteúdo fora do esperado pela FSM:
     /// ecos errados, status incoerente, ACK de chunk inválido (§13.7).
     #[error("ack inesperado na transação {addr}: {got}")]

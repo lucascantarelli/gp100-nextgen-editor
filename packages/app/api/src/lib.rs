@@ -18,7 +18,38 @@
 mod actor;
 mod commands;
 
-use gp100_core::transport::mock::MockDevice;
+use gp100_core::transport::mock::{MockDevice, MockFault};
+
+/// Plano de falha do shell lido do ambiente — gancho de teste/e2e do #48.
+///
+/// `GP100_DEBUG_FAULT=die-after:<n>`: o device MOCK "cai" depois de `n`
+/// transmissões (todo `send_raw`/`recv_raw`/`open` seguinte devolve
+/// [`TransportError::DeviceGone`](gp100_core::transport::TransportError)) —
+/// prova ponta-a-ponta o cenário de USB removido no meio da sessão: shell →
+/// actor → command → UI (o front, sozinho, só sabia simulá-lo por
+/// localStorage). Valor ausente/malformado = backend saudável (default).
+///
+/// **Exclusivo do backend MOCK:** o transporte real (`real-device`) não lê
+/// este env — a política de hardware (ADR-4/ADR-5) segue intocada.
+///
+/// [`TransportError::DeviceGone`]: gp100_core::transport::TransportError::DeviceGone
+fn debug_fault_from_env() -> Option<MockFault> {
+    let raw = std::env::var("GP100_DEBUG_FAULT").ok()?;
+    let fault = parse_debug_fault(&raw);
+    if fault.is_none() {
+        eprintln!("GP100_DEBUG_FAULT ignorado (esperado `die-after:<n>`): {raw}");
+    }
+    fault
+}
+
+/// Parser puro do gancho de falha (testável sem mutar o ambiente global).
+///
+/// Aceita `die-after:<n>` com espaços acidentais (trim); devolve `None` para
+/// qualquer outra forma (nunca pânico — env de debug não derruba o app).
+fn parse_debug_fault(raw: &str) -> Option<MockFault> {
+    let n = raw.trim().strip_prefix("die-after:")?;
+    n.trim().parse::<u32>().ok().map(MockFault::DieAfter)
+}
 
 /// Boot do app Tauri: registra estado + commands (invocado pelo `main`).
 ///
@@ -26,7 +57,11 @@ use gp100_core::transport::mock::MockDevice;
 /// Propaga falha de setup/runtime do Tauri (janela/recursos/assets) — o
 /// binário encerra com exit ≠ 0.
 pub fn run() -> Result<(), Box<dyn std::error::Error>> {
-    let mock = MockDevice::new()?;
+    let mut mock = MockDevice::new()?;
+    if let Some(fault) = debug_fault_from_env() {
+        eprintln!("GP100_DEBUG_FAULT armado: {fault:?} (backend mock)");
+        mock = mock.with_fault(fault);
+    }
     let actor = actor::DeviceActor::spawn(mock);
     let result = tauri::Builder::default()
         .manage(commands::AppState {
@@ -47,4 +82,42 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     // (o handle é Clone; Drop em clone derrubaria o actor alheio).
     actor.shutdown();
     result.map_err(Into::into)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// O gancho aceita a forma canônica (e tolera espaços do shell).
+    #[test]
+    fn parse_debug_fault_aceita_die_after() {
+        assert_eq!(
+            parse_debug_fault("die-after:0"),
+            Some(MockFault::DieAfter(0))
+        );
+        assert_eq!(
+            parse_debug_fault("die-after:300"),
+            Some(MockFault::DieAfter(300))
+        );
+        assert_eq!(
+            parse_debug_fault("  die-after:42  "),
+            Some(MockFault::DieAfter(42))
+        );
+    }
+
+    /// Qualquer outra forma é ignorada (backend saudável) — env de debug
+    /// nunca derruba o app nem arma algo inesperado.
+    #[test]
+    fn parse_debug_fault_rejeita_forma_desconhecida() {
+        for raw in [
+            "",
+            "die-after:",
+            "die-after:abc",
+            "die-after:-1",
+            "other:1",
+            "300",
+        ] {
+            assert_eq!(parse_debug_fault(raw), None, "raw={raw:?}");
+        }
+    }
 }

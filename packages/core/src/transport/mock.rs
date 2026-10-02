@@ -115,6 +115,21 @@ fn shape_err(expected: &str, got: &str) -> ProtocolError {
     }
 }
 
+/// Plano de FALHA do mock (test double): o device pode CAIR no meio da
+/// sessão — o cenário para o qual [`TransportError::DeviceGone`] existe.
+///
+/// O mock é o test double declarado do projeto; a falha entra AQUI (e não num
+/// `FailingTransport` novo) para o caminho testado ser EXATAMENTE o de
+/// produção: transporte → FSM → actor/command → UI. NUNCA afeta o
+/// `RealDevice`: a política de hardware (ADR-4/ADR-5) segue intocada.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MockFault {
+    /// Depois de `n` transmissões (`send_raw`) o device desaparece: todo
+    /// `send_raw`/`recv_raw`/`open` seguinte devolve
+    /// [`TransportError::DeviceGone`]. `0` = já saiu antes da 1ª transação.
+    DieAfter(u32),
+}
+
 /// O device simulado (default do ADR-4/ADR-5: sempre permite writes).
 #[derive(Debug, Clone)]
 pub struct MockDevice {
@@ -124,6 +139,10 @@ pub struct MockDevice {
     dict: Dictionary,
     /// Fila IN por endpoint (D1): mensagens SysEx completas.
     inbox: HashMap<(u8, [u8; 4]), Vec<Vec<u8>>>,
+    /// Plano de falha (test double). `None` = device saudável (default).
+    fault: Option<MockFault>,
+    /// Transmissões TENTADAS até agora (inclusive as que morreram).
+    sent: u32,
 }
 
 impl MockDevice {
@@ -137,7 +156,39 @@ impl MockDevice {
             state: MockState::load()?,
             dict: Dictionary::from_json(PARAMETERS)?,
             inbox: HashMap::new(),
+            fault: None,
+            sent: 0,
         })
+    }
+
+    /// Arma um plano de falha: o device CAI depois de `n` transmissões.
+    ///
+    /// Consumidor típico: testes do shell (actor) e o smoke Tauri, que arma
+    /// por env (`GP100_DEBUG_FAULT=die-after:<n>`) — sempre no backend MOCK.
+    #[must_use]
+    pub fn with_fault(mut self, fault: MockFault) -> Self {
+        self.fault = Some(fault);
+        self
+    }
+
+    /// Transmissões tentadas até agora (diagnóstico/asserções de teste).
+    pub fn transactions(&self) -> u32 {
+        self.sent
+    }
+
+    /// O device já caiu? (o plano `DieAfter` foi consumido)
+    fn gone(&self) -> bool {
+        matches!(self.fault, Some(MockFault::DieAfter(n)) if self.sent > n)
+    }
+
+    /// Erro de device ausente (fio cortado), com o motivo do plano de falha.
+    fn gone_err(&self) -> TransportError {
+        TransportError::DeviceGone {
+            why: format!(
+                "mock: device caiu depois de {} transmissões (MockFault::DieAfter)",
+                self.sent
+            ),
+        }
     }
 
     /// O estado atual (diagnóstico/asserções de teste).
@@ -484,6 +535,11 @@ impl MockDevice {
 
 impl DeviceTransport for MockDevice {
     fn open(&mut self) -> Result<(), TransportError> {
+        // Device que CAIU não ressuscita no mock (o re-plug é sessão nova):
+        // reabrir o mesmo objeto devolve `DeviceGone`, não `Closed`.
+        if self.gone() {
+            return Err(self.gone_err());
+        }
         self.opened = true;
         Ok(())
     }
@@ -497,6 +553,13 @@ impl DeviceTransport for MockDevice {
         if !self.opened {
             return Err(TransportError::Closed);
         }
+        // A MORTE precede o parse: um device que já não está no fio não
+        // recebe bytes, então o plano de falha é checado ANTES do envelope
+        // (o shape do frame não importa para quem sumiu).
+        self.sent += 1;
+        if self.gone() {
+            return Err(self.gone_err());
+        }
         let (func, addr, payload) =
             decode_envelope(data).map_err(|e| TransportError::SendFailed { why: e.to_string() })?;
         self.ingest(func, addr, payload)
@@ -505,6 +568,9 @@ impl DeviceTransport for MockDevice {
     fn recv_raw(&mut self, timeout: Duration) -> Result<Vec<u8>, TransportError> {
         if !self.opened {
             return Err(TransportError::Closed);
+        }
+        if self.gone() {
+            return Err(self.gone_err());
         }
         // D1: FIFO global — a mensagem mais antiga de qualquer endpoint.
         let oldest = self
@@ -637,6 +703,61 @@ mod tests {
             st.ir_crcs.iter().any(|&c| c != 0),
             "ppIRCRC de fábrica presente em algum slot"
         );
+    }
+
+    /// `MockFault::DieAfter`: o device CAI depois de n transmissões — o
+    /// 1º select passa, o 2º já devolve `DeviceGone`, e `recv`/`open`
+    /// seguintes confirmam que ele CONTINUA ausente (sem re-plug no mock).
+    #[test]
+    fn mock_fault_mata_o_device_depois_de_n_transacoes() {
+        let mut dev = MockDevice::new()
+            .expect("mock montado")
+            .with_fault(MockFault::DieAfter(1));
+        dev.open().expect("open antes da morte");
+        let golden = crate::golden::GoldenFile::embedded().expect("golden embedado");
+        let select = golden
+            .build_request(0x11, &[0x13, 0x01, 0x00, 0x00], &[0x00, 0x03])
+            .expect("select §13.10 montado pelo golden");
+
+        // transação 1: device vivo (o select entra e o pp muda)
+        dev.send_raw(&select).expect("1º send com o device vivo");
+        assert_eq!(dev.transactions(), 1);
+        assert_eq!(dev.state().current_pp, 3);
+
+        // transação 2: o device SUMIU no meio da sessão
+        let err = dev.send_raw(&select).expect_err("2º send: device caiu");
+        assert!(
+            matches!(err, TransportError::DeviceGone { .. }),
+            "esperado DeviceGone, veio {err:?}"
+        );
+        assert!(
+            err.to_string().contains("device sumiu no meio da sessão"),
+            "mensagem humana do DeviceGone: {err}"
+        );
+        // já ausente: recv não acha mais nada E open não ressuscita
+        assert!(matches!(
+            dev.recv_raw(Duration::from_millis(1)),
+            Err(TransportError::DeviceGone { .. })
+        ));
+        assert!(matches!(dev.open(), Err(TransportError::DeviceGone { .. })));
+    }
+
+    /// `DieAfter(0)`: o device já saiu ANTES da 1ª transação — a morte é
+    /// reportada sem nem olhar o frame (não há ninguém no fio para recebê-lo).
+    #[test]
+    fn mock_fault_zero_reporta_antes_do_parse() {
+        let mut dev = MockDevice::new()
+            .expect("mock montado")
+            .with_fault(MockFault::DieAfter(0));
+        dev.open().expect("open com o device ainda presente");
+        let err = dev
+            .send_raw(b"nao-e-sysex")
+            .expect_err("morre antes do parse");
+        assert!(
+            matches!(err, TransportError::DeviceGone { .. }),
+            "DeviceGone precede o shape: {err:?}"
+        );
+        assert_eq!(dev.transactions(), 1);
     }
 
     /// O dicionário embedado carrega (185 algs) e reconhece um effectCode
