@@ -109,7 +109,22 @@ try {
   const capabilities = new Capabilities();
   capabilities.set("tauri:options", { application });
   capabilities.setBrowserName("wry");
-  driver = await new Builder().withCapabilities(capabilities).usingServer("http://127.0.0.1:4444/").build();
+
+  // RACE do CI (container ci-linux, run 36953492697): a porta do tauri-driver
+  // abre ANTES do WebKitWebDriver NATIVO responder — a 1ª criação de sessão
+  // morria com `Connection refused (os error 111)` ("Error serving connection"
+  // no proxy). Retenta por até ~60s: o native driver leva alguns segundos no
+  // software rendering. Esperar só a porta 4444 não basta.
+  const SESSION_DEADLINE = Date.now() + 60_000;
+  for (let tentativa = 1; !driver; tentativa++) {
+    try {
+      driver = await new Builder().withCapabilities(capabilities).usingServer("http://127.0.0.1:4444/").build();
+    } catch (err) {
+      if (Date.now() > SESSION_DEADLINE) throw err;
+      console.log(`… sessão ainda não acordou (tentativa ${tentativa}: ${err.message ?? err}) — retry`);
+      await sleep(3000);
+    }
+  }
 
   // 1. casca bootou no webview: banner com a identidade do app.
   // 60s: o webview do CI roda em SOFTWARE RENDERING (xvfb + DRI3 indisponível)
