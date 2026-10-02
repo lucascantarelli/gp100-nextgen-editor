@@ -325,6 +325,23 @@
   mock do ipc) + CI.
 - **Depois dela:** M1.1 (DeviceActor + boot).
 
+### A-5. Baselines visuais win32 desatualizadas + visual SKIPado no CI — 🔴 aberto (issue #45)
+- **Origem:** `pnpm e2e` local na árvore LIMPA enquanto a #20 fechava (02/10) ·
+  **Prioridade:** alta (achado)
+- **O quê:** 12 baselines visuais falham no local (topbar ×7 viewports, board
+  1280/1024/800, lib 1280, looper 800). Prova de que é PRÉ-EXISTENTE: com todas
+  as mudanças da #20 revertidas (`git stash`) o `topbar 1440×900` falha
+  IDÊNTICO (4129 px, ratio 0.06). O diff é redistribuição horizontal do banner
+  (mesmos elementos, espaçamento diferente) e `e2e/__screenshots__` foi
+  commitado por último em `6366b08` (01/10 15:14), ANTES da mudança visual do
+  TopBar/App em `3bb6a3e` (01/10 19:12).
+- **Buraco maior:** as baselines são por plataforma e o repo tem **54 `-win32`
+  e 0 `-linux`** → no ubuntu o `skipIfBaselineMissing` SKIPA todo o visual (a
+  regressão estética não é gate de nada no CI).
+- **DoD:** baselines win32 regeneradas + linux geradas pelo input
+  `update-snapshots` (artefato → commit) + `e2e-visual` comparando nas duas
+  plataformas.
+
 ### A-3. Toolchain/versões base — ✅ FEITO 29/09
 - **Origem:** `cargo update --dry-run` + `pnpm outdated` · **Prioridade:** máxima
 - **O quê:** ✅ Rust stable 1.98.1 (atual), crates sem updates pendentes no
@@ -606,7 +623,7 @@
     importadores; varredura por grep + tsc + lint confirmando) e suas chaves
     MSG. Mantidos DE PROPÓSITO: Pedal/Pedalboard/Knob/fxModels — fundação
     declarada da Fase 2 (pedais voltam ao board um efeito por vez).
-- **V-7. Pendências do plano enterprise** — o que restou virou **issue #20** (edge cases de IPC nível 2); o demais está entregue:
+- **V-7. Pendências do plano enterprise** — ✅ tudo entregue (os edge cases de IPC viraram a issue #20, fechada em 02/10):
   - ✅ FEITO 01/10 — Page Object Model nos e2e: `e2e/pages/_pages.ts`
     (Shell/Brand/Library/Board/Looper/Drum/Settings/VU) com os 5 specs
     reescritos 1:1 (mesmos asserts, zero mudança de comportamento);
@@ -614,8 +631,17 @@
     restaurado o `toHaveScreenshot` dos painéis/tema claro (perdido em
     edição anterior) — o guard retomado pegou drift real de 2px no palco
     e as baselines foram regeneradas; 72/72 e2e ✅.
-  - Edge cases de IPC de nível 2 (failDevice em select/set_param e nos
-    eventos, retry/backoff de command).
+  - ✅ FEITO 02/10 — **edge cases de IPC de nível 2** (issue #20):
+    falha/retry/backoff na porta única do front (`retry` 3× com backoff
+    120→240 ms + jitter, timeout de 8 s POR tentativa; o `boot` fica fora da
+    política — a recuperação dele é o ⟳). Gancho `gp100.debug.failDevice`
+    ganhou `select`/`set_param` (eram void-infallible), o modo transitório
+    `op:n` (exercita o backoff de verdade) e `boot-mid` (disconnect no meio
+    do boot). A navegação de preset deixou de ser otimista: `pp`/nome só mudam
+    DEPOIS do select confirmado, e a falha vira banner com AÇÃO de retry.
+    Push log valida (`F0…F7`/par/hex) e dedupa repetição consecutiva (`×N`).
+    Números: **111 unit · 88,4% stmts · 85,9% fns · 90,2% lines** (gate 85) e
+    +3 e2e novos (`e2e/ipc.edge.spec.ts`).
   - ✅ FEITO 01/10 — GitFlow completo + cadeia rc sob `workflow_dispatch`:
     `.github/workflows/release.yml` (release-gitflow) com `action=rc`
     (corta/reutiliza release/x.y.z de develop, etiqueta vX.Y.Z-rc.N —
@@ -679,10 +705,12 @@
     (e2e R5); (b) boot falha → alerta + ⟳ recupera (e2e + unit); (c) board
     falha → erro amigável (e2e + unit); (d) boot lento → lotes de 64,
     UI fluida (unit); (e) events unlisten/dupla assinatura (unit); (f)
-    library/sem falha — resolve sempre (unit). Pendentes para a integração
-    real (issue própria quando o backend responder): falha em
-    select/set_param (hoje void-infallible), retry/backoff de command,
-    disconnect mid-boot, dedupe/parse de push hex inválido.
+    library/sem falha — resolve sempre (unit). **Pendentes na ocasião** (falha
+    em select/set_param, retry/backoff de command, disconnect mid-boot,
+    dedupe/parse de push hex inválido) → ✅ TODOS ENTREGUES na **issue #20**
+    (02/10): ver a entrada da #20 acima e também o mapa de testes
+    (`tests/ipc.retry.test.ts`, `tests/ipc.push.test.ts`,
+    `tests/device.fail.test.ts` e `e2e/ipc.edge.spec.ts`).
   - ✅ FEITO 01/10 — fluxo de contribuição documentado (parte da
     centralização): `docs/CONTRIBUTING.md` liga o ciclo completo
     issue → branch (GitFlow, develop como integração) → conventional
