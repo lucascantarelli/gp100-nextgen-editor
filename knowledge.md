@@ -505,6 +505,18 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
   (até 01/10: @v3/@v5/@v6 e cache@v4 miravam Node 20 — o runner avisa
   "Node.js 20 is deprecated... forced to run on Node.js 24"). Contrato no
   validate_workflows.py: referência node20 falha o gate.
+- **LIÇÃO #43 (gate do front em 1 OS)**: lint + `vitest --coverage` são
+  plataforma-independentes (jsdom/eslint puros) — rodar o trio em 3 OS só
+  duplicava custo. O PLANO elege o OS do gate (ubuntu; no `ci-lite`, Windows,
+  que é o único OS que sobe) e a matriz carrega `full` por OS; o que fica nos
+  3 é o `pnpm build` (tsc + vite), que é o typecheck sensível à plataforma.
+  Passo medido: macOS 30s→7s, Windows 20s→6s.
+- **LIÇÃO #43 (cache é ESCOPADO por branch — cuidado ao medir)**:
+  `workflow_dispatch` numa branch NÃO enxerga os caches de `develop` (só os do
+  branch DEFAULT) — a 1ª rodada de uma branch sai fria (Chromium +29s, store
+  do pnpm +13s, `ws-api` +23s, pull da imagem +32s) e a parede mente
+  (36955948885: +39s "de regressão" que era só cache frio). Meça na 2ª rodada
+  da branch, ou via PR (que herda o cache da branch base).
 - **LIÇÃO #41 (rust-cache `rustc -vV` × pin da raiz)**: o probe do cache roda
   DENTRO da composite `setup-rust` e NÃO enxergava o `RUSTUP_TOOLCHAIN`
   exportado via GITHUB_ENV — o pin gnu do `rust-toolchain.toml` da raiz vencia

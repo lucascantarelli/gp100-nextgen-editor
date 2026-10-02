@@ -248,6 +248,16 @@ def main() -> int:
         FAILURES.append("_validate: plano precisa emitir rust-ui-linux (job de container)")
     if 'o == "windows-latest"' not in plan_runs:
         FAILURES.append("_validate: ui-rust deve ficar em 2 OS (Windows no host + Linux no container)")
+
+    # ── gate do front em UM OS (issue #43) ──
+    # A matriz carrega `full` por OS e o job repassa ao build-front. Rodar
+    # lint+coverage nos 3 OS não comprava nada (vitest/jsdom e eslint são
+    # plataforma-independentes); o build/typecheck segue nos 3.
+    front_def = val_job_defs.get("front") or {}
+    if not any("matrix.full" in str(step.get("with") or "") for step in front_def.get("steps") or []):
+        FAILURES.append("_validate: job front precisa repassar `full: ${{ matrix.full }}` ao build-front")
+    if '"full": o == gate_os' not in plan_runs:
+        FAILURES.append("_validate: a matriz do front precisa marcar o OS do gate (`full` por OS — issue #43)")
     if "shared-key" not in val_raw:
         FAILURES.append("_validate: cache do cargo precisa ser por workspace (shared-key)")
     if "add-job-id-key" not in raw(".github/actions/setup-rust/action.yml"):

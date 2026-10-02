@@ -137,7 +137,11 @@ proprietário do device).
 Dentro do `_validate`: gate (fmt + conventional commits) · spec (se
 `analysis/` mudou) · matrizes Rust/front **filtradas por caminhos** ·
 e2e Playwright · e2e visual (baselines por plataforma) · smoke do shell
-Tauri real. Docs-only não sobe Rust/front (jobs aparecem como skipped, sem
+Tauri real. O gate do front (lint + `vitest --coverage`) roda em **um** OS
+(ubuntu; no `ci-lite`, que só sobe Windows, o gate acompanha) — os outros
+validam build/typecheck (tsc + vite), que é a parte sensível à plataforma; o
+modo aparece no próprio nome do check (`· lint+coverage` / `· build`).
+Docs-only não sobe Rust/front (jobs aparecem como skipped, sem
 custo). **Push em `feature/*`/`fix/*`/`chore/*` não roda CI** — a validação
 acontece no PR (econômico de propósito). O publish depende do `validate`
 completo: tag não sai com a casca quebrada.
@@ -185,6 +189,11 @@ job: virou camada da imagem publicada no ghcr.io.
   (runner Intel é mais lento; o preço de matar a anotação de fila do arm64) e
   e2e/e2e-visual ficaram ~neutros (o cache de browser evita download, não o
   resto do job).
+- **Números do #43** (gate do front em 1 OS — runs `36954858195` →
+  `36956509001`): o passo com gate (lint + coverage + build) custava **30s no
+  macOS** e **20s no Windows**; agora esses dois rodam só `Build (tsc + vite)`
+  em **7s** e **6s** (~37s de runner a menos por run), com o gate preservado
+  no ubuntu (31s, inalterado).
 
 **Merge** (squash): subject conventional limpo, base `develop`, CI verde
 (visual divergente só com decisão de baseline documentada).
