@@ -4,6 +4,11 @@
  * default; setas ↑/↓ e PageUp/PageDown no teclado; switch/combox cicla
  * as opções por clique. Acessível (role slider, aria-valuenow, foco
  * visível) e sem dependências externas.
+ *
+ * `locked` = controles do PALCO (U-3): o pedal compacto é DISPLAY — mostra
+ * o valor de cada knob (e o tooltip), mas quem ajusta é o modal de edição
+ * (`role="img"`, sem foco e sem handlers). Assim o clique em qualquer ponto
+ * do pedal abre a edição, sem disputar o gesto do knob.
  */
 import { useCallback, useRef } from "react";
 import type { BoardKnob } from "../ipc/types";
@@ -14,6 +19,8 @@ interface Props {
   accent?: string;
   /** Modo engenheiro: enriquece o tooltip com o endereço de memória do comando SET. */
   engineer?: boolean;
+  /** Só leitura (palco): sem foco, sem handlers — a edição mora no modal. */
+  locked?: boolean;
   /** Endereço de memória do comando SET (ex.: "10 01 00 02") — p/ tooltip e etiqueta. */
   addr?: string;
   /** effectCode do algoritmo em hex (ex.: "0x0700006e"). */
@@ -33,6 +40,7 @@ export function Knob({
   size = 64,
   accent = "#ffb020",
   engineer = false,
+  locked = false,
   addr,
   codeHex,
   onChange,
@@ -100,16 +108,21 @@ export function Knob({
       width={size}
       height={size}
       viewBox={`0 0 ${size} ${size}`}
-      role={knob.kind === "knob" ? "slider" : "button"}
-      aria-label={knob.name}
-      aria-valuenow={knob.kind === "knob" ? num : undefined}
-      aria-valuemin={knob.kind === "knob" ? lo : undefined}
-      aria-valuemax={knob.kind === "knob" ? hi : undefined}
-      tabIndex={0}
-      style={{ cursor: knob.kind === "knob" ? "ns-resize" : "pointer", touchAction: "none", outline: "none", display: "block" }}
-      onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={onPointerUp}
+      role={locked ? "img" : knob.kind === "knob" ? "slider" : "button"}
+      aria-label={locked ? `${knob.name}: ${knob.value ?? "—"}` : knob.name}
+      aria-valuenow={!locked && knob.kind === "knob" ? num : undefined}
+      aria-valuemin={!locked && knob.kind === "knob" ? lo : undefined}
+      aria-valuemax={!locked && knob.kind === "knob" ? hi : undefined}
+      tabIndex={locked ? undefined : 0}
+      style={{
+        display: "block",
+        outline: "none",
+        cursor: locked ? "default" : knob.kind === "knob" ? "ns-resize" : "pointer",
+        touchAction: locked ? undefined : "none",
+      }}
+      onPointerDown={locked ? undefined : onPointerDown}
+      onPointerMove={locked ? undefined : onPointerMove}
+      onPointerUp={locked ? undefined : onPointerUp}
       onKeyDown={(e) => {
         if (knob.kind !== "knob") return;
         if (e.key === "ArrowUp" || e.key === "ArrowRight") { e.preventDefault(); step(1, e.shiftKey); }
@@ -119,8 +132,8 @@ export function Knob({
         if (e.key === "Home") { e.preventDefault(); onChange(knob.pos, formatValue(lo, frac)); }
         if (e.key === "End") { e.preventDefault(); onChange(knob.pos, formatValue(hi, frac)); }
       }}
-      onDoubleClick={() => onReset(knob.pos)}
-      onClick={cycle}
+      onDoubleClick={locked ? undefined : () => onReset(knob.pos)}
+      onClick={locked ? undefined : cycle}
     >
       <defs>
         <radialGradient id={`kb-${knob.pos}`} cx="35%" cy="30%">
@@ -153,7 +166,9 @@ export function Knob({
       <title>
         {engineer && addr
           ? `${knob.name}: ${knob.value ?? "—"} · SET · addr ${addr} · code ${codeHex ?? "?"} · ctrl ${knob.pos} · payload [code u32 LE][ctrl][00][f32 LE]`
-          : `${knob.name}: ${knob.value ?? "—"} · duplo clique = default`}
+          : locked
+            ? `${knob.name}: ${knob.value ?? "—"} · clique no pedal para editar`
+            : `${knob.name}: ${knob.value ?? "—"} · duplo clique = default`}
       </title>
     </svg>
   );

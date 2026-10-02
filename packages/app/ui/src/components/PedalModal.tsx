@@ -1,10 +1,12 @@
 /**
  * PedalModal — edição ampliada do pedal (U-3, passo 9 do R7): o MESMO
- * `Pedal` do palco, escalado 1.25× (knob 64 → 80px — base do checklist
- * §3.2), com os mesmos handlers — o estado é único, então o que se ajusta
- * aqui aparece no palco na hora. Fecha com Esc, com o ✕ ou clicando fora;
- * o App mantém o transporte global inerte enquanto o modal está aberto
- * (mesma regra do Settings) e dá precedência ao Esc (painel do topo).
+ * `Pedal` do palco na escala de EDIÇÃO (knob 64 → 80px com o 1.25× — base do
+ * checklist §3.2), com os mesmos handlers — o estado é único, então o que se
+ * ajusta aqui aparece no palco na hora (o pedal do palco é compacto e só
+ * LEITURA: mostra os valores, quem ajusta é este modal). Fecha com Esc, com o
+ * ✕ ou clicando fora; o App mantém o transporte global inerte enquanto o
+ * modal está aberto (mesma regra do Settings) e dá precedência ao Esc
+ * (painel do topo).
  */
 import { useEffect, useRef } from "react";
 import type { CSSProperties } from "react";
@@ -72,7 +74,7 @@ export function PedalModal({
   }, [slot]);
 
   if (slot == null) return null;
-  const dims = pedalDims(slot);
+  const dims = pedalDims(slot, "modal");
 
   return (
     <div style={overlay} onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
@@ -108,12 +110,33 @@ export function PedalModal({
         </div>
 
         {/* pedal AMPLIADO: wrapper com o tamanho escalado + transform no
-            conteúdo (os inputs/knobs continuam interativos na área certa) */}
-        <div style={{ overflow: "auto", padding: "0 var(--space-12) var(--space-12)", display: "grid", placeItems: "center" }}>
+            conteúdo (os inputs/knobs continuam interativos na área certa).
+            `safe center`: em janela estreita o pedal NÃO é cortado — o
+            alinhamento vira start e a faixa rola na horizontal. */}
+        <div
+          style={{
+            overflow: "auto",
+            padding: "0 var(--space-12) var(--space-12)",
+            display: "grid",
+            justifyItems: "safe center",
+            alignContent: "safe center",
+          }}
+        >
           <div style={{ width: dims.w * MODAL_SCALE, height: dims.h * MODAL_SCALE }}>
-            <div style={{ transform: `scale(${MODAL_SCALE})`, transformOrigin: "top left" }}>
+            {/* o interno PRECISA da medida da escala (sem ela o bloco herda
+                a largura do wrapper e o 1.25× vira 1.5625× — pedal mais largo
+                que o corpo, conteúdo fora de centro e barra de rolagem) */}
+            <div
+              style={{
+                width: dims.w,
+                height: dims.h,
+                transform: `scale(${MODAL_SCALE})`,
+                transformOrigin: "top left",
+              }}
+            >
               <Pedal
                 slot={slot}
+                variant="modal"
                 engineer={engineer}
                 onToggle={onToggle}
                 onKnobChange={onKnobChange}

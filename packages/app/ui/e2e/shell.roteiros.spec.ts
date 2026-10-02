@@ -86,7 +86,7 @@ test("R2 biblioteca: 99 presets reais, busca, seleção e empty state", async ({
   await expect(lib.userTab()).toBeDisabled();
 });
 
-/* ── R3. Board (9 lugares: pedal real no PRE + 8 vazios) + trava ⇄ mover ── */
+/* ── R3. Board (9 lugares: pedais reais no PRE/DST + 7 vazios) + trava ⇄ mover ── */
 test("R3 board: 9 slots na ordem do sinal e trava do drag", async () => {
   const board = shell.board;
   const fams = ["PRE", "DST", "AMP", "NR", "CAB", "EQ", "MOD", "DLY", "RVB"];
@@ -98,48 +98,39 @@ test("R3 board: 9 slots na ordem do sinal e trava do drag", async () => {
   // display LED: nº (2 dígitos) + nome + tipo
   await expect(board.display()).toContainText("01");
 
-  // o slot 1 é o pedal REAL (COMP): o arrasto sai dele; o hint "arraste ⇄"
-  // vive nos placeholders quando a trava destrava
+  // os slots 1 (PRE/COMP) e 2 (DST) são pedais REAIS: o arrasto sai deles;
+  // o hint "arraste ⇄" vive nos placeholders quando a trava destrava
   await board.expectMoverPressed(false);
   const slot = board.slot(1, "PRE");
   await expect(slot).not.toHaveAttribute("draggable", "true");
+  await expect(board.slot(2, "DST").locator('svg[role="group"]')).toBeVisible();
 
   await board.toggleMover();
   await board.expectMoverPressed(true);
   await expect(slot).toHaveAttribute("draggable", "true");
-  await expect(board.slot(2, "DST")).toContainText("arraste ⇄");
+  await expect(board.slot(3, "AMP")).toContainText("arraste ⇄");
 
   // kill/drum/master não soltam erro
   await shell.killSwitch().click();
   await expect(shell.alerts).toHaveCount(0);
 });
 
-/* ── R7. Pedal real no palco (Fase 2/U-3 — COMP primeiro) ── */
-test("R7 COMP: knob do dicionário, valor editável, LED/footswitch e trava", async ({ page }) => {
+/* ── R7. Pedal real no palco (Fase 2/U-3 — PRE/COMP + DST na 2ª rodada) ── */
+test("R7 COMP: valor em texto no palco (só leitura), edição no modal, LED/footswitch e trava", async ({ page }) => {
   const board = shell.board;
   const pedalSlot = board.slot(1, "PRE");
   const pedal = pedalSlot.locator('svg[role="group"]');
   await expect(pedal).toBeVisible();
   await expect(pedal).toHaveAttribute("aria-label", /COMP/);
-  // os outros 8 lugares seguem placeholders (1 efeito por vez)
-  await expect(board.root.getByText("vazio")).toHaveCount(8);
+  // o DST entrou na 2ª rodada: 2 pedais reais, 7 lugares ainda vazios
+  await expect(board.root.getByText("vazio")).toHaveCount(7);
+  await expect(board.slot(2, "DST").locator('svg[role="group"]')).toBeVisible();
 
-  // knobs REAIS do dicionário (fxData: COMP = Sustain/Output) com valor visível
-  await expect(pedalSlot.locator('svg[role="slider"]')).toHaveCount(2);
-  const sustain = pedalSlot.getByLabel("Sustain");
-  await expect(sustain).toHaveAttribute("aria-valuenow", "20");
-  const box = pedalSlot.locator('input[aria-label="Valor (Enter para editar)"]').first();
-  await expect(box).toHaveValue("20.0");
-  await sustain.press("ArrowUp");
-  await expect(sustain).toHaveAttribute("aria-valuenow", "21");
-  await expect(box).toHaveValue("21");
-
-  // valor EDITÁVEL: clicar → digitar 42 → Enter (vira device_set_param no real)
-  await box.click();
-  const editing = pedalSlot.locator('input[aria-label^="Valor do knob"]');
-  await editing.fill("42");
-  await editing.press("Enter");
-  await expect(box).toHaveValue("42");
+  // knobs REAIS do dicionário (fxData: COMP = Sustain/Output): no palco o
+  // pedal é COMPACTO e mostra o VALOR de cada knob em texto, só leitura
+  await expect(pedalSlot.locator("[data-value]")).toHaveCount(2);
+  await expect(pedalSlot.locator('[data-value="20.0"]')).toBeVisible();
+  await expect(pedalSlot.locator('svg[role="slider"]')).toHaveCount(0);
 
   // LED verde = ON; footswitch alterna para vermelho (prévia local — sem
   // comando de toggle no protocolo capturado)
@@ -148,7 +139,7 @@ test("R7 COMP: knob do dicionário, valor editável, LED/footswitch e trava", as
   await pedalSlot.locator('[role="button"][aria-label^="Desligar efeito"]').click();
   await expect(led).toHaveAttribute("data-led", "off");
 
-  // trava ⇄ mover: OFF protege o knob (pedal não arrastável); ON libera
+  // trava ⇄ mover: OFF protege o pedal (não arrastável); ON libera
   await expect(pedalSlot).not.toHaveAttribute("draggable", "true");
   await board.toggleMover();
   await expect(pedalSlot).toHaveAttribute("draggable", "true");
@@ -162,27 +153,40 @@ test("R7 COMP: knob do dicionário, valor editável, LED/footswitch e trava", as
   await expect(eng).toHaveAttribute("aria-checked", "true");
   await settings.pressEscape();
   await settings.expectHidden();
-  const tip = pedalSlot.locator('svg[role="slider"] title').first();
+  const tip = pedalSlot.locator('svg[role="img"] title').first();
   await expect(tip).toContainText("addr 10 01 00 02");
   await expect(tip).toContainText("ctrl 0");
   await expect(tip).not.toContainText("§13.11");
 
-  // modal de edição (passo 9): a trava precisa voltar ao repouso antes —
-  // com ela ativa o clique pertence ao drag, não à ampliação
+  // edição: a trava precisa voltar ao repouso antes — com ela ativa o clique
+  // pertence ao drag, não à ampliação. O clique em QUALQUER ponto do pedal
+  // (inclusive sobre o knob, que é display) abre o modal
   await board.toggleMover();
   await expect(board.mover()).toHaveAttribute("aria-pressed", "false");
-  await pedalSlot.locator('svg[role="group"]').click({ position: { x: 210, y: 68 } });
+  await pedal.locator('svg[role="img"]').first().click();
   const dlg = page.getByRole("dialog", { name: /Edição do pedal/ });
   await expect(dlg).toBeVisible();
   await expect(dlg.locator('svg[role="slider"]')).toHaveCount(2);
-  await expect(dlg.locator('input[aria-label="Valor (Enter para editar)"]').first()).toHaveValue("42");
+  await expect(dlg.locator('input[aria-label="Valor (Enter para editar)"]').first()).toHaveValue(
+    "20.0",
+  );
 
-  // o knob AMPLIADO ajusta o MESMO estado: ArrowUp → 43 no modal e no palco
+  // o knob AMPLIADO ajusta o MESMO estado: ArrowUp 20 → 21 no modal e no palco
   await dlg.locator('svg[role="slider"]').first().press("ArrowUp");
-  await expect(dlg.locator('input[aria-label="Valor (Enter para editar)"]').first()).toHaveValue("43");
+  const modeBox = dlg.locator('input[aria-label="Valor (Enter para editar)"]').first();
+  await expect(modeBox).toHaveValue("21");
+  await expect(pedalSlot.locator('[data-value="21"]')).toBeVisible();
+
+  // valor EDITÁVEL no modal: digitar 42 → Enter (virou device_set_param) e o
+  // palco reflete o novo valor ao fechar
+  await modeBox.click();
+  const editing = dlg.locator('input[aria-label^="Valor do knob"]');
+  await editing.fill("42");
+  await editing.press("Enter");
+  await expect(modeBox).toHaveValue("42");
   await page.keyboard.press("Escape");
   await expect(dlg).toHaveCount(0);
-  await expect(box).toHaveValue("43");
+  await expect(pedalSlot.locator('[data-value="42"]')).toBeVisible();
 });
 
 /* ── R4. Modal Settings (⚙) ── */

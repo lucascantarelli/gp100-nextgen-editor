@@ -272,7 +272,7 @@ export const MSG = {
   sysNote:
     "No app instalado (Tauri), a versão do app vem do pacote; em navegador é a versão de desenvolvimento.",
   releaseNote:
-    `Versão de prévia: biblioteca de fábrica (${PRESET_COUNT} presets), bateria com ${DRUM_COUNT} ritmos, looper de fita (90 s PRE / 45 s POST), atalhos de teclado e layout responsivo. O board já renderiza os pedais do preset — a cadeia completa chega pedal a pedal.`,
+    `Versão de prévia: biblioteca de fábrica (${PRESET_COUNT} presets), bateria com ${DRUM_COUNT} ritmos, looper de fita (90 s PRE / 45 s POST), atalhos de teclado e layout responsivo. O board já renderiza os pedais do preset — no palco cada pedal é compacto e os knobs são SÓ LEITURA (mostram o valor de cada controle): clicar no pedal abre a edição ampliada, e o que se ajusta lá aparece no palco na hora.`,
 
   /* ── pedais (textos catálogados antes dos componentes entrarem no board) ── */
   pedalGroupAria: (kind: string, name: string, on: boolean) =>
@@ -281,7 +281,7 @@ export const MSG = {
   pedalToggleOn: "Ligar efeito",
   pedalValueAria: "Valor (Enter para editar)",
   pedalValueEditAria: "Valor do knob (Enter aplica, Esc cancela)",
-  pedalExpandTitle: "Ampliar para edição (clique ou Enter)",
+  pedalExpandTitle: "Valores do pedal no palco são só leitura — clique (ou Enter) para editar",
   pedalModalAria: (name: string) => `Edição do pedal ${name}`,
   pedalModalHint: "Esc fecha · os ajustes aplicam na hora",
   pedalModalCloseAria: "Fechar edição do pedal",

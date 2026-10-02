@@ -782,3 +782,41 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
   `general.engineerMode`, da fatia anterior): branch nova a partir da branch
   do PR de baixo, PR com `--base <branch-de-baixo>`; nada de reescrever as
   duas fatias no mesmo branch (o #55 continuou com o diff limpo).
+
+### Pedal compacto no palco + knobs travados (02/10 — fatia 4 da #19)
+
+- **Decisão do owner**: no PALCO os knobs são **SÓ LEITURA** (o pedal é display:
+  mostra o valor de cada controle) e a edição inteira mora no modal — "a edição
+  pode ficar ruim com ele pequeno". Efeito colateral bom: o clique em QUALQUER
+  ponto do pedal abre a edição, sem disputar gesto com o knob. O filtro do
+  Stage perdeu `foreignObject`/`[role="slider"]` (que não existem mais no
+  palco) e mantém só `input/select/textarea/[role="button"]/[data-control]` —
+  o footswitch continua com clique próprio. O `Knob` ganhou `locked`
+  (`role="img"`, sem `tabIndex`/handlers) **mantendo o `<title>`**: o tooltip
+  do modo engenheiro continua no palco (o R7 trocou o seletor para
+  `svg[role="img"] title`).
+- **`transform: scale()` em cima de wrapper dimensionado = 2×** (bug da fatia 3
+  que só apareceu no modal real): o bloco interno do `PedalModal` não tinha
+  `width/height` próprios, herdava os `dims*1.25` do wrapper e o `scale(1.25)`
+  multiplicava de novo → pedal desenhado com 656px num corpo de 510px (espaço
+  vazio, LED/nome fora de centro) e barra de rolagem. Correção: `width: dims.w`
+  e `height: dims.h` no bloco interno. **Teste rápido**: medir
+  `scrollWidth`/`clientWidth` do container do modal (igual = ok).
+- **Item de flex ENCOLHE o `<svg>`** (`flex-shrink: 1` default): pedal mais largo
+  que a coluna era reduzido no `viewBox` (preserveAspectRatio *meet* → desenho
+  menor + letterbox, parecia desalinhado). Solução de verdade no palco: o
+  enclosure vive DENTRO do espaçamento (`clamp(catálogo, 118, 132)`, os dois
+  mínimos do `.board-slots`), com o passo dos knobs derivado da largura; e
+  `flexShrink: 0` no svg como garantia.
+- **`place-items: center` + overflow corta o lado esquerdo** (não há scroll para
+  o negativo): no modal use `justifyItems/alignContent: safe center` — em janela
+  estreita o alinhamento vira `start` e a faixa rola na horizontal em vez de
+  esconder o pedal.
+- **Baselines em cascata (de novo)**: o palco mudou de altura, então além das
+  `board-*` as `lib-*` (stretch, mesma altura) e as `erro-boot-*` mudam nas duas
+  plataformas — win32 local com `--update-snapshots=changed`, linux por dispatch
+  `update-snapshots=true`.
+- **DST entrou na 2ª rodada do R7** (`PEDAL_FAMILIES_READY` = PRE + DST): o mock
+  mostra 2 pedais reais e **7** placeholders — os contadores de "vazio" do R3 e
+  do R7 e o teste unit do Stage acompanham. A validação manual do owner (R7 em
+  todas as 9 posições) segue pendente e é o gate para a próxima família.

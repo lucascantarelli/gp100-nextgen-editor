@@ -249,23 +249,32 @@ oficial Tauri v2 (webkit2gtk-driver + xvfb + WEBKIT_DISABLE_DMABUF_RENDERER).
 >
 > **Entregue (fatia 3):** **modal de edição** — clique/Enter no corpo do pedal
 > (com a trava ⇄ em repouso) amplia 1.25× (knob 80px); Esc/✕/clique fora fecham
-> e o valor ajustado no modal aparece no palco na hora (estado único). Rodada do
-> COMP completa no código (passos 1–12 do R7 cobertos por unit/e2e): falta a
-> **validação manual do owner** (R7 em todas as 9 posições) antes de partir
-> para o DST.
+> e o valor ajustado no modal aparece no palco na hora (estado único).
+>
+> **Entregue (fatia 4):** **pedal compacto no palco** — enclosure no espaçamento
+> do board (118–132px, knob 32px) com o VALOR de cada knob em texto e **knobs
+> travados** (`role="img"`: sem foco/handlers); QUALQUER clique/Enter no pedal
+> abre o modal (o footswitch conserva o clique próprio), a edição inteira mora
+> lá e volta para o palco na hora. **DST entrou** como 2º efeito real (2 pedais +
+> 7 placeholders). Falta a **validação manual do owner** (R7 em todas as 9
+> posições) antes de partir para a próxima família.
 
 ### R7. Um pedal (ex.: COMP) em cada posição do board
-1. O efeito aparece no slot da vez; os 8 restantes continuam placeholders.
+1. O efeito aparece no slot da vez; os demais continuam placeholders.
 2. Modelo/cores coerentes com a família (PRE = cinza-azulado; DST vermelho; …).
 3. TODOS os knobs/switches/comboxes do algoritmo aparecem (contar vs fxData).
-4. Knob grande (≥64px), nome e VALOR visíveis; nada sobrepõe em NENHUMA posição.
-5. Arrastar o knob vertical muda o valor (fino: dy/260); setas ±1% (Shift 5%);
-   duplo-clique = default; tooltip do modo engenheiro mostra addr §13.11.
-6. Valor EDITÁVEL: clicar na caixa → digitar → Enter aplica (device_set_param no
-   real); valor inválido é ignorado; Esc restaura; blur aplica.
-7. Switch/combox cicla por clique; valor da opção reflete.
+4. **No palco** o pedal é compacto (118–132px) e caberia 9 numa linha larga:
+   nome + VALOR de cada knob em texto, nada sobrepõe em NENHUMA posição, e o
+   pedal não é reescalado/estoura a coluna.
+5. Knob do palco é SÓ LEITURA (não arrasta, não foca, não muda valor); o tooltip
+   continua útil (com o modo engenheiro mostra `addr/code/ctrl`).
+6. **Toda a edição acontece no modal**: clicar no pedal abre; arrastar o knob
+   (dy/260), setas ±1% (Shift 5%), duplo-clique = default.
+7. Valor EDITÁVEL (textbox do modal): digitar → Enter aplica (`device_set_param`
+   no real); inválido é ignorado; Esc restaura; blur aplica; o palco reflete.
 8. LED do pedal: verde quando ON, vermelho quando OFF; footswitch alterna.
-9. Modal de edição (clique no pedal): knobs ampliados, fecha com Esc.
+9. Modal de edição: pedal 1.25× (knob 80px) SEM barra de rolagem em janela
+   ≥640px, nada cortado/sobreposto, fecha com Esc/✕/clique fora.
 10. `⇄ mover` OFF: tentar arrastar o pedal NÃO move (protege o knob).
 11. `⇄ mover` ON: drag reordena (prévia local) e cabos seguem os jacks.
 12. Cabo de sinal: entra no jack IN do próximo; pulso anima só entre pedais ON.

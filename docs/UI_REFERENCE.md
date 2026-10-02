@@ -127,25 +127,41 @@ completamente funcional"):** importar/gerar a lista REAL dos 99 presets de fábr
 - [x] **Um efeito por vez primeiro** — validar CADA efeito isolado (o COMP primeiro)
   antes de devolver os 9 slots ao board. Owner: "primeiro vc deve ajustar todos os
   efeitos de comp, apenas com esse efeito visível". *Fatia 1 (PR da #19):* o
-  Stage renderiza só as famílias de `PEDAL_FAMILIES_READY` (PRE/COMP) e mantém
-  os 8 lugares restantes como placeholders.
-- [x] **Modal de edição do pedal** — clique (ou Enter) no corpo do pedal amplia
-  para edição dos parâmetros (estilo painel grande do oficial): **1.25×**
-  (knob 64 → 80px), mesmos handlers (estado ÚNICO com o palco), fecha com
-  **Esc / ✕ / clique fora** e o transporte global fica inerte enquanto aberto.
-  Com a trava ⇄ ativa o clique pertence ao drag (não amplia). Board = visão
-  geral; modal = edição.
+  Stage renderiza só as famílias de `PEDAL_FAMILIES_READY` e mantém os demais
+  lugares como placeholders. *Fatia 4:* entraram **PRE/COMP e DST** (2 pedais
+  reais + 7 placeholders); cada rodada do R7 acrescenta a próxima família.
+- [x] **Modal de edição do pedal** — clique (ou Enter) em QUALQUER ponto do pedal
+  amplia para edição dos parâmetros (estilo painel grande do oficial): **1.25×**
+  do layout de edição (knob 64 → 80px), mesmos handlers (estado ÚNICO com o
+  palco), fecha com **Esc / ✕ / clique fora** e o transporte global fica inerte
+  enquanto aberto. Com a trava ⇄ ativa o clique pertence ao drag (não amplia).
+  **Board = leitura, modal = edição.**
+- [x] **Knobs do palco são SÓ LEITURA (pedido do owner, fatia 4)** — o pedal do
+  board é compacto e mostra o VALOR de cada knob em texto; não há textbox nem
+  gesto de ajuste no palco ("a edição pode ficar ruim com ele pequeno"):
+  clica → abre o modal → ajusta → o palco reflete. O knob travado é
+  `role="img"` (sem foco/handlers) e mantém o tooltip (modo engenheiro incluso);
+  só o **footswitch** conserva clique próprio (liga/desliga).
 - [x] **Nome do patch fora do board** — display LED (estilo hardware) no cabeçalho
   do palco (e na navbar); o board é só a cadeia.
 - [x] **Toggle/LED** — LED VERDE = ON, VERMELHO = OFF. *Fatia 1:* footswitch
   alterna por prévia LOCAL (o protocolo capturado não tem comando de toggle).
-- [x] **Valor editável via textbox** sob/ junto ao knob (Enter aplica, Esc cancela,
-  duplo-clique no knob = default; setas ±1%, Shift ±5%). *Fatia 1:* aplica local e
-  manda `device_set_param` quando o knob é numérico (switch/combox só local).
+- [x] **Valor editável via textbox** sob o knob (Enter aplica, Esc cancela,
+  duplo-clique no knob = default; setas ±1%, Shift ±5%). A textbox vive no
+  **modal** (no palco o valor é texto de leitura). Aplicar é LOCAL +
+  `device_set_param` quando o knob é numérico (switch/combox só local — o
+  protocolo capturado não tem encoding de opção).
 
 ### 3.2 Geometria/tamanhos (aprendidos com os testes)
-- [ ] Knob grande (64px testado; base p/ modal: 72–80px). Pitch da grade ≥ 116px
-  para 64px + nome + valor sem sobreposição.
+- [x] **Pedal do PALCO: compacto, dentro do espaçamento do board** — largura
+  `clamp(catálogo fxModels, 118, 132)` (os dois mínimos do `.board-slots`),
+  knob 32px, passo 46px (encolhe p/ caber), rótulo + VALOR em texto, sem placa;
+  altura cresce por linha (174 / 228 / 282px). `flexShrink: 0` no svg: o flex do
+  slot nunca reescala o desenho (encolher o svg desalinhava tudo).
+- [x] **Escala de EDIÇÃO (modal)**: layout grande próprio (420px de largura
+  mínima, knob 64, pitch 116, placa GP-100) × `MODAL_SCALE = 1.25` → 525×470px
+  com knob 80px. O bloco interno do modal PRECISA de `width/height` explícitos
+  (sem eles ele herda a largura do wrapper e o 1.25× vira 1.5625×).
 - [ ] Formas por variante: mini/box/widebox/treadle/filter/tscream/fuzz/rotary/
   amphead/echo (catálogo `fxModels.ts`). AMP = cabeçote NA CADEIA (Bog RedM: 6 knobs,
   PRES/MASTER/BASS/MIDDLE/TREBLE/GAIN); CAB = gabinete IR (1 knob de mic; 60 IRs);
@@ -158,6 +174,19 @@ completamente funcional"):** importar/gerar a lista REAL dos 99 presets de fábr
       (`§13.11`) — lição Q-8 travada por teste (unit + e2e).
 
 ### 3.3 Lições de engenharia (não repetir)
+- ⚠️ **`transform: scale()` + wrapper dimensionado = escala aplicada 2×** se o
+  bloco interno não tiver `width/height` próprios: o bloco herda a largura já
+  escalada do wrapper e o scale multiplica de novo. Sintomas: corpo menor que a
+  área (espaço vazio), conteúdo descentralizado e barra de rolagem. O
+  `PedalModal` ficou assim desde a fatia 3 e só apareceu no `Modal` real
+  (medir `scrollWidth` do container é o teste rápido).
+- ⚠️ **Item de flex encolhe o SVG** (padrão `flex-shrink: 1`): um pedal mais largo
+  que a coluna do board era reduzido com o `viewBox` “meet” (desenho menor e
+  centralizado, com letterbox). Ou o enclosure cabe no espaçamento (é o caso do
+  palco: 118–132px) ou o svg precisa de `flexShrink: 0`.
+- ⚠️ **`place-items: center` + overflow = conteúdo cortado à esquerda e
+  inalcançável** (não dá scroll para o lado negativo). Use `justifyItems:
+  safe center` quando o conteúdo pode ser maior que o container (modal).
 - ⚠️ `str_replace` com texto parcial já quebrou o `Pedal.tsx` 2× — sempre reler o
   arquivo após edições grandes; preferir reescrever o bloco inteiro.
 - ⚠️ Fallback dev exige nomes EXATOS do `fxData.ts` (era "4x12 Green", correto é
@@ -279,13 +308,14 @@ FASE 3 — CONTO E POLIMENTO
 | Regra | Onde vive | Comportamento |
 |---|---|---|
 | `.shell-main` | `design.css` (usada em `App.tsx`) | `minmax(0,1fr) 320px`; ≤1100px EMPILHA (biblioteca vira linha, mesma largura do board) |
-| `.board-slots` | `design.css` (usada em `EmptyBoard.tsx`) | 9 colunas; ≤1340px vira 3×3 (sem slots órfãos) |
+| `.board-slots` | `design.css` (usada em `Stage.tsx`) | colunas por conteúdo: `repeat(3, minmax(132px, max-content))`; ≥1700px `repeat(9, minmax(118px, max-content))`; `overflow-x: auto` |
 | Looper `card` | `LooperPanel.tsx` | `repeat(auto-fit, minmax(300px,1fr))`: 4 tracks @1440 (a 4ª colapsa a 0px — sem buraco), 3 tracks @1280/1024 |
 | `.gp-num` | `design.css` | number input sem spinners (visual idêntico aos selects) |
 
-- **Medidas canônicas (Chrome):** overflow X = 0 nos 3 tamanhos; slots com
-  larguras idênticas e pitch uniforme; looper tracks 439.3×3+0 @1440, 386×3 @1280,
-  300.7×3 @1024; nenhum texto clipado nos painéis.
+- **Medidas canônicas (Chrome):** overflow X = 0 nos 3 tamanhos; slots medidos
+  POR LINHA com colunas por conteúdo (o lugar vazio tem 142px; o pedal do palco
+  fica em 118–132px dentro dele) e **zero sobreposição**; looper tracks
+  439.3×3+0 @1440, 386×3 @1280, 300.7×3 @1024; nenhum texto clipado nos painéis.
 - **Ferramenta:** os asserts de alinhamento viraram TESTE e2e
   (`e2e/responsivo.spec.ts` + `e2e/_helpers.ts::expectShellAligned` — rodam na
   CI e localmente, 3 viewports). O script `analysis/responsivo_shots.js`
