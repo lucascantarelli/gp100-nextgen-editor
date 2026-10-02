@@ -1,12 +1,16 @@
 /**
- * Pedal SVG — modelo POR VARIANTE (efeito real do dicionário). Layout
- * GRANDE: knob de 64px e VALOR EDITÁVEL (textbox) sob cada knob —
- * Enter/tab-out aplica o valor ao device, Esc restaura, ↑/↓ incrementa,
- * duplo-clique no knob reseta ao default.
+ * Pedal SVG — modelo POR VARIANTE (efeito real do dicionário) em DUAS
+ * escalas:
  *
- * O board mostra UM efeito por vez (o 1º da cadeia — hoje, o COMP);
- * foco total em precisão de ajuste antes de voltar aos 9 slots.
+ *   - `board` (palco): enclosure COMPACTO com a largura real do catálogo
+ *     (fxModels) — knob de 32px, valor em TEXTO (leitura) sob o rótulo e
+ *     footswitch/jacks pequenos. Cabe no espaçamento definido do
+ *     `.board-slots` (118–132px), então os 9 pedais convivem no board;
+ *   - `modal` (edição): layout GRANDE — knob de 64px e VALOR EDITÁVEL
+ *     (textbox) sob cada knob, com Enter aplicando ao device, Esc
+ *     restaurando, ↑/↓ incrementando e duplo-clique resetando ao default.
  *
+ * Os DOIS usam o MESMO estado: o que se ajusta no modal aparece no palco.
  * LEDs padronizados: VERDE = ligado, VERMELHO = desligado.
  * Modo engenheiro: tooltip do knob mostra o endereço de memória do comando SET.
  */
@@ -32,27 +36,139 @@ const FAMILY_STYLE: Record<
   RVB: { body: "#a24a6d", face: "#7a3350", accent: "#ffb3d1", kind: "Reverb" },
 };
 
-const KNOB = 64; // knob grande
-const PITCH = 116; // passo horizontal/vertical da grade (sem sobreposição)
-const VALUE_W = 92; // caixa do valor editável
+/** Escala do pedal: palco (compacto) ou modal de edição (grande). */
+export type PedalVariant = "board" | "modal";
 
-/** Dimensões determinísticas do pedal (board usa p/ layout). */
-export function pedalDims(slot: BoardSlot): { w: number; h: number } {
+/** Métricas de layout por escala (arte do palco — não é dado do device). */
+const SCALES = {
+  board: {
+    knob: 32,
+    pitchX: 46, // passo horizontal (knob + respiro)
+    rowH: 54, // passo vertical (knob + rótulo + valor)
+    cy0: 78, // centro da 1ª linha de knobs
+    deckTop: 58,
+    footR: 12,
+    valueBox: false, // palco: valor em texto (a edição mora no modal)
+    plate: false,
+  },
+  modal: {
+    knob: 64,
+    pitchX: 116,
+    rowH: 116,
+    cy0: 200,
+    deckTop: 154,
+    footR: 19,
+    valueBox: true,
+    plate: true,
+  },
+} as const;
+
+const VALUE_W = 92; // caixa do valor editável (modal)
+const LED_ON = "#39d353";
+const LED_OFF = "#ff4b4b";
+
+/** Corte de texto por largura disponível (nunca estoura o enclosure). */
+function clip(text: string, max: number): string {
+  return text.length > max ? `${text.slice(0, Math.max(1, max - 1))}…` : text;
+}
+
+interface Layout {
+  W: number;
+  H: number;
+  cols: number;
+  rows: number;
+  /** centro da 1ª linha de knobs */
+  cy0: number;
+  /** recorte do deck (fundo dos controles) */
+  deckTop: number;
+  deckH: number;
+  footY: number;
+  jackY: number;
+  rowH: number;
+  /** passo horizontal dos knobs (pode encolher p/ caber no enclosure) */
+  pitchX: number;
+  nameMax: number;
+  labelMax: number;
+}
+
+/** Geometria determinística do pedal para um slot e uma escala. */
+function layoutFor(slot: BoardSlot, variant: PedalVariant): Layout {
   const m = modelFor(slot);
-  const rows = Math.max(1, Math.ceil(Math.max(slot.knobs.length, 1) / m.cols));
-  return { w: Math.max(m.w, 420), h: 150 + rows * PITCH + 110 };
+  const s = SCALES[variant];
+  const cols = Math.min(modelCols(m.cols), 4);
+  const rows = Math.max(1, Math.ceil(Math.max(slot.knobs.length, 1) / cols));
+  if (variant === "modal") {
+    // escala de EDIÇÃO: a geometria grande de sempre (deck com as caixas de
+    // valor + footswitch e placa no pé, sem nenhuma sobreposição)
+    const W = Math.max(m.w, 420);
+    const H = 150 + rows * s.rowH + 110;
+    return {
+      W,
+      H,
+      cols,
+      rows,
+      cy0: s.cy0,
+      deckTop: s.cy0 - 46,
+      deckH: rows * s.rowH + 52,
+      footY: H - 66,
+      jackY: H - 22,
+      rowH: s.rowH,
+      pitchX: s.pitchX,
+      nameMax: 26,
+      labelMax: 16,
+    };
+  }
+  // escala do PALCO: a largura fica DENTRO do espaçamento do .board-slots
+  // (118–132px) — o pedal mais largo do catálogo nunca estoura a coluna, então
+  // os 9 convivem no board. O passo dos knobs encolhe p/ caber no enclosure.
+  const W = Math.max(118, Math.min(m.w, 132));
+  let boardCols = Math.max(1, Math.min(modelCols(m.cols), 4));
+  while (boardCols > 1 && (W - 12) / boardCols < 34) boardCols -= 1; // nunca sobrepõe
+  const pitchX = Math.min(s.pitchX, (W - 12) / boardCols);
+  const boardRows = Math.max(1, Math.ceil(Math.max(slot.knobs.length, 1) / boardCols));
+  const cy0 = s.cy0;
+  const lastVal = cy0 + (boardRows - 1) * s.rowH + (s.knob / 2 + 9 + 10);
+  const deckTop = s.deckTop;
+  const deckH = lastVal + 4 - deckTop;
+  const footY = deckTop + deckH + 26;
+  const H = footY + s.footR + 19;
+  return {
+    W,
+    H,
+    cols: boardCols,
+    rows: boardRows,
+    cy0,
+    deckTop,
+    deckH,
+    footY,
+    jackY: H - 11,
+    rowH: s.rowH,
+    pitchX,
+    nameMax: Math.max(6, Math.floor((W - 22) / 6.4)),
+    labelMax: Math.max(3, Math.floor((pitchX - 8) / 5.4)),
+  };
+}
+
+/** `cols` do catálogo (sempre ≥1 — modelo nunca vem vazio). */
+function modelCols(cols: number): number {
+  return cols > 0 ? cols : 1;
+}
+
+/** Dimensões determinísticas do pedal (board/modal usam p/ layout). */
+export function pedalDims(slot: BoardSlot, variant: PedalVariant = "board"): { w: number; h: number } {
+  const l = layoutFor(slot, variant);
+  return { w: l.W, h: l.H };
 }
 
 interface Props {
   slot: BoardSlot;
+  /** Escala do desenho (default: o palco, compacto). */
+  variant?: PedalVariant;
   engineer?: boolean;
   onKnobChange: (slot: BoardSlot, pos: number, value: string) => void;
   onKnobReset: (slot: BoardSlot, pos: number) => void;
   onToggle: (slot: BoardSlot) => void;
 }
-
-const LED_ON = "#39d353";
-const LED_OFF = "#ff4b4b";
 
 /** Caixa de valor EDITÁVEL (textbox) — commit em Enter/blur, Esc restaura. */
 function ValueBox({
@@ -145,29 +261,36 @@ function ValueBox({
   );
 }
 
-export function Pedal({ slot, engineer = false, onKnobChange, onKnobReset, onToggle }: Props) {
+export function Pedal({
+  slot,
+  variant = "board",
+  engineer = false,
+  onKnobChange,
+  onKnobReset,
+  onToggle,
+}: Props) {
   const fam = FAMILY_STYLE[slot.family];
   const model = modelFor(slot);
   const body = model.body ?? fam.body;
   const face = model.face ?? fam.face;
-  const W = pedalDims(slot).w;
-  const H = pedalDims(slot).h;
+  const scale = SCALES[variant];
+  const compact = variant === "board";
+  const { W, H, cols, cy0, deckTop, deckH, footY, jackY, pitchX, nameMax, labelMax } =
+    layoutFor(slot, variant);
   const on = slot.state;
   const led = on ? LED_ON : LED_OFF;
   const codeHex = `0x${(slot.code >>> 0).toString(16).padStart(8, "0")}`;
   const addr = `10 ${(slot.slot + 1).toString(16).padStart(2, "0")} 00 02`;
 
   const knobs = slot.knobs; // TODOS os controles do algoritmo
-  const cols = Math.min(model.cols, 4);
-  const rows = Math.max(1, Math.ceil(Math.max(knobs.length, 1) / cols));
-  const gridW = cols * PITCH;
-  const gridLeft = W / 2 - gridW / 2 + PITCH / 2;
-  const knobTop = 200;
+  const gridW = cols * pitchX;
+  const gridLeft = W / 2 - gridW / 2 + pitchX / 2;
 
   const fracOf = (r?: [number, number]) =>
     r != null && (!Number.isInteger(r[0]) || !Number.isInteger(r[1]));
 
-  const footY = H - 66;
+  const nameText = clip(slot.name, nameMax);
+  const refText = clip(`${compact ? "" : `${fam.kind} · `}${model.ref}`, nameMax + 6);
 
   return (
     <svg
@@ -176,7 +299,13 @@ export function Pedal({ slot, engineer = false, onKnobChange, onKnobReset, onTog
       viewBox={`0 0 ${W} ${H}`}
       role="group"
       aria-label={MSG.pedalGroupAria(fam.kind, slot.name, on)}
-      style={{ filter: "drop-shadow(0 12px 16px rgba(0,0,0,.6))" }}
+      style={{
+        // nunca deixa o flex do board ENCOLHER o desenho (escala distorcida)
+        flexShrink: 0,
+        filter: compact
+          ? "drop-shadow(0 6px 8px rgba(0,0,0,.55))"
+          : "drop-shadow(0 12px 16px rgba(0,0,0,.6))",
+      }}
     >
       <defs>
         <linearGradient id={`body-${slot.slot}`} x1="0" y1="0" x2="0" y2="1">
@@ -196,47 +325,129 @@ export function Pedal({ slot, engineer = false, onKnobChange, onKnobReset, onTog
         </radialGradient>
       </defs>
 
-      <ellipse cx={W / 2} cy={H - 4} rx={W / 2 - 10} ry={6} fill="#000" opacity="0.5" />
+      <ellipse
+        cx={W / 2}
+        cy={H - 4}
+        rx={W / 2 - (compact ? 8 : 10)}
+        ry={compact ? 4 : 6}
+        fill="#000"
+        opacity="0.5"
+      />
 
       {/* corpo */}
-      <rect x="6" y="8" width={W - 12} height={H - 20} rx="14" fill={`url(#body-${slot.slot})`} stroke="#0a0c0f" strokeWidth="1.8" />
-      <rect x="6" y="8" width={W - 12} height={H - 20} rx="14" fill={`url(#sheen-${slot.slot})`} />
+      <rect
+        x={compact ? 4 : 6}
+        y={compact ? 6 : 8}
+        width={W - (compact ? 8 : 12)}
+        height={H - (compact ? 12 : 20)}
+        rx={compact ? 10 : 14}
+        fill={`url(#body-${slot.slot})`}
+        stroke="#0a0c0f"
+        strokeWidth={compact ? 1.4 : 1.8}
+      />
+      <rect
+        x={compact ? 4 : 6}
+        y={compact ? 6 : 8}
+        width={W - (compact ? 8 : 12)}
+        height={H - (compact ? 12 : 20)}
+        rx={compact ? 10 : 14}
+        fill={`url(#sheen-${slot.slot})`}
+      />
 
-      {/* LED grande + parafusos */}
-      <circle cx={W / 2} cy={34} r="8" fill={`url(#led-${slot.slot})`} stroke="#0a0c0f" strokeWidth="1.1" data-led={on ? "on" : "off"} />
-      <circle cx={W / 2} cy={34} r="14" fill={led} opacity={on ? 0.18 : 0.1} aria-hidden="true" />
-      {[18, W - 18].map((x) => (
+      {/* LED + parafusos */}
+      <circle
+        cx={W / 2}
+        cy={compact ? 18 : 34}
+        r={compact ? 6 : 8}
+        fill={`url(#led-${slot.slot})`}
+        stroke="#0a0c0f"
+        strokeWidth="1.1"
+        data-led={on ? "on" : "off"}
+      />
+      <circle
+        cx={W / 2}
+        cy={compact ? 18 : 34}
+        r={compact ? 10 : 14}
+        fill={led}
+        opacity={on ? 0.18 : 0.1}
+        aria-hidden="true"
+      />
+      {[compact ? 13 : 18, W - (compact ? 13 : 18)].map((x) => (
         <g key={x}>
-          <circle cx={x} cy={22} r="3.6" fill="#c8ccd2" stroke="#5b6068" strokeWidth="0.8" />
-          <line x1={x - 2.4} y1={22} x2={x + 2.4} y2={22} stroke="#5b6068" strokeWidth="0.8" />
+          <circle
+            cx={x}
+            cy={compact ? 15 : 22}
+            r={compact ? 2.6 : 3.6}
+            fill="#c8ccd2"
+            stroke="#5b6068"
+            strokeWidth="0.8"
+          />
+          <line
+            x1={x - (compact ? 1.7 : 2.4)}
+            y1={compact ? 15 : 22}
+            x2={x + (compact ? 1.7 : 2.4)}
+            y2={compact ? 15 : 22}
+            stroke="#5b6068"
+            strokeWidth="0.8"
+          />
         </g>
       ))}
 
       {/* nome do efeito (nome REAL do algoritmo) */}
-      <text x={W / 2} y={68} textAnchor="middle" fontSize="16" fontWeight="800" fill="#f3f5f7" fontFamily="ui-sans-serif, system-ui">
-        {slot.name.length > 26 ? `${slot.name.slice(0, 25)}…` : slot.name}
+      <text
+        x={W / 2}
+        y={compact ? 40 : 68}
+        textAnchor="middle"
+        fontSize={compact ? 11.5 : 16}
+        fontWeight="800"
+        fill="#f3f5f7"
+        fontFamily="ui-sans-serif, system-ui"
+      >
+        {nameText}
       </text>
-      <text x={W / 2} y={84} textAnchor="middle" fontSize="9" fill="#9aa3ad" fontFamily="ui-sans-serif, system-ui">
-        {`${fam.kind} · ${model.ref}`}
+      <text
+        x={W / 2}
+        y={compact ? 51 : 84}
+        textAnchor="middle"
+        fontSize={compact ? 7.5 : 9}
+        fill="#9aa3ad"
+        fontFamily="ui-sans-serif, system-ui"
+      >
+        {refText}
       </text>
 
       {/* deck de controles */}
-      <rect x="14" y={knobTop - 46} width={W - 28} height={rows * PITCH + 52} rx="10" fill="#000" opacity="0.28" />
+      <rect
+        x={compact ? 8 : 14}
+        y={deckTop}
+        width={W - (compact ? 16 : 28)}
+        height={deckH}
+        rx={compact ? 8 : 10}
+        fill="#000"
+        opacity="0.28"
+      />
 
-      {/* knobs grandes + valor editável sob cada um */}
+      {/* knobs (+ valor: texto no palco, textbox no modal) */}
       {knobs.map((k, i) => {
         const row = Math.floor(i / cols);
         const colIdx = i % cols;
         const inRow = Math.min(knobs.length - row * cols, cols);
-        const offset = ((cols - inRow) / 2) * PITCH; // última linha centralizada
-        const cx = gridLeft + colIdx * PITCH + offset;
-        const cy = knobTop + row * PITCH;
+        const offset = ((cols - inRow) / 2) * pitchX; // última linha centralizada
+        const cx = gridLeft + colIdx * pitchX + offset;
+        const cy = cy0 + row * scale.rowH;
+        const label = clip(k.name, labelMax);
         return (
           <g key={k.pos}>
-            <foreignObject x={cx - KNOB / 2} y={cy - KNOB / 2} width={KNOB} height={KNOB}>
+            <foreignObject
+              x={cx - scale.knob / 2}
+              y={cy - scale.knob / 2}
+              width={scale.knob}
+              height={scale.knob}
+            >
               <Knob
                 knob={k}
-                size={KNOB}
+                size={scale.knob}
+                locked={compact}
                 accent={fam.accent}
                 engineer={engineer}
                 addr={addr}
@@ -245,17 +456,45 @@ export function Pedal({ slot, engineer = false, onKnobChange, onKnobReset, onTog
                 onReset={(pos) => onKnobReset(slot, pos)}
               />
             </foreignObject>
-            <text x={cx} y={cy + KNOB / 2 + 18} textAnchor="middle" fontSize="11" fontWeight="700" fill="#dfe4ea" fontFamily="ui-sans-serif, system-ui">
-              {k.name}
+            <text
+              x={cx}
+              y={cy + scale.knob / 2 + (compact ? 9 : 18)}
+              textAnchor="middle"
+              fontSize={compact ? 8 : 11}
+              fontWeight="700"
+              fill="#dfe4ea"
+              fontFamily="ui-sans-serif, system-ui"
+            >
+              {label}
             </text>
-            <foreignObject x={cx - VALUE_W / 2} y={cy + KNOB / 2 + 24} width={VALUE_W} height="32">
-              <ValueBox
-                text={k.value ?? "—"}
-                frac={fracOf(k.range)}
-                accent={fam.accent}
-                onCommit={(raw) => onKnobChange(slot, k.pos, raw)}
-              />
-            </foreignObject>
+            {scale.valueBox ? (
+              <foreignObject
+                x={cx - VALUE_W / 2}
+                y={cy + scale.knob / 2 + 24}
+                width={VALUE_W}
+                height="32"
+              >
+                <ValueBox
+                  text={k.value ?? "—"}
+                  frac={fracOf(k.range)}
+                  accent={fam.accent}
+                  onCommit={(raw) => onKnobChange(slot, k.pos, raw)}
+                />
+              </foreignObject>
+            ) : (
+              <text
+                x={cx}
+                y={cy + scale.knob / 2 + 19}
+                textAnchor="middle"
+                fontSize="8.5"
+                fontWeight="700"
+                fill={fam.accent}
+                fontFamily="var(--font-mono)"
+                data-value={k.value ?? "—"}
+              >
+                {k.value ?? "—"}
+              </text>
+            )}
           </g>
         );
       })}
@@ -267,20 +506,75 @@ export function Pedal({ slot, engineer = false, onKnobChange, onKnobReset, onTog
         role="button"
         aria-label={on ? MSG.pedalToggleOff : MSG.pedalToggleOn}
       >
-        <circle cx={W / 2} cy={footY} r="19" fill="#20242b" stroke="#0a0c0f" strokeWidth="1.6" />
-        <circle cx={W / 2} cy={footY} r="14" fill={on ? "#3a4150" : "#2a2f38"} stroke="#0a0c0f" />
-        <circle cx={W / 2} cy={footY - 1} r="12" fill="#565f6e" opacity="0.5" />
+        <circle
+          cx={W / 2}
+          cy={footY}
+          r={scale.footR}
+          fill="#20242b"
+          stroke="#0a0c0f"
+          strokeWidth={compact ? 1.2 : 1.6}
+        />
+        <circle
+          cx={W / 2}
+          cy={footY}
+          r={scale.footR - (compact ? 3.5 : 5)}
+          fill={on ? "#3a4150" : "#2a2f38"}
+          stroke="#0a0c0f"
+        />
+        <circle
+          cx={W / 2}
+          cy={footY - 1}
+          r={scale.footR - (compact ? 5 : 7)}
+          fill="#565f6e"
+          opacity="0.5"
+        />
       </g>
 
       {/* jacks */}
-      <circle cx="26" cy={H - 22} r="5.6" fill="#0b0d10" stroke="#454c56" strokeWidth="1.6" />
-      <circle cx={W - 26} cy={H - 22} r="5.6" fill="#0b0d10" stroke="#454c56" strokeWidth="1.6" />
+      <circle
+        cx={compact ? 18 : 26}
+        cy={jackY}
+        r={compact ? 4 : 5.6}
+        fill="#0b0d10"
+        stroke="#454c56"
+        strokeWidth={compact ? 1.2 : 1.6}
+      />
+      <circle
+        cx={W - (compact ? 18 : 26)}
+        cy={jackY}
+        r={compact ? 4 : 5.6}
+        fill="#0b0d10"
+        stroke="#454c56"
+        strokeWidth={compact ? 1.2 : 1.6}
+      />
 
-      {/* placa GP-100 */}
-      <rect x={W / 2 - 30} y={H - 32} width="60" height="14" rx="3" fill="#14171c" stroke="#0a0c0f" strokeWidth="0.8" />
-      <text x={W / 2} y={H - 22} textAnchor="middle" fontSize="9" fontWeight="700" letterSpacing="1.4" fill={fam.accent} fontFamily="ui-monospace, monospace">
-        {MSG.brandPlate}
-      </text>
+      {/* placa GP-100 (só no modal: no palco o espaço é dos controles) */}
+      {scale.plate && (
+        <>
+          <rect
+            x={W / 2 - 30}
+            y={H - 32}
+            width="60"
+            height="14"
+            rx="3"
+            fill="#14171c"
+            stroke="#0a0c0f"
+            strokeWidth="0.8"
+          />
+          <text
+            x={W / 2}
+            y={H - 22}
+            textAnchor="middle"
+            fontSize="9"
+            fontWeight="700"
+            letterSpacing="1.4"
+            fill={fam.accent}
+            fontFamily="ui-monospace, monospace"
+          >
+            {MSG.brandPlate}
+          </text>
+        </>
+      )}
     </svg>
   );
 }

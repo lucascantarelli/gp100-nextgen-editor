@@ -7,9 +7,11 @@
  * lugares marcados da Fase 1, para o owner validar o pedal em TODAS as 9
  * posições (roteiro R7): com a trava ATIVA, arrastar o pedal para outra
  * posição reordena LOCAL (prévia — o device ainda não tem comando de
- * reorder; o LED/footswitch e switch/combox também são prévia local).
- * O knob NUMÉRICO é o único que sai daqui para o device: o App escuta
- * `onKnobChange` e manda `device_set_param` (§13.11).
+ * reorder; o LED/footswitch também é prévia local). O pedal do palco é
+ * COMPACTO e os knobs são SÓ LEITURA (mostram o valor de cada controle):
+ * quem ajusta é o modal de edição, aberto com clique/Enter em QUALQUER ponto
+ * do pedal — e o App escuta `onKnobChange` e manda `device_set_param`
+ * (§13.11).
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, DragEvent } from "react";
@@ -21,13 +23,14 @@ import type { TunerSettings } from "./TunerPanel";
 import { MSG } from "../i18n/messages";
 
 /**
- * Famílias com pedal REAL já validado no palco (fase "1 efeito por vez").
- * Só o PRE/COMP entrou até agora; cada rodada do R7 (docs/UI_TEST_PLAN.md)
- * adiciona a próxima família depois da aprovação do owner.
+ * Famílias com pedal REAL já no palco (fase "1 efeito por vez").
+ * O PRE/COMP foi a 1ª rodada do R7; o DST entra na 2ª (mesma cadeia de
+ * escrita: `device_set_param` §13.11). Cada rodada do R7 adiciona a próxima
+ * família depois da validação do owner (docs/UI_TEST_PLAN.md).
  */
 export const PEDAL_FAMILIES_READY: ReadonlySet<BoardSlot["family"]> = new Set<
   BoardSlot["family"]
->(["PRE"]);
+>(["PRE", "DST"]);
 
 interface Props {
   /** Board do preset corrente (device_board); null antes da 1ª leitura. */
@@ -267,14 +270,13 @@ export function Stage({
             },
           };
           if (s != null && ready) {
-            // clique/Enter no pedal abre o modal de edição — EXCETO sobre os
-            // controles (knob, textbox, footswitch) e com a trava ativa
-            // (modo arranjo: o clique pertence ao drag-and-drop)
+            // clique/Enter em QUALQUER ponto do pedal abre o modal de edição:
+            // no palco os knobs são SÓ LEITURA (não disputam o gesto) — o
+            // único controle com clique próprio é o footswitch (role button);
+            // com a trava ativa o clique pertence ao drag-and-drop
             const isControl = (t: EventTarget | null) =>
               t instanceof Element &&
-              t.closest(
-                'input, select, textarea, foreignObject, [role="slider"], [role="button"], [data-control]',
-              ) != null;
+              t.closest('input, select, textarea, [role="button"], [data-control]') != null;
             return (
               <div
                 key={chainIdx}

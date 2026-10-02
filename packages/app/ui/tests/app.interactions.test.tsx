@@ -369,7 +369,7 @@ describe("Settings — as 6 abas", () => {
         .dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })),
     );
     await settle();
-    const title = host.querySelector('[aria-label="Slot 1: PRE"] svg[role="slider"] title');
+    const title = host.querySelector('[aria-label="Slot 1: PRE"] svg[role="img"] title');
     expect(title?.textContent).toContain("addr 10 01 00 02");
     expect(title?.textContent).toContain("ctrl 0");
     teardown(root, host);
@@ -578,7 +578,7 @@ describe("Palco — afinador e drag-and-drop dos slots (Stage)", () => {
 });
 
 describe("Palco — COMP (U-3: 1 efeito por vez)", () => {
-  it("knob do dicionário aplica LOCAL e manda device_set_param (slot do fio 1..9)", async () => {
+  it("palco: knobs travados com o valor em texto; o knob do MODAL manda device_set_param (slot do fio 1..9)", async () => {
     const { root, host } = mount();
     await settle();
 
@@ -589,17 +589,31 @@ describe("Palco — COMP (U-3: 1 efeito por vez)", () => {
     // os outros 8 lugares seguem placeholders
     expect(host.querySelectorAll('[aria-label^="Slot "]').length).toBe(9);
 
-    // knob Sustain: ArrowUp 20 → 21 e SET no device (code do COMP = 0,
-    // ctrl = pos 0, slot do fio = 1)
-    const sustain = host.querySelector('svg[role="slider"][aria-label="Sustain"]')!;
+    // palco: valor REAL do dicionário em texto e nenhum knob ajustável
+    const stageValues = () =>
+      Array.from(
+        host.querySelectorAll('[aria-label="Slot 1: PRE"] [data-value]'),
+      ).map((t) => t.getAttribute("data-value"));
+    expect(stageValues(), "valores do COMP no palco").toEqual(["20.0", "50.0"]);
+    expect(
+      host.querySelector('[aria-label="Slot 1: PRE"] svg[role="slider"]'),
+      "knob do palco não é ajustável",
+    ).toBeNull();
+
+    // clique no pedal abre a edição; o knob ampliado faz 20 → 21 com SET no
+    // device (code do COMP = 0, ctrl = pos 0, slot do fio = 1)
+    act(() => pedal!.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    await settle();
+    const dlg = host.querySelector('[role="dialog"]')!;
+    const sustain = dlg.querySelector('svg[role="slider"][aria-label="Sustain"]')!;
     act(() => sustain.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true })));
     await settle();
     expect(vi.mocked(deviceSetParam)).toHaveBeenLastCalledWith(1, 0, 0, 21);
-    const boxes = host.querySelectorAll<HTMLInputElement>('input[aria-label="Valor (Enter para editar)"]');
-    expect(boxes[0].value, "valor local do Sustain").toBe("21");
+    expect(stageValues()[0], "estado único: o palco já mostra 21").toBe("21");
 
-    // ValueBox: digitar 42 + Enter aplica ao device e o valor fica na caixa
-    act(() => boxes[0].dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    // ValueBox do modal: digitar 42 + Enter aplica ao device e volta ao palco
+    const box = dlg.querySelector<HTMLInputElement>('input[aria-label="Valor (Enter para editar)"]')!;
+    act(() => box.dispatchEvent(new MouseEvent("click", { bubbles: true })));
     const editing = host.querySelector<HTMLInputElement>('input[aria-label^="Valor do knob"]')!;
     act(() => {
       const setter = Object.getOwnPropertyDescriptor(
@@ -612,9 +626,7 @@ describe("Palco — COMP (U-3: 1 efeito por vez)", () => {
     });
     await settle();
     expect(vi.mocked(deviceSetParam)).toHaveBeenLastCalledWith(1, 0, 0, 42);
-    expect(
-      host.querySelectorAll<HTMLInputElement>('input[aria-label="Valor (Enter para editar)"]')[0].value,
-    ).toBe("42");
+    expect(stageValues()[0], "o palco reflete o valor ajustado no modal").toBe("42");
     teardown(root, host);
   });
 
@@ -635,10 +647,10 @@ describe("Palco — COMP (U-3: 1 efeito por vez)", () => {
     act(() => knob.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true })));
     await settle();
     expect(vi.mocked(deviceSetParam)).toHaveBeenLastCalledWith(1, 0, 0, 21);
-    const stageBox = host.querySelector<HTMLInputElement>(
-      '[aria-label="Slot 1: PRE"] input[aria-label="Valor (Enter para editar)"]',
+    const stageValue = host.querySelector('[aria-label="Slot 1: PRE"] [data-value]');
+    expect(stageValue!.getAttribute("data-value"), "estado único: o palco já mostra 21").toBe(
+      "21",
     );
-    expect(stageBox!.value, "estado único: o palco já mostra 21").toBe("21");
 
     // Esc (global do App, precedência do painel do topo) fecha
     act(() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" })));
