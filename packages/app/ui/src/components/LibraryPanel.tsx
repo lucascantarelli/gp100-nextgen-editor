@@ -14,10 +14,8 @@ interface Props {
   onSelect: (pp: number) => void;
 }
 
+/* módulo elevado do sistema (`gp-surface`): luz e sombra pelos tokens */
 const panel: CSSProperties = {
-  background: "var(--bg-raised)",
-  border: "1px solid color-mix(in srgb, var(--accent) 25%, var(--border))",
-  borderRadius: 12,
   padding: "var(--space-12)",
   display: "grid",
   gridTemplateRows: "auto auto 1fr",
@@ -89,7 +87,7 @@ export function LibraryPanel({ currentPp, onSelect }: Props) {
   }, [q]);
 
   return (
-    <aside style={panel} aria-label={MSG.libAria}>
+    <aside className="gp-surface" style={panel} aria-label={MSG.libAria}>
       <div role="tablist" aria-label={MSG.libTabsAria} style={{ display: "flex", gap: "var(--space-4)" }}>
         <button role="tab" aria-selected={tabKind === "factory"} style={tabKind === "factory" ? tabOn : tab} onClick={() => setTabKind("factory")}>
           {MSG.libTabFactory}

@@ -48,7 +48,7 @@ describe("App — casca (a11y e estados)", () => {
     expect(fams).toContain("Slot 5: CAB");
     expect(fams).toContain("Slot 9: RVB");
 
-    // o PRE já é o pedal real (1 efeito por vez — U-3): SVG no slot 1
+    // o PRE é pedal real (a cadeia inteira está no palco — U-3): SVG no slot 1
     expect(
       host.querySelector('[aria-label="Slot 1: PRE"] svg[role="group"]'),
       "COMP (PRE) renderizado",

@@ -86,20 +86,23 @@ test("R2 biblioteca: 99 presets reais, busca, seleção e empty state", async ({
   await expect(lib.userTab()).toBeDisabled();
 });
 
-/* ── R3. Board (9 lugares: pedais reais no PRE/DST + 7 vazios) + trava ⇄ mover ── */
+/* ── R3. Board (9 pedais reais — cadeia inteira numa fileira) + trava ⇄ mover ── */
 test("R3 board: 9 slots na ordem do sinal e trava do drag", async () => {
   const board = shell.board;
   const fams = ["PRE", "DST", "AMP", "NR", "CAB", "EQ", "MOD", "DLY", "RVB"];
   for (let i = 0; i < fams.length; i += 1) {
     await board.expectSlotVisible(i + 1, fams[i]);
   }
-  await expect(board.root.getByText("vazio").first()).toBeVisible();
+  // a cadeia inteira desenha pedal: 9 no palco, nenhum lugar vazio
+  await expect(board.root.locator('svg[role="group"]')).toHaveCount(9);
+  await expect(board.root.getByText("vazio")).toHaveCount(0);
 
   // display LED: nº (2 dígitos) + nome + tipo
   await expect(board.display()).toContainText("01");
 
-  // os slots 1 (PRE/COMP) e 2 (DST) são pedais REAIS: o arrasto sai deles;
-  // o hint "arraste ⇄" vive nos placeholders quando a trava destrava
+  // TODOS os slots são pedais REAIS: o arrasto sai de qualquer um; com a
+  // trava ⇄ destravada a dica mora no RODAPÉ do palco (os antigos lugares
+  // vazios eram quem carregava o hint "arraste ⇄")
   await board.expectMoverPressed(false);
   const slot = board.slot(1, "PRE");
   await expect(slot).not.toHaveAttribute("draggable", "true");
@@ -108,7 +111,9 @@ test("R3 board: 9 slots na ordem do sinal e trava do drag", async () => {
   await board.toggleMover();
   await board.expectMoverPressed(true);
   await expect(slot).toHaveAttribute("draggable", "true");
-  await expect(board.slot(3, "AMP")).toContainText("arraste ⇄");
+  await expect(
+    board.root.getByText("arraste ⇄ para trocar dois pedais de posição"),
+  ).toBeVisible();
 
   // kill/drum/master não soltam erro
   await shell.killSwitch().click();
@@ -122,8 +127,8 @@ test("R7 COMP: valor em texto no palco (só leitura), edição no modal, LED/foo
   const pedal = pedalSlot.locator('svg[role="group"]');
   await expect(pedal).toBeVisible();
   await expect(pedal).toHaveAttribute("aria-label", /COMP/);
-  // o DST entrou na 2ª rodada: 2 pedais reais, 7 lugares ainda vazios
-  await expect(board.root.getByText("vazio")).toHaveCount(7);
+  // a cadeia inteira está no palco (9 pedais reais)
+  await expect(board.root.locator('svg[role="group"]')).toHaveCount(9);
   await expect(board.slot(2, "DST").locator('svg[role="group"]')).toBeVisible();
 
   // knobs REAIS do dicionário (fxData: COMP = Sustain/Output): no palco o

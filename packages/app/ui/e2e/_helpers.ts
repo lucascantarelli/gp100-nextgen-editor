@@ -38,8 +38,8 @@ export async function measureShell(page: Page): Promise<ShellMeasure> {
     const lib = rectOf(libEl);
     const looper = rectOf(looperEl);
 
-    // slots: colunas/linhas contadas POR LINHA (as larguras variam: o pedal
-    // real da Fase 2 é bem mais largo que um lugar vazio) + sobreposição
+    // slots: colunas/linhas contadas POR LINHA (a cadeia é uma fileira só;
+    // a contagem por linha segue como rede de segurança) + sobreposição
     const slotRects = [...document.querySelectorAll('[aria-label^="Slot "]')].map(rectOf);
     const overlapArea = (a: ReturnType<typeof rectOf>, b: ReturnType<typeof rectOf>) =>
       Math.max(0, Math.min(a.right, b.right) - Math.max(a.x, b.x)) *
@@ -134,11 +134,12 @@ export async function expectShellAligned(page: Page, width: number): Promise<voi
     expect(Math.abs(m.lib.y - m.board.y), `topos alinhados @${width}`).toBeLessThanOrEqual(1);
   }
 
-  // breakpoint .board-slots (design.css): colunas por CONTEÚDO — 3 até 1700,
-  // 9 acima (o pedal real da Fase 2 não cabe em colunas iguais de 1fr)
-  const wantCols = width < 1700 ? 3 : 9;
-  expect(m.slotCols, `colunas dos slots @${width}`).toBe(wantCols);
-  expect(m.cssCols, `colunas do CSS @${width}`).toBe(wantCols);
+  // .board-slots (design.css): cadeia INTEIRA numa única fileira — 9 colunas
+  // fluidas em qualquer largura (o pedal do palco desenha na largura da
+  // coluna; abaixo do piso de 88px por coluna a faixa rola na horizontal)
+  expect(m.slotCols, `colunas dos slots @${width}`).toBe(9);
+  expect(m.cssCols, `colunas do CSS @${width}`).toBe(9);
+  expect(m.slotRows, `fileira única @${width}`).toBe(1);
   expect(m.slotOverlap, `slots sem sobreposição @${width}`).toBe(0);
 
   expect(m.kidOverlap, `sobreposição dos blocos do looper @${width}`).toBe(0);

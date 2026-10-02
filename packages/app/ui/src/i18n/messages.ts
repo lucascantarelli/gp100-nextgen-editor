@@ -109,6 +109,7 @@ export const MSG = {
   slotEmpty: "vazio",
   slotArrange: "arraste ⇄",
   stageFooter: "9 slots · ordem do sinal →",
+  stageFooterArrange: "arraste ⇄ para trocar dois pedais de posição",
   stageIn: "⏻ IN",
   stageOut: "OUT ⏻",
 

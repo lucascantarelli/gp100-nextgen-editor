@@ -19,6 +19,88 @@ export const SPACE = {
 } as const;
 export type SpaceStep = keyof typeof SPACE;
 
+/**
+ * Raio de borda — MESMA escala do espaçamento (§1): o doc diz "raio usa a
+ * escala (4/8/12)"; o 16 fica como passo de destaque (modais/flutuantes).
+ */
+export const RADIUS = { s: SPACE[4], m: SPACE[8], l: SPACE[12], xl: 16 } as const;
+export type RadiusStep = keyof typeof RADIUS;
+
+/**
+ * Tipografia refinada (§3): passos, pesos, entrelinha e tracking. Os pesos
+ * "variáveis" (500/600) só aparecem de verdade com fontes de eixo variável
+ * (Segoe UI Variable no Windows 11) — nos fallbacks o SO aproxima.
+ */
+export const TYPE = {
+  "2xs": 10, // micro-rótulos de hardware (mm:ss, contadores)
+  xs: 11, // badges, atalhos
+  sm: 13, // UI padrão (knobs, listas)
+  md: 15, // corpo corrido
+  lg: 21, // título de seção
+  xl: 34, // herói/empty state
+} as const;
+export type TypeStep = keyof typeof TYPE;
+
+/** Pesos usados pela UI (nada de 100/900 fora do display). */
+export const WEIGHT = {
+  regular: 400,
+  medium: 500,
+  semibold: 600,
+  bold: 700,
+  black: 800,
+} as const;
+
+/** Entrelinha por papel (a escala modular usa 1.2–1.55). */
+export const LEADING = { tight: 1.2, snug: 1.3, normal: 1.45, body: 1.55 } as const;
+
+/** Tracking: negativo só em títulos grandes; positivo em texto caixa-alta. */
+export const TRACKING = { tight: -0.01, normal: 0, wide: 0.02, caps: 0.08 } as const;
+
+/** Stacks: nativas do SO primeiro (sem download de fonte — desktop offline). */
+export const FONT_STACKS = {
+  /** UI geral — variante "Text" da Segoe UI Variable, com fallbacks do SO */
+  ui: '"Segoe UI Variable Text", "Segoe UI", Inter, system-ui, -apple-system, sans-serif',
+  /** títulos/display — variante "Display" (pesos largos mais elegantes) */
+  display: '"Segoe UI Variable Display", "Segoe UI", Inter, system-ui, -apple-system, sans-serif',
+  /** números de fio/hex — monoespaçada com tabular para não tremer */
+  mono: '"Cascadia Mono", "Cascadia Code", Consolas, ui-monospace, monospace',
+} as const;
+
+/**
+ * CAMADA DE LUZ (issue #9) — direção ÚNICA: luz em cima/esquerda, sombra
+ * embaixo/direita. Os alphas moram aqui (valores) e viram custom properties
+ * no `design.css` (o teste de token garante que os dois batem).
+ */
+export const LIGHT = {
+  /** brilho na aresta superior (fio de luz) */
+  top: 0.16,
+  /** brilho suave de superfície (topo do gradiente) */
+  sheen: 0.06,
+  /** brilho especular (ponto de luz refletida em metal/vidro) */
+  specular: 0.6,
+  /** luz de recorte nas laterais/arestas opostas */
+  rim: 0.1,
+  /** sombra difusa (logo abaixo do objeto) */
+  shadeSoft: 0.35,
+  /** sombra de contato (profundidade/oclusão) */
+  shadeDeep: 0.6,
+} as const;
+export type LightKey = keyof typeof LIGHT;
+
+/** Custom property de cada token de luz (design.css) — teste de token usa. */
+export const LIGHT_VAR: Record<LightKey, string> = {
+  top: "--light-top",
+  sheen: "--light-sheen",
+  specular: "--light-specular",
+  rim: "--light-rim",
+  shadeSoft: "--shade-soft",
+  shadeDeep: "--shade-deep",
+} as const;
+
+/** Níveis de elevação (quanto o módulo "sai" da mesa). */
+export const ELEVATION = { flat: 0, raised: 1, panel: 2, floating: 3 } as const;
+export type ElevationLevel = keyof typeof ELEVATION;
+
 /** Rácios de contraste medidos (WCAG 2.x, paleta Valeton Violet) — testados abaixo. */
 export const CONTRAST_RATIOS = {
   textDark: 18.9,

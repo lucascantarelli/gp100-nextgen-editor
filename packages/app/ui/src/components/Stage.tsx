@@ -1,11 +1,9 @@
 /**
  * Stage — o palco REAL da Fase 2 (U-3): mantém o cabeçalho do palco da
- * casca (display LED do patch, trava ⇄ mover e afinador) e desenha os
- * pedais REAIS do board do device nas posições cuja família já foi
- * validada (`PEDAL_FAMILIES_READY` — "1 efeito por vez", decisão do owner
- * em docs/UI_REFERENCE.md §3.1). As demais posições seguem como os 9
- * lugares marcados da Fase 1, para o owner validar o pedal em TODAS as 9
- * posições (roteiro R7): com a trava ATIVA, arrastar o pedal para outra
+ * casca (display LED do patch, trava ⇄ mover e afinador) e desenha PEDAIS
+ * REAIS nas 9 posições da cadeia (decisão do owner: visão completa — os
+ * "lugares marcados" da Fase 1 só aparecem antes da 1ª leitura do board).
+ * Com a trava ATIVA, arrastar o pedal para outra
  * posição reordena LOCAL (prévia — o device ainda não tem comando de
  * reorder; o LED/footswitch também é prévia local). O pedal do palco é
  * COMPACTO e os knobs são SÓ LEITURA (mostram o valor de cada controle):
@@ -23,14 +21,15 @@ import type { TunerSettings } from "./TunerPanel";
 import { MSG } from "../i18n/messages";
 
 /**
- * Famílias com pedal REAL já no palco (fase "1 efeito por vez").
- * O PRE/COMP foi a 1ª rodada do R7; o DST entra na 2ª (mesma cadeia de
- * escrita: `device_set_param` §13.11). Cada rodada do R7 adiciona a próxima
- * família depois da validação do owner (docs/UI_TEST_PLAN.md).
+ * Famílias que desenham pedal REAL no palco: a CADEIA INTEIRA (visão
+ * completa das 9 posições — cada família tem modelo próprio em fxModels).
+ * A validação de ESCRITA por família (roteiro R7, docs/UI_TEST_PLAN.md)
+ * segue manual e NÃO esconde mais o pedal: a escrita é a mesma cadeia
+ * genérica `device_set_param` (§13.11).
  */
 export const PEDAL_FAMILIES_READY: ReadonlySet<BoardSlot["family"]> = new Set<
   BoardSlot["family"]
->(["PRE", "DST"]);
+>(CHAIN_FAMILIES);
 
 interface Props {
   /** Board do preset corrente (device_board); null antes da 1ª leitura. */
@@ -59,19 +58,17 @@ const stage: CSSProperties = {
     "inset 0 2px 0 rgba(255,255,255,.06), inset 0 -18px 30px rgba(0,0,0,.55), 0 26px 44px rgba(0,0,0,.65)",
   position: "relative",
 };
+/* display do patch: superfície ESCAVADA do sistema (gp-sunken cuida do
+   vidro escuro, do fio de luz e da sombra interna) */
 const ledBox: CSSProperties = {
-  background: "#0a0d10",
-  border: "1px solid #1d242c",
-  borderRadius: 6,
   padding: "7px 16px",
   fontFamily: "var(--font-mono)",
-  boxShadow: "inset 0 0 12px #000",
   display: "inline-flex",
   alignItems: "baseline",
   gap: "var(--space-12)",
 };
-/* grade das posições da cadeia: colunas por CONTEÚDO (o pedal real é mais
-   largo que um lugar vazio); em telas largas as 9 posições cabem numa linha */
+/* as 9 posições numa ÚNICA fileira: 9 colunas fluidas (o desenho do pedal
+   acompanha a coluna); abaixo do piso de largura, a faixa rola na horizontal */
 const row: CSSProperties = {
   position: "relative",
   zIndex: 4,
@@ -89,7 +86,7 @@ const socketPedal = (over: boolean, arrange: boolean): CSSProperties => ({
 const slot = (over: boolean, arrange: boolean): CSSProperties => ({
   borderRadius: 12,
   minHeight: 132,
-  width: 132,
+  width: "100%", // acompanha a coluna fluida do .board-slots
   display: "grid",
   gridTemplateRows: "auto 1fr auto",
   justifyItems: "center",
@@ -124,18 +121,15 @@ const leftCol: CSSProperties = {
   gap: 8,
   minWidth: 0,
 };
-/* cadeado (desenho puro): trava/destrava o arrastar-e-soltar dos pedais */
+/* cadeado (desenho puro): trava/destrava o arrastar-e-soltar dos pedais.
+   Geometria/realce vêm do botão do sistema (`gp-btn`) — com a trava ATIVA
+   ele fica no estado ligado (aria-pressed). */
 const lockBtn = (on: boolean): CSSProperties => ({
   fontFamily: "var(--font-mono)",
   fontSize: 13,
   lineHeight: 1,
-  color: on ? "var(--accent)" : "#8b97a6",
-  background: "transparent",
-  border: "1px solid #4a3d29",
-  borderRadius: 6,
+  color: on ? undefined : "#8b97a6",
   padding: "5px 8px",
-  cursor: "pointer",
-  minHeight: 32,
   minWidth: 36,
   display: "inline-flex",
   alignItems: "center",
@@ -214,7 +208,7 @@ export function Stage({
         }}
       >
         <div style={leftCol}>
-          <div style={ledBox} role="status">
+          <div className="gp-sunken" style={ledBox} role="status">
             <span
               className={celebrate ? "led-flip" : undefined}
               style={{
@@ -231,6 +225,7 @@ export function Stage({
             <span style={{ color: "#5c6774", fontSize: 11 }}>{typeName}</span>
           </div>
           <button
+            className="gp-btn"
             style={lockBtn(arrangeMode)}
             onClick={onToggleArrange}
             aria-pressed={arrangeMode}
@@ -245,8 +240,8 @@ export function Stage({
         </div>
       </div>
 
-      {/* as 9 posições da cadeia: pedal real onde a família já foi validada,
-          placeholders nas demais (1 efeito por vez — R7) */}
+      {/* as 9 posições da cadeia: TODAS com pedal real (visão completa);
+          "lugar marcado" só antes da 1ª leitura do board */}
       <div className="board-slots" style={row}>
         {display.map((chainIdx, pos) => {
           const s = byChain.get(chainIdx);
@@ -333,7 +328,9 @@ export function Stage({
         })}
       </div>
 
-      {/* rodapé do palco (IN/OUT marcam o RODAPÉ da página, no App) */}
+      {/* rodapé do palco (IN/OUT marcam o RODAPÉ da página, no App): com a
+          trava ⇄ destravada ele vira a dica do arrasto — os pedais reais não
+          têm mais o hint dos antigos lugares vazios */}
       <div
         aria-hidden="true"
         style={{
@@ -341,10 +338,10 @@ export function Stage({
           padding: "var(--space-12) var(--space-4) 0",
           fontFamily: "var(--font-mono)",
           fontSize: 10,
-          color: "#6b6255",
+          color: arrangeMode ? "var(--accent-text)" : "#6b6255",
         }}
       >
-        {MSG.stageFooter}
+        {arrangeMode ? MSG.stageFooterArrange : MSG.stageFooter}
       </div>
     </section>
   );
