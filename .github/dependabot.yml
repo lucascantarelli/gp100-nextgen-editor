@@ -6,11 +6,14 @@
 # só muda a MECÂNICA: o PR abre pronto, com CI disparada (pull_request,
 # 14 jobs, cache quente) e o security noturno revalida os lockfiles.
 #
-# 3 ecossistemas:
+# 4 ecossistemas:
 #   - github-actions "/"  → pins das actions do pipeline (checkout@v7…)
 #   - npm "/packages/app/ui" → pnpm-lock.yaml do front
 #   - cargo "/packages/app/api" → Cargo.lock PRÓPRIO do gp100-ui (workspace
 #     separado por ADR-7)
+#   - docker "/.github/docker/ci-linux" → base Ubuntu da imagem de CI (issue
+#     #41). O PR de bump rebuilda a imagem no ci.yml/container.yml — a imagem
+#     é artefato versionado do repo, então o bump tem que passar por review.
 # ⚠️ SEM entry `cargo /` (lockfile da raiz, core+cli) — DELIBERADO (ADR-8):
 #   o updater do Dependabot roda em container Linux e NÃO expõe
 #   RUSTUP_TOOLCHAIN; o pin windows-gnu do rust-toolchain.toml da raiz
@@ -83,6 +86,23 @@ updates:
       prod-deps:
         applies-to: version-updates
         dependency-type: production
+
+  # ── Imagem de CI Linux (ghcr.io) — bump da base Ubuntu ──
+  - package-ecosystem: docker
+    directory: "/.github/docker/ci-linux"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+    open-pull-requests-limit: 2
+    labels:
+      - dependencies
+      - github-actions
+    groups:
+      base:
+        applies-to: version-updates
+        patterns:
+          - "*"
 
   # ── gp100-ui (workspace PRÓPRIO do Tauri, ADR-7 — Cargo.lock próprio;
   # hoje em packages/app/api). O rust-toolchain.toml daqui tem canal SEM
