@@ -8,26 +8,21 @@
  *  - baseline POR PLATAFORMA (fontes divergem entre Windows/Linux — o CI
  *    compara com as baselines `linux`, o dev local com as `win32`);
  *  - animações congeladas + tolerância 1% (config do playwright.config);
- *  - SEM baseline: local CRIA (dev-friendly) e no CI o teste é SKIP — gerar
- *    no CI só pelo input `update-snapshots` do workflow, que liga
- *    `UPDATE_SNAPSHOTS=true` + `--update-snapshots=all` (baixe o artefato e
- *    commite os PNGs); ver skipIfBaselineMissing para a semântica completa.
+ *  - SEM baseline: local CRIA (dev-friendly) e no CI o job FALHA — não existe
+ *    mais skip silencioso (issue #45: 12 baselines win32 passaram meses
+ *    desatualizadas e o visual não era gate de nada). Para adicionar um teste
+ *    visual novo: rode o input `update-snapshots` do workflow (ubuntu com
+ *    `--update-snapshots=all`), baixe o artefato `visual-snapshots` e commite
+ *    os PNGs `-linux`; o `-win32` nasce do run local.
  *
  * Refactor POM (V-7): seletores via pages/_pages.ts e a falha simulada pelo
  * shell.failDevice(). RESTAURADO (comportamento documentado no cabeçalho,
  * perdido em edição anterior): toHaveScreenshot dos loops de PAINÉIS e
  * TEMA CLARO — hoje só topbar/erros comparavam.
  */
-import { existsSync } from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { expect, test } from "@playwright/test";
 import type { Locator } from "@playwright/test";
 import { ShellPage } from "./pages/_pages";
-
-const here = path.dirname(fileURLToPath(import.meta.url));
-const baselinePath = (name: string) =>
-  path.join(here, "__screenshots__", `${name}-${process.platform}.png`);
 
 const PANELS = [
   { key: "board", page: "board" },
@@ -82,33 +77,15 @@ const ERROR_STATES = [
   },
 ] as const;
 
-/** Estamos no CI? (GitHub Actions define CI=true; toHaveScreenshot NÃO cria
- *  baseline nova automaticamente lá — o teste falha com "snapshot doesn't
- *  exist, writing actual"). */
-const IS_CI = !!process.env.CI;
-
-/** Atualização EXPLÍCITA de baselines (o workflow liga via input):
- *  env `UPDATE_SNAPSHOTS=true` (setada no step do pipeline) OU a flag de CLI
- *  `--update-snapshots`/`=all` (o override de CLI vence o default de CI).
- *  NUNCA depender do default de `config.updateSnapshots`: no CI o Playwright
- *  só aceita a flag explícita, e o default `missing` local é indistinguível
- *  de "quero gerar" (bug real da run 36935738610: 48 visuais falharam). */
-function isUpdatingSnapshots(): boolean {
-  if (process.env.UPDATE_SNAPSHOTS === "true") return true;
-  const mode = test.info().config.updateSnapshots;
-  return mode === "all" || mode === "changed";
-}
-
-/** skip quando NÃO há baseline, estamos no CI e ninguém pediu para gerar.
- *  Semântica: local cria (dev-friendly); CI compara quando existe e SKIPa
- *  quando não existe; o input `update-snapshots` do workflow gera as
- *  baselines linux que faltam (artefato → commit). */
-async function skipIfBaselineMissing(name: string): Promise<void> {
-  test.skip(
-    IS_CI && !isUpdatingSnapshots() && !existsSync(baselinePath(name)),
-    "baseline ausente no CI — gere com o input update-snapshots e commite o PNG",
-  );
-}
+/**
+ *  NÃO existe mais `test.skip` por baseline ausente (issue #45): no CI a
+ *  ausência FALHA o job (o Playwright lá nunca escreve baseline sozinho) e no
+ *  local o default `missing` CRIA a que falta — dev-friendly, mas explícito.
+ *  Gerar no CI é sempre pelo input `update-snapshots` do workflow (flag
+ *  `--update-snapshots=all`): nunca depender do default de
+ *  `config.updateSnapshots` (a run 36935738610 provou que ele é indistinguível
+ *  de "quero gerar": 48 visuais falharam).
+ */
 
 /** espera o fim do auto-boot (faixa some do frame antes da captura). */
 async function waitBootSettled(shell: ShellPage): Promise<void> {
@@ -121,13 +98,6 @@ for (const [w, h] of VIEWPORTS) {
   for (const p of PANELS) {
     test(`R-VISUAL ${p.key} ${w}×${h}`, async ({ page }) => {
       const name = `${p.key}-${w}x${h}`;
-      // Semântica em skipIfBaselineMissing:
-      //  - local sem baseline: CRIA e passa (developer-friendly);
-      //  - CI sem baseline: SKIP (não falha a primeira execução);
-      //  - CI com input update-snapshots: escreve (=all) e passa;
-      //  - com baseline: COMPARA (é a regressão estética de fato).
-      await skipIfBaselineMissing(name);
-
       const shell = new ShellPage(page);
       await page.setViewportSize({ width: w, height: h });
       await shell.goto();
@@ -145,7 +115,6 @@ for (const [w, h] of VIEWPORTS) {
 for (const [w, h] of VIEWPORTS) {
   test(`R-VISUAL topbar ${w}×${h}`, async ({ page }) => {
     const name = `topbar-${w}x${h}`;
-    await skipIfBaselineMissing(name);
 
     const shell = new ShellPage(page);
     await page.setViewportSize({ width: w, height: h });
@@ -162,7 +131,6 @@ for (const [w, h] of LIGHT_VIEWPORTS) {
   for (const p of PANELS) {
     test(`R-VISUAL ${p.key} light ${w}×${h}`, async ({ page }) => {
       const name = `${p.key}-${w}x${h}-light`;
-      await skipIfBaselineMissing(name);
 
       const shell = new ShellPage(page);
       await page.setViewportSize({ width: w, height: h });
@@ -182,7 +150,6 @@ for (const [w, h] of VIEWPORTS) {
   for (const s of ERROR_STATES) {
     test(`R-VISUAL ${s.key} ${w}×${h}`, async ({ page }) => {
       const name = `${s.key}-${w}x${h}`;
-      await skipIfBaselineMissing(name);
 
       const shell = new ShellPage(page);
       await page.setViewportSize({ width: w, height: h });
