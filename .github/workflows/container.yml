@@ -32,11 +32,11 @@ name: container
 
 on:
   push:
-    # ⚠️ BOOTSTRAP (temporário, REMOVER antes do merge): o workflow_dispatch só
-    # existe depois que o arquivo está na branch DEFAULT — sem isso, a primeira
-    # publicação seria impossível (404 no dispatch). Esta entrada some no mesmo
-    # PR que a introduziu; a lista final é [develop, main].
-    branches: [develop, main, "ci/41-container-e-cache"]
+    # Publica a imagem (lição #41: o workflow_dispatch só aceita workflows que
+    # JÁ existem na branch default — para a 1ª publicação use um gatilho de push
+    # temporário na branch de trabalho e remova-o no mesmo PR, como foi feito
+    # na introdução desta imagem).
+    branches: [develop, main]
     paths:
       - ".github/docker/**"
       - ".github/workflows/container.yml"
