@@ -33,6 +33,7 @@ vi.mock("@tauri-apps/api/event", () => ({
   }),
 }));
 import { FACTORY_PRESETS } from "../src/artifacts/presetData";
+import { PRESET_CHAINS } from "../src/artifacts/presetChains";
 
 // Mock PARCIAL: onDevicePush continua registrando no Set real do device.ts
 // (o App funciona normalmente), mas o vi.fn captura o callback que o App
@@ -321,6 +322,163 @@ describe("Biblioteca — busca", () => {
   });
 });
 
+/* ── #11: a biblioteca COMANDA o pedalboard ── */
+describe("Biblioteca — o patch aberto é o que o pedalboard mostra", () => {
+  /** nomes dos 9 pedais desenhados, na ordem do palco */
+  const chainOnStage = (host: HTMLElement) =>
+    Array.from(host.querySelectorAll('svg[role="group"]')).map((g) => g.getAttribute("aria-label") ?? "");
+
+  const clickTab = async (host: HTMLElement, nome: string) => {
+    act(() =>
+      Array.from(host.querySelectorAll('[role="tab"]'))
+        .find((t) => t.textContent?.includes(nome))!
+        .dispatchEvent(new MouseEvent("click", { bubbles: true })),
+    );
+    await settle();
+  };
+  const userTab = (host: HTMLElement) => clickTab(host, "User Patch");
+
+  /** clica no 1º patch de usuário da lista (U01) */
+  const openUserPatch = async (host: HTMLElement) => {
+    await userTab(host);
+    act(() =>
+      host.querySelectorAll('[role="listitem"]')[0].querySelector("button")!
+        .dispatchEvent(new MouseEvent("click", { bubbles: true })),
+    );
+    await settle();
+  };
+
+  /** nomeia e salva o patch CORRENTE como patch de usuário */
+  const saveAsUserPatch = async (host: HTMLElement, name: string) => {
+    await userTab(host);
+    setInput(
+      host.querySelector<HTMLInputElement>('input[aria-label="Nome do patch de usuário a salvar"]')!,
+      name,
+    );
+    act(() =>
+      Array.from(host.querySelectorAll("button"))
+        .find((b) => b.textContent === "Salvar")!
+        .dispatchEvent(new MouseEvent("click", { bubbles: true })),
+    );
+    await settle();
+  };
+
+  /** abre um preset pelo número EXIBIDO (P06 = ppID 5, como no app oficial) */
+  const openPatch = async (host: HTMLElement, no: string) => {
+    // volta para a aba de fábrica (a aba segue o banco aberto no palco)
+    act(() =>
+      Array.from(host.querySelectorAll('[role="tab"]'))
+        .find((t) => t.textContent?.includes("Factory"))!
+        .dispatchEvent(new MouseEvent("click", { bubbles: true })),
+    );
+    await settle();
+    const search = host.querySelector<HTMLInputElement>(
+      'input[aria-label="Buscar preset por nome, número ou estilo"]',
+    )!;
+    setInput(search, no);
+    await settle();
+    act(() =>
+      host.querySelectorAll('[role="option"]')[0].dispatchEvent(new MouseEvent("click", { bubbles: true })),
+    );
+    await settle();
+  };
+
+  it("trocar de patch troca a CADEIA dos 9 pedais (inclusive a de ordem trocada)", async () => {
+    const { root, host } = mount();
+    await settle();
+
+    // P01: PRE/C-Wah, cadeia canônica
+    const p01 = [...PRESET_CHAINS[0].slots].sort((a, b) => a.slot - b.slot);
+    expect(chainOnStage(host)[0]).toContain(p01[0].name);
+    expect(host.querySelector('[aria-label="Slot 1: PRE"]')).toBeTruthy();
+
+    // P06 (ppID 5): no all.prst a cadeia é TROCA — DST antes do PRE
+    const p06 = [...PRESET_CHAINS[5].slots].sort((a, b) => a.slot - b.slot);
+    expect(p06[0].family).toBe("DST");
+    await openPatch(host, "06");
+
+    // o palco mostra a CADEIA, não só o nome: o slot 1 virou DST
+    expect(chainOnStage(host)[0]).toContain(p06[0].name);
+    expect(host.querySelector('[aria-label="Slot 1: DST"]')).toBeTruthy();
+    expect(host.querySelector('[aria-label="Slot 2: PRE"]')).toBeTruthy();
+    expect(
+      Array.from(host.querySelectorAll("strong")).find((s) => /^P\d{2}/.test(s.textContent ?? ""))?.textContent,
+    ).toBe(`P06 ${FACTORY_PRESETS[5].name}`);
+    teardown(root, host);
+  });
+
+  it("User Patch: snapshot da cadeia salva volta ao palco e excluir devolve a fábrica", async () => {
+    const { root, host } = mount();
+    await settle();
+
+    // 1. abre o P06 (cadeia trocada: DST na frente) e salva essa cadeia
+    await openPatch(host, "06");
+    await userTab(host);
+    expect(host.textContent).toContain("Nenhum patch salvo ainda");
+    await saveAsUserPatch(host, "DST na frente");
+    expect(host.textContent).toContain("DST na frente");
+
+    // 2. volta para o P01 (cadeia canônica) e ABRE o patch salvo: quem manda
+    //    no palco agora é o snapshot (U01), não o preset de fábrica
+    await openPatch(host, "01");
+    expect(host.querySelector('[aria-label="Slot 1: PRE"]')).toBeTruthy();
+    await openUserPatch(host);
+    const p06 = [...PRESET_CHAINS[5].slots].sort((a, b) => a.slot - b.slot);
+    expect(host.querySelector('[aria-label="Slot 1: DST"]'), "a cadeia SALVA voltou").toBeTruthy();
+    expect(chainOnStage(host)[0]).toContain(p06[0].name);
+    // rótulo de usuário (U01) no LED e na navbar — a UI diz de onde vem
+    expect(host.querySelector('[aria-label^="Pedalboard"] [role="status"]')?.textContent).toContain("U01");
+    expect(
+      Array.from(host.querySelectorAll("strong")).find((s) => /^U\d{2}/.test(s.textContent ?? ""))?.textContent,
+    ).toBe("U01 DST na frente");
+
+    // 3. excluir o patch aberto devolve o palco ao preset de fábrica real
+    act(() =>
+      host.querySelector('[aria-label^="Excluir o patch"]')!.dispatchEvent(new MouseEvent("click", { bubbles: true })),
+    );
+    await settle();
+    expect(host.textContent).not.toContain("DST na frente");
+    expect(host.querySelector('[aria-label="Slot 1: PRE"]')).toBeTruthy();
+    expect(
+      Array.from(host.querySelectorAll("strong")).find((s) => /^P\d{2}/.test(s.textContent ?? ""))?.textContent,
+    ).toBe(`P01 ${FACTORY_PRESETS[0].name}`);
+    teardown(root, host);
+  });
+
+  it("o patch salvo é um RETRATO: mexer no pedal depois não altera o guardado", async () => {
+    const { root, host } = mount();
+    await settle();
+
+    const stageValue = () =>
+      host.querySelector('[aria-label="Slot 1: PRE"] [data-value]')!.getAttribute("data-value");
+
+    // 1. salva a cadeia como está (PRE/C-Wah Range = 50)
+    const saved = stageValue();
+    await saveAsUserPatch(host, "Retrato");
+
+    // 2. mexe no pedal DEPOIS de salvar
+    act(() =>
+      host.querySelector('[aria-label="Slot 1: PRE"] svg[role="group"]')!
+        .dispatchEvent(new MouseEvent("click", { bubbles: true })),
+    );
+    await settle();
+    act(() =>
+      host.querySelector('[role="dialog"] svg[role="slider"][aria-label="Range"]')!
+        .dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true })),
+    );
+    await settle();
+    act(() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" })));
+    await settle();
+    expect(stageValue(), "o palco aceitou o ajuste").not.toBe(saved);
+
+    // 3. outro preset e volta ao patch salvo: o retrato devolve o valor antigo
+    await openPatch(host, "06");
+    await openUserPatch(host);
+    expect(stageValue(), "o retrato devolve o valor do momento do save").toBe(saved);
+    teardown(root, host);
+  });
+});
+
 describe("Settings — as 6 abas", () => {
   it("General: persiste local (input level e language aplicam pelo handler)", async () => {
     const { root, host } = mount();
@@ -581,15 +739,20 @@ describe("Palco — afinador e drag-and-drop dos slots (Stage)", () => {
   });
 });
 
-describe("Palco — COMP (U-3: pedais reais na cadeia inteira)", () => {
+describe("Palco — o pedal REAL do PRE (U-3: pedais reais na cadeia inteira)", () => {
+  /* O PRE do P01 no all.prst é C-Wah (o mock antigo mentia com COMP). Os
+     asserts de nome/code saem do artefato GERADO — se a cadeia mudar, o
+     teste avisa em vez de acompanhar a mentira. */
+  const P01_PRE = PRESET_CHAINS[0].slots.find((s) => s.slot === 0)!;
+
   it("palco: knobs travados com o valor em texto; o knob do MODAL manda device_set_param (slot do fio 1..9)", async () => {
     const { root, host } = mount();
     await settle();
 
-    // o board do mock traz PRE/COMP (fxData: Sustain 20.0, Output 50.0)
+    // o board do mock traz o PRE REAL do P01: C-Wah, Range/Q/VOL = 50/50/50
     const pedal = host.querySelector('[aria-label="Slot 1: PRE"] svg[role="group"]');
-    expect(pedal, "COMP no slot PRE").toBeTruthy();
-    expect(pedal!.getAttribute("aria-label")).toContain("COMP");
+    expect(pedal, `${P01_PRE.name} no slot PRE`).toBeTruthy();
+    expect(pedal!.getAttribute("aria-label")).toContain(P01_PRE.name);
     // a cadeia inteira desenha pedal real (visor completo das 9 posições)
     expect(host.querySelectorAll('[aria-label^="Slot "]').length).toBe(9);
     expect(host.querySelectorAll('svg[role="group"]').length).toBe(9);
@@ -599,22 +762,22 @@ describe("Palco — COMP (U-3: pedais reais na cadeia inteira)", () => {
       Array.from(
         host.querySelectorAll('[aria-label="Slot 1: PRE"] [data-value]'),
       ).map((t) => t.getAttribute("data-value"));
-    expect(stageValues(), "valores do COMP no palco").toEqual(["20.0", "50.0"]);
+    expect(stageValues(), "params reais do P01 no palco").toEqual(["50", "50", "50"]);
     expect(
       host.querySelector('[aria-label="Slot 1: PRE"] svg[role="slider"]'),
       "knob do palco não é ajustável",
     ).toBeNull();
 
-    // clique no pedal abre a edição; o knob ampliado faz 20 → 21 com SET no
-    // device (code do COMP = 0, ctrl = pos 0, slot do fio = 1)
+    // clique no pedal abre a edição; o knob ampliado faz 50 → 51 com SET no
+    // device (code do C-Wah = effectCode do .prst, ctrl = pos 0, slot = 1)
     act(() => pedal!.dispatchEvent(new MouseEvent("click", { bubbles: true })));
     await settle();
     const dlg = host.querySelector('[role="dialog"]')!;
-    const sustain = dlg.querySelector('svg[role="slider"][aria-label="Sustain"]')!;
-    act(() => sustain.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true })));
+    const range = dlg.querySelector('svg[role="slider"][aria-label="Range"]')!;
+    act(() => range.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true })));
     await settle();
-    expect(vi.mocked(deviceSetParam)).toHaveBeenLastCalledWith(1, 0, 0, 21);
-    expect(stageValues()[0], "estado único: o palco já mostra 21").toBe("21");
+    expect(vi.mocked(deviceSetParam)).toHaveBeenLastCalledWith(1, P01_PRE.code, 0, 51);
+    expect(stageValues()[0], "estado único: o palco já mostra 51").toBe("51");
 
     // ValueBox do modal: digitar 42 + Enter aplica ao device e volta ao palco
     const box = dlg.querySelector<HTMLInputElement>('input[aria-label="Valor (Enter para editar)"]')!;
@@ -630,12 +793,12 @@ describe("Palco — COMP (U-3: pedais reais na cadeia inteira)", () => {
       editing.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
     });
     await settle();
-    expect(vi.mocked(deviceSetParam)).toHaveBeenLastCalledWith(1, 0, 0, 42);
+    expect(vi.mocked(deviceSetParam)).toHaveBeenLastCalledWith(1, P01_PRE.code, 0, 42);
     expect(stageValues()[0], "o palco reflete o valor ajustado no modal").toBe("42");
     teardown(root, host);
   });
 
-  it("clique no COMP abre a edição ampliada; knob de lá ajusta o MESMO estado e Esc fecha", async () => {
+  it("clique no PRE abre a edição ampliada; knob de lá ajusta o MESMO estado e Esc fecha", async () => {
     const { root, host } = mount();
     await settle();
 
@@ -644,17 +807,17 @@ describe("Palco — COMP (U-3: pedais reais na cadeia inteira)", () => {
     await settle();
     const dlg = host.querySelector('[role="dialog"]')!;
     expect(dlg, "modal de edição aberto").toBeTruthy();
-    expect(dlg.getAttribute("aria-label")).toContain("COMP");
+    expect(dlg.getAttribute("aria-label")).toContain(P01_PRE.name);
 
     // knob AMPLIADO: mesmo handler → SET no device e valor volta ao palco
-    const knob = dlg.querySelector('svg[role="slider"][aria-label="Sustain"]')!;
-    expect(knob.getAttribute("aria-valuenow")).toBe("20");
+    const knob = dlg.querySelector('svg[role="slider"][aria-label="Range"]')!;
+    expect(knob.getAttribute("aria-valuenow")).toBe("50");
     act(() => knob.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true })));
     await settle();
-    expect(vi.mocked(deviceSetParam)).toHaveBeenLastCalledWith(1, 0, 0, 21);
+    expect(vi.mocked(deviceSetParam)).toHaveBeenLastCalledWith(1, P01_PRE.code, 0, 51);
     const stageValue = host.querySelector('[aria-label="Slot 1: PRE"] [data-value]');
-    expect(stageValue!.getAttribute("data-value"), "estado único: o palco já mostra 21").toBe(
-      "21",
+    expect(stageValue!.getAttribute("data-value"), "estado único: o palco já mostra 51").toBe(
+      "51",
     );
 
     // Esc (global do App, precedência do painel do topo) fecha
@@ -668,15 +831,16 @@ describe("Palco — COMP (U-3: pedais reais na cadeia inteira)", () => {
     const { root, host } = mount();
     await settle();
 
-    // COMP de fábrica PRE vem ligado no mock (estado first-of da cadeia)
-    expect(host.querySelector('[data-led="on"]'), "COMP ligado de fábrica").toBeTruthy();
-    const foot = Array.from(host.querySelectorAll('[role="button"]')).find((b) =>
-      (b.getAttribute("aria-label") ?? "").startsWith("Desligar efeito"),
+    // o PRE do P01 vem DESLIGADO no all.prst (`state` do .prst, não palpite)
+    const slot = host.querySelector('[aria-label="Slot 1: PRE"]')!;
+    expect(slot.querySelector('[data-led="off"]'), "PRE desligado de fábrica").toBeTruthy();
+    const foot = Array.from(slot.querySelectorAll('[role="button"]')).find((b) =>
+      (b.getAttribute("aria-label") ?? "").startsWith("Ligar efeito"),
     );
     expect(foot, "footswitch presente").toBeTruthy();
     act(() => foot!.dispatchEvent(new MouseEvent("click", { bubbles: true })));
     await settle();
-    expect(host.querySelector('[data-led="off"]'), "LED vermelho após o clique").toBeTruthy();
+    expect(slot.querySelector('[data-led="on"]'), "LED verde após o clique").toBeTruthy();
     teardown(root, host);
   });
 });

@@ -63,6 +63,8 @@ const BOARD: BoardView = {
   ppType: 0,
   ppTypeName: "Factory",
   slots: CHAIN_FAMILIES.map((f, i) => mkSlot(i, f)),
+  bank: "factory",
+  ppLabel: "P01",
 };
 
 function mount(ui: React.ReactElement): { root: Root; host: HTMLElement } {

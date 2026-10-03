@@ -145,8 +145,14 @@ const rightSlot: CSSProperties = {
   minWidth: 0,
 };
 
-/** Ordem de exibição padrão: cada posição com o slot da MESMA família. */
-const BASE_ORDER = CHAIN_FAMILIES.map((_, i) => i);
+/** Ordem de exibição padrão: a ordem REAL do preset (`@x` do .prst).
+ *  Antes assumia slot = família e a cadeia vinha sempre canônica — 20 dos
+ *  99 presets têm a cadeia TROCADA (ex.: DST antes de PRE) e apareciam
+ *  errados. Sem board lido, cai na ordem canônica das famílias. */
+const baseOrder = (board: BoardView | null): number[] =>
+  board
+    ? [...board.slots].sort((a, b) => a.slot - b.slot).map((s) => s.slot)
+    : CHAIN_FAMILIES.map((_, i) => i);
 
 export function Stage({
   board,
@@ -167,17 +173,21 @@ export function Stage({
   const dragFrom = useRef<number | null>(null); // posição de ORIGEM do arrasto
   const [over, setOver] = useState<number | null>(null);
 
-  const pp = board?.pp ?? null;
+  // Identidade do patch ABERTO: o rótulo cobre os dois bancos ("P25" de
+  // fábrica, "U01" de usuário) — `pp` sozinho (−1 em todo patch de usuário)
+  // não distingue um do outro, e a reordenação local precisa zerar ao trocar.
+  const patchKey = board?.ppLabel ?? null;
   useEffect(() => {
     setOrder(null);
-  }, [pp]);
+  }, [patchKey]);
 
-  const display = useMemo(() => order ?? BASE_ORDER, [order]);
   const byChain = useMemo(() => {
     const m = new Map<number, BoardSlot>();
     for (const s of board?.slots ?? []) m.set(s.slot, s);
     return m;
   }, [board]);
+  const base = useMemo(() => baseOrder(board), [board]);
+  const display = useMemo(() => order ?? base, [order, base]);
 
   /** Move o item da posição `from` para a posição `to` (prévia local). */
   const moveTo = (from: number, to: number) => {
@@ -190,7 +200,8 @@ export function Stage({
   };
 
   const name = board?.name ?? "…";
-  const ppLabel = String((pp ?? 0) + 1).padStart(2, "0");
+  /* o rótulo vem do board: P01..P99 de fábrica, U01.. de usuário (#11) */
+  const ppLabel = board?.ppLabel ?? "P01";
   const typeName = board?.ppTypeName ?? "…";
 
   return (

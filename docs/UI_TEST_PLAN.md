@@ -120,6 +120,48 @@
 
 ---
 
+## \U0001f9f0 EXECUÇÃO — #11 LIBRARYPANEL: a biblioteca comanda o pedalboard (02/10)
+
+> Escopo fechado com o owner: (a) estreitar a biblioteca; (b) fazer o patch
+> selecionado REFLETIR nos 9 pedais; (c) implementar a UI de User Patch (até
+> então decorativa, bloqueada). Gates: tsc · eslint · vitest · coverage · build ·
+> playwright. Resultado: **144 unit ✅ (12 arquivos) · 77 e2e ✅ · cobertura
+> 89,9% stmts / 86,6% branch** (gate 85) · 18 baselines win32 regeneradas.
+
+**Achado de fundo (o bug real):** o core Rust já montava a cadeia por preset;
+o que estava congelado era o **mock web**, com uma cadeia FIXA para os 99. Dois
+consequências que os testes revelaram ao deixar de mentir:
+1. **20 dos 99 presets têm a cadeia TROCADA** (`@x` manda, não a família) — P06
+   (ppID 5) tem DST antes do PRE. O `Stage` ordenava por família e mentia.
+2. **O PRE do P01 no all.prst é C-Wah, não COMP.** Vários asserts (unit + R7)
+   foram escritos contra o COMP que o mock inventava; foram refeitos para ler o
+   artefato GERADO (`PRESET_CHAINS`) em vez de repetir a mentira.
+
+| O que | Onde | Teste |
+|---|---|---|
+| Cadeia real dos 99 no mock | `presetChains.ts` (GERADO) + `localMockBoard` | unit `ipc.device` (12) |
+| Ordem do palco pelo `slot` real | `Stage::baseOrder` | unit `stage.foundation` (25) |
+| Patch de usuário (snapshot/U##/excluir) | `userPatches.ts` + `App` | unit `userPatches` (8) + 3 unit em `app.interactions` |
+| Biblioteca estreita (300 → 248px) | `.shell-main` | e2e `responsivo` (assert 248.5) + baselines |
+| Roteiro R2b (novo) | `shell.roteiros.spec.ts` | e2e R2b |
+
+**Achados desta rodada:**
+- `deleteUserPatch` tinha que devolver o palco à fábrica — deixar o patch apagado
+  na tela seria a UI mentindo sobre o que existe.
+- A aba da biblioteca passou a seguir o BANCO ABERTO (abrir um patch troca a aba;
+  clicar na aba só navega a visão) — senão a biblioteca mente sobre o que toca.
+- A lista de patches de usuário é um `list`/`listitem`, não `listbox`: com o
+  botão de excluir dentro, o `option` órfão ficaria com filhos presentacionais
+  para o leitor de tela.
+- Flake: `erro-boot` (visual) deu timeout na suíte completa (8 min) e passou
+  isolado — contenção de recurso, não regressão.
+
+### R2b. Patch de usuário: salvar a cadeia corrente, abrir de volta e excluir
+1. Abrir a aba User → estado vazio orienta o caminho + nota de prévia local.
+2. Nomear e salvar → a lista mostra `U01` + o nome + de qual patch veio.
+3. Abrir o patch → `U01` no LED e na navbar; os 9 pedais mostram o SNAPSHOT.
+4. Excluir → volta ao preset de fábrica confirmado pelo device.
+
 ## ⌨️ EXECUÇÃO — R-ATALHOS (30/09, Playwright · Chromium + vitest)
 
 > Pedido do owner: atalhos globais — Espaço = drum play/stop, R = REC do looper,

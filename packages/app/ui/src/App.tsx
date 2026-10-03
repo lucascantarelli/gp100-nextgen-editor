@@ -38,6 +38,8 @@ import { LooperPanel, loadLooper } from "./components/LooperPanel";
 import type { LooperSettings } from "./components/LooperPanel";
 import { PushLog } from "./components/PushLog";
 import { MSG } from "./i18n/messages";
+import { boardOfUserPatch, loadUserPatches, snapshotOf, storeUserPatches } from "./userPatches";
+import type { UserPatch } from "./userPatches";
 
 const DRUM_KEY = "gp100.drum.v2";
 const MASTER_KEY = "gp100.master.v1";
@@ -99,6 +101,12 @@ export default function App() {
   const [tuner, setTuner] = useState<TunerSettings>(loadTuner);
   const [, setLooperPlaying] = useState(false); /* looper reporta tocar/gravar */
   const pushRef = useRef<HTMLDetailsElement>(null); // drawer "pushes do device" (Esc fecha)
+  /** Patches de USUÁRIO (#11): a escrita no device não tem canal USB ainda,
+   *  então vivem no localStorage como PRÉVIA — abrir um deles repõe no palco
+   *  exatamente a cadeia salva (mesmo shape de BoardView do device). */
+  const [userPatches, setUserPatches] = useState<UserPatch[]>(loadUserPatches);
+  /** patch de usuário aberto no palco (null = banco de fábrica em uso) */
+  const [openUserId, setOpenUserId] = useState<string | null>(null);
 
   // info + biblioteca no mount
   useEffect(() => {
@@ -138,6 +146,7 @@ export default function App() {
       setPp(b.pp);
       setPresetName(b.name);
       setBoard(b);
+      setOpenUserId(null); // banco de fábrica: nenhum patch de usuário aberto
       setEditing(null); // trocar de preset fecha a edição ampliada
       setErr(null);
     } catch (e) {
@@ -151,6 +160,42 @@ export default function App() {
       });
     }
   }, []);
+
+  // Abre um patch de USUÁRIO: o palco passa a desenhar o snapshot salvo
+  // (mesmo formato do device — o Stage não sabe a diferença). Sem erro de
+  // device possível aqui: nada é escrito, é relido do armazenamento local.
+  const openUserPatch = useCallback((patch: UserPatch, index: number) => {
+    setBoard(boardOfUserPatch(patch, index));
+    setPresetName(patch.name);
+    setOpenUserId(patch.id);
+    setEditing(null);
+    setErr(null);
+  }, []);
+
+  // Salva o patch CORRENTE: a cadeia que está no palco agora (fábrica ou
+  // usuário), com o nome digitado — sem nome, numeração do dono.
+  const saveUserPatch = useCallback(
+    (name: string) => {
+      if (board == null) return;
+      const label = name.trim() || MSG.userPatchDefaultName(userPatches.length);
+      setUserPatches((list) => [...list, snapshotOf(board, label, list.length)]);
+    },
+    [board, userPatches.length],
+  );
+
+  // Exclui um patch de usuário. Se era o que estava no palco, volta para o
+  // preset de fábrica confirmado: deixar um patch apagado no palco seria a UI
+  // mentindo sobre o que existe.
+  const deleteUserPatch = useCallback(
+    (id: string) => {
+      setUserPatches((list) => list.filter((p) => p.id !== id));
+      if (openUserId === id) {
+        setOpenUserId(null);
+        void openPreset(pp);
+      }
+    },
+    [openUserId, openPreset, pp],
+  );
 
   // ◀ ▶ reproduzem a coluna do patch do app oficial: 0..98 em ciclo.
   const stepPreset = useCallback(
@@ -238,6 +283,10 @@ export default function App() {
       /* noop */
     }
   }, [masterVol]);
+  // patches de usuário persistem local (prévia) — o storage é a única fonte
+  useEffect(() => {
+    storeUserPatches(userPatches);
+  }, [userPatches]);
   const onChangeGeneral = useCallback((s: GeneralSettings) => {
     setGeneral(s);
     try {
@@ -294,7 +343,7 @@ export default function App() {
         <TopBar
           connected={connected}
           mock={info?.backend === "mock"}
-          presetLabel={`P${String(pp + 1).padStart(2, "0")} ${presetName}`}
+          presetLabel={`${board?.ppLabel ?? MSG.libPp(pp)} ${presetName}`}
           masterVol={masterVol}
           drum={drum}
           drumOpen={drumOpen}
@@ -347,7 +396,7 @@ export default function App() {
         )}
       </div>
 
-      {/* MEIO da mesa: looper no topo, pushes, biblioteca (300px, com a
+      {/* MEIO da mesa: looper no topo, pushes, biblioteca (248px, com a
           LISTA rolável por dentro) à esquerda e palco à direita — o meio
           nunca tem scroll próprio: quem rola é a página inteira */}
       <div className="shell-content">
@@ -374,7 +423,16 @@ export default function App() {
 
         {/* linha biblioteca ↔ pedalboard: alturas iguais (stretch), sem lacunas */}
         <div className="shell-main">
-          <LibraryPanel currentPp={pp} onSelect={(target) => void openPreset(target)} />
+          <LibraryPanel
+            currentPp={pp}
+            bank={board?.bank ?? "factory"}
+            userPatches={userPatches}
+            currentUserId={openUserId}
+            onSelect={(target) => void openPreset(target)}
+            onOpenUser={openUserPatch}
+            onSave={saveUserPatch}
+            onDelete={deleteUserPatch}
+          />
           <Stage
             board={board}
             celebrate={celebrate}

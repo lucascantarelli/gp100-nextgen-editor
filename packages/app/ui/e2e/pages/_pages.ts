@@ -92,9 +92,11 @@ export class ShellPage {
       .getByRole("button", { name: "Tentar novamente a operação que falhou" });
   }
 
-  /** patch corrente exibido na navbar: Pnn + nome (1-based, app oficial) */
+  /** patch corrente exibido na navbar: rótulo + nome. Rótulo = `Pnn` nos
+   *  patches de FÁBRICA (1-based, como no app oficial) ou `Unn` nos patches de
+   *  USUÁRIO (#11) — o prefixo do banco mora no rótulo, não no layout. */
   patchLabel(): Locator {
-    return this.banner.getByText(/^P\d{2}/);
+    return this.banner.getByText(/^[PU]\d{2}/);
   }
 
   /** connection status curto (on/off) */
@@ -175,8 +177,41 @@ export class LibraryPage {
     return this.options().nth(index);
   }
 
+  factoryTab(): Locator {
+    return this.page.getByRole("tab", { name: "Factory Patch" });
+  }
+
   userTab(): Locator {
-    return this.page.getByRole("tab", { name: "User Patch" });
+    return this.page.getByRole("tab", { name: /^User Patch/ });
+  }
+
+  /** campo de nome do patch de usuário (aba User) */
+  userName(): Locator {
+    return this.page.getByRole("textbox", { name: /Nome do patch de usuário/ });
+  }
+
+  saveUserPatch(): Locator {
+    return this.page.getByRole("button", { name: "Salvar", exact: true });
+  }
+
+  /** linhas dos patches de usuário (U01…) */
+  userRows(): Locator {
+    return this.page.getByRole("list", { name: "Patches de usuário" }).getByRole("listitem");
+  }
+
+  userRowAt(index: number): Locator {
+    return this.userRows().nth(index);
+  }
+
+  deleteUserPatch(name: string): Locator {
+    return this.page.getByRole("button", { name: `Excluir o patch “${name}”` });
+  }
+
+  /** nomeia e salva o patch CORRENTE como patch de usuário */
+  async saveAs(name: string): Promise<void> {
+    await this.userTab().click();
+    await this.userName().fill(name);
+    await this.saveUserPatch().click();
   }
 
   /** seleciona pelo texto do accessible name (ex.: /P25 Mist Rock/) */

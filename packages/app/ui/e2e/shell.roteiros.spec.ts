@@ -81,9 +81,38 @@ test("R2 biblioteca: 99 presets reais, busca, seleção e empty state", async ({
   // nome COMPLETO na navbar e no LED (não só o nº — o fallback já congelou)
   await expect(shell.patchLabel()).toHaveText("P25 Mist");
   await expect(shell.board.display()).toContainText("Mist");
+});
 
-  // User Patch bloqueada com explicação
-  await expect(lib.userTab()).toBeDisabled();
+/* ── R2b. User Patch: snapshot do palco, volta ao palco e exclusão (#11) ── */
+test("R2b user patch: salvar a cadeia corrente, abrir de volta (U01) e excluir", async ({ page }) => {
+  const lib = shell.library;
+  const board = shell.board;
+
+  // a aba NÃO é mais decorativa: mostra o estado vazio e o caminho para salvar
+  await lib.userTab().click();
+  await expect(page.getByText(/Nenhum patch salvo ainda/)).toBeVisible();
+  await expect(page.getByText(/Prévia local/)).toBeVisible();
+  await expect(lib.userRows()).toHaveCount(0);
+
+  // salvar o patch CORRENTE (o app abre em P01) como patch de usuário
+  await lib.saveAs("Meu clean");
+  await expect(lib.userRows()).toHaveCount(1);
+  await expect(lib.userRowAt(0)).toContainText("U01");
+  await expect(lib.userRowAt(0)).toContainText("Meu clean");
+
+  // abrir o patch salvo: o rótulo U01 assume no LED e na navbar (patch local
+  // não tem cursor de fábrica — pp = −1)
+  await lib.userRowAt(0).getByRole("button").first().click();
+  await expect(board.display()).toContainText("U01");
+  await expect(board.display()).toContainText("Meu clean");
+  await expect(shell.patchLabel()).toHaveText("U01 Meu clean");
+
+  // excluir: volta ao preset de fábrica confirmado pelo device (nunca um patch
+  // apagado continuaria no palco — a UI não mente sobre o que existe)
+  await lib.deleteUserPatch("Meu clean").click();
+  await expect(lib.userRows()).toHaveCount(0);
+  await expect(shell.patchLabel()).toHaveText("P01 It's GP100");
+  await expect(board.display()).toContainText("It's GP100");
 });
 
 /* ── R3. Board (9 pedais reais — cadeia inteira numa fileira) + trava ⇄ mover ── */
@@ -120,31 +149,32 @@ test("R3 board: 9 slots na ordem do sinal e trava do drag", async () => {
   await expect(shell.alerts).toHaveCount(0);
 });
 
-/* ── R7. Pedal real no palco (Fase 2/U-3 — PRE/COMP + DST na 2ª rodada) ── */
-test("R7 COMP: valor em texto no palco (só leitura), edição no modal, LED/footswitch e trava", async ({ page }) => {
+/* ── R7. Pedal real no palco (Fase 2/U-3 — o PRE real do P01 é C-Wah) ── */
+test("R7 C-Wah: valor em texto no palco (só leitura), edição no modal, LED/footswitch e trava", async ({ page }) => {
   const board = shell.board;
   const pedalSlot = board.slot(1, "PRE");
   const pedal = pedalSlot.locator('svg[role="group"]');
   await expect(pedal).toBeVisible();
-  await expect(pedal).toHaveAttribute("aria-label", /COMP/);
+  // o PRE do P01 no all.prst é C-Wah (o mock antigo congelava COMP)
+  await expect(pedal).toHaveAttribute("aria-label", /C-Wah/);
   // a cadeia inteira está no palco (9 pedais reais)
   await expect(board.root.locator('svg[role="group"]')).toHaveCount(9);
   await expect(board.slot(2, "DST").locator('svg[role="group"]')).toBeVisible();
 
-  // knobs REAIS do dicionário (fxData: COMP = Sustain/Output): no palco o
+  // knobs REAIS do dicionário (fxData: C-Wah = Range/Q/VOL): no palco o
   // pedal é COMPACTO e mostra o VALOR de cada knob em texto, só leitura
-  await expect(pedalSlot.locator("[data-value]")).toHaveCount(2);
-  await expect(pedalSlot.locator('[data-value="20.0"]')).toBeVisible();
+  await expect(pedalSlot.locator("[data-value]")).toHaveCount(3);
+  await expect(pedalSlot.locator('[data-value="50"]').first()).toBeVisible();
   await expect(pedalSlot.locator('svg[role="slider"]')).toHaveCount(0);
 
-  // LED verde = ON; footswitch alterna para vermelho (prévia local — sem
-  // comando de toggle no protocolo capturado)
+  // o estado vem do .prst (`effectState`): o C-Wah do P01 nasce DESLIGADO e o
+  // footswitch alterna LOCAL (sem comando de toggle no protocolo capturado)
   const led = pedalSlot.locator("[data-led]");
-  await expect(led).toHaveAttribute("data-led", "on");
-  await pedalSlot.locator('[role="button"][aria-label^="Desligar efeito"]').click();
   await expect(led).toHaveAttribute("data-led", "off");
+  await pedalSlot.locator('[role="button"][aria-label^="Ligar efeito"]').click();
+  await expect(led).toHaveAttribute("data-led", "on");
 
-  // trava ⇄ mover: OFF protege o pedal (não arrastável); ON libera
+  // trava ⇄ mover: ligada libera o arrasto de qualquer pedal da cadeia
   await expect(pedalSlot).not.toHaveAttribute("draggable", "true");
   await board.toggleMover();
   await expect(pedalSlot).toHaveAttribute("draggable", "true");
@@ -161,6 +191,7 @@ test("R7 COMP: valor em texto no palco (só leitura), edição no modal, LED/foo
   const tip = pedalSlot.locator('svg[role="img"] title').first();
   await expect(tip).toContainText("addr 10 01 00 02");
   await expect(tip).toContainText("ctrl 0");
+  await expect(tip).toContainText("05000008"); // effectCode do C-Wah no .prst
   await expect(tip).not.toContainText("§13.11");
 
   // edição: a trava precisa voltar ao repouso antes — com ela ativa o clique
@@ -171,16 +202,16 @@ test("R7 COMP: valor em texto no palco (só leitura), edição no modal, LED/foo
   await pedal.locator('svg[role="img"]').first().click();
   const dlg = page.getByRole("dialog", { name: /Edição do pedal/ });
   await expect(dlg).toBeVisible();
-  await expect(dlg.locator('svg[role="slider"]')).toHaveCount(2);
+  await expect(dlg.locator('svg[role="slider"]')).toHaveCount(3);
   await expect(dlg.locator('input[aria-label="Valor (Enter para editar)"]').first()).toHaveValue(
-    "20.0",
+    "50",
   );
 
-  // o knob AMPLIADO ajusta o MESMO estado: ArrowUp 20 → 21 no modal e no palco
+  // o knob AMPLIADO ajusta o MESMO estado: ArrowUp 50 → 51 no modal e no palco
   await dlg.locator('svg[role="slider"]').first().press("ArrowUp");
   const modeBox = dlg.locator('input[aria-label="Valor (Enter para editar)"]').first();
-  await expect(modeBox).toHaveValue("21");
-  await expect(pedalSlot.locator('[data-value="21"]')).toBeVisible();
+  await expect(modeBox).toHaveValue("51");
+  await expect(pedalSlot.locator('[data-value="51"]').first()).toBeVisible();
 
   // valor EDITÁVEL no modal: digitar 42 → Enter (virou device_set_param) e o
   // palco reflete o novo valor ao fechar

@@ -380,11 +380,13 @@ body {
 }
 
 /* ── Responsividade da casca (R-responsivo) ── */
-/* Hierarquia: looper em cima (full width); abaixo, biblioteca (300px)
-   à ESQUERDA e pedalboard esticando à direita — alturas iguais (stretch). */
+/* Hierarquia: looper em cima (full width); abaixo, biblioteca (248px)
+   à ESQUERDA e pedalboard esticando à direita — alturas iguais (stretch).
+   A biblioteca encolheu de 300px na #11: o pedalboard (que abre MODAL de
+   edição por pedal e tem 9 colunas) precisa do espaço mais que a lista. */
 .shell-main {
   display: grid;
-  grid-template-columns: 300px minmax(0, 1fr);
+  grid-template-columns: 248px minmax(0, 1fr);
   gap: var(--space-12);
   align-items: stretch;
 }

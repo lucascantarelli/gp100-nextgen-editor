@@ -33,19 +33,20 @@
 
 | # | Item | Estado | Implementação | Teste |
 |---|---|---|---|---|
-| B1 | Abas Factory/User | ✅ Factory ativa; User bloqueada com explicação (save é fase de escrita) | LibraryPanel.tsx | R2 e2e |
+| B1 | Abas Factory/User | ✅ as DUAS abas funcionam (#11): Factory com os 99 reais; User salva/abre/exclui patches do dono (prévia local — a escrita no device ainda não tem canal, §5) | LibraryPanel.tsx + userPatches.ts | R2 e R2b e2e + unit |
 | B2 | NO. / Patch Name / Style (99) | ✅ os 99 REAIS do all.prst (nome+tipo), P01..P99 1-based | presetData.ts (GERADO) | R2 e2e + unit (99) |
 | B3 | Busca por nome/nº/estilo | ✅ case-insensitive; nº 1-based ("98" acha P98); empty state com dica | LibraryPanel.tsx | R2 e2e |
-| B4 | Abrir preset | ✅ deviceSelectPreset REAL §13.10 (fallback dev determinístico); corrente destacada+aria-selected | App.openPreset | R2 e2e |
-| B5 | Teclado (listbox) | ✅ setas+Enter; foco visível | LibraryPanel.tsx | R1/R2 e2e |
-| B6 | Import/Export/Rename/Save | 🔴 escrita — fase de arquivos do device (pós-captura); fora da Fase 1 por política | — | — |
+| B4 | Abrir preset | ✅ deviceSelectPreset REAL §13.10 (fallback dev determinístico); corrente destacada+aria-selected; **o pedalboard redesenha a CADEIA REAL do patch** (20 dos 99 têm a cadeia trocada) | App.openPreset + presetChains.ts (GERADO) | R2 e R2b e2e + unit |
+| B5 | Teclado (listbox) | ✅ setas+Enter; foco visível; alvo ≥32px | LibraryPanel.tsx | R1/R2/R6 e2e |
+| B6 | Import/Export/Rename/Save no device | 🔴 escrita no device — depende do canal USB do `save_preset` (§4 do PROTOCOL); a UI já tem o fluxo de usuário (B7) em prévia local | — | — |
+| B7 | Patch de usuário (salvar/abrir/excluir) | ✅ PRÉVIA LOCAL (#11): snapshot da cadeia corrente, U## no LED/navbar, excluir devolve a fábrica; persiste em localStorage; retrato imutável | userPatches.ts + App.openUserPatch/saveUserPatch/deleteUserPatch | R2b e2e + 8 unit |
 
 ## 4. Board / cadeia (manual §"Rodapé da cadeia")
 
 | # | Item | Estado | Implementação | Teste |
 |---|---|---|---|---|
 | C1 | 9 slots PRE DST AMP NR CAB EQ MOD DLY RVB | ✅ ordem do sinal; display LED (nº âmbar + nome + tipo) | EmptyBoard.tsx | R3 e2e + unit |
-| C2 | Clique no mini-pedal troca módulo | 🔴 Fase 2 (U-3) — pedais não existem ainda (decisão owner: 1 por vez) | — | — |
+| C2 | Clique no mini-pedal troca o EFEITO da lista do módulo | 🔴 **issue #19** (U-3) — o dicionário já está no front (fxData: 9 famílias com knobs/switches/comboxes reais); falta o comando `change-effect` (0x47 da família 0x4X, PROTOCOL §4) com captura própria (WRITE_VERIFIED=false até lá). Wireframe pronto: UI_REFERENCE §1.1 "Effects List" | — | — |
 | C3 | Trava do drag | ✅ drag só com ⇄ ativo (protege knobs futuros) | EmptyBoard.tsx | R3 e2e |
 | C4 | Cabos de sinal + LED por pedal | 🔴 Fase 2 (checklist UI_REFERENCE §3) | — | — |
 | C5 | Warns ⚠ sob slots | 🟡 aguardando mapeamento confirmado do app oficial (§1.1) — não copiado às cegas | — | — |

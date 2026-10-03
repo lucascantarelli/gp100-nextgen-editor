@@ -51,7 +51,7 @@ describe("App — casca (a11y e estados)", () => {
     // o PRE é pedal real (a cadeia inteira está no palco — U-3): SVG no slot 1
     expect(
       host.querySelector('[aria-label="Slot 1: PRE"] svg[role="group"]'),
-      "COMP (PRE) renderizado",
+      "PRE/C-Wah renderizado",
     ).toBeTruthy();
 
     // biblioteca: os 99 de fábrica aparecem (lista com role listbox)

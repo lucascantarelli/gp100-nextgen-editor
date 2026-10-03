@@ -104,9 +104,20 @@ describe("ipc/device — board (artefato da biblioteca → BoardView)", () => {
     const b = await deviceBoard();
     expect(b.pp).toBe(0);
     expect(b.name).toBe("It's GP100");
+    expect(b.ppLabel).toBe("P01");
+    expect(b.bank).toBe("factory");
     expect(b.slots.map((s) => s.family)).toEqual([
       "PRE", "DST", "AMP", "NR", "CAB", "EQ", "MOD", "DLY", "RVB",
     ]);
+  });
+
+  /* 20 dos 99 presets têm a cadeia TROCADA (`@x` manda, não a família) —
+     P06 (ppID 5) é o caso mais visível: o DST vem antes do PRE. */
+  it("presets com cadeia trocada trocam os pedais de posição (não só o nome)", async () => {
+    const b = await deviceBoard(5);
+    expect(b.slots.map((s) => s.family).slice(0, 2)).toEqual(["DST", "PRE"]);
+    // e o exibido pelo palco é o slot REAL, não a ordem canônica das famílias
+    expect(b.slots[0].name).not.toBe(b.slots[1].name);
   });
 
   it("slots carregam knobs/switches/comboxes DO CATÁLIGO com code derivado", async () => {
@@ -119,13 +130,14 @@ describe("ipc/device — board (artefato da biblioteca → BoardView)", () => {
       }
     }
     // DERIVAÇÃO do code a partir do artefato: nibble do módulo no byte alto
-    // + index do algoritmo — provado contra o catálogo para o COMP do slot 0
-    const comp = b.slots[0];
-    const alg = FX_MODULES.PRE.find((a) => a.name === "COMP");
-    expect(alg).toBeTruthy();
-    expect(comp.code).toBe((alg!.nibble << 24) | alg!.index);
-    // PRE/COMP: o 1º controle é knob com range real do dicionário
-    expect(comp.knobs[0].kind).toBe("knob");
+    // + index do algoritmo — provado contra o catálogo para o PRE do P01
+    // (que no all.prst é C-Wah, não COMP: o board segue a cadeia REAL)
+    const pre = b.slots[0];
+    const alg = FX_MODULES.PRE.find((a) => ((a.nibble << 24) | a.index) === pre.code);
+    expect(alg?.name, "o code do PRE bate com um algoritmo do dicionário").toBeTruthy();
+    expect(pre.name).toBe(alg!.name);
+    // PRE/C-Wah: o 1º controle é knob com range real do dicionário
+    expect(pre.knobs[0].kind).toBe("knob");
   });
 
   it("deviceBoard(pp) reflete o pp pedido (P25 Mist) — nada de nome congelado", async () => {
