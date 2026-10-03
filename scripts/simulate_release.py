@@ -82,16 +82,33 @@ class Sandbox:
     def setup(self) -> None:
         sh("git init --bare -b main origin.git", self.root)
         sh("git clone -q origin.git seed", self.root)
+        # Os 5 manifests que `sync_version.py` governa (#73) — antes eram 3, e
+        # faltando `tauri.conf.json`/`package.json` a cadeia rc/promote rodava
+        # num repo que nao se parecia com o real: o bug so aparecia no repo de
+        # verdade, nunca aqui. O `frontendDist` aponta para um `dist/` minimo
+        # para o conf ser um conf de verdade.
         manifests = {
             "Cargo.toml": '[package]\nname = "sim"\nversion = "0.1.0"\n',
             "packages/app/api/Cargo.toml": '[package]\nname = "sim-api"\nversion = "0.1.0"\n',
+            "packages/app/api/tauri.conf.json": '{\n  "version": "0.1.0",\n  "build": {\n    "frontendDist": "../ui/dist"\n  }\n}\n',
+            "packages/app/ui/package.json": '{\n  "name": "sim-ui",\n  "version": "0.1.0"\n}\n',
             "version.json": '{\n  "version": "0.1.0"\n}\n',
         }
         for path, content in manifests.items():
             full = os.path.join(self.seed, path)
             os.makedirs(os.path.dirname(full), exist_ok=True)
-            with open(full, "w", encoding="utf-8") as fh:
+            with open(full, "w", encoding="utf-8", newline="") as fh:
                 fh.write(content)
+
+        # O `run:` dos jobs chama `python3 scripts/sync_version.py` (issue #73),
+        # entao o sandbox precisa do script — sem ele a cadeia morre com
+        # "can't open file .../sync_version.py" e o gate do Lint reprova.
+        script_dst = os.path.join(self.seed, "scripts")
+        os.makedirs(script_dst, exist_ok=True)
+        shutil.copyfile(
+            os.path.join(REPO, "scripts", "sync_version.py"),
+            os.path.join(script_dst, "sync_version.py"),
+        )
         for repo in (self.seed,):
             sh('git config user.name sim && git config user.email sim@example.test', repo)
         sh('git add -A && git commit -qm "chore: base 0.1.0"', self.seed)

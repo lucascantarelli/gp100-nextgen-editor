@@ -85,7 +85,10 @@ TIPOS: dict[str, list[str]] = {
     "Relatório": ["metrics"],
     "Infra": ["ci-images"],
     "Release": ["main-guard", "release-rc", "release-promote", "release-play"],
-    "Distribuição": ["dist-ui", "dist-cli"],
+    # `dist-sdist` publica o tarball de FONTE (com o `ui/dist` embutido) de que
+    # o PKGBUILD do Arch precisa (#72). Fica entre o instalador e o CLI porque é
+    # artefato de distribuição — não gate, não teste.
+    "Distribuição": ["dist-ui", "dist-sdist", "dist-cli"],
     "Fechamento": ["close-issues"],
 }
 SEQUENCIA_ESPERADA = [j for jobs_ in TIPOS.values() for j in jobs_]

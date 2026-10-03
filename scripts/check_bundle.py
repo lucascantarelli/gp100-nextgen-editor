@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import json
 import re
+import os
 import sys
 import urllib.request
 from pathlib import Path
@@ -180,6 +181,62 @@ def check_arch(conf: dict, root: Path) -> None:
     for lib in ("webkit2gtk-4.1", "gtk3"):
         if lib not in text:
             fail(f"PKGBUILD sem a dependencia `{lib}` — mesmo par do .deb")
+
+    # ── #72: o INSRUMO do build() tem de existir e ser produzido por alguem ──
+    # O `build()` compila de `gp100-nextgen-editor-<versão>.tar.gz`. Ate #72 esse
+    # arquivo nao era publicado por NENHUM job, e o tarball do git nao tinha nem
+    # o `frontendDist` nem o `packages/core` (dependencia de caminho do crate
+    # do Tauri) — tres furos que deixavam o `makepkg` quebrar em silencio.
+    fonte = next(
+        (l for l in text.splitlines() if l.startswith("source=")),
+        "",
+    )
+    if "$pkgname-$_pkgver.tar.gz" not in fonte:
+        fail('PKGBUILD nao declara `source=("$pkgname-$_pkgver.tar.gz")`')
+        fail('PKGBUILD nao declara `source=("$pkgname-$_pkgver.tar.gz")`')
+
+    sdist = Path("scripts/make_sdist.py")
+    if not sdist.is_file():
+        fail(
+            "PKGBUILD consome um tarball que ninguem produz: "
+            "`scripts/make_sdist.py` ausente (#72)"
+        )
+        return
+
+    workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
+    if "make_sdist.py" not in workflow:
+        fail(
+            "nenhum job do CI invoca `scripts/make_sdist.py` — o tarball do "
+            "PKGBUILD nunca chega a Release (#72)"
+        )
+
+    sd = sdist.read_text(encoding="utf-8")
+
+    # O `frontendDist` do conf e RELATIVO ao diretorio do conf, entao
+    # `../ui/dist` (em packages/app/api) resolve para `packages/app/ui/dist`.
+    # Comparar o caminho resolvido — e nao a substring "packages/app/ui/dist" —
+    # e o que torna o contrato honesto: uma substring casaria com o texto de um
+    # comentario ou de uma mensagem de erro mesmo com o caminho errado.
+    frontend_dist = (conf.get("build") or {}).get("frontendDist") or ""
+    if frontend_dist:
+        resolvido = os.path.normpath(
+            os.path.join("packages/app/api", frontend_dist)
+        ).replace(os.sep, "/")
+        m_fr = re.search(r'^FRONT_DIST\s*=\s*"([^"]+)"', sd, re.M)
+        no_sdist = m_fr.group(1) if m_fr else None
+        if no_sdist != resolvido:
+            fail(
+                f"`frontendDist` do conf resolve para `{resolvido}` mas "
+                f"`make_sdist.py` embute `{no_sdist}` — o build do shell entra "
+                "em panic do `generate_context!` (#72)"
+            )
+    if '"packages/core"' not in sd:
+        fail(
+            '`make_sdist.py` nao embute `packages/core` — e dependencia de '
+            'caminho do gp100-ui (path = "../../core"); sem ela o manifesto '
+            "nem resolve (#72)"
+        )
+
 
 
 def check_schema(conf: dict) -> None:

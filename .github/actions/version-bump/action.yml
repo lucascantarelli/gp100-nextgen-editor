@@ -78,11 +78,10 @@ runs:
         NEXT: ${{ steps.calc.outputs.next }}
       run: |
         set -euo pipefail
-        for f in Cargo.toml packages/app/api/Cargo.toml version.json; do
-          if [ "$f" = "version.json" ]; then
-            printf '{\n  "version": "%s"\n}\n' "$NEXT" > version.json
-          else
-            sed -i -E "0,/^version = \".*\"/s//version = \"$NEXT\"/" "$f"
-          fi
-        done
-        echo "aplicado $NEXT em Cargo.toml, packages/app/api/Cargo.toml, version.json"
+        # `sync_version.py` cobre os 5 manifests, incluindo os dois que o `sed`
+        # generico nao acertava: `tauri.conf.json` (a chave `version` do BUNDLE
+        # -- sem ela o instalador sai com a versao velha, #73) e o `package.json`
+        # do front. O `--check` no fim prova que os 5 ficaram iguais: um
+        # instalador com versao errada e exatamente o sintoma que isso evita.
+        python3 scripts/sync_version.py --set "$NEXT"
+        python3 scripts/sync_version.py --check
