@@ -142,6 +142,17 @@ export const MSG = {
   userPatchDefaultName: (n: number) => `Meu patch ${n + 1}`,
   userBankType: "User",
 
+  /* lista de efeitos do módulo (issue #19 — "Effects List" do app oficial) */
+  effectListTitle: "Effects List",
+  effectListAria: (fam: string) => `Lista de efeitos do módulo ${fam}`,
+  effectListCount: (n: number) => `${n} efeitos`,
+  effectListSearchPlaceholder: "Buscar efeito…",
+  effectListSearchAria: "Buscar efeito do módulo por nome",
+  effectListEmpty: (q: string) => `Nenhum efeito para “${q}”.`,
+  effectListPick: (name: string) => `Trocar o efeito deste pedal para ${name}`,
+  effectListCurrent: (name: string) => `${name} — efeito atual deste pedal`,
+  effectListNote: "Prévia local: trocar o efeito ainda não é escrito no device.",
+
   /* ── drum ── */
   drumNote: `${DRUM_COUNT} ritmos em ${DRUM_GENRE_COUNT} gêneros · metrônomo incluído · prévia local`,
   drumPanelAria: "Gestão de ritmos da bateria (drum)",

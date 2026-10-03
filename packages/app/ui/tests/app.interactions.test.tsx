@@ -323,65 +323,66 @@ describe("Biblioteca — busca", () => {
 });
 
 /* ── #11: a biblioteca COMANDA o pedalboard ── */
+/* ── #11/#19: passos que atravessam biblioteca ↔ palco (compartilhados) ── */
+const clickTab = async (host: HTMLElement, nome: string) => {
+  act(() =>
+    Array.from(host.querySelectorAll('[role="tab"]'))
+      .find((t) => t.textContent?.includes(nome))!
+      .dispatchEvent(new MouseEvent("click", { bubbles: true })),
+  );
+  await settle();
+};
+const userTab = (host: HTMLElement) => clickTab(host, "User Patch");
+
+/** clica no 1º patch de usuário da lista (U01) */
+const openUserPatch = async (host: HTMLElement) => {
+  await userTab(host);
+  act(() =>
+    host.querySelectorAll('[role="listitem"]')[0].querySelector("button")!
+      .dispatchEvent(new MouseEvent("click", { bubbles: true })),
+  );
+  await settle();
+};
+
+/** nomeia e salva o patch CORRENTE como patch de usuário */
+const saveAsUserPatch = async (host: HTMLElement, name: string) => {
+  await userTab(host);
+  setInput(
+    host.querySelector<HTMLInputElement>('input[aria-label="Nome do patch de usuário a salvar"]')!,
+    name,
+  );
+  act(() =>
+    Array.from(host.querySelectorAll("button"))
+      .find((b) => b.textContent === "Salvar")!
+      .dispatchEvent(new MouseEvent("click", { bubbles: true })),
+  );
+  await settle();
+};
+
+/** abre um preset pelo número EXIBIDO (P06 = ppID 5, como no app oficial) */
+const openPatch = async (host: HTMLElement, no: string) => {
+  // volta para a aba de fábrica (a aba segue o banco aberto no palco)
+  act(() =>
+    Array.from(host.querySelectorAll('[role="tab"]'))
+      .find((t) => t.textContent?.includes("Factory"))!
+      .dispatchEvent(new MouseEvent("click", { bubbles: true })),
+  );
+  await settle();
+  const search = host.querySelector<HTMLInputElement>(
+    'input[aria-label="Buscar preset por nome, número ou estilo"]',
+  )!;
+  setInput(search, no);
+  await settle();
+  act(() =>
+    host.querySelectorAll('[role="option"]')[0].dispatchEvent(new MouseEvent("click", { bubbles: true })),
+  );
+  await settle();
+};
+
 describe("Biblioteca — o patch aberto é o que o pedalboard mostra", () => {
   /** nomes dos 9 pedais desenhados, na ordem do palco */
   const chainOnStage = (host: HTMLElement) =>
     Array.from(host.querySelectorAll('svg[role="group"]')).map((g) => g.getAttribute("aria-label") ?? "");
-
-  const clickTab = async (host: HTMLElement, nome: string) => {
-    act(() =>
-      Array.from(host.querySelectorAll('[role="tab"]'))
-        .find((t) => t.textContent?.includes(nome))!
-        .dispatchEvent(new MouseEvent("click", { bubbles: true })),
-    );
-    await settle();
-  };
-  const userTab = (host: HTMLElement) => clickTab(host, "User Patch");
-
-  /** clica no 1º patch de usuário da lista (U01) */
-  const openUserPatch = async (host: HTMLElement) => {
-    await userTab(host);
-    act(() =>
-      host.querySelectorAll('[role="listitem"]')[0].querySelector("button")!
-        .dispatchEvent(new MouseEvent("click", { bubbles: true })),
-    );
-    await settle();
-  };
-
-  /** nomeia e salva o patch CORRENTE como patch de usuário */
-  const saveAsUserPatch = async (host: HTMLElement, name: string) => {
-    await userTab(host);
-    setInput(
-      host.querySelector<HTMLInputElement>('input[aria-label="Nome do patch de usuário a salvar"]')!,
-      name,
-    );
-    act(() =>
-      Array.from(host.querySelectorAll("button"))
-        .find((b) => b.textContent === "Salvar")!
-        .dispatchEvent(new MouseEvent("click", { bubbles: true })),
-    );
-    await settle();
-  };
-
-  /** abre um preset pelo número EXIBIDO (P06 = ppID 5, como no app oficial) */
-  const openPatch = async (host: HTMLElement, no: string) => {
-    // volta para a aba de fábrica (a aba segue o banco aberto no palco)
-    act(() =>
-      Array.from(host.querySelectorAll('[role="tab"]'))
-        .find((t) => t.textContent?.includes("Factory"))!
-        .dispatchEvent(new MouseEvent("click", { bubbles: true })),
-    );
-    await settle();
-    const search = host.querySelector<HTMLInputElement>(
-      'input[aria-label="Buscar preset por nome, número ou estilo"]',
-    )!;
-    setInput(search, no);
-    await settle();
-    act(() =>
-      host.querySelectorAll('[role="option"]')[0].dispatchEvent(new MouseEvent("click", { bubbles: true })),
-    );
-    await settle();
-  };
 
   it("trocar de patch troca a CADEIA dos 9 pedais (inclusive a de ordem trocada)", async () => {
     const { root, host } = mount();
@@ -824,6 +825,91 @@ describe("Palco — o pedal REAL do PRE (U-3: pedais reais na cadeia inteira)", 
     act(() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" })));
     await settle();
     expect(host.querySelector('[role="dialog"]')).toBeNull();
+    teardown(root, host);
+  });
+
+  it("Effects List (#19): trocar o efeito no modal troca o pedal NO PALCO", async () => {
+    const { root, host } = mount();
+    await settle();
+
+    // abre o modal pelo pedal do palco (o PRE do P01 = C-Wah)
+    const pedal = host.querySelector('[aria-label="Slot 1: PRE"] svg[role="group"]')!;
+    act(() => pedal.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    await settle();
+    const dlg = host.querySelector('[role="dialog"]')!;
+
+    // a lista é do MÓDULO: só PRE, com o efeito atual marcado
+    const list = dlg.querySelector('[role="listbox"]')!;
+    expect(list.getAttribute("aria-label")).toBe("Lista de efeitos do módulo PRE");
+    const opts = Array.from(list.querySelectorAll('[role="option"]'));
+    const marked = opts.filter((o) => o.getAttribute("aria-selected") === "true");
+    expect(marked.map((o) => o.textContent), "só o efeito atual vem marcado").toEqual(["✓C-Wah"]);
+    expect(opts.map((o) => o.textContent)).toContain("COMP");
+    // nada de AMP na lista de PRE
+    expect(opts.map((o) => o.textContent)).not.toContain("Bog RedM");
+
+    // troca: C-Wah → COMP. O palco tem que mostrar o novo efeito E os knobs
+    // novos, já nos defaults do COMP (não herda o 50 do C-Wah)
+    const comp = opts.find((o) => o.textContent === "COMP")!;
+    act(() => comp.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    await settle();
+    const stage = host.querySelector('[aria-label="Slot 1: PRE"] svg[role="group"]')!;
+    expect(stage.getAttribute("aria-label"), "o palco trocou de efeito").toContain("COMP");
+    expect(
+      Array.from(host.querySelectorAll('[aria-label="Slot 1: PRE"] [data-value]')).map((t) =>
+        t.getAttribute("data-value"),
+      ),
+    ).toEqual(["20.0", "50.0"]);
+    // e o modal já reflete a troca (estado único): o título e a marca seguem
+    expect(host.querySelector('[role="dialog"]')!.getAttribute("aria-label")).toContain("COMP");
+
+    // a busca filtra a lista do módulo
+    const search = dlg.querySelector<HTMLInputElement>('input[aria-label="Buscar efeito do módulo por nome"]')!;
+    setInput(search, "wah");
+    await settle();
+    const filtered = Array.from(
+      dlg.querySelectorAll('[role="listbox"] [role="option"]'),
+    ).map((o) => o.textContent);
+    expect(filtered.length).toBeGreaterThan(0);
+    expect(filtered.every((t) => t?.toLowerCase().includes("wah"))).toBe(true);
+    setInput(search, "zzz-nada");
+    await settle();
+    expect(dlg.querySelectorAll('[role="listbox"] [role="option"]').length).toBe(0);
+    expect(dlg.textContent).toContain("Nenhum efeito para");
+
+    act(() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" })));
+    await settle();
+    teardown(root, host);
+  });
+
+  it("o efeito trocado entra no patch de usuário (o retrato do palco, não do preset)", async () => {
+    const { root, host } = mount();
+    await settle();
+
+    // troca o PRE para COMP e SALVA como patch de usuário
+    act(() =>
+      host.querySelector('[aria-label="Slot 1: PRE"] svg[role="group"]')!
+        .dispatchEvent(new MouseEvent("click", { bubbles: true })),
+    );
+    await settle();
+    const dlg = host.querySelector('[role="dialog"]')!;
+    act(() =>
+      Array.from(dlg.querySelectorAll('[role="option"]'))
+        .find((o) => o.textContent === "COMP")!
+        .dispatchEvent(new MouseEvent("click", { bubbles: true })),
+    );
+    await settle();
+    act(() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" })));
+    await settle();
+    await saveAsUserPatch(host, "Meu COMP");
+
+    // volta para a fábrica (o P01 é C-Wah) e abre o patch salvo: o COMP foi
+    // junto, porque o patch é o retrato do PALCO no momento do save
+    await openPatch(host, "02");
+    await openUserPatch(host);
+    expect(host.querySelector('[aria-label="Slot 1: PRE"] svg[role="group"]')!.getAttribute("aria-label")).toContain(
+      "COMP",
+    );
     teardown(root, host);
   });
 

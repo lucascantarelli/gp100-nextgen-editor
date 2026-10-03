@@ -40,6 +40,8 @@ import { PushLog } from "./components/PushLog";
 import { MSG } from "./i18n/messages";
 import { boardOfUserPatch, loadUserPatches, snapshotOf, storeUserPatches } from "./userPatches";
 import type { UserPatch } from "./userPatches";
+import { withAlgorithm } from "./effects";
+import type { FxAlgorithm } from "./artifacts/fxData";
 
 const DRUM_KEY = "gp100.drum.v2";
 const MASTER_KEY = "gp100.master.v1";
@@ -239,6 +241,20 @@ export default function App() {
     },
     [applyKnob],
   );
+  // Troca de EFEITO dentro do slot (issue #19, "Effects List"): é PRÉVIA LOCAL
+  // — o `change-effect` (`0x47` da família 0x4X) ainda não tem formato
+  // validado no fio (BLOCKERS 10b; roteiro de captura em CAPTURE_PLAN
+  // CAPTURA 5). O estado é o mesmo do palco, então o pedal troca na hora e os
+  // controles voltam aos defaults do algoritmo novo (os valores do anterior
+  // não valem para ele). O que o dono salva depois (patch de usuário) já leva
+  // o efeito novo junto.
+  const onChangeEffect = useCallback((slot: BoardSlot, alg: FxAlgorithm) => {
+    setBoard((b) =>
+      b == null
+        ? b
+        : { ...b, slots: b.slots.map((s) => (s.slot === slot.slot ? withAlgorithm(s, alg) : s)) },
+    );
+  }, []);
   // Footswitch: sem comando de toggle capturado no protocolo — alterna LOCAL
   // (LED verde/vermelho) até o fluxo do device existir.
   const onToggle = useCallback((slot: BoardSlot) => {
@@ -474,6 +490,7 @@ export default function App() {
         onToggle={onToggle}
         onKnobChange={applyKnob}
         onKnobReset={onKnobReset}
+        onChangeEffect={onChangeEffect}
         onClose={() => setEditing(null)}
       />
     </main>
