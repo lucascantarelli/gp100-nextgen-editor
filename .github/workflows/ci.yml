@@ -226,17 +226,14 @@ jobs:
       # expressao invalido. O `validate_workflows.py` cobre os CONTRATOS do
       # projeto; os dois juntos fecham workflow sintatico E semantico. Sem o
       # actionlint, um workflow pode passar no YAML e quebrar no runner.
-      # O `-ignore` e para UM rotulo, e nao uma rede: `macos-15-intel` e um
-      # label real do GitHub (runner Intel do macOS 15, announced em set/2025 e
-      # disponivel ate ago/2027), mas a lista embutida do actionlint 1.7.7 e mais
-      # antiga que ele e o acusa de desconhecido. Verificar no runner real (docs
-      # de runners hospedados do GitHub) antes de "corrigir" este ignore --
-      # trocar o label por `macos-latest` traria arm64 e o build do shell Tauri
-      # deixaria de ser provado na arquitetura que o `.dmg` exige.
+      # As opcoes do actionlint vivem em `.github/actionlint.yaml`, e nao em
+      # `args:` — a imagem oficial e `docker://`, o `args` chega ao `docker run`
+      # sem aspas e uma regexp com espacos vira tres argumentos (a 1a execucao
+      # morreu com `could not read "unknown'"`).
       - name: actionlint (expressões e contextos do runner)
         uses: docker://rhysd/actionlint:1.7.7
         with:
-          args: -ignore 'label "macos-15-intel" is unknown'
+          args: -config-file /github/workspace/.github/actionlint.yaml
       - name: sintaxe + contratos + empacotamento + simulação do GitFlow
         run: |
           # `pyyaml` e `jsonschema` ja vem no `pyproject.toml` (#80); a linha
