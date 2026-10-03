@@ -56,6 +56,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
 RUN apt-get update -y \
  && apt-get install -y --no-install-recommends \
       ca-certificates curl git jq pkg-config libasound2-dev xz-utils \
+      python3 \
  && rm -rf /var/lib/apt/lists/*
 
 # `rust:slim-bookworm` traz os SHIMS de rustfmt e clippy no PATH mas nao os
@@ -67,8 +68,11 @@ RUN apt-get update -y \
 RUN rustup component add rustfmt clippy
 
 # uv pelo instalador oficial: a imagem `rust:slim-bookworm` não traz Python
-# gerenciado,
-# e o `pip install uv` cairia no PEP 668 (ambiente externo).
+# gerenciado, e o `pip install uv` cairia no PEP 668 (ambiente externo).
+# O `python3` do sistema vem do apt acima porque `5 sec · auditorias` chama
+# `python3 scripts/security_report.py` direto -- sem ele o job morre com
+# `python3: not found` no fim, DEPOIS das auditorias passarem (uv traz Python
+# para o pytest, mas nao para um interpretador que o job invoca pelo nome).
 COPY --from=ghcr.io/astral-sh/uv:0.9.7 /uv /uvx /usr/local/bin/
 
 # Node + pnpm: mesma versão do resto do CI (a composite setup-node-pnpm aborta
@@ -92,7 +96,7 @@ RUN case "$(dpkg --print-architecture)" in \
 # `xz: Cannot exec: No such file or directory` NO MEIO da instalação do Node.
 # Checando o binário, a falha aparece aqui, com nome, em vez de 6 camadas depois.
 RUN set -eux \
- && for bin in rustc cargo rustfmt cargo-clippy uv node pnpm git jq pkg-config xz; do \
+ && for bin in rustc cargo rustfmt cargo-clippy uv node pnpm git jq pkg-config xz python3; do \
       command -v "$bin"; \
     done \
  && rustc --version && cargo --version && uv --version \
