@@ -5,7 +5,8 @@
 > de ambiente, configuração, revisão de spec ou extração de dados. Cada item é uma
 > issue com dependências e critério de aceite (Definition of Done) testável.
 >
-> **Status:** ✅ atual · **Última revisão:** 2026-10-01 · Mapa da doc: `docs/INDEX.md`
+> **Status:** ✅ atual · **Última revisão:** 2026-10-03 · Mapa da doc: `docs/INDEX.md`
+> (estado atual e números dos testes: **`docs/INDEX.md` §6**)
 >
 > **Princípio do não-retrocesso:** nenhum passo de implementação pode depender de
 > descoberta nova. Tudo que exigia hardware/pesquisa já está fechado e validado
@@ -346,8 +347,8 @@
   local o default `missing` segue criando. 6 baselines `win32` órfãs
   (sufixo `-light` simples — o teste escreve `-light-light`) foram removidas
   com a limpeza.
-- **DoD:** ✅ `pnpm e2e` 48/48 no local (win32) e o job `e2e-visual`
-  COMPARANDO no ubuntu (PR #47).
+- **DoD:** ✅ e2e verde no local (win32) e o job `Testes · E2E visual`
+  COMPARANDO no ubuntu (PR #47). Contagem atual em `docs/INDEX.md` §6.
 
 ### A-3. Toolchain/versões base — ✅ FEITO 29/09
 - **Origem:** `cargo update --dry-run` + `pnpm outdated` · **Prioridade:** máxima
@@ -637,7 +638,8 @@
     `_helpers.ts` permanece como módulo de medidas geométricas. Bônus:
     restaurado o `toHaveScreenshot` dos painéis/tema claro (perdido em
     edição anterior) — o guard retomado pegou drift real de 2px no palco
-    e as baselines foram regeneradas; 72/72 e2e ✅.
+    e as baselines foram regeneradas; e2e verde (contagem atual em
+    `docs/INDEX.md` §6).
   - ✅ FEITO 02/10 — **edge cases de IPC de nível 2** (issue #20):
     falha/retry/backoff na porta única do front (`retry` 3× com backoff
     120→240 ms + jitter, timeout de 8 s POR tentativa; o `boot` fica fora da
@@ -647,8 +649,8 @@
     do boot). A navegação de preset deixou de ser otimista: `pp`/nome só mudam
     DEPOIS do select confirmado, e a falha vira banner com AÇÃO de retry.
     Push log valida (`F0…F7`/par/hex) e dedupa repetição consecutiva (`×N`).
-    Números: **111 unit · 88,4% stmts · 85,9% fns · 90,2% lines** (gate 85) e
-    +3 e2e novos (`e2e/ipc.edge.spec.ts`).
+    Números da época: 111 unit · 88,4% stmts (gate 85) e +3 e2e novos
+    (`e2e/ipc.edge.spec.ts`) — **os números atuais vivem em `docs/INDEX.md` §6**.
   - ✅ FEITO 01/10 — GitFlow completo + cadeia rc sob `workflow_dispatch`:
     `.github/workflows/release.yml` (release-gitflow) com `action=rc`
     (corta/reutiliza release/x.y.z de develop, etiqueta vX.Y.Z-rc.N —
@@ -695,8 +697,9 @@
     = 85 no `vite.config.ts` (branches medidos, sem gate — ganho por
     incremento; excluindo só main.tsx/design.css/VuPanel, coberto por e2e
     visual). A CI trava pelo build-front action (`pnpm test:coverage`),
-    válido para front, ui-rust, e2e-tauri e releases. Suite subiu 27 → 77
-    unit (tsc/lint ✅): ipc/device completo (boot em lotes de 64 com cap
+    válido para front, ui-rust, e2e-tauri e releases. Suite cresceu ao longo
+    das fases (número **atual** em `docs/INDEX.md` §6): ipc/device completo
+    (boot em lotes de 64 com cap
     travado em unit, board/library/comandos, gancho failDevice por
     operação, **branch de webview Tauri** via mock parcial de
     @tauri-apps/core+event), useBoot (auto 1× sob StrictMode, manual,
@@ -706,8 +709,8 @@
     faixas de boot/erro com recuperação pelo ⟳, erro do openPreset, FSM
     completa do looper, busca da biblioteca, 6 abas do Settings,
     persistência do General, push log com cap de 100, drum on/off/BPM/
-    compasso, VU modo + drag do EmptyBoard). Números: **91.6% lines ·
-    89.9% stmts · 86.6% fns · 81.6% branches**. **Mapa de edge cases de
+    compasso, VU modo + drag do EmptyBoard). Números da época e **atuais em
+    `docs/INDEX.md` §6**. **Mapa de edge cases de
     IPC cobertos** vs. pendentes (nível 2): (a) info falha → navbar off
     (e2e R5); (b) boot falha → alerta + ⟳ recupera (e2e + unit); (c) board
     falha → erro amigável (e2e + unit); (d) boot lento → lotes de 64,
@@ -732,6 +735,34 @@
 - Firmware update (política V2+) · layout byte-a-byte da página 13xx (só mock precisa
   de shape) · CRC de slot IR ocupado · ppEXP1/ppCtrl fino · G3–G6 de captura ·
   UI/Tauri (M1, depois do gate H).
+  ⚠️ **Linha superada (03/10):** o M1 (UI/Tauri) foi entregue mesmo sem o gate H
+  (decisão do owner — o editor roda 100% sobre o MockDevice; o modo real depende de
+  #21/#22). Manter o item abaixo como registro histórico, não como plano.
+
+## 🔍 Auditoria de qualidade (03/10)
+
+Auditoria completa do que foi entregue até #70 (padrões, arquitetura, qualidade de
+código, deadcode, testes, arquivos obsoletos, documentação). **Índice e evidência
+bruta: [#83](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/83)**;
+cada achado é uma issue propria (#71–#82).
+
+| Sev | Issue | Achado |
+|---|---|---|
+| P0 | [#71](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/71) | `check_bundle.py` não roda em nenhum job — gate de empacotamento órfão |
+| P0 | [#72](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/72) | `PKGBUILD` não compila (`frontendDist` ausente no tarball) |
+| P0 | [#73](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/73) | `tauri.conf.json`/`package.json` nunca bumpeados — instalador sai com versão errada |
+| P1 | [#74](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/74) | Skills + `.github` descrevem a CI pré-#68 |
+| P1 | [#79](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/79) | `test:coverage` flaky + furos concentrados |
+| P2 | [#75](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/75) | `docs/` descreve a CI pré-#68 |
+| P2 | [#76](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/76) | README: numeração/árvore/tarefas de 29/09 |
+| P2 | [#77](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/77) | INDEX sem 3 docs + 2 skills; falta `LICENSE` |
+| P2 | [#81](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/81) | Contadores de teste divergem entre docs |
+| P3 | [#78](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/78) | Deadcode no front (5 exports órfãos + ~22 tipos) |
+| P3 | [#80](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/80) | Gates não reproduzíveis localmente; sem `actionlint` |
+| P3 | [#82](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/82) | Dívida de arquitetura (`App.tsx` 514 linhas, retry implícito) |
+
+O que **não** foi achado também está registrado no índice (#83) — para o próximo
+agente não repetir o mesmo passe.
 
 ## 📐 Regras do não-retrocesso (R1–R4)
 - **R1** Spec é insumo, não produto: código nunca "adivinha" — consulta golden/§13.

@@ -6,6 +6,61 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
 (local, sem depender de hardware para ~95% do trabalho). Resposta ao usuário SEMPRE em PT-BR.
 
 ## Estado vivo (atualizar aqui a cada marco)
+
+> ⚠️ Os **contadores** (testes, cobertura) vivem em `docs/INDEX.md` §6 — não repita
+> o número aqui, aponte. Motivo: números repetidos em N docs divergem (achado #81).
+
+- 03/10 — **AUDITORIA COMPLETA DE QUALIDADE (índice em #83, achados em #71–#82)**:
+  passes com os **gates rodados local** (tsc/eslint/vitest+coverage 178 · cargo
+  fmt/clippy-D/test 15 suítes · pytest 10/10 · check_bundle · check_base_images)
+  + varredura de deadcode, de documentação obsoleta, de links, de testes e de
+  produto. **13 issues criadas, 3 P0**:
+  (a) **`check_bundle.py` não roda em NENHUM job** — o gate de empacotamento da #29
+  existe e funciona, mas `docs/PACKAGING.md:99` afirma que ele roda no
+  `Lint · contratos do pipeline`: não roda. Mesma classe de falha que a #68 já
+  corrigiu uma vez (gate escrito e não ligado);
+  (b) **`PKGBUILD` não compila** — `build()` só faz `cargo build --release --locked`,
+  mas `tauri.conf.json` pede `frontendDist: "../ui/dist"`, que está no `.gitignore`
+  e logo não existe no tarball da release → `tauri::generate_context!()` entra em
+  `panic!` (tauri-codegen `context.rs:185-191`). O PKGBUILD até declara
+  `nodejs`/`npm` em `makedepends` mas **nenhum passo roda npm**;
+  (c) **`tauri.conf.json`/`package.json` nunca são bumpeados** — a cadeia rc/promote
+  mexe em `Cargo.toml`×2 + `version.json`; o Tauri usa o conf como versão do
+  bundle, então cortar `v0.2.0` produz instaladores marcados `0.1.0`. Risco já
+  escrito no `RELEASE_PLAN.md:26` desde o plano de release, nunca tratado.
+  P1: as 4 skills de dev (`rust-practices`, `ui-ux-practices`, `core-dev`,
+  `github-flow`) ainda ensinam o pipeline **pré-#68** (`_validate.yml`,
+  `release.yml`, `front-gate`, `close-linked`, label `ci-lite` abolida) — e o
+  `test:coverage` é **flaky** (6–8 falhas intermitentes; o job `Cobertura · UI` roda
+  exatamente esse comando).
+  **Conformidade verificada como OK:** R1 no front (lint anti-`invoke` e
+  anti-literal), `deny(missing_docs)`, zero `unsafe`, zero `unwrap` fora de
+  `#[cfg(test)]`/`cfg!(feature)`, i18n com paridade de 4 idiomas testada, a11y
+  (zero `outline:none`, `prefers-reduced-motion` presente), 0 links quebrados,
+  0 segredos no versionado.
+- 03/10 — **EMPACOTAMENTO ENTREGUE (#27/#28/#29, PR #70)**: `tauri.conf.json` com
+  5 targets (nsis/msi/dmg/deb/appimage) + `mainBinaryName` + `linux.deb.depends`
+  (webkit 4.1 + gtk3, **sem** appindicator — o app não usa tray) + wix em pt-BR/en-US
+  + README no `.deb`; **16 ícones + `icon.ico` (6 res.) + `icon.icns` + logos Store**
+  derivados por `tauri icon` da fonte 1024² gerada por `scripts/make_icon.py` (a
+  partir dos tokens do tema); `packaging/arch/PKGBUILD` + `.desktop`; novo
+  `scripts/check_bundle.py`; `docs/PACKAGING.md`; README com **§3 Instalação** por
+  plataforma. **Pendências conhecidas:** `sha256sums=('SKIP')` bloqueia o AUR e o
+  `build()` do PKGBUILD (#72); `.msi`/`.dmg` sem assinatura/notarização (#27);
+  versão do bundle nunca bumpeada (#73).
+- 02/10 — **CI CONSOLIDADA (#68, PR #69)**: 6 workflows → **1 `ci.yml` com 25 jobs**;
+  jobs renomeados por TIPO no padrão `Tipo · o que é` (sem prefixo numérico, pelo
+  motivo registrado no cabeçalho do arquivo); `on.push` = `develop`/`main`/tags `v*`
+  (branch de trabalho entra só por `pull_request` — antes `feature/**`+`hotfix/**`
+  disparavam os DOIS eventos e davam 2 runs por push); o job de imagens passou a
+  **sondar o registro** (`docker manifest inspect`) e a **confirmar a tag** depois de
+  publicar — "verde que não publica" virou falha; `check_commits.py` com `--no-merges`
+  (o merge sintético do GitHub reprovava todo PR); 4 defeitos da `ci-base`
+  (`rust:bookworm-slim` não existe, `xz` ausente, `rustfmt`/`clippy` são shim,
+  **nenhum `python3`**); `scripts/check_base_images.py` novo. Jobs com `if:` falso
+  **aparecem como skipped** — limitação do GitHub (não existe `stages:`; o
+  equivalente é o grafo `needs:`), registrada no cabeçalho do `ci.yml`.
+- 02/10 — **EDGE CASES DE IPC NÍVEL 2 ✅ (issue #20)**: falha/retry/backoff na
 - 02/10 — **EDGE CASES DE IPC NÍVEL 2 ✅ (issue #20)**: falha/retry/backoff na
   porta única do front (3 tentativas, backoff 120→240 ms com jitter ±30%, timeout
   8 s POR tentativa; **boot fora da política**), gancho `gp100.debug.failDevice`
@@ -13,8 +68,8 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
   pushes validado/deduplicado (push inválido ignorado; repetição consecutiva vira
   `×N`). A navegação de preset deixou de ser otimista (o `pp` só muda DEPOIS do
   select confirmado — a UI nunca mostra preset que o device recusou).
-  Front: 111 unit ✅ (cobertura 88,4% stmts · 85,9% fns · 90,2% lines) e e2e 63 ✅
-  + 3 novos de `ipc.edge` (select transitório/permanente e mid-boot).
+  Front: suíte unit ampliada (número da época; o **atual** está em `INDEX.md` §6)
+  e e2e com +3 novos de `ipc.edge` (select transitório/permanente e mid-boot).
   **Achado A-5 / issue #45 RESOLVIDO no mesmo dia** — 12 baselines win32
   desatualizadas (drift pré-existente, provado com `git stash`) e 0 `-linux` no
   repo (o visual SKIPava no CI): win32 regeradas + 48 `linux` geradas pelo
@@ -257,11 +312,24 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
 - `%TEMP%` real do usuário = `C:\Users\Canta\AppData\Local\Temp` — o `/tmp` do Git Bash é outro
   (válido só p/ processos filhos dele). O proxy grava em `%TEMP%\midi_trace.jsonl`.
 - Console/tasklist em PT-BR retorna texto com encoding estranho; preferir PowerShell quando precisar de estrutura.
+- **Escrever arquivo em BYTES, nunca em modo texto (03/10, Bit again)**: abrir no
+  modo texto no Windows traduz `\n`→`\r\n` na escrita e suja o diff inteiro; o
+  `.gitattributes` exige LF. Corrigir reescrevendo em bytes:
+  `open(p,"w",encoding="utf-8",newline="\n").write(s)`.
+  **Nunca** aplicar "normalizar fim de linha" em BINÁRIO (PNG/ICO): já corrompeu os
+  16 ícones uma vez (a assinatura PNG do byte 8 some).
+- **`str_replace` insere ideogramas CJK acidentais ao redigir em português**: já
+  aconteceu em vários commits. Depois de escrever corpo de issue/commit em PT-BR,
+  varrer: `[c for c in s if '\u3000' <= c <= '\u9fff']` e corrigir.
+- **`uv run python scripts/validate_workflows.py` falha** com
+  `ModuleNotFoundError: No module named 'yaml'` — `pyyaml` não está no
+  `pyproject.toml`; só o CI funciona (instala na linha de comando do job). #80.
 
 ## Caminhos canônicos
 - `.venv/` (raiz) — ÚNICO venv do projeto (uv); `analysis/.venv` NÃO existe mais
-- `docs/ROADMAP.md` — plano executivo vigente (issues P/M0/H com responsável e DoD)
-- `docs/DECISIONS.md` — ADR-1..6 do gp100-core (P5 + ADR-6 da FSM); mudar decisão = novo ADR
+- `docs/ROADMAP.md` — plano executivo vigente (histórico entregue + regras R1–R4)
+- `docs/INDEX.md` §6 — **estado atual e NÚMEROS** (testes, cobertura, marcos, aberto)
+- `docs/DECISIONS.md` — ADR-1..8 (P5 + FSM + ADR-7 MSVC + ADR-8 toolchains); mudar decisão = novo ADR
 - `scripts/add_cargo_path.ps1` — fix do PATH do cargo no sistema (HKLM; idempotente)
 - `analysis/fixtures/` — fixtures de replay por fase (regenerar: `uv run python analysis/make_fixtures.py`)
 - `README.md` — porta de entrada do repo (panorama, workflows de regeneração, onboarding)

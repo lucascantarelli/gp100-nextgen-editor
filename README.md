@@ -66,7 +66,12 @@ boot/scan de presets (S1), upload de IRs mono+estéreo (S2), edição de knobs p
 │   ├── UI_PLAN.md             # planejamento issue-a-issue da UI (M1)
 │   ├── PROTOCOL.md            # referência do protocolo (§1–12 arquivo, §13 fio)
 │   ├── protocol_golden.json   # especificação executável (40 templates, baseline)
-│   ├── DECISIONS.md           # ADR-lite: 6 decisões estruturais do gp100-core
+│   ├── DECISIONS.md           # ADR-lite: 8 decisões estruturais (ADR-1..8)
+│   ├── CONTRIBUTING.md        # fluxo de contribuição: GitFlow, commits, gates por área
+│   ├── PACKAGING.md           # empacotamento: bundle, ícones, .deb, Arch (#27/#28/#29)
+│   ├── UI_DESIGN.md           # design system (tokens, rácios WCAG medidos)
+│   ├── UI_REFERENCE.md        # referência da casca do front (§8 = texto de usuário)
+│   ├── UI_TEST_PLAN.md        # fonte dos roteiros e2e
 │   ├── BLOCKERS.md            # matriz de riscos/bloqueios (11/12 resolvidos)
 │   └── CAPTURE_PLAN.md        # plano das capturas (histórico)
 ├── analysis/                  # laboratório de RE
@@ -88,9 +93,15 @@ boot/scan de presets (S1), upload de IRs mono+estéreo (S2), edição de knobs p
 │   └── captures/              # session1–4.jsonl + ir_slot*.bin (append-only)
 ├── files/                     # artefatos oficiais de entrada (firmware, instaladores,
 │   └── patches/*.prst         #   patches: all.prst = 99 presets)
-├── scripts/
-│   └── add_cargo_path.ps1     # fix do PATH do cargo no sistema (HKLM, idempotente)
+├── packaging/arch/            # receita do pacote Arch (PKGBUILD + .desktop) — #29
+├── scripts/                   # gates executáveis (o mapa completo está no INDEX.md §3)
+│   ├── ci_plan.py             # regra branch → escopo → matriz/estágios
+│   ├── validate_workflows.py  # sintaxe + contratos do pipeline
+│   ├── check_bundle.py        # schema Tauri, ícones, .deb/PKGBUILD
+│   ├── check_base_images.py   # tags de imagem base antes do build
+│   └── … (12 no total)
 ├── .venv/                     # Python do projeto (uv, VENV ÚNICO na raiz)
+├── .github/workflows/ci.yml   # ÚNICO workflow: 25 jobs por TIPO (#68)
 ├── knowledge.md               # memória operacional do agente (estado vivo, armadilhas)
 └── .agents/skills/            # workflows sob demanda (proxy-build, capture-analyze…)
 ```
@@ -200,7 +211,7 @@ em mensagens paginadas) estão catalogadas no `knowledge.md`.
 
 ## 5. Workflows de regeneração
 
-### 4.1 Proxy winmm (instrumentação do Suite)
+### 5.1 Proxy winmm (instrumentação do Suite)
 ```bash
 uv run python analysis/build_proxy.py
 cp analysis/winmm.dll analysis/suite_local/     # obrigatório após o build
@@ -208,7 +219,7 @@ cp analysis/winmm.dll analysis/suite_local/     # obrigatório após o build
 O `build_proxy.py` gera o C de forwarding, cruza exports (129) com a winmm real,
 compila com zig e valida o resultado.
 
-### 4.2 Nova sessão de captura (requer a pedaleira)
+### 5.2 Nova sessão de captura (requer a pedaleira)
 1. **Feche TODAS as instâncias do Suite** (instância única mata a nossa silenciosamente)
 2. Rode `analysis/suite_local/GP-100.exe` — o proxy loga em `%TEMP%\midi_trace.jsonl`
 3. Execute o roteiro da sessão (ver `analysis/capture_gaps.md` para os gaps abertos
@@ -224,7 +235,7 @@ compila com zig e valida o resultado.
    ⚠️ O log é **append-only** (sessões novas contêm as antigas — segmente por gaps >30s)
    e mensagens sem `F7` são truncamentos do ring buffer (ignore).
 
-### 4.3 Golden-file do protocolo
+### 5.3 Golden-file do protocolo
 ```bash
 uv run python analysis/build_golden.py      # gera docs/protocol_golden.json
 uv run python analysis/validate_golden.py   # 5 provas (deve dar 100%)
@@ -234,7 +245,7 @@ O golden cobre as 4 sessões. Regras de largura de campo confirmadas:
 select/open de preset = pp **u16 BE**; página = `pp u16BE + PG u16BE + 01` (5B);
 chaves da tabela de nomes = `[banco u8][índice u8]`.
 
-### 4.4 Dicionário e mapa de knobs
+### 5.4 Dicionário e mapa de knobs
 ```bash
 uv run python analysis/validate_knob_map.py # revalida knob_map.json
 ```
@@ -261,7 +272,9 @@ uv run python analysis/validate_knob_map.py # revalida knob_map.json
   funcional), gestor de NAM, i18n (pt-BR/en/es/zh — strings da firmware reutilizáveis),
   MSI/AppImage/dmg.
 - **M3 — Diferenciais:** biblioteca versionada git-like, live mode, cloud opt-in,
-  tone match IA, A/B blind test (lista completa em `docs/VISION.md` §9).Dívidas de baixa prioridade (não bloqueiam nada): layout byte-a-byte da
+  tone match IA, A/B blind test (lista completa em `docs/VISION.md` §9).
+
+Dívidas de baixa prioridade (não bloqueiam nada): layout byte-a-byte da
 página de estado 13xx, campo 0x00BC/0x00B4 do blob de IR, semântica de
 ppEXP1/ppCtrl, capturas G3–G6 (globals/BPM, knob físico, footswitch).
 (A tabela de TIPOS da `12001002` e o schema do `11000007` foram FECHADOS
@@ -299,11 +312,20 @@ cargo test --workspace
 - Descobertas de protocolo vão para o `PROTOCOL.md` com evidência — nunca só conversa
 - Não commite sem pedido; `analysis/nsis_app/` e `files/` são material de origem
 
-**Boas primeiras tarefas (estado 29/09 — M0 concluída):**
-- M1.0: spike Tauri (UI falando com o mock — ver `docs/UI_PLAN.md`)
-- M1.1–M1.6: conexão/boot, biblioteca, editor, fluxos de escrita (UI_PLAN)
-- Gate H1 em campo: `gp100-cli --real` com o roteiro do `docs/H1_CHECKLIST.md`
-  (requer a pedaleira + owner)
+**Estado atual e boas primeiras tarefas (03/10):** o panorama completo — o que foi
+entregue, quantos testes existem e o que está aberto — está em
+**[`docs/INDEX.md`](docs/INDEX.md) §6**, que é a
+fonte única dos números. Em resumo:
+
+- **Entregue:** M0 (core, 100%) · M1.0–M1.3 + V-8 + i18n (editor completo em pt/en/es/zh) ·
+  CI consolidada em 1 workflow de 25 jobs (#68) · empacotamento Win/macOS/Linux/Arch
+  (#27/#28/#29).
+- **Aberto e sem bloqueio de hardware:** #24 (M2-IR), #25 (M2-NAM), #26 (M2-LIB,
+  biblioteca SQLite + busca avançada).
+- **Aberto e bloqueado:** gate H1/H2 em campo — `gp100-cli --real` com o roteiro do
+  [`docs/H1_CHECKLIST.md`](docs/H1_CHECKLIST.md) (requer a pedaleira + owner).
+- **Dívida de qualidade conhecida:** auditoria de 03/10 em #71–#83 (índice em #83);
+  comece por #71 (gate de empacotamento não ligado) e #74 (skills descrevendo a CI antiga).
 
 ---
 
@@ -314,3 +336,6 @@ legalmente (instaladores públicos, firmware do próprio dispositivo, documenta�
 oficial). Não distribua firmware, instaladores ou material proprietário da Valeton
 por este repositório. Use por sua conta e risco — a política de segurança de
 hardware existe para que a sua pedaleira sobreviva ao desenvolvimento.
+
+**Licença:** [MIT](LICENSE) — declarada no `Cargo.toml` (metadata do workspace)
+e no `packaging/arch/PKGBUILD` (`license=('MIT')`).
