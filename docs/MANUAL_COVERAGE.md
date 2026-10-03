@@ -46,7 +46,7 @@
 | # | Item | Estado | Implementação | Teste |
 |---|---|---|---|---|
 | C1 | 9 slots PRE DST AMP NR CAB EQ MOD DLY RVB | ✅ ordem do sinal; display LED (nº âmbar + nome + tipo) | EmptyBoard.tsx | R3 e2e + unit |
-| C2 | Clique no mini-pedal troca o EFEITO da lista do módulo | 🔴 **issue #19** (U-3) — o dicionário já está no front (fxData: 9 famílias com knobs/switches/comboxes reais); falta o comando `change-effect` (0x47 da família 0x4X, PROTOCOL §4) com captura própria (WRITE_VERIFIED=false até lá). Wireframe pronto: UI_REFERENCE §1.1 "Effects List" | — | — |
+| C2 | Effects List (trocar o efeito do módulo) | ✅ **UI completa em prévia local** (#19): lista os algoritmos do módulo com busca, o atual marcado, e trocar reflete no palco com os knobs novos nos defaults. Falta SÓ a escrita: `change-effect` (`0x47` da família `0x4X`) sem formato validado — BLOCKERS 10b, roteiro em CAPTURE_PLAN (CAPTURA 5) | effects.ts + PedalModal.tsx | R7b e2e + unit (effects + interações) |
 | C3 | Trava do drag | ✅ drag só com ⇄ ativo (protege knobs futuros) | EmptyBoard.tsx | R3 e2e |
 | C4 | Cabos de sinal + LED por pedal | 🔴 Fase 2 (checklist UI_REFERENCE §3) | — | — |
 | C5 | Warns ⚠ sob slots | 🟡 aguardando mapeamento confirmado do app oficial (§1.1) — não copiado às cegas | — | — |

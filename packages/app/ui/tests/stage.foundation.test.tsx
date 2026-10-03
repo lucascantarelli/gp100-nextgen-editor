@@ -599,6 +599,7 @@ describe("PedalModal — edição ampliada do pedal (U-3)", () => {
         onToggle={noopSlot}
         onKnobChange={noopSlot}
         onKnobReset={noopSlot}
+        onChangeEffect={noopSlot}
         onClose={onClose}
       />,
     );
@@ -634,6 +635,7 @@ describe("PedalModal — edição ampliada do pedal (U-3)", () => {
         onToggle={noopSlot}
         onKnobChange={noopSlot}
         onKnobReset={noopSlot}
+        onChangeEffect={noopSlot}
         onClose={noop}
       />,
     );

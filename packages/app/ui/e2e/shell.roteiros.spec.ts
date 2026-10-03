@@ -225,6 +225,48 @@ test("R7 C-Wah: valor em texto no palco (só leitura), edição no modal, LED/fo
   await expect(pedalSlot.locator('[data-value="42"]')).toBeVisible();
 });
 
+/* ── R7b. Effects List: a lista de efeitos do módulo (#19, U-3) ── */
+test("R7b effects list: troca o efeito do pedal e o palco acompanha", async ({ page }) => {
+  const board = shell.board;
+  const pedalSlot = board.slot(1, "PRE");
+
+  // abre a edição pelo pedal do palco (como no R7)
+  await pedalSlot.locator('svg[role="img"]').first().click();
+  const dlg = page.getByRole("dialog", { name: /Edição do pedal/ });
+  await expect(dlg).toBeVisible();
+
+  // a lista é do MÓDULO: só PRE, e o efeito atual vem marcado com ✓
+  const list = dlg.getByRole("listbox", { name: "Lista de efeitos do módulo PRE" });
+  await expect(list).toBeVisible();
+  await expect(list.getByRole("option", { selected: true })).toHaveText(/C-Wah/);
+  await expect(list.getByRole("option")).toHaveCount(16); // os 16 PREs do dicionário
+  // AMP não vaza para a lista de PRE
+  await expect(list.getByText("Bog RedM")).toHaveCount(0);
+
+  // troca C-Wah → COMP: o palco troca na hora, com os knobs do COMP
+  // (o nome acessível da opção é o NOME do efeito; o title carrega a ação)
+  await list.getByRole("option", { name: "COMP", exact: true }).click();
+  await expect(pedalSlot.locator('svg[role="group"]')).toHaveAttribute("aria-label", /COMP/);
+  await expect(pedalSlot.locator("[data-value]")).toHaveCount(2);
+  await expect(pedalSlot.locator('[data-value="20.0"]')).toBeVisible();
+  // o modal acompanha (estado único) e o título já é o novo efeito
+  await expect(dlg).toHaveAttribute("aria-label", /COMP/);
+  await expect(list.getByRole("option", { selected: true })).toHaveText(/COMP/);
+
+  // a busca filtra a lista do módulo
+  const search = dlg.getByRole("textbox", { name: "Buscar efeito do módulo por nome" });
+  await search.fill("wah");
+  await expect(list.getByRole("option")).toHaveCount(4); // C-Wah, V-Wah, T-Wah, A-WAH
+  await search.fill("zzz-nada");
+  await expect(list.getByRole("option")).toHaveCount(0);
+  await expect(dlg.getByText(/Nenhum efeito para/)).toBeVisible();
+
+  // fechar devolve o palco com o COMP (o estado é do App, não do modal)
+  await page.keyboard.press("Escape");
+  await expect(dlg).toHaveCount(0);
+  await expect(pedalSlot.locator('svg[role="group"]')).toHaveAttribute("aria-label", /COMP/);
+});
+
 /* ── R4. Modal Settings (⚙) ── */
 test("R4 settings: 6 abas, persistência local, Global EQ e fechamento", async () => {
   const settings = await shell.openSettings();

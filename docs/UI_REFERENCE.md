@@ -399,27 +399,35 @@ precisa do canal de escrita USB (BLOCKERS §4: fluxos novos ficam atrás de
 `WRITE_VERIFIED=false` até captura própria). O formato salvo é o do `.prst`
 (`PP ppID` + `Effect`), então a migração é escrever o arquivo — não refazer a UI.
 
-### 7.6 PLANEJADO — lista de efeitos por pedal (issue #19, U-3)
+### 7.6 Effects List — trocar o efeito dentro do pedal (issue #19, U-3)
 
-> O manual do firmware (EDIT mode, pág. 7-8) confirma o modelo: 9 módulos
-> selecionados por um knob, parâmetros paginados (3 por página), e
-> pressionar-e-seguir o PARA muda a POSIÇÃO do módulo. O wireframe do §1.1 já
-> prevê a coluna "Effects List" (busca + lista de algoritmos do módulo, com o
-> atual marcado).
+> O manual do firmware (EDIT mode, pág. 7-8) confirma o modelo: 9 módulos,
+> parâmetros do módulo selecionado, e a troca do que está nele. O wireframe do
+> §1.1 previa a coluna "Effects List" — ela virou o painel LATERAL dentro do
+> `PedalModal`, ao lado do pedal ampliado (o palco continua limpo, que é o
+> ganho da #11).
 
-**O que já existe no repo:** o dicionário completo (`analysis/parameters.json`,
-`algorithm.xml` do Suite e o artefato `src/artifacts/fxData.ts`) com as 9
-famílias e TODOS os algoritmos, cada um com knobs/switches/comboxes, ranges e
-defaults reais. Trocar de efeito é, no `.prst`, mudar `effectName` + `effectCode`
-do `<Effect>` do slot e reiniciar `params_N`.
+| Peça | Onde | Regra |
+|---|---|---|
+| Lista do módulo | `src/effects.ts::algorithmsOf` | só os algoritmos DAQUELA família (PRE oferece PREs, DST oferece DSTs) e nunca as entradas de nome vazio do dicionário (slots internos do firmware) |
+| Busca | `effects.ts::filterAlgorithms` | substring do nome OU do slug do `variant`, sem diferenciar caixa |
+| Identidade | `effects.ts::codeOf` | `effectCode = (nibble << 24) \| index`, exatamente o `effectCode` do `.prst` |
+| Troca | `effects.ts::withAlgorithm` | preserva posição, família, ligado/desligado e `archetype`; troca nome, `code`, `variant` e os controles |
+| Tela | `PedalModal.tsx` | `role="listbox"` "Lista de efeitos do módulo PRE", atual marcado com ✓ + `aria-selected`, `title` com a ação |
 
-**O que falta no fio:** a família `0x4X` do PROTOCOL §4 é `0x43` select,
-**`0x47` change-effect**, `0x48` change-param, `0x49` toggle-block, `0x4F` bulk
-write. Só `0x48` (envelope semântico `10 <slot> 00 02`, §13.11) e `0x4F`
-(`0x1D`, bulk do `.prst`, §4) têm formato validado. **O `0x47` ainda não foi
-caracterizado** — logo, a troca de efeito é UI primeiro (prévia local, a mesma
-política do toggle de footswitch e do switch/combox) e só vira escrita depois da
-captura própria.
+**Regra que não se negocia:** os controles do efeito novo voltam nos DEFAULTS do
+dicionário. Herdar o valor do efeito anterior (ex.: o `Range` do C-Wah virando
+`Sustain` do COMP) seria a UI mentindo sobre o som que está saindo. Pelo mesmo
+motivo, o `state` (ligado/desligado) sobrevive à troca — quem manda no slot é o
+patch, não o algoritmo.
+
+**Limite declarado:** a troca é **prévia local**. O `change-effect` (`0x47` da
+família `0x4X`, PROTOCOL §4) é o ÚNICO opcode dessa família sem formato
+validado (`0x43` select, `0x48` change-param §13.11 e `0x4F` bulk §4 já têm
+bytes fechados) — BLOCKERS item 10b, roteiro de captura em
+`docs/CAPTURE_PLAN.md` (CAPTURA 5). A nota "prévia local" está na própria tela.
+Enquanto isso, o efeito novo entra no patch de usuário normalmente: o patch é
+o retrato do PALCO, não do preset de fábrica.
 
 ### 7.7 CI: e2e da casca contra o `pnpm dev` + cobertura do manual (30/09)
 

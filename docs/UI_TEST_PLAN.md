@@ -162,6 +162,38 @@ consequências que os testes revelaram ao deixar de mentir:
 3. Abrir o patch → `U01` no LED e na navbar; os 9 pedais mostram o SNAPSHOT.
 4. Excluir → volta ao preset de fábrica confirmado pelo device.
 
+## \U0001f3ae EXECUÇÃO — #19 EFFECTS LIST: trocar o efeito dentro do pedal (02/10)
+
+> Escopo definido com o owner: UI inteira da lista de efeitos por pedal, em
+> prévia local, morando como painel lateral do `PedalModal` (o palco fica
+> limpo). Só a escrita no device espera a captura do `0x47`
+> (`docs/CAPTURE_PLAN.md`, CAPTURA 5).
+>
+> **Resultado: 155 unit ✅ (13 arquivos) · 78 e2e ✅ · cobertura 90,3% stmts /
+> 86,5% branch** (gate 85). `effects.ts` e `PedalModal.tsx` em 100% de linhas.
+
+**Regras que os testes travam (as que dão sentido ao editor):**
+- A lista é do **MÓDULO**: PRE não oferece `Bog RedM` (que é AMP).
+- As entradas de **nome vazio** do dicionário (variante `fx`, índice 1.048.576+,
+  slots internos do firmware) nunca aparecem — a lista não mostra linha em branco.
+- Trocar **preserva** posição, família e ligado/desligado.
+- Trocar **zera os controles para o default do algoritmo novo** — herdar o
+  `Range` do C-Wah como `Sustain` do COMP seria a UI mentindo sobre o som.
+- O efeito trocado entra no **patch de usuário**: o patch é o retrato do palco,
+  não do preset de fábrica.
+
+| O que | Onde | Teste |
+|---|---|---|
+| Lista do módulo + filtro + `effectCode` | `effects.ts` | `tests/effects.test.ts` (9) |
+| Troca refletindo no palco (estado único) | `App.onChangeEffect` | `app.interactions` (2) |
+| Efeito trocado entra no patch de usuário | `userPatches` | `app.interactions` (1) |
+| Roteiro R7b (novo) | `shell.roteiros.spec.ts` | e2e R7b |
+
+**Achado desta rodada:** o nome acessível da opção é o NOME do efeito (o botão
+tem texto); o `title` carrega a ação e só vira nome acessível quando não há
+conteúdo. A e2e tentou casar pelo `title` e o Playwright não resolveu — o
+seletor correto é `getByRole("option", { name: "COMP", exact: true })`.
+
 ## ⌨️ EXECUÇÃO — R-ATALHOS (30/09, Playwright · Chromium + vitest)
 
 > Pedido do owner: atalhos globais — Espaço = drum play/stop, R = REC do looper,
