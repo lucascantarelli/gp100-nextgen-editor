@@ -74,8 +74,18 @@ def gh(path: str) -> list[dict]:
 
 
 def fetch_jobs(repo: str, run_id: str) -> list[dict]:
-    pages = gh(f"repos/{repo}/actions/runs/{run_id}/jobs")
-    return pages[0] if pages else []
+    """`/actions/runs/<id>/jobs` devolve um OBJETO (`{total_count, jobs:[…]}`),
+    e `gh --slurp` embrulha tudo num array de páginas. Normalizar os dois
+    formatos aqui — o bug anterior (iterar sobre o dict e chamar `.get` numa
+    string) derrubou o estágio inteiro numa run."""
+    payload = gh(f"repos/{repo}/actions/runs/{run_id}/jobs")
+    jobs: list[dict] = []
+    for page in payload:
+        if isinstance(page, dict):
+            jobs.extend(j for j in page.get("jobs", []) if isinstance(j, dict))
+        elif isinstance(page, list):
+            jobs.extend(j for j in page if isinstance(j, dict))
+    return jobs
 
 
 def duration(job: dict) -> str:

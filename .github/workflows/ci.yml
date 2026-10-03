@@ -541,6 +541,12 @@ jobs:
   # documentada em SECURITY.md sem upgrade possível com o Tauri 2 — um gate
   # que sempre falha treina o time a ignorar o vermelho. A DETECÇÃO é a
   # issue de achados; a REMEDIAÇÃO é o dependabot.yml.
+  #
+  # CodeQL NÃO mora aqui: o repositório já tem o setup PADRÃO ligado (5
+  # linguagens: rust, javascript, cpp, python, actions) e o GitHub recusa
+  # SARIF de configuração avançada enquanto ele estiver ativo ("CodeQL
+  # analyses from advanced configurations cannot be processed when the
+  # default setup is enabled"). Configurar o CodeQL aqui só criava conflito.
   # ═══════════════════════════════════════════════════════════════════════
   sec-audit:
     name: 5 sec · auditorias de dependência
@@ -613,33 +619,6 @@ jobs:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: python3 scripts/security_report.py
 
-  sec-codeql:
-    name: 5 sec · codeql (${{ matrix.language }})
-    needs: plan
-    if: needs.plan.outputs.stage-security == 'true' && github.event_name != 'schedule'
-    strategy:
-      fail-fast: false
-      matrix:
-        language: [javascript-typescript, rust]
-    runs-on: ubuntu-24.04
-    timeout-minutes: 30
-    permissions:
-      contents: read
-      actions: read
-      packages: read
-      security-events: write
-    steps:
-      - uses: actions/checkout@v7
-      - name: codeql
-        uses: github/codeql-action/init@v4
-        with:
-          languages: ${{ matrix.language }}
-          queries: security-extended
-      - name: análise
-        uses: github/codeql-action/analyze@v4
-        with:
-          category: /language:${{ matrix.language }}
-
   # ═══════════════════════════════════════════════════════════════════════
   # ESTÁGIO 6 — METRICS
   #
@@ -692,11 +671,12 @@ jobs:
   # ═══════════════════════════════════════════════════════════════════════
   ci-images:
     name: 7 ci · imagens de container
-    # Publicar é raro e é infraestrutura: só quando a definição muda.
-    if: >-
-      github.event_name != 'pull_request' &&
-      (github.event_name == 'workflow_dispatch' ||
-       (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main'))
+    # Publicar é infraestrutura do repo (a imagem é versionada, com tag
+    # `sha-<curto>` de auditoria). Publica quando a DEFINIÇÃO mudou — em
+    # qualquer branch, porque é isso que destrava o bootstrap: os jobs que
+    # consomem a imagem morrem no pull enquanto ela não existe no ghcr.io, e
+    # esperar o merge para publicá-la deixaria o PR que a introduz vermelho.
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     permissions:
@@ -713,8 +693,30 @@ jobs:
             file: .github/docker/ci-base/Dockerfile
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: a definição da imagem mudou nesta run?
+        id: dirty
+        run: |
+          set -euo pipefail
+          BASE="${{ github.event.before }}"
+          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ] \
+             || ! git cat-file -e "$BASE" 2>/dev/null; then
+            CHANGED="$(git ls-files .github/docker)"
+          else
+            CHANGED="$(git diff --name-only "$BASE..HEAD" -- .github/docker || true)"
+          fi
+          if [ -n "$CHANGED" ]; then
+            echo "mudou: $(echo "$CHANGED" | tr '\n' ' ')"
+            echo "dirty=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "sem mudança em .github/docker — nada a publicar"
+            echo "dirty=false" >> "$GITHUB_OUTPUT"
+          fi
       - uses: docker/setup-buildx-action@v4
+        if: steps.dirty.outputs.dirty == 'true'
       - name: login no GHCR
+        if: steps.dirty.outputs.dirty == 'true'
         uses: docker/login-action@v4
         with:
           registry: ghcr.io
@@ -722,6 +724,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: tags (:1 estável + sha-<curto> auditável)
         id: meta
+        if: steps.dirty.outputs.dirty == 'true'
         uses: docker/metadata-action@v6
         with:
           images: ghcr.io/${{ github.repository }}/${{ matrix.name }}
@@ -729,6 +732,7 @@ jobs:
             type=raw,value=1
             type=sha,format=short,prefix=sha-
       - name: build + push
+        if: steps.dirty.outputs.dirty == 'true'
         uses: docker/build-push-action@v7
         with:
           context: .
@@ -738,6 +742,18 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=${{ matrix.name }}
           cache-to: type=gha,mode=max,scope=${{ matrix.name }}
+      - name: resumo
+        if: steps.dirty.outputs.dirty == 'true'
+        env:
+          TAGS: ${{ steps.meta.outputs.tags }}
+        run: |
+          {
+            echo "### 🐳 Imagem de CI publicada"
+            echo ""
+            echo '```'
+            echo "$TAGS"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
   # A REGRA DA MAIN: ela só pode receber o SHA de uma tag v* aprovada. O
   # GitHub NÃO deixa_write essa regra em repositório PESSOAL (a API responde

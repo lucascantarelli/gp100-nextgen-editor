@@ -21,6 +21,8 @@ Contratos verificados:
   4. os 9 estágios e os 25 jobs existem, com prefixo numérico único e em ordem;
   5. a regra branch → estágios mora em `scripts/ci_plan.py` e NÃO volta para
      `if:` espalhado no YAML (duas fontes de verdade é como o gate divergiu);
+     e o CodeQL NÃO é configurado aqui (o setup padrão do repo está ligado e o
+     GitHub recusa SARIF de configuração avançada enquanto ele estiver ativo);
   6. versionamento e distribuição só por `workflow_dispatch`/tag;
   7. `close-issues` exige `merged == true` (PR fechado sem merge não fecha nada);
   8. o estágio de métricas roda com `if: always()`;
@@ -72,7 +74,7 @@ STAGES: dict[str, list[str]] = {
     "2": ["build-rust", "build-ui"],
     "3": ["test-rust", "test-ui", "test-spec", "test-e2e", "test-e2e-visual", "test-e2e-webview"],
     "4": ["coverage-ui"],
-    "5": ["sec-audit", "sec-codeql"],
+    "5": ["sec-audit"],
     "6": ["metrics"],
     "7": ["ci-images", "main-guard", "release-rc", "release-promote", "release-play", "dist-ui", "dist-cli"],
     "8": ["close-issues"],
@@ -172,14 +174,19 @@ def main() -> int:
 
     # ── 5. a REGRA branch → estágios mora no ci_plan.py, e só lá ──────────
     plan_raw = raw("scripts/ci_plan.py")
+    ci_raw = raw(".github/workflows/ci.yml")
     for token in ("def classify", "def scopes", "stage-test", "stage-dist", "stage-release"):
         if token not in plan_raw:
             FAILURES.append(f"ci_plan.py: perdeu '{token}' (é a fonte de verdade da regra)")
-    if "ci_plan.py" not in raw(".github/workflows/ci.yml"):
+    if "ci_plan.py" not in ci_raw:
         FAILURES.append("ci: o job `plan` precisa chamar scripts/ci_plan.py")
+    if "codeql-action" in ci_raw:
+        FAILURES.append(
+            "ci: CodeQL não pode ser configurado aqui — o repo tem o setup PADRÃO ligado "
+            "e o GitHub recusa SARIF de configuração avançada enquanto ele estiver ativo"
+        )
     # Se a regra voltar a ser `if:` espalhada, os dois lugares divergem — e o
     # lugar que diverge é sempre o que ninguém lê.
-    ci_raw = raw(".github/workflows/ci.yml")
     if "startsWith(github.ref, 'refs/heads/release" in ci_raw or "startsWith(github.ref, 'refs/heads/hotfix" in ci_raw:
         FAILURES.append("ci: regra branch → estágios NÃO pode voltar como `if:` no YAML (fonte única é ci_plan.py)")
 
@@ -229,6 +236,11 @@ def main() -> int:
     images_job = jobs.get("ci-images") or {}
     if (images_job.get("permissions") or {}).get("packages") != "write":
         FAILURES.append("ci: `7 ci · imagens` precisa de packages: write (push no ghcr.io)")
+    if "pull_request" not in str(images_job.get("if") or ""):
+        FAILURES.append(
+            "ci: `7 ci · imagens` não pode publicar em PR — a imagem é infraestrutura "
+            "versionada, e publicar de um PR colocaria código não revisado no ghcr.io"
+        )
     image_matrix = str((images_job.get("strategy") or {}).get("matrix") or "")
     for image in ("ci-linux", "ci-base"):
         if image not in raw(".github/workflows/ci.yml"):
