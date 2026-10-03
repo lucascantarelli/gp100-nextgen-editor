@@ -58,6 +58,14 @@ RUN apt-get update -y \
       ca-certificates curl git jq pkg-config libasound2-dev xz-utils \
  && rm -rf /var/lib/apt/lists/*
 
+# `rust:slim-bookworm` traz os SHIMS de rustfmt e clippy no PATH mas nao os
+# components: `command -v` passa e `cargo fmt` morre com
+# "'cargo-fmt' is not installed for the toolchain". Isso nao e detalhe de
+# imagem -- a composite setup-rust pula a instalacao quando GP100_CI_IMAGE=1
+# (ela confia que a imagem ja traz tudo), entao um shim enganoso faz o gate
+# passar no build e o job quebrar depois, em outro lugar.
+RUN rustup component add rustfmt clippy
+
 # uv pelo instalador oficial: a imagem `rust:slim-bookworm` não traz Python
 # gerenciado,
 # e o `pip install uv` cairia no PEP 668 (ambiente externo).
@@ -90,4 +98,5 @@ RUN set -eux \
  && rustc --version && cargo --version && uv --version \
  && node -e 'const major = process.versions.node.split(".")[0]; if (major !== "22") throw new Error("node " + major);' \
  && pnpm --version \
- && cargo fmt --version
+ && cargo fmt --version \
+ && cargo clippy --version
