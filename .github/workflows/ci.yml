@@ -110,6 +110,10 @@ concurrency:
 env:
   CARGO_TERM_COLOR: always
   # Imagens de CI (publicadas pelo job `7 ci · imagens`).
+  # ⚠️ `container.image` NÃO aceita o contexto `env` (a tabela do GitHub só
+  # permite github/needs/strategy/matrix/vars/inputs ali) — por isso os jobs
+  # de container repetem a ref literal, e `scripts/validate_workflows.py`
+  # trava que as duas sempre coincidem.
   CI_IMAGE_BASE: ghcr.io/${{ github.repository }}/ci-base:1
   CI_IMAGE_TAURI: ghcr.io/${{ github.repository }}/ci-linux:1
   BOT_NAME: github-actions[bot]
@@ -408,7 +412,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     container:
-      image: ${{ env.CI_IMAGE_BASE }}
+      image: ghcr.io/${{ github.repository }}/ci-base:1
     steps:
       - uses: actions/checkout@v7
       - name: instalar uv
@@ -464,7 +468,7 @@ jobs:
     if: (needs.plan.outputs.scope-front == 'true' || needs.plan.outputs.scope-rust == 'true') && needs.plan.outputs.stage-test == 'true'
     runs-on: ubuntu-24.04
     container:
-      image: ${{ env.CI_IMAGE_TAURI }}
+      image: ghcr.io/${{ github.repository }}/ci-linux:1
     timeout-minutes: 35
     env:
       RUSTUP_TOOLCHAIN: stable
@@ -545,7 +549,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     container:
-      image: ${{ env.CI_IMAGE_BASE }}
+      image: ghcr.io/${{ github.repository }}/ci-base:1
     env:
       # O pin gnu do rust-toolchain.toml da raiz quebra o cargo no Linux.
       RUSTUP_TOOLCHAIN: stable

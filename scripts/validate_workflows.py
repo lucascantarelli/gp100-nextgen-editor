@@ -248,7 +248,7 @@ def main() -> int:
             if token not in base_docker:
                 FAILURES.append(f"ci-base/Dockerfile: precisa de {token} (jobs sem GUI também rodam Python e pnpm)")
         # Comentário NÃO é instrução: os arquivos explicam POR QUE não levam
-        # WebKitGTK, e mentionar o pacote no texto não o instala.
+        # WebKitGTK, e mencionar o pacote no texto não o instala.
         instructions = "\n".join(
             line for line in base_docker.splitlines() if not line.lstrip().startswith("#")
         )
@@ -258,16 +258,22 @@ def main() -> int:
                     f"ci-base/Dockerfile: instala '{forbidden}', que é da ci-linux — aqui é peso morto (e ~1,5 GB)"
                 )
 
-    # jobs sem GUI realmente na imagem leve (o `image` referencia env do
-    # workflow — resolve antes de comparar, senão o check nunca casa).
+    # `container.image` NÃO aceita o contexto `env` (a run morre no LOAD com
+    # 0 jobs e mensagem genérica). A ref é escrita literal; o `env` do topo
+    # documenta a fonte, e este check é o que impede as duas de divergirem.
     wf_env = {k: str(v) for k, v in (ci.get("env") or {}).items()}
-    for job_id, expect in (("test-spec", "ci-base"), ("sec-audit", "ci-base"), ("test-e2e-webview", "ci-linux")):
+    for job_id, env_key in (("test-spec", "CI_IMAGE_BASE"), ("sec-audit", "CI_IMAGE_BASE"),
+                            ("test-e2e-webview", "CI_IMAGE_TAURI")):
         image = str(((jobs.get(job_id) or {}).get("container") or {}).get("image") or "")
-        resolved = image
-        for key, value in wf_env.items():
-            resolved = resolved.replace("${{ env." + key + " }}", value)
-        if expect not in resolved:
-            FAILURES.append(f"ci: '{job_id}' deveria rodar na imagem {expect} (resolveu: {resolved!r})")
+        if "env." in image:
+            FAILURES.append(
+                f"ci: '{job_id}' usa ${{{{ env.* }}}} em container.image — contexto inválido ali "
+                "(a run morre no LOAD); escreva a ref literal"
+            )
+        expected = wf_env.get(env_key, "").replace("${{ github.repository }}", "<repo>")
+        actual = image.replace("${{ github.repository }}", "<repo>")
+        if expected != actual:
+            FAILURES.append(f"ci: '{job_id}' usa {actual!r} mas o env {env_key} diz {expected!r} — diverge")
 
     # ── 10. composites: as alavancas de custo ───────────────────────────
     composites = {
