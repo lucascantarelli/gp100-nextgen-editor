@@ -1,19 +1,18 @@
-# Configuração do actionlint (lida por `-config-file` no job
-# `Lint · contratos do pipeline`).
+# Configuração do actionlint.
 #
-# Por que um arquivo e não a flag `-ignore` na linha do workflow: a imagem
-# oficial é `docker://rhysd/actionlint:1.7.7`, e o `args` chega ao `docker run`
-# sem aspas — um `-ignore 'label "x" is unknown'` vira três argumentos e o
-# actionlint tenta abrir um arquivo chamado `unknown'`. Foi o que aconteceu na
-# primeira execução (log: "could not read \"unknown'\"").
-
-self-hosted-runner:
-  labels: []
-
-# Um rotulo, e não uma rede. `macos-15-intel` é um label REAL do GitHub — o
+# Lida AUTOMATICAMENTE: o actionlint procura `actionlint.yaml`/`.yml` no
+# diretório `.github` (documentação do próprio projeto). Por isso o passo no
+# `ci.yml` NÃO passa `-config-file` — com `docker://` o `args:` vira argumento do
+# `docker run`, que não preserva aspas, e uma regexp com espaços chega em três
+# pedaços. Já aconteceu duas vezes nesta PR:
+#
+#   1) could not read "unknown'": open unknown': no such file or directory
+#   2) o `-ignore` chegou em três argumentos e não filtrou nada
+#
+# Um rótulo, e não uma rede. `macos-15-intel` é um rótulo REAL do GitHub — o
 # runner Intel do macOS 15, anunciado em set/2025 e disponível até ago/2027
 # (última imagem x86_64 do Actions). A lista embutida do actionlint 1.7.7 é mais
-# antiga que o label e o acusa de desconhecido.
+# antiga que o rótulo e o acusa de desconhecido.
 #
 # A razão está aqui porque "simplificar" este ignore é o caminho óbvio para o
 # próximo que vir `macos-latest` ao lado e supor equivalência: trocar por

@@ -104,14 +104,21 @@ LEGACY = (
     "close-issues.yml",
 )
 
+# Actions que rodam em Node 20, que o GitHub descontinuou: o runner força
+# Node 24 e emite aviso em TODA run. A lista e por action e nao por faixa
+# porque cada uma publica a migracao numa versao diferente.
 NODE20_REFS = (
     "actions/cache@v4",
     "actions/download-artifact@v4",
+    "actions/download-artifact@v5",
+    "actions/download-artifact@v6",
     "actions/upload-artifact@v3",
+    "actions/upload-artifact@v4",
+    "actions/upload-artifact@v5",
+    "actions/upload-artifact@v6",
     "docker/setup-buildx-action@v3",
     "docker/login-action@v3",
     "docker/metadata-action@v5",
-    "docker/build-push-action@v6",
 )
 
 
