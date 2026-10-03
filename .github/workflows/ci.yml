@@ -226,14 +226,23 @@ jobs:
       # expressao invalido. O `validate_workflows.py` cobre os CONTRATOS do
       # projeto; os dois juntos fecham workflow sintatico E semantico. Sem o
       # actionlint, um workflow pode passar no YAML e quebrar no runner.
-      # SEM `args:` de proposito. O actionlint auto-descobre
-      # `.github/actionlint.yaml` (a opcoes do gate estao la, com a
-      # justificativa). Passar `-config-file` seria redundante — e com
-      # `docker://` o `args:` vira argumento do `docker run`, que nao preserva
-      # aspas: a 1a execucao morreu com `could not read "unknown'"` e a 2a com
-      # o `-ignore` chegar em tres pedacos.
+      # `docker run` EXPLICITO, e nao `docker://`. Tres tentativas, e o motivo
+      # de cada uma esta aqui para a proxima nao repetir:
+      #   1) `args: -ignore 'label "..." is unknown'` — com `docker://` o
+      #      `args:` vira argumento do `docker run` sem preservar aspas, e a
+      #      regexp chegou em tres pedacos: `could not read "unknown'"`.
+      #   2) `args: -config-file <caminho>` — chegou, mas o config nao pegou.
+      #   3) sem `args:`, confiando no auto-descoberto do config — tambem nao
+      #      pegou: o actionlint procura `.github/actionlint.yaml` a partir do
+      #      diretorio de trabalho, e o container do `docker://` nao tem o
+      #      workspace na raiz.
+      # Com `docker run` o volume e o workdir sao explicitos, o shell preserva
+      # aspas e o config e encontrado. A opcao continua morando em
+      # `.github/actionlint.yaml`, com a justificativa do ignore.
       - name: actionlint (expressões e contextos do runner)
-        uses: docker://rhysd/actionlint:1.7.7
+        run: |
+          set -euo pipefail
+          docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.7
       - name: sintaxe + contratos + empacotamento + simulação do GitFlow
         run: |
           # `pyyaml` e `jsonschema` ja vem no `pyproject.toml` (#80); a linha
