@@ -297,8 +297,10 @@ FASE 3 — CONTO E POLIMENTO
   tinha só 2/4…7/4 — corrigido).
 - Marketing Valeton diz "100 patterns incl. metrônomos"; a tabela extraída tem
   87 estilos nomeados (inclui Metro). Mantemos os 87 reais.
-- **UI:** chip no topbar abre o `DrumPanel` (gênero → estilo dependente, BPM,
-  compasso, volume, speed; prévia local persistente).
+- **UI:** o chip no topbar tem play/stop e stepper de BPM DIRETO na navbar
+  (sem abrir o painel); o chip abre o `DrumPanel` como MODAL no padrão do
+  Settings (gênero → estilo dependente, BPM, compasso, volume, speed;
+  prévia local persistente — o drum NUNCA volta tocando).
 
 ### 7.2 Looper — máquina de fita reel-to-reel (skeuomórfico)
 - **Dados reais (firmware menu LOOPER):** Rec VOL (0–99) · Play VOL (0–99) ·
@@ -348,7 +350,7 @@ FASE 3 — CONTO E POLIMENTO
 
 | Tecla | Ação | Detalhe |
 |---|---|---|
-| `Espaço` | Drum play/stop | alterna `drum.on` (mesmo efeito do botão ⏵/⏹ do chip e do painel) |
+| `Espaço` | Drum play/stop | alterna `drum.on` (mesmo efeito do toggle ⏵/⏹ da navbar e do modal de gestão) |
 | `R` | Looper REC | dispara o MESMO `onRec` do botão ● (rec → play → dub → play) |
 | `Esc` | Fecha o painel do TOPO | precedência: Settings → Drum → drawer de pushes |
 

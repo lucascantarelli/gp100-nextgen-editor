@@ -59,7 +59,7 @@
 | D3 | BPM (40–240) | ✅ campo numérico SEM spinners, mesmo tamanho dos selects (30/09: `.gp-num{box-sizing}`; era 258×46) | DrumPanel + design.css | drum e2e (assert 240×32) |
 | D4 | Compassos | ✅ os 8 reais: 2/4 · 3/4 · 4/4 · 6/4 · 7/4 · 6/8 · 7/8 · 9/8 | drumData.ts | drum e2e + unit |
 | D5 | Volume/Speed (0–99) | ✅ sliders (prévia local persistente `gp100.drum.v2`) | DrumPanel.tsx | unit |
-| D6 | Play/stop | ✅ botão + **Espaço global** | DrumPanel + useGlobalShortcuts | R-ATALHOS e2e |
+| D6 | Play/stop | ✅ toggle ⏵/⏹ NA NAVBAR (sem abrir o painel) + **Espaço global** | TopBar + useGlobalShortcuts | R-ATALHOS e2e |
 | D7 | "100 patterns" do marketing | 🟡 mantemos os 87 REAIS da tabela do firmware (decisão §7.1) | — | — |
 
 ## 6. Looper (specs Valeton/manual v1.8; UI_REFERENCE §7.2)

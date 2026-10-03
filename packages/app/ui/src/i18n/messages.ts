@@ -42,13 +42,17 @@ export const MSG = {
   patchPrevTitle: "Patch anterior (P01–P99 em ciclo)",
   patchNextAria: "Próximo patch",
   patchNextTitle: "Próximo patch (P01–P99 em ciclo)",
-  drumChipOn: (style: string) => `⏹ drum · ${style}`,
-  drumChipOff: (style: string) => `⏵ drum · ${style}`,
+  /** chip = IDENTIDADE do ritmo (abre o modal de gestão); play/stop e BPM
+   *  viraram controles próprios da navbar (hierarquia nova do chip).
+   *  O prefixo some em ≤1024 (`.nb-chip-pre`) — o nome do estilo fica */
+  drumChipPre: "drum · ",
   drumChipAria: (style: string, bpm: number, beat: string) =>
     `Bateria (drum): ${style}, ${bpm} BPM, compasso ${beat} — abrir gestão de ritmos`,
-  /** info do drum EMPILHADA na navbar (BPM sobre compasso) — ocupa a
-   *  metade da largura na horizontal e a navbar segue numa linha só */
-  drumInfo: (bpm: number, beat: string) => `${bpm}\n${beat}`,
+  /** play/stop DIRETO na navbar — não exige o modal de gestão aberto */
+  drumToggleAria: "Tocar ou parar o ritmo da bateria",
+  /** stepper de BPM direto na navbar (40–240, mesmo clamp do modal) */
+  drumBpmDownAria: "Diminuir BPM do ritmo",
+  drumBpmUpAria: "Aumentar BPM do ritmo",
   masterLabel: "master",
   masterAria: "Master volume",
   arrangeLabel: "🔒",
@@ -130,8 +134,6 @@ export const MSG = {
   drumNote: `${DRUM_COUNT} ritmos em ${DRUM_GENRE_COUNT} gêneros · metrônomo incluído · prévia local`,
   drumPanelAria: "Gestão de ritmos da bateria (drum)",
   drumTitle: "Bateria · ritmos",
-  drumPlayLabel: "⏵ tocar",
-  drumStopLabel: "⏹ parar",
   drumCloseAria: "Fechar gestão de ritmos",
   drumGenreLabel: "Gênero",
   drumStyleLabel: "Ritmo",

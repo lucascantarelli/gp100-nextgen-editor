@@ -110,21 +110,24 @@ describe("useGlobalShortcuts — helpers puros", () => {
 });
 
 describe("App — atalhos globais em ação", () => {
-  it("Espaço liga/para o drum (chip ⏵/⏹)", async () => {
+  it("Espaço liga/para o drum (toggle ⏵/⏹ da navbar)", async () => {
     const { root, host } = mount(<App />);
     await settle();
 
-    const chip = host.querySelector<HTMLButtonElement>('button[aria-label^="Bateria (drum)"]');
-    expect(chip, "chip do drum no topbar").not.toBeNull();
-    expect(chip!.textContent).toContain("⏵");
+    const toggle = host.querySelector<HTMLButtonElement>('button[aria-label="Tocar ou parar o ritmo da bateria"]');
+    expect(toggle, "play/stop do drum direto na navbar").not.toBeNull();
+    expect(toggle!.textContent).toContain("⏵");
+    expect(toggle!.getAttribute("aria-pressed")).toBe("false");
 
     act(() => pressKey(" "));
     await settle();
-    expect(chip!.textContent).toContain("⏹");
+    expect(toggle!.textContent).toContain("⏹");
+    expect(toggle!.getAttribute("aria-pressed")).toBe("true");
 
     act(() => pressKey(" "));
     await settle();
-    expect(chip!.textContent).toContain("⏵");
+    expect(toggle!.textContent).toContain("⏵");
+    expect(toggle!.getAttribute("aria-pressed")).toBe("false");
 
     act(() => root.unmount());
     host.remove();
@@ -163,31 +166,36 @@ describe("App — atalhos globais em ação", () => {
     await settle();
 
     const chip = host.querySelector<HTMLButtonElement>('button[aria-label^="Bateria (drum)"]')!;
-    act(() => chip.click()); // popover do drum aberto
+    const toggle = host.querySelector<HTMLButtonElement>('button[aria-label="Tocar ou parar o ritmo da bateria"]')!;
+    act(() => chip.click()); // modal do drum aberto
     await settle();
     expect(host.querySelector('[aria-label="Gestão de ritmos da bateria (drum)"]')).not.toBeNull();
+    expect(host.querySelector('[role="dialog"]'), "drum abre como dialog").not.toBeNull();
 
     act(() => host.querySelector<HTMLButtonElement>('button[aria-label="Abrir configurações"]')!.click());
     await settle();
-    expect(host.querySelector('[role="dialog"]')).not.toBeNull();
+    expect(host.querySelector('[aria-label="Configurações"]')).not.toBeNull();
 
     // com o modal aberto, o transporte fica inerte
     act(() => pressKey(" "));
     act(() => pressKey("r"));
     await settle();
-    expect(chip.textContent).toContain("⏵");
+    expect(toggle.textContent).toContain("⏵");
+    expect(toggle.getAttribute("aria-pressed")).toBe("false");
     expect(host.querySelector('[aria-label="Parar gravação e tocar"]')).toBeNull();
 
     // Esc 1: fecha o Settings (topo); drum continua aberto
     act(() => pressKey("Escape"));
     await settle();
-    expect(host.querySelector('[role="dialog"]')).toBeNull();
+    expect(host.querySelector('[aria-label="Configurações"]')).toBeNull();
+    expect(host.querySelector('[aria-label="Gestão de ritmos da bateria (drum)"]')).not.toBeNull();
     expect(chip.getAttribute("aria-expanded")).toBe("true");
 
     // Esc 2: fecha o drum
     act(() => pressKey("Escape"));
     await settle();
     expect(chip.getAttribute("aria-expanded")).toBe("false");
+    expect(host.querySelector('[aria-label="Gestão de ritmos da bateria (drum)"]')).toBeNull();
 
     // Esc 3: fecha o drawer de pushes
     const details = host.querySelector("details")!;
