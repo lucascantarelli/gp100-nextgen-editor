@@ -1,72 +1,1184 @@
 # ═══════════════════════════════════════════════════════════════════════════
-# CI — porteiro da integração contínua (GitFlow).
+# CI — o pipeline inteiro do projeto em UM workflow.
 #
-# FUNÇÃO ÚNICA: validar mudanças nas branches de INTEGRAÇÃO e fechar issues
-# vinculadas no merge. A validação em si mora no reusable `_validate.yml`;
-# o release tem workflow próprio (`release.yml`); a varredura noturna de
-# segurança, também (`security.yml`).
+# Substitui ci.yml + _validate.yml + _publish.yml + release.yml + security.yml
+# + container.yml (issue #68). Motivo: seis arquivos para um projeto de quatro
+# produtos faz a mesma regra morar em seis lugares, e o nome do arquivo dentro
+# do nome do job (`Validação (_validate.yml) / Gate — fmt + …') transfere
+# informação nenhuma para quem lê o sidebar.
 #
-# PAPÉIS DAS BRANCHES (quem dispara o quê — auditoria 01/10):
-#   feature/*, fix/*, chore/*, docs/*, refactor/*  → NADA no push.
-#       A validação roda no PR (types abaixo). Antes, cada push acendia a
-#       matriz 3-OS inteira: custo alto e fila de runs redundantes.
-#   develop            → push valida (integração; origem das releases).
-#   release/**         → push valida (freeze de rc).
-#   hotfix/**          → push valida (correção urgente; vai direto à main).
-#   main               → push valida (o publish acontece no release.yml, por tag).
+# ESTÁGIOS (o prefixo numérico no `name:` ordena o sidebar — o GitHub não tem
+# "stage", então o estágio é o grafo de `needs:` + o prefixo):
 #
-# FECHAMENTO DE ISSUES (era close-issues.yml): integrado aqui como job
-# `close-linked` — mesmo evento (PR closed em develop), mesmos guards.
-# O GitHub nativo só fecha por `Closes #N` no merge da branch DEFAULT (main);
-# no GitFlow a integração é em develop, então o job cobre a lacuna via API.
+#   0 plan      contexto: o que mudou, de que tipo é a branch, quais matriz
+#   1 lint      validações estáticas — SEMPRE, em toda branch
+#   2 build     compilação de VERIFICAÇÃO — SEMPRE (build ≠ distribuição)
+#   3 test      testes (unit, integração, e2e, visual, webview)
+#   4 coverage  relatório de cobertura + gate — separado de propósito
+#   5 security  auditorias + CodeQL
+#   6 metrics   resumo visual — roda SEMPRE (`if: always()`), mesmo com falha
+#   7 release   versionamento e artefatos de DISTRIBUIÇÃO
+#   8 close     fechamento de issues do PR mergeado
+#
+# QUAL ESTÁGIO RODA EM QUE BRANCH (a regra é do job `plan`, não espalhada em
+# `if:` soltos — uma fonte de verdade, testável):
+#
+#   branch                    plan lint build test cov sec dist release close
+#   feature/* bugfix/* (PR)   ✅   ✅   ✅    ✅   ✅   ✅   ❌    ❌      ✅
+#   develop   (push)          ✅   ✅   ✅    ✅   ✅   ✅   ❌    ⚠️      ❌
+#   main      (push)          ✅   ✅   ✅    ✅   ✅   ✅   ❌    ❌      ❌
+#   release/* (push/PR)       ✅   ✅   ✅    ❌   ❌   ✅   ❌    ⚠️      ❌
+#   hotfix/*  (push/PR)       ✅   ✅   ✅    ✅   ✅   ✅   ❌    ⚠️      ❌
+#   tag v*    (push)          ✅   ✅   ✅    ✅   ✅   ✅   ✅    ✅      ❌
+#   schedule  (noturno)       ⚠️   ❌   ❌    ✅   ❌   ✅   ❌    ❌      ❌
+#
+#   ⚠️ release = só em `workflow_dispatch` (nunca em push/PR): versionar no push
+#      é a receita de tag prematura. A release REAL acontece na tag `v*`, que
+#      roda a suíte inteira antes de gerar qualquer artefato.
+#
+# POR QUE `release/**` NÃO RODE TESTES: a release branch nasce da `develop`, que
+# já foi testada no merge; retestar é custo sem informação nova. O gate de
+# verdade da release é o push da tag `v*` (test → coverage → dist). Já
+# `hotfix/**` RODA testes: ele nasce da `main`, é uma correção urgente e vai
+# direto para produção.
+#
+# PERMISSÕES: o mínimo no topo (`contents: read`); só os jobs de `release`/`dist`
+# sobem para `contents: write` no escopo do job. Um workflow único com
+# `contents: write` no topo daria a TODOS os jobs — inclusive os que rodam
+# código do PR — permissão de escrever no repositório.
 # ═══════════════════════════════════════════════════════════════════════════
 
-name: ci
+name: CI
 
 on:
   push:
-    branches: [develop, main, "release/**", "hotfix/**"]
+    branches:
+      - develop
+      - main
+      - "feature/**"
+      - "bugfix/**"
+      - "hotfix/**"
+      - "release/**"
+    tags: ["v*"]
   pull_request:
-    # `closed` entra para o close-linked; os jobs de validação guardam
-    # `action != 'closed'` e não gastam runner em PR fechado.
-    branches: [develop, main, "release/**"]
+    branches: [develop, main, "hotfix/**", "release/**"]
     types: [opened, synchronize, reopened, closed]
+  schedule:
+    # 06:30 UTC = 03:30 BRT — auditorias antes do expediente.
+    - cron: "30 6 * * *"
   workflow_dispatch:
     inputs:
+      action:
+        description: "release = criar rc · promote = rc → tag final · play = cortar tag pelo semver"
+        type: choice
+        options: [release, promote, play]
+        required: false
+        default: release
+      source:
+        description: "(release) de onde sai a release branch: develop = fluxo normal · main = hotfix"
+        type: choice
+        options: [develop, main]
+        required: false
+        default: develop
+      version:
+        description: "(release/promote) versão alvo sem o v, ex.: 0.2.0 — vazio = calcular pelos commits"
+        type: string
+        required: false
       update-snapshots:
-        description: "(Visual) Regenerar baselines de screenshot no Ubuntu — baixe o artefato e commite"
+        description: "(test) regenerar as baselines visuais de linux"
         type: boolean
         default: false
+      publish-tag:
+        description: "(opcional) publicar uma tag v* EXISTENTE (emergência)"
+        type: string
+        required: false
 
 permissions:
-  contents: read # validação não escreve no repo
-  issues: write # close-linked fecha a issue + comentário de rastreabilidade
-  # O reusable _validate.yml PEDE packages: read (pull da imagem ci-linux).
-  # Callee não pode pedir escopo que o caller não concede — sem esta linha o
-  # GitHub recusa o LOAD do workflow inteiro (startup_failure, mensagem só na
-  # annotation da run: "requesting 'packages: read', but is only allowed
-  # 'packages: none'"). Contrato travado em scripts/validate_workflows.py.
-  packages: read
+  contents: read
+  issues: write # fechamento de issues vinculadas
+  actions: read # relatório de métricas (lista os jobs da run)
+  packages: read # pull das imagens de CI no ghcr.io
+  security-events: write # CodeQL
 
+# Chave por PR/ref: push intermediário cancela a validação anterior. Em push de
+# branch de integração NÃO cancela — a run do push é a prova daquela integração
+# e pode ser referenciada por outro PR.
 concurrency:
-  # Por PR/ref: push intermediário cancela a validação anterior (padrão de
-  # monorepo). Em push de branch de integração NÃO cancela — a run do push
-  # é a prova daquela integração e pode ser referenciada por outro PR.
   group: ci-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
-jobs:
-  # ── VALIDAÇÃO (reusable — a régua em um lugar só) ──
-  validate:
-    name: Validação (_validate.yml)
-    if: github.event.action != 'closed'
-    uses: ./.github/workflows/_validate.yml
-    with:
-      update-snapshots: ${{ github.event.inputs.update-snapshots || 'false' }}
+env:
+  CARGO_TERM_COLOR: always
+  # Imagens de CI (publicadas pelo job `7 ci · imagens`).
+  CI_IMAGE_BASE: ghcr.io/${{ github.repository }}/ci-base:1
+  CI_IMAGE_TAURI: ghcr.io/${{ github.repository }}/ci-linux:1
+  BOT_NAME: github-actions[bot]
+  BOT_EMAIL: github-actions[bot]@users.noreply.github.com
 
-  # ── FECHAMENTO DE ISSUES no merge em develop ──
-  close-linked:
-    name: Fechar issues vinculadas (Closes #N)
+jobs:
+  # ═══════════════════════════════════════════════════════════════════════
+  # ESTÁGIO 0 — PLAN (contexto para todo o resto)
+  # ═══════════════════════════════════════════════════════════════════════
+  plan:
+    name: 0 plan · contexto e matrizes
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      branch-class: ${{ steps.plan.outputs.branch-class }}
+      scope-rust: ${{ steps.plan.outputs.scope-rust }}
+      scope-front: ${{ steps.plan.outputs.scope-front }}
+      scope-spec: ${{ steps.plan.outputs.scope-spec }}
+      stage-test: ${{ steps.plan.outputs.stage-test }}
+      stage-coverage: ${{ steps.plan.outputs.stage-coverage }}
+      stage-security: ${{ steps.plan.outputs.stage-security }}
+      stage-dist: ${{ steps.plan.outputs.stage-dist }}
+      stage-release: ${{ steps.plan.outputs.stage-release }}
+      rust-matrix: ${{ steps.plan.outputs.rust-matrix }}
+      front-matrix: ${{ steps.plan.outputs.front-matrix }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # diff contra a base + tags
+
+      - name: Diff contra a base do evento
+        id: base
+        run: |
+          set -euo pipefail
+          git fetch --tags --force
+          PR_BASE="${{ github.event.pull_request.base.sha }}"
+          BEFORE="${{ github.event.before }}"
+          if [ -n "$PR_BASE" ]; then
+            BASE="$PR_BASE"
+          elif [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ] && git cat-file -e "$BEFORE" 2>/dev/null; then
+            BASE="$BEFORE"
+          else
+            BASE="" # tag, schedule ou 1ª run: sem diff → tudo
+          fi
+          if [ -z "$BASE" ]; then
+            CHANGED="ALL"
+          else
+            CHANGED="$(git diff --name-only "$BASE..HEAD" || true)"
+            [ -z "$CHANGED" ] && CHANGED="(none)"
+          fi
+          # GITHUB_ENV (e não OUTPUT): o próximo step é outro processo e só vê
+          # o que estiver no ambiente.
+          {
+            echo "CHANGED<<CHANGED_EOF"
+            echo "$CHANGED"
+            echo "CHANGED_EOF"
+          } >> "$GITHUB_ENV"
+
+      - name: Regra branch → estágios + matrizes
+        id: plan
+        env:
+          REF: ${{ github.ref }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+          EVENT: ${{ github.event_name }}
+          ACTION: ${{ inputs.action }}
+        run: python3 scripts/ci_plan.py >> "$GITHUB_OUTPUT"
+
+  # ═══════════════════════════════════════════════════════════════════════
+  # ESTÁGIO 1 — LINT (estático; sempre; toda branch)
+  # ═══════════════════════════════════════════════════════════════════════
+  lint-workflows:
+    name: 1 lint · contratos do pipeline
+    needs: plan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - name: sintaxe + contratos + simulação do GitFlow
+        run: |
+          python3 -c "import yaml" 2>/dev/null || python3 -m pip install --quiet pyyaml
+          python3 scripts/validate_workflows.py
+          python3 scripts/simulate_release.py
+
+  lint-commits:
+    name: 1 lint · mensagens de commit
+    # Não roda em tag (não há "commit novo" a checar) nem em schedule/dispatch.
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: conventional commits
+        run: python3 scripts/check_commits.py
+
+  lint-rust-fmt:
+    name: 1 lint · rust fmt
+    needs: plan
+    if: needs.plan.outputs.scope-rust == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      RUSTUP_TOOLCHAIN: stable
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-rust
+        with:
+          # `cargo fmt` não compila nada: o cache aqui só custaria GB.
+          cache: "false"
+      - name: workspace da raiz
+        run: cargo fmt --check
+      - name: workspace da api
+        working-directory: packages/app/api
+        run: cargo fmt -- --check
+
+  lint-rust-clippy:
+    name: 1 lint · rust clippy (${{ matrix.project }} · ${{ matrix.os }})
+    needs: plan
+    if: needs.plan.outputs.scope-rust == 'true'
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.rust-matrix) }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    env:
+      # ADR-7: MSVC no workspace da api (Tauri), GNU no da raiz (cli de campo).
+      # A toolchain vem daqui porque `matrix` é o único contexto disponível em
+      # env de job — `runner.os` só existe em step.
+      RUSTUP_TOOLCHAIN: ${{ matrix.os == 'windows-latest' && (matrix.workdir == 'packages/app/api' && 'stable-x86_64-pc-windows-msvc' || 'stable-x86_64-pc-windows-gnu') || 'stable' }}
+    defaults:
+      run:
+        working-directory: ${{ matrix.workdir }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-rust
+        with:
+          workdir: ${{ matrix.workdir }}
+          shared-key: ${{ matrix.project == 'ui-rust' && 'ws-api' || 'ws-raiz' }}
+      - name: deps de sistema do ALSA (Linux — cli)
+        if: matrix.project == 'cli' && runner.os == 'Linux'
+        uses: awalsh128/cache-apt-pkgs-action@v1
+        with:
+          packages: pkg-config libasound2-dev
+          version: 1.0
+      - name: front (o `generate_context!` do Tauri embute ui/dist)
+        if: matrix.project == 'ui-rust'
+        uses: ./.github/actions/setup-node-pnpm
+      - name: front (build)
+        if: matrix.project == 'ui-rust'
+        uses: ./.github/actions/build-front
+      - name: clippy
+        run: |
+          cargo clippy -p ${{ matrix.project == 'ui-rust' && 'gp100-ui' || format('gp100-{0}', matrix.project) }} --all-targets -- -D warnings
+
+  lint-ui:
+    name: 1 lint · app/ui (eslint)
+    needs: plan
+    if: needs.plan.outputs.scope-front == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-node-pnpm
+      - name: eslint (inclui a regra local/no-user-literals)
+        working-directory: packages/app/ui
+        run: pnpm lint
+
+# ═══════════════════════════════════════════════════════════════════════
+  # ESTÁGIO 2 — BUILD (compilação de VERIFICAÇÃO; sempre)
+  #
+  # Não confunda com o estágio 7 (dist): aqui `cargo check`/`tsc` provam que
+  # COMPILA, que é o gate de merge. Gerar `.msi`/`.dmg`/`.deb` é outro job,
+  # em outra branch, com outro custo. Sem essa separação, o `cargo build
+  # --release` que estava dentro da matriz de validação publicava artefato de
+  # campo a cada push de PR.
+  # ═══════════════════════════════════════════════════════════════════════
+  build-rust:
+    name: 2 build · rust check (${{ matrix.project }} · ${{ matrix.os }})
+    needs: plan
+    if: needs.plan.outputs.scope-rust == 'true'
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.rust-matrix) }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    env:
+      RUSTUP_TOOLCHAIN: ${{ matrix.os == 'windows-latest' && (matrix.workdir == 'packages/app/api' && 'stable-x86_64-pc-windows-msvc' || 'stable-x86_64-pc-windows-gnu') || 'stable' }}
+    defaults:
+      run:
+        working-directory: ${{ matrix.workdir }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-rust
+        with:
+          workdir: ${{ matrix.workdir }}
+          shared-key: ${{ matrix.project == 'ui-rust' && 'ws-api' || 'ws-raiz' }}
+      - name: deps de sistema do ALSA (Linux — cli)
+        if: matrix.project == 'cli' && runner.os == 'Linux'
+        uses: awalsh128/cache-apt-pkgs-action@v1
+        with:
+          packages: pkg-config libasound2-dev
+          version: 1.0
+      - name: front (o `generate_context!` do Tauri embute ui/dist)
+        if: matrix.project == 'ui-rust'
+        uses: ./.github/actions/setup-node-pnpm
+      - name: front (build)
+        if: matrix.project == 'ui-rust'
+        uses: ./.github/actions/build-front
+      - name: check
+        run: |
+          cargo check -p ${{ matrix.project == 'ui-rust' && 'gp100-ui' || format('gp100-{0}', matrix.project) }} --all-targets
+
+  build-ui:
+    name: 2 build · app/ui (${{ matrix.os }})
+    needs: plan
+    if: needs.plan.outputs.scope-front == 'true'
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.front-matrix) }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-node-pnpm
+      - name: tsc + vite
+        uses: ./.github/actions/build-front
+
+  # ═══════════════════════════════════════════════════════════════════════
+  # ESTÁGIO 3 — TEST (unit · integração · e2e · visual · webview)
+  # ═══════════════════════════════════════════════════════════════════════
+  test-rust:
+    name: 3 test · rust (${{ matrix.project }} · ${{ matrix.os }})
+    needs: [plan, build-rust]
+    if: needs.plan.outputs.scope-rust == 'true' && needs.plan.outputs.stage-test == 'true'
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.rust-matrix) }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    env:
+      RUSTUP_TOOLCHAIN: ${{ matrix.os == 'windows-latest' && (matrix.workdir == 'packages/app/api' && 'stable-x86_64-pc-windows-msvc' || 'stable-x86_64-pc-windows-gnu') || 'stable' }}
+    defaults:
+      run:
+        working-directory: ${{ matrix.workdir }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-rust
+        with:
+          workdir: ${{ matrix.workdir }}
+          shared-key: ${{ matrix.project == 'ui-rust' && 'ws-api' || 'ws-raiz' }}
+          # O MSVC é a perna mais cara que resta (issue #41): aqui vale cortar
+          # o rebuild do gp100-ui, que é o que domina esse tempo.
+          cache-workspace-crates: ${{ matrix.project == 'ui-rust' && matrix.os == 'windows-latest' && 'true' || 'false' }}
+      - name: deps de sistema do ALSA (Linux — cli)
+        if: matrix.project == 'cli' && runner.os == 'Linux'
+        uses: awalsh128/cache-apt-pkgs-action@v1
+        with:
+          packages: pkg-config libasound2-dev
+          version: 1.0
+      - name: front (o `generate_context!` do Tauri embute ui/dist)
+        if: matrix.project == 'ui-rust'
+        uses: ./.github/actions/setup-node-pnpm
+      - name: front (build)
+        if: matrix.project == 'ui-rust'
+        uses: ./.github/actions/build-front
+      - name: testes
+        if: matrix.project == 'cli'
+        run: cargo test -p gp100-cli --features real-device
+      - name: testes
+        if: matrix.project != 'cli'
+        run: cargo test -p ${{ matrix.project == 'ui-rust' && 'gp100-ui' || 'gp100-core' }}
+      - name: smoke da política de hardware (o stack de campo é WinMM)
+        if: matrix.project == 'cli' && runner.os == 'Windows'
+        uses: ./.github/actions/hardware-smoke
+        with:
+          profile: debug
+
+  test-ui:
+    name: 3 test · app/ui (vitest)
+    needs: [plan, build-ui]
+    if: needs.plan.outputs.scope-front == 'true' && needs.plan.outputs.stage-test == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-node-pnpm
+      - name: vitest
+        working-directory: packages/app/ui
+        run: pnpm exec vitest run
+
+  test-spec:
+    name: 3 test · especificação (pytest)
+    needs: plan
+    if: needs.plan.outputs.scope-spec == 'true' && needs.plan.outputs.stage-test == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    container:
+      image: ${{ env.CI_IMAGE_BASE }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: instalar uv
+        uses: astral-sh/setup-uv@v10.2.0
+        with:
+          enable-cache: true
+      - name: sync do ambiente (capstone, pefile, ziglang, pytest)
+        run: uv sync --all-groups
+      - name: golden, hash da baseline, knob_map e fixtures
+        run: uv run pytest
+
+  test-e2e:
+    name: 3 test · e2e shell (Chromium)
+    needs: [plan, build-ui]
+    if: needs.plan.outputs.scope-front == 'true' && needs.plan.outputs.stage-test == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-node-pnpm
+      - uses: ./.github/actions/playwright-setup
+      - name: suíte e2e (o playwright.config sobe o dev server sozinho)
+        working-directory: packages/app/ui
+        run: pnpm exec playwright test
+
+  test-e2e-visual:
+    name: 3 test · e2e visual (baseline por plataforma)
+    needs: [plan, build-ui]
+    if: needs.plan.outputs.scope-front == 'true' && needs.plan.outputs.stage-test == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-node-pnpm
+      - uses: ./.github/actions/playwright-setup
+      - name: comparar (ou regenerar com o input update-snapshots)
+        working-directory: packages/app/ui
+        # `--update-snapshots=all` é o ÚNICO caminho de escrita no CI: o
+        # default lá é comparar e FALHAR no que faltar.
+        run: pnpm exec playwright test visual.spec.ts ${{ inputs.update-snapshots == 'true' && '--update-snapshots=all' || '' }}
+      - name: baselines/diffs como artefato
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: visual-snapshots
+          path: packages/app/ui/e2e/__screenshots__/
+          retention-days: 14
+          if-no-files-found: ignore
+
+  test-e2e-webview:
+    name: 3 test · e2e webview (shell Tauri real)
+    needs: [plan, build-rust]
+    if: (needs.plan.outputs.scope-front == 'true' || needs.plan.outputs.scope-rust == 'true') && needs.plan.outputs.stage-test == 'true'
+    runs-on: ubuntu-24.04
+    container:
+      image: ${{ env.CI_IMAGE_TAURI }}
+    timeout-minutes: 35
+    env:
+      RUSTUP_TOOLCHAIN: stable
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-rust
+        with:
+          workdir: packages/app/api
+          shared-key: ws-api
+      - uses: ./.github/actions/setup-node-pnpm
+      - uses: ./.github/actions/build-front
+      - name: build debug do shell (dist embutido, backend mock)
+        working-directory: packages/app/api
+        run: cargo build -p gp100-ui
+      # Lição (run 36943668915): build DEBUG carrega o `devUrl` do
+      # tauri.conf.json — o dist embutido só entra em RELEASE. Servimos o dist
+      # de produção na devUrl: o smoke segue provando o WEBVIEW, que é o
+      # objeto dele.
+      - name: servir o dist na devUrl
+        working-directory: packages/app/ui
+        run: |
+          nohup pnpm exec vite preview --port 5173 --strictPort > /tmp/preview.log 2>&1 &
+          for _ in $(seq 1 60); do
+            curl -sf http://localhost:5173 >/dev/null && { echo "preview no ar na :5173"; exit 0; }
+            sleep 0.5
+          done
+          echo "::error::preview não subiu:"; cat /tmp/preview.log; exit 1
+      - name: smoke (xvfb + tauri-driver)
+        working-directory: packages/app/ui
+        env:
+          WEBKIT_DISABLE_DMABUF_RENDERER: "1"
+          WEBKIT_DISABLE_COMPOSITING_MODE: "1"
+        run: xvfb-run -a node e2e/tauri.smoke.mjs
+
+# ═══════════════════════════════════════════════════════════════════════
+  # ESTÁGIO 4 — COVERAGE (job próprio: a régua é uma Métrica com GATE, não
+  # parte de "os testes passaram")
+  # ═══════════════════════════════════════════════════════════════════════
+  coverage-ui:
+    name: 4 coverage · app/ui (gate 85%)
+    needs: [plan, build-ui]
+    if: needs.plan.outputs.scope-front == 'true' && needs.plan.outputs.stage-coverage == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-node-pnpm
+      - name: vitest com instrumentação + gate
+        working-directory: packages/app/ui
+        run: pnpm test:coverage
+      # `json-summary` é o que o estágio de métricas lê — sem ele o relatório
+      # agregaria zero números (e a régua viraria decoração).
+      - name: resumo em JSON para o estágio de métricas
+        if: always()
+        working-directory: packages/app/ui
+        run: pnpm exec vitest run --coverage.reporter=json-summary --coverage.reporter=text
+      - name: publicar o resumo
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: cov-ui
+          path: packages/app/ui/coverage/coverage-summary.json
+          retention-days: 7
+          if-no-files-found: ignore
+
+  # ═══════════════════════════════════════════════════════════════════════
+  # ESTÁGIO 5 — SECURITY
+  #
+  # NÃO bloqueia o merge, e essa é uma decisão: `glib` é uma advisory
+  # documentada em SECURITY.md sem upgrade possível com o Tauri 2 — um gate
+  # que sempre falha treina o time a ignorar o vermelho. A DETECÇÃO é a
+  # issue de achados; a REMEDIAÇÃO é o dependabot.yml.
+  # ═══════════════════════════════════════════════════════════════════════
+  sec-audit:
+    name: 5 sec · auditorias de dependência
+    needs: plan
+    if: needs.plan.outputs.stage-security == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    container:
+      image: ${{ env.CI_IMAGE_BASE }}
+    env:
+      # O pin gnu do rust-toolchain.toml da raiz quebra o cargo no Linux.
+      RUSTUP_TOOLCHAIN: stable
+    permissions:
+      contents: read
+      issues: write
+      packages: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v7
+      - name: cargo-audit (binário pré-compilado)
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-audit
+      - name: cargo audit (workspace da raiz)
+        id: cargo_audit
+        continue-on-error: true
+        run: cargo audit --file Cargo.lock 2>&1 | tee /tmp/cargo-audit.txt
+      - name: cargo audit (gp100-ui — lockfile próprio, ADR-7)
+        id: cargo_audit_ui
+        continue-on-error: true
+        working-directory: packages/app/api
+        run: cargo audit --file Cargo.lock 2>&1 | tee /tmp/cargo-audit-ui.txt
+      - name: instalar uv
+        uses: astral-sh/setup-uv@v10.2.0
+      - uses: ./.github/actions/setup-node-pnpm
+        with:
+          # `pnpm audit` lê o lockfile; instalar a árvore inteira aqui só
+          # custaria tempo — a imagem não tem store aquecido de propósito.
+          install: "false"
+      - name: pnpm audit (runtime do front)
+        id: pnpm_audit
+        continue-on-error: true
+        working-directory: packages/app/ui
+        run: pnpm audit --prod 2>&1 | tee /tmp/pnpm-audit.txt
+      - name: pnpm outdated (informativo — não falha)
+        if: always()
+        continue-on-error: true
+        working-directory: packages/app/ui
+        run: pnpm outdated 2>&1 | tee /tmp/pnpm-outdated.txt || true
+      - name: trava da especificação (pytest — a garantia da RE)
+        if: always()
+        run: |
+          uv sync --all-groups
+          uv run pytest
+      - name: registrar o resultado de cada auditoria
+        # Direcionado a arquivo, não a env: `steps.<id>.outcome` só é
+        # disponivel dentro de um step, e o relatorio e um script separado.
+        if: always()
+        run: |
+          {
+            echo "cargo_audit(workspace)=${{ steps.cargo_audit.outcome }}"
+            echo "cargo_audit(gp100-ui)=${{ steps.cargo_audit_ui.outcome }}"
+            echo "pnpm_audit(runtime)=${{ steps.pnpm_audit.outcome }}"
+          } > .audit-outcomes
+          cat .audit-outcomes
+      - name: achado = issue na FASE ACHADOS
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: python3 scripts/security_report.py
+
+  sec-codeql:
+    name: 5 sec · codeql (${{ matrix.language }})
+    needs: plan
+    if: needs.plan.outputs.stage-security == 'true' && github.event_name != 'schedule'
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [javascript-typescript, rust]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+      packages: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v7
+      - name: codeql
+        uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+          queries: security-extended
+      - name: análise
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: /language:${{ matrix.language }}
+
+  # ═══════════════════════════════════════════════════════════════════════
+  # ESTÁGIO 6 — METRICS
+  #
+  # `if: always()` é o ponto: o resumo tem que aparecer MESMO quando algo
+  # quebrou — é nele que se lê o que quebrou. Depende de `plan` (não de
+  # lint/build/test) para nunca ficar preso atrás de um `needs` vermelho.
+  # ═══════════════════════════════════════════════════════════════════════
+  metrics:
+    name: 6 metrics · resumo da run
+    needs: plan
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v7
+      - name: aggregating os resumos de cobertura
+        uses: actions/download-artifact@v6
+        with:
+          pattern: cov-*
+          path: .cov
+        continue-on-error: true
+      - name: relatório
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+          BRANCH_CLASS: ${{ needs.plan.outputs.branch-class }}
+        run: python3 scripts/ci_report.py
+
+# ═══════════════════════════════════════════════════════════════════════
+  # ESTÁGIO 7 — RELEASE / DIST
+  #
+  # Separei em dois porque os gatilhos são incompatíveis:
+  #
+  #   7 ci · imagens   publica a imagem de CI (ferramenta do pipeline, não
+  #                    artefato de usuário) — caminho de código estável
+  #   7 release · rc    versiona + cria a release branch — SÓ `workflow_dispatch`
+  #   7 release · promote  rc → tag final → main recebe o SHA da tag
+  #   7 release · play   corta tag pelo semver dos commits
+  #   7 dist · ui        gera o instalador por plataforma (a tag já passou pela
+  #   7 dist · cli       suíte inteira no estágio 3)
+  #
+  # LIÇÃO QUE VIROU ESTRUTURA (auditoria 01/10): tag empurrada com
+  # GITHUB_TOKEN NÃO dispara workflow. Por isso rc/promote/play publicam NO
+  # MESMO RUN; o trigger de tag cobre só tags criadas por HUMANO.
+  # ═══════════════════════════════════════════════════════════════════════
+  ci-images:
+    name: 7 ci · imagens de container
+    # Publicar é raro e é infraestrutura: só quando a definição muda.
+    if: >-
+      github.event_name != 'pull_request' &&
+      (github.event_name == 'workflow_dispatch' ||
+       (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main'))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: write # push no ghcr.io
+      actions: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: ci-linux
+            file: .github/docker/ci-linux/Dockerfile
+          - name: ci-base
+            file: .github/docker/ci-base/Dockerfile
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
+      - name: login no GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: tags (:1 estável + sha-<curto> auditável)
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ghcr.io/${{ github.repository }}/${{ matrix.name }}
+          tags: |
+            type=raw,value=1
+            type=sha,format=short,prefix=sha-
+      - name: build + push
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ${{ matrix.file }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}
+
+  # A REGRA DA MAIN: ela só pode receber o SHA de uma tag v* aprovada. O
+  # GitHub NÃO deixa_write essa regra em repositório PESSOAL (a API responde
+  # "Only organization repositories can have users and team restrictions"), e
+  # regras de branch filtram QUEM é protegido, não DE ONDE veio o push.
+  # Então a regra é aplicada como GUARD: este job roda em todo push na main e
+  # FALHA a run se o sha não for o de uma tag v* — a violação aparece vermelha
+  # e linkada, em vez de passar em silêncio. Em repo de organização dá para
+  # trocar isto por `restrictions.push` de verdade.
+  main-guard:
+    name: 7 release · guarda da main
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: o sha da main tem que ser o de uma tag v*
+        run: |
+          set -euo pipefail
+          SHA="${{ github.sha }}"
+          TAG=$(git tag --points-at "$SHA" --list 'v*' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1 || true)
+          if [ -z "$TAG" ]; then
+            echo "::error::main está em $SHA e esse sha NÃO é o de nenhuma tag v* — só a promote pode escrever na main"
+            git log -3 --oneline
+            exit 1
+          fi
+          echo "main = $SHA = $TAG ✅"
+
+  release-rc:
+    name: 7 release · rc
+    # Versionar NUNCA em push ou PR — só na mão do dono.
+    if: github.event_name == 'workflow_dispatch' && inputs.action == 'release'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    outputs:
+      tag: ${{ steps.prep.outputs.tag }}
+    permissions:
+      contents: write # branch + tag + manifests
+      issues: read
+      actions: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.source }}
+          fetch-depth: 0
+      - name: buscar tags
+        run: git fetch --tags --force
+      - name: calcular a versão (input > semver pendente)
+        id: ver
+        env:
+          WANT: ${{ inputs.version }}
+          SRC: ${{ inputs.source }}
+        run: |
+          set -euo pipefail
+          WANT="${WANT#v}"
+          if [ -n "$WANT" ]; then
+            echo "$WANT" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$' || { echo "::error::versão inválida: '$WANT'"; exit 1; }
+            echo "next=$WANT" >> "$GITHUB_OUTPUT"
+            echo "versão informada: $WANT"
+            exit 0
+          fi
+          LAST=$(git describe --tags --match 'v*' --abbrev=0 2>/dev/null || echo "")
+          [ -z "$LAST" ] && { echo "::error::sem tags v* — informe o input version"; exit 1; }
+          BASE="${LAST#v}"; BASE="${BASE%%-*}"
+          MAJOR=$(echo "$BASE" | cut -d. -f1); MINOR=$(echo "$BASE" | cut -d. -f2)
+          # `main` já está numa versão publicada: uma rc de correção sobre ela é
+          # patch, não minor. `develop` acumula feature → minor.
+          if [ "$SRC" = "main" ]; then
+            PATCH=$(echo "$BASE" | cut -d. -f3)
+            echo "next=$MAJOR.$MINOR.$((PATCH+1))" >> "$GITHUB_OUTPUT"
+            echo "hotfix sobre v$BASE → $MAJOR.$MINOR.$((PATCH+1))"
+          else
+            git log --format='%s' "$LAST..HEAD" | grep -E '^feat(\(|:)' > /dev/null || {
+              echo "::error::sem bump pendente em $SRC (nenhum feat desde $LAST) — informe o input version"; exit 1; }
+            echo "next=$MAJOR.$((MINOR+1)).0" >> "$GITHUB_OUTPUT"
+            echo "feature desde $LAST → $MAJOR.$((MINOR+1)).0"
+          fi
+      - name: preparar a release branch + número da rc
+        id: prep
+        env:
+          NEXT: ${{ steps.ver.outputs.next }}
+          SRC: ${{ inputs.source }}
+        run: |
+          set -euo pipefail
+          BR="release/$NEXT"
+          if git ls-remote --exit-code --heads origin "$BR" >/dev/null 2>&1; then
+            git checkout -B "$BR" "origin/$BR"
+            echo "reutilizando $BR (rc avançando)"
+          else
+            git checkout -B "$BR" "origin/$SRC"
+            echo "release branch $BR criada de origin/$SRC"
+          fi
+          N=$(( $(git tag --list "v$NEXT-rc.*" | sed 's/.*-rc\.//' | sort -n | tail -1 || echo 0) + 1 ))
+          {
+            echo "branch=$BR"
+            echo "rc=$N"
+            echo "full=$NEXT-rc.$N"
+            echo "tag=v$NEXT-rc.$N"
+          } >> "$GITHUB_OUTPUT"
+      - name: versão rc nos manifests
+        env:
+          FULL: ${{ steps.prep.outputs.full }}
+        run: |
+          set -euo pipefail
+          for f in Cargo.toml packages/app/api/Cargo.toml version.json; do
+            if [ "$f" = "version.json" ]; then
+              printf '{\n  "version": "%s"\n}\n' "$FULL" > version.json
+            else
+              sed -i -E "0,/^version = \".*\"/s//version = \"$FULL\"/" "$f"
+            fi
+          done
+      - name: commitar + taguear + subir
+        env:
+          BRANCH: ${{ steps.prep.outputs.branch }}
+          TAG: ${{ steps.prep.outputs.tag }}
+        run: |
+          set -euo pipefail
+          git config user.name "$BOT_NAME"
+          git config user.email "$BOT_EMAIL"
+          git add Cargo.toml packages/app/api/Cargo.toml version.json
+          git commit -m "chore(release): $TAG (release candidate)"
+          git push origin "$BRANCH"
+          git tag "$TAG"
+          git push origin "$TAG"
+          {
+            echo "### 🚀 Release Candidate"
+            echo ""
+            echo "| | |"
+            echo "|---|---|"
+            echo "| tag | \`$TAG\` |"
+            echo "| branch | \`$BRANCH\` |"
+            echo "| próximo | testar o prerelease; correções na release branch + dispatch de novo; pronto? \`action=promote\` |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  release-promote:
+    name: 7 release · promote
+    if: github.event_name == 'workflow_dispatch' && inputs.action == 'promote'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    outputs:
+      tag: ${{ steps.final.outputs.tag }}
+    permissions:
+      contents: write
+      issues: read
+      actions: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: buscar tags e branches
+        run: |
+          git fetch --tags --force
+          git fetch origin main develop --force
+      - name: localizar a rc mais recente
+        id: rc
+        env:
+          WANT: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          WANT="${WANT#v}"
+          if [ -n "$WANT" ]; then
+            RC=$(git tag --list "v$WANT-rc.*" --sort=-v:refname | head -1)
+          else
+            RC=$(git for-each-ref refs/tags --sort=-v:refname --format='%(refname:short)' \
+                 | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+-rc\.[0-9]+$' | head -1)
+          fi
+          [ -z "$RC" ] && { echo "::error::nenhuma rc encontrada — rode action=release antes"; exit 1; }
+          V="${RC%-rc.*}"; V="${V#v}"
+          BR="release/$V"
+          git ls-remote --exit-code --heads origin "$BR" >/dev/null 2>&1 || {
+            echo "::error::branch $BR não existe — promote exige a release branch"; exit 1; }
+          git rev-parse -q --verify "refs/tags/v$V" >/dev/null && {
+            echo "::error::v$V já existe (promote é idempotente — nada a fazer)"; exit 1; }
+          {
+            echo "rc=$RC"
+            echo "version=$V"
+            echo "branch=$BR"
+          } >> "$GITHUB_OUTPUT"
+      - name: versão final nos manifests
+        env:
+          V: ${{ steps.rc.outputs.version }}
+          BRANCH: ${{ steps.rc.outputs.branch }}
+        run: |
+          set -euo pipefail
+          git checkout "origin/$BRANCH"
+          for f in Cargo.toml packages/app/api/Cargo.toml version.json; do
+            if [ "$f" = "version.json" ]; then
+              printf '{\n  "version": "%s"\n}\n' "$V" > version.json
+            else
+              sed -i -E "0,/^version = \".*\"/s//version = \"$V\"/" "$f"
+            fi
+          done
+      - name: commitar + taguear
+        id: final
+        env:
+          BRANCH: ${{ steps.rc.outputs.branch }}
+          TAG: v${{ steps.rc.outputs.version }}
+          RC: ${{ steps.rc.outputs.tag }}
+        run: |
+          set -euo pipefail
+          git config user.name "$BOT_NAME"
+          git config user.email "$BOT_EMAIL"
+          git add Cargo.toml packages/app/api/Cargo.toml version.json
+          git commit -m "chore(release): $TAG (promove $RC)"
+          git push origin "HEAD:refs/heads/$BRANCH"
+          git tag "$TAG"
+          git push origin "$TAG"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+      - name: main recebe o SHA da tag
+        # Não é `git push origin main`: a main é protegida e só aceita o
+        # commit de uma tag v* aprovada. GITHUB_TOKEN não burla branch
+        # protection — um merge de branch em main seria barrado no ultimo
+        # passo, DEPOIS de a tag já estar publicada.
+        run: |
+          set -euo pipefail
+          SHA=$(git rev-parse "v${{ steps.rc.outputs.version }}^{commit}")
+          git push origin "$SHA:refs/heads/main"
+          echo "main <- $SHA (tag v${{ steps.rc.outputs.version }})"
+      - name: fechar o ciclo na develop
+        env:
+          BRANCH: ${{ steps.rc.outputs.branch }}
+          TAG: v${{ steps.rc.outputs.version }}
+        run: |
+          set -euo pipefail
+          git config user.name "$BOT_NAME"
+          git config user.email "$BOT_EMAIL"
+          # A develop JA está na próxima versão (avançada no `release-rc`), e
+          # a release branch é ancestral dela — por isso não há merge de
+          # volta: só o merge da tag, que é no-op para o conteúdo e mantém o
+          # histórico honesto.
+          git checkout -B develop origin/develop
+          if git merge --no-ff "origin/$BRANCH" -m "merge release: $TAG (develop recebe a release)"; then
+            # A develop sai da release com a PRÓXIMA versão: ela deixa de
+            # carregar uma versão que acabou de ser publicada. Fazer isso AQUI
+            # e nao no `release-rc` e deliberado — adiantar no rc faria os
+            # manifests da develop divergirem dos da release branch, e todo
+            # merge do ciclo de rc (correcoes entre rcs) viraria conflito.
+            NEXT="${{ steps.rc.outputs.version }}"
+            MAJOR=$(echo "$NEXT" | cut -d. -f1); MINOR=$(echo "$NEXT" | cut -d. -f2)
+            UP="$MAJOR.$((MINOR+1)).0"
+            for f in Cargo.toml packages/app/api/Cargo.toml version.json; do
+              if [ "$f" = "version.json" ]; then
+                printf '{\n  "version": "%s"\n}\n' "$UP" > version.json
+              else
+                sed -i -E "0,/^version = \".*\"/s//version = \"$UP\"/" "$f"
+              fi
+            done
+            git add Cargo.toml packages/app/api/Cargo.toml version.json
+            git commit -m "chore(release): develop avanca para $UP"
+            git push origin develop
+          else
+            echo "::error::conflito no merge da release para develop — resolva manualmente (a tag e a main ja estao fora)"
+            git merge --abort || true
+            exit 1
+          fi
+          git push origin --delete "$BRANCH"
+          {
+            echo "### ✅ Release promovida"
+            echo ""
+            echo "| | |"
+            echo "|---|---|"
+            echo "| tag final | \`$TAG\` |"
+            echo "| main | push do SHA da tag (branch protegida) |"
+            echo "| develop | merge da release + versão avançada para a próxima |"
+            echo "| branch | \`$BRANCH\` apagada |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  release-play:
+    name: 7 release · play (tag pelo semver)
+    if: github.event_name == 'workflow_dispatch' && inputs.action == 'play'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      issues: read
+      actions: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: develop
+          fetch-depth: 0
+      - run: git fetch --tags --force
+      - uses: ./.github/actions/version-bump
+        id: bump
+      - name: cortar a tag
+        env:
+          NEXT: ${{ steps.bump.outputs.next-version }}
+          PENDING: ${{ steps.bump.outputs.release }}
+        run: |
+          set -euo pipefail
+          [ "$PENDING" = "true" ] || { echo "::error::sem bump pendente — nada a cortar"; exit 1; }
+          git config user.name "$BOT_NAME"
+          git config user.email "$BOT_EMAIL"
+          git add Cargo.toml packages/app/api/Cargo.toml version.json
+          git diff --cached --quiet || {
+            git commit -m "chore(release): v$NEXT (bump por conventional commits)"
+            git push origin HEAD; }
+          git tag --force "v$NEXT"
+          git push --force origin "v$NEXT"
+          echo "### 🏷️ Tag \`v$NEXT\` criada" >> "$GITHUB_STEP_SUMMARY"
+
+  dist-ui:
+    name: 7 dist · instalador (${{ matrix.os }})
+    # DISTRIBUIÇÃO: só quando existe versão para publicar. Nada aqui roda em
+    # PR, feature ou develop — um `.msi` por push seria desperdício.
+    needs: plan
+    if: needs.plan.outputs.stage-dist == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            args: --bundles nsis,msi
+          - os: macos-15-intel
+            args: --bundles app,dmg
+          - os: ubuntu-24.04
+            args: --bundles deb,appimage
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    permissions:
+      contents: write # anexar na Release
+      issues: read
+      actions: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.ref }}
+      - uses: ./.github/actions/setup-node-pnpm
+      - uses: ./.github/actions/build-front
+      - uses: ./.github/actions/setup-rust
+        with:
+          workdir: packages/app/api
+          shared-key: ws-api
+      - name: linux precisa dos headers de WebKitGTK
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y --no-install-recommends \
+            libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev
+      - name: linux precisa do Node do tauri-cli
+        if: runner.os == 'Linux'
+        run: sudo apt-get install -y --no-install-recommends pkg-config
+      - name: build do instalador
+        working-directory: packages/app/api
+        run: ../../ui/node_modules/.bin/tauri build ${{ matrix.args }}
+      - name: coletar + sha256
+        id: collect
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist-pkg
+          # Glob por plataforma: o layout do bundle muda entre nsis/msi,
+          # dmg/app e deb/appimage.
+          find packages/app/api/target/release/bundle -maxdepth 2 -type f \
+            \( -name '*.exe' -o -name '*.msi' -o -name '*.dmg' -o -name '*.deb' -o -name '*.AppImage' \) \
+            -exec cp {} dist-pkg/ \;
+          ls -la dist-pkg/
+          test -n "$(ls -A dist-pkg)" || { echo "::error::nenhum instalador gerado"; exit 1; }
+          (cd dist-pkg && sha256sum ./* > SHA256SUMS.txt)
+      - name: publicar na Release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ github.ref_name }}
+          prerelease: ${{ contains(github.ref_name, '-rc') }}
+          files: |
+            dist-pkg/*
+          fail_on_unmatched_files: true
+
+  dist-cli:
+    name: 7 dist · cli de campo (Windows)
+    needs: plan
+    if: needs.plan.outputs.stage-dist == 'true'
+    runs-on: windows-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write
+      issues: read
+      actions: read
+      packages: read
+    env:
+      RUSTUP_TOOLCHAIN: stable-x86_64-pc-windows-gnu
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.ref }}
+      - uses: ./.github/actions/setup-rust
+        with:
+          workdir: .
+          shared-key: ws-raiz
+      - name: gates reconfirmados na tag
+        run: |
+          cargo fmt --check
+          cargo clippy --workspace --all-targets -- -D warnings
+          cargo test
+      - name: build release do binário de campo
+        run: cargo build --release -p gp100-cli --features real-device
+      - uses: ./.github/actions/hardware-smoke
+        with:
+          profile: release
+      - name: empacotar (zip + SHA256 + kit de campo)
+        shell: bash
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          STAGE="gp100-cli-$TAG"
+          mkdir -p "$STAGE"
+          cp target/release/gp100-cli.exe "$STAGE/"
+          cp docs/H1_CHECKLIST.md docs/H1_REPORT.md scripts/h1_field.sh "$STAGE/"
+          cat > "$STAGE/LEIA-ME.txt" <<MD
+          GP-100 NextGen Editor — CLI de campo ${TAG}
+
+          Uso do gate H1: docs/H1_CHECKLIST.md (roteiro) + h1_field.sh (runbook).
+          Relatorio da sessao: docs/H1_REPORT.md.
+
+          Politica de hardware: leitura real exige --real --i-know-what-im-doing
+          (build com feature real-device). ESCRITA permanece bloqueada ate o
+          gate H2 (WRITE_VERIFIED).
+          MD
+          zip -q -r "$STAGE.zip" "$STAGE" 2>/dev/null || 7z a -tzip -bso0 "$STAGE.zip" "$STAGE"
+          sha256sum "$STAGE.zip" > "$STAGE.zip.sha256"
+      - name: publicar na Release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ github.ref_name }}
+          prerelease: ${{ contains(github.ref_name, '-rc') }}
+          files: |
+            gp100-cli-${{ github.ref_name }}.zip
+            gp100-cli-${{ github.ref_name }}.zip.sha256
+          fail_on_unmatched_files: true
+
+  # ═══════════════════════════════════════════════════════════════════════
+  # ESTÁGIO 8 — CLOSE (issues do PR mergeado)
+  #
+  # Só `merged == true`. Um PR fechado SEM merge não resolveu nada — fechar as
+  # issues nesse caso é o bug mais caro que um job de fechamento consegue ter.
+  # ═══════════════════════════════════════════════════════════════════════
+  close-issues:
+    name: 8 close · issues vinculadas
     if: >-
       github.event_name == 'pull_request' &&
       github.event.action == 'closed' &&
@@ -74,22 +1186,15 @@ jobs:
       github.event.pull_request.user.login != 'github-actions[bot]'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
-    env:
-      GH_TOKEN: ${{ github.token }}
-      # Sem actions/checkout o gh NÃO sabe o repositório (e o contexto do
-      # GitHub não é herdado pelo CLI) — GH_REPO resolve. Bug pego no merge
-      # do PR #35: "issue #32 não existe — ignorada" (issue #36).
-      GH_REPO: ${{ github.repository }}
-      PR: ${{ github.event.pull_request.number }}
     steps:
-      - name: Extrair issues vinculadas do corpo do PR
+      - uses: actions/checkout@v7
+      - name: extrair as issues do corpo do PR
         id: linked
         env:
           BODY: ${{ github.event.pull_request.body || '' }}
         run: |
           # close[sd]/fix(e[sd])/resolve[sd] #N — case-insensitive, aceita
-          # vírgula e dois-pontos entre a palavra e o número. Cada menção
-          # vira uma linha "N"; awk deduplifica preservando a ordem.
+          # vírgula ou dois-pontos entre a palavra e o número.
           NUMBERS=$(printf '%s\n' "$BODY" \
             | grep -ioE '(close[sd]?|fix(e[sd])?|resolve[sd]?)[:,]? #[0-9]+' \
             | grep -oE '#[0-9]+' | tr -d '#' | awk '!seen[$0]++')
@@ -98,83 +1203,64 @@ jobs:
             echo "$NUMBERS"
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
-          COUNT=$(printf '%s' "$NUMBERS" | grep -c '[0-9]' || true)
-          echo "encontradas: ${COUNT:-0} → $(echo "$NUMBERS" | tr '\n' ' ')"
-
-      - name: Fechar issues vinculadas
-        # `id` EXPLÍCITO: o Resumo abaixo lê steps.close-linked.outputs.closed/
-        # skipped — sem o id esses valores saíam VAZIOS em toda run (warning
-        # latente do actionlint, corrigido na #51).
-        id: close-linked
-        if: ${{ steps.linked.outputs.numbers != '' }}
+      - name: fechar
+        id: close
         env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
           NUMBERS: ${{ steps.linked.outputs.numbers }}
           SHA: ${{ github.event.pull_request.merge_commit_sha }}
-          TITLE: ${{ github.event.pull_request.title }}
+          PR: ${{ github.event.pull_request.number }}
+          # Título do PR = entrada NÃO confiável: sempre por env, nunca
+          # ${{ }} inline no run (injeção de comando).
+          PR_TITLE: ${{ github.event.pull_request.title }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
+          set -euo pipefail
+          [ -n "$NUMBERS" ] || { echo "nenhuma palavra-chave de fechamento no corpo do PR"; exit 0; }
+          : > /tmp/issues.tsv
           CLOSED=0; SKIPPED=0
           for N in $NUMBERS; do
-            # Estados da issue + label de security (que não fecha por aqui).
-            # SEM 2>/dev/null: falha do gh precisa aparecer no log (lição do #36).
-            JSON=$(gh issue view "$N" --json state,title,labels) || { echo "issue #$N inacessível — ignorada (ver erro acima)"; continue; }
-            STATE=$(echo "$JSON" | jq -r .state)
+            JSON=$(gh issue view "$N" --json state,title,labels) || { echo "issue #$N inacessível — ignorada"; continue; }
             TITLE_I=$(echo "$JSON" | jq -r .title)
             if echo "$JSON" | jq -e '.labels[]?.name | select(. == "achados-security")' >/dev/null; then
-              echo "issue #$N ($TITLE_I) é achado de security — fechamento MANUAL, pulada"
-              echo "skipped|$N|$TITLE_I|achado de security (fechamento manual)" >> /tmp/issues.tsv
-              SKIPPED=$((SKIPPED+1))
-              continue
+              echo "skipped|$N|$TITLE_I|achado de security (fechamento manual)" >> /tmp/issues.tsv; SKIPPED=$((SKIPPED+1)); continue
             fi
-            if [ "$STATE" = "CLOSED" ]; then
-              echo "issue #$N ($TITLE_I) já estava fechada — nada a fazer"
-              echo "skipped|$N|$TITLE_I|já fechada" >> /tmp/issues.tsv
-              SKIPPED=$((SKIPPED+1))
-              continue
+            if [ "$(echo "$JSON" | jq -r .state)" = "CLOSED" ]; then
+              echo "skipped|$N|$TITLE_I|ja fechada" >> /tmp/issues.tsv; SKIPPED=$((SKIPPED+1)); continue
             fi
-            gh issue close "$N" --comment "$(cat <<MD
-          ✅ Fechada automaticamente: integrada em \`develop\` pelo PR **#$PR — $TITLE** (sha \`$SHA\`).
+            gh issue close "$N" --comment "✅ Fechada automaticamente: integrada em \`develop\` pelo PR **#$PR — $PR_TITLE** (sha \`$SHA\`).
 
-          _Rastreabilidade: job \`close-linked\` do ci.yml — [run]($RUN_URL). A issue sai oficialmente no release para \`main\` (GitFlow)._
-          MD
-          )"
-            echo "issue #$N ($TITLE_I) fechada via PR #$PR"
-            echo "closed|$N|$TITLE_I|PR #$PR" >> /tmp/issues.tsv
-            CLOSED=$((CLOSED+1))
+            _Rastreabilidade: job \`8 close · issues vinculadas\` do CI — [run]($RUN_URL). A issue sai oficialmente na release, quando a tag \(v*\) chega à \`main\`._"
+            echo "closed|$N|$TITLE_I|PR #$PR" >> /tmp/issues.tsv; CLOSED=$((CLOSED+1))
           done
           {
             echo "closed=$CLOSED"
             echo "skipped=$SKIPPED"
           } >> "$GITHUB_OUTPUT"
-
-      - name: Resumo (summary)
+      - name: resumo
         if: always()
         env:
           NUMBERS: ${{ steps.linked.outputs.numbers }}
-          CLOSED: ${{ steps.close-linked.outputs.closed }}
-          SKIPPED: ${{ steps.close-linked.outputs.skipped }}
-          # Título do PR = entrada NÃO confiável: SEMPRE por env, nunca
-          # ${{ }} inline no run (injeção de comando — #51).
+          CLOSED: ${{ steps.close.outputs.closed }}
+          SKIPPED: ${{ steps.close.outputs.skipped }}
+          PR: ${{ github.event.pull_request.number }}
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
           {
-            echo "### 🔗 Fechamento de issues (merge em develop)"
+            echo "### 🔗 Fechamento de issues"
             echo ""
-            echo "PR **#$PR — $PR_TITLE** (merge: \`develop\`)"
+            echo "PR **#$PR — $PR_TITLE** (mergeado em \`develop\`)"
             echo ""
             if [ -z "$NUMBERS" ]; then
-              echo "> Nenhuma palavra-chave de fechamento no corpo do PR."
-              echo "> Adicione \`Closes #N\` (ou \`Fixes #N\` / \`Resolves #N\`) ao corpo para o vínculo automático."
+              echo "> Nenhuma palavra de fechamento no corpo do PR — use \`Closes #N\`."
             else
               echo "| Issue | Resultado |"
               echo "|---|---|"
-              if [ -f /tmp/issues.tsv ]; then
-                while IFS='|' read -r tipo n titulo detalhe; do
-                  icone="❓"; [ "$tipo" = "closed" ] && icone="✅ fechada"
-                  [ "$tipo" = "skipped" ] && icone="⏭️ pulada"
-                  echo "| #$n — $titulo | $icone ($detalhe) |"
-                done < /tmp/issues.tsv
-              fi
+              while IFS='|' read -r tipo n titulo detalhe; do
+                icone="❓"; [ "$tipo" = "closed" ] && icone="✅ fechada"; [ "$tipo" = "skipped" ] && icone="⏭️ pulada"
+                echo "| #$n — $titulo | $icone ($detalhe) |"
+              done < /tmp/issues.tsv
               echo ""
               echo "**${CLOSED:-0} fechada(s) · ${SKIPPED:-0} pulada(s).**"
             fi

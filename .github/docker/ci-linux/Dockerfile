@@ -5,7 +5,8 @@
 # POR QUE EXISTE (issue #41): o caminho quente do CI Linux pagava, a CADA run,
 # `apt-get` do WebKitGTK/GTK (45–57s), `cargo install tauri-driver` (17s) e o
 # rustup do runner (8–10s). Isso é FIXO — não depende do código — logo pertence
-# à imagem, não ao job. Migraram para cá: ui-rust (Linux) e o e2e smoke Tauri.
+# à imagem, não ao job. Migraram para cá: o build/test do shell Tauri em Linux
+# e o smoke do webview. Os jobs SEM GUI usam a `ci-base` (slim, sem WebKit).
 #
 # CONTÉM (versões em build-arg; a fonte única das ferramentas é este arquivo):
 #   - Rust stable + clippy + rustfmt (RUSTUP_HOME/CARGO_HOME em /opt para
@@ -17,15 +18,16 @@
 #   - Node 22 + pnpm 11 com o store AQUECIDO a partir do pnpm-lock.yaml do
 #     repo (o `pnpm install` dos jobs fica praticamente offline).
 #
-# NÃO CONTÉM Chromium/Playwright de propósito: os jobs de browser (e2e e
-# e2e visual) ficam nos runners hospedados com cache do ~/.cache/ms-playwright.
-# MEDIDO (issue #41): o pull da imagem custa mais do que o install do Chromium
-# que ele eliminaria — o container só entrou onde o pull se paga (lição CI-11
-# no knowledge.md).
+# NÃO CONTÉM Chromium/Playwright de propósito: os jobs de browser (`3 test ·
+# e2e shell`, `3 test · e2e visual`) ficam nos runners hospedados com cache do
+# ~/.cache/ms-playwright. MEDIDO (issue #41): o pull da imagem custa mais do que
+# o install do Chromium que ele eliminaria — o container só entrou onde o pull
+# se paga (lição CI-11 no knowledge.md).
 #
-# COMO USAR: .github/workflows/container.yml publica `:1` (estável, pull pelos
-# jobs) + `sha-<curto>` (auditoria). Os jobs de _validate.yml referenciam a tag
-# em `container.image`; a politica: README ↔ revisão humana no PR.
+# COMO USAR: o job `7 ci · imagens` do ci.yml publica `:1` (estável, pull
+# pelos jobs) + `sha-<curto>` (auditoria). Os jobs `3 test · e2e webview` e
+# `2/3 build|test · rust` referenciam a tag em `container.image`; a política:
+# README ↔ revisão humana no PR.
 # ═══════════════════════════════════════════════════════════════════════════
 
 ARG UBUNTU_VERSION=24.04
@@ -87,9 +89,9 @@ RUN case "$(dpkg --print-architecture)" in \
  && node --version && pnpm --version
 
 # ── Store do pnpm aquecido com o lockfile do repo ──
-# O container.yml rebuilda a imagem quando o lockfile muda (on.push.paths),
-# então o store nasce coerente com o commit; se o lockfile avançar, o
-# `pnpm install --frozen-lockfile` do job baixa só o delta.
+# O job `7 ci · imagens` rebuilda quando o lockfile muda, então o store nasce
+# coerente com o commit; se o lockfile avançar, o `pnpm install
+# --frozen-lockfile` do job baixa só o delta.
 COPY packages/app/ui/package.json packages/app/ui/pnpm-lock.yaml /tmp/warm/
 RUN cd /tmp/warm \
  && pnpm fetch --store-dir /opt/pnpm-store \
