@@ -37,7 +37,7 @@ import type { DrumState } from "./components/DrumPanel";
 import { LooperPanel, loadLooper } from "./components/LooperPanel";
 import type { LooperSettings } from "./components/LooperPanel";
 import { PushLog } from "./components/PushLog";
-import { MSG } from "./i18n/messages";
+import { MSG, setLanguage, useLanguage } from "./i18n/messages";
 import { boardOfUserPatch, loadUserPatches, snapshotOf, storeUserPatches } from "./userPatches";
 import type { UserPatch } from "./userPatches";
 import { withAlgorithm } from "./effects";
@@ -89,7 +89,23 @@ export default function App() {
     }
   });
   const [drum, setDrum] = useState<DrumState>(loadDrum);
-  const [general, setGeneral] = useState<GeneralSettings>(loadGeneral);
+  /* Idioma (#30): `general.language` é a FONTE da verdade (persistida em
+   * localStorage); o catálogo vive em `i18n/messages`. Aplicar já no
+   * inicializador evita o flash de português antes do primeiro paint, e o
+   * efeito abaixo cobre a troca pelo seletor.
+   *
+   * `useLanguage()` reassina a troca PARA O APP INTEIRO re-renderizar — é o
+   * único ponto do código que precisa saber que existe idioma; os ~15
+   * componentes abaixo só leem `MSG.*` como sempre leram. */
+  const [general, setGeneral] = useState<GeneralSettings>(() => {
+    const g = loadGeneral();
+    setLanguage(g.language);
+    return g;
+  });
+  useLanguage();
+  useEffect(() => {
+    setLanguage(general.language);
+  }, [general.language]);
   const [looper, setLooper] = useState<LooperSettings>(loadLooper);
   const [arrangeMode, setArrangeMode] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);

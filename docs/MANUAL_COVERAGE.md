@@ -81,7 +81,7 @@
 | # | Item | Estado | Implementação | Teste |
 |---|---|---|---|---|
 | S1 | 6 abas General/Global EQ/About/Info Frame/Help/Release Note | ✅ | SettingsModal.tsx | R4 e2e |
-| S2 | General: Input/Normal Level, USB Audio, Hint Mode, Tap Tempo, Language | ✅ persiste LOCAL (badge "prévia local"; escrita pós G3–G6). **Noise Gates/Noise Mode removidos 30/09 — não existem no device** (review Q-2); Language desabilitado até o i18n | SettingsModal + localStorage | R4 e2e (reload mantém + ausência dos fantasmas) |
+| S2 | General: Input/Normal Level, USB Audio, Hint Mode, Tap Tempo, Language | ✅ persiste LOCAL (badge "prévia local"; escrita pós G3–G6). **Noise Gates/Noise Mode removidos 30/09 — não existem no device** (review Q-2); **Language FUNCIONAL na #30** (pt-BR/en/es/zh, software local — sem canal USB) | SettingsModal + localStorage | R4 e2e (reload mantém + ausência dos fantasmas) + `tests/i18n.test.tsx` |
 | S3 | Global EQ 5 bandas FREQ/Q/GAIN + L-CUT/H-CUT | ✅ placeholders desabilitados (estrutura REAL do firmware) | SettingsModal.tsx | R4 e2e |
 | S4 | Footswitch Mode | ✅ select presente, desabilitado (captura pendente) | SettingsModal.tsx | R4 e2e |
 | S5 | About/Info Frame | ✅ dados reais: firmware V2.1, software 1.2.0, 185 algs/639 controles (30/09) | SettingsModal.tsx | unit a11y |

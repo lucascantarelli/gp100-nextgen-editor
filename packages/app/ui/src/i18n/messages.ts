@@ -1,332 +1,99 @@
 /**
- * i18n/messages — FONTE ÚNICA dos textos de usuário da casca. Regras:
- *  - todo texto NOVO de usuário entra aqui (nada de string solta no JSX);
- *    o lint custom `local/no-user-literals` (eslint.config.js) trava JSXText
- *    e atributos title/placeholder/aria-label/label com literal;
- *  - proibido vocabulário interno (issues, fases, protocolo, capturas, nomes de
- *    doc) — o usuário não precisa do nosso roadmap;
- *  - navbar consolidada: conexão, boot, patch e drums vivem no banner; não
- *    existe seção de conexão duplicada na página;
- *  - estado do device honesto: "prévia local" quando a escrita ainda não
- *    chega ao hardware; desabilitado quando o canal de escrita não existe;
- *  - estrutura plana e tipada: pronta para virar dicionário por idioma
- *    (pt-BR é a base; APP Language do Settings já prevê en/es/zh).
+ * i18n/messages — o catálogo que a casca inteira lê.
+ *
+ * Por que um Proxy e não um contexto React: ~200 textos em ~15 componentes
+ * já fazem `import { MSG } from "../i18n/messages"`. Passar a exigir um
+ * provider/`useT()` em cada um deles seria uma migração que só pagaria na
+ * próxima issue. O Proxy mantém a assinatura atual e troca o idioma inteiro
+ * com UMA linha: `setLanguage("en")` + o App re-renderizar.
+ *
+ * Como o fallback funciona: cada idioma é `Partial<Dict>`, e o que falta nele
+ * (ou num sub-objeto como `bootStages`) é preenchido pelo pt-BR no momento em
+ * que o registro é montado. Um idioma incompleto NUNCA mostra chave crua nem
+ * string vazia — degrada para português, que é a língua garantida.
  */
-import { FACTORY_PRESETS } from "../artifacts/presetData";
-import { DRUM_BEATS, DRUM_GENRES } from "../artifacts/drumData";
-import { FX_MODULES } from "../artifacts/fxData";
-import { version as REACT_VERSION } from "react";
+import { useSyncExternalStore } from "react";
+import { PT_BR } from "./dictionaries/pt-BR";
+import type { Dict, DictPatch } from "./dictionaries/pt-BR";
+import { EN } from "./dictionaries/en";
+import { ES } from "./dictionaries/es";
+import { ZH } from "./dictionaries/zh";
 
-/* Números exibidos ao usuário derivados dos ARTEFATOS gerados (nunca
- * transcritos à mão — quando o dicionário regenera, a UI acompanha). */
-const PRESET_COUNT = FACTORY_PRESETS.length;
-const DRUM_COUNT = DRUM_GENRES.reduce((n, g) => n + g.styles.length, 0);
-const DRUM_GENRE_COUNT = DRUM_GENRES.length;
-const DRUM_BEAT_RANGE = `${DRUM_BEATS[0]}…${DRUM_BEATS[DRUM_BEATS.length - 1]}`;
-const FX_COUNT = Object.values(FX_MODULES).reduce((n, a) => n + a.length, 0);
-const CTRL_COUNT = Object.values(FX_MODULES).reduce(
-  (n, a) => n + a.reduce((m, alg) => m + alg.knobs.length + alg.switches.length + alg.comboxes.length, 0),
-  0,
-);
+export type { Dict, DictPatch };
+export type LangCode = "pt-BR" | "en" | "es" | "zh";
 
-export const MSG = {
-  /* ── marca / topbar ── */
-  brand: "GP-100",
-  brandMono: "GP",
-  tagline: "editor não-oficial",
-  connShortOn: "on",
-  connShortOff: "off",
-  mockBadge: "Mock Device",
-  patchLabel: "patch",
-  patchPrevAria: "Patch anterior",
-  patchPrevTitle: "Patch anterior (P01–P99 em ciclo)",
-  patchNextAria: "Próximo patch",
-  patchNextTitle: "Próximo patch (P01–P99 em ciclo)",
-  /** chip = IDENTIDADE do ritmo (abre o modal de gestão); play/stop e BPM
-   *  viraram controles próprios da navbar (hierarquia nova do chip).
-   *  O prefixo some em ≤1024 (`.nb-chip-pre`) — o nome do estilo fica */
-  drumChipPre: "drum · ",
-  drumChipAria: (style: string, bpm: number, beat: string) =>
-    `Bateria (drum): ${style}, ${bpm} BPM, compasso ${beat} — abrir gestão de ritmos`,
-  /** play/stop DIRETO na navbar — não exige o modal de gestão aberto */
-  drumToggleAria: "Tocar ou parar o ritmo da bateria",
-  /** stepper de BPM direto na navbar (40–240, mesmo clamp do modal) */
-  drumBpmDownAria: "Diminuir BPM do ritmo",
-  drumBpmUpAria: "Aumentar BPM do ritmo",
-  masterLabel: "master",
-  masterAria: "Master volume",
-  arrangeLabel: "🔒",
-  arrangeLabelOpen: "🔓",
-  arrangeAria: "Trava de mover pedais — arrastar e soltar só quando destravado",
-  arrangeTitle: "Destravar para arrastar pedais (protege o ajuste dos knobs)",
-  killLabel: "⭘ kill",
-  killLabelOn: "⏻ killed",
-  killAria: "Kill switch (desligar master, bateria e looper)",
-  killTitle: "Mute global: desliga o master e a bateria — clique de novo para restaurar",
-  openSettingsAria: "Abrir configurações",
+export const LANGS: readonly LangCode[] = ["pt-BR", "en", "es", "zh"] as const;
+/** nome do idioma no próprio idioma (nunca traduzido) */
+export const LANG_NAMES: Record<LangCode, string> = {
+  "pt-BR": "Português (Brasil)",
+  en: "English",
+  es: "Español",
+  zh: "中文",
+};
 
-  /* ── navbar (cluster de conexão: status curto + badge + boot) ── */
-  connClusterAria: "Conexão e boot",
+type Loose = Record<string, unknown>;
+const isPlainObject = (v: unknown): v is Loose =>
+  typeof v === "object" && v !== null && !Array.isArray(v);
 
-  /* ── afinador do palco (ocupa o lugar do antigo VU; manual V1.8 p.5) ── */
-  tunerAria: "Afinador",
-  tunerPowerAria: "Ligar ou desligar a monitoração de afinação",
-  /** botão VISUAL do monitor (sem texto): ícone ♪ + LED verde/vermelho */
-  tunerPowerIcon: "♪",
-  tunerPowerTitle: (on: boolean) =>
-    on
-      ? "Monitor de afinação LIGADO — mostra o que você toca em tempo real (no device: segure os 2 footswitches)"
-      : "Monitor de afinação desligado — clique para acompanhar a afinação em tempo real (no device: segure os 2 footswitches)",
-  tunerModeAria: "Modo do afinador — alternar entre bypass, thru e mute",
-  tunerModeTitle: "O que o device faz com o sinal enquanto você afina: bypass (seco), thru (com efeito) ou mute (silencioso)",
-  tunerModeLabel: (mode: "bypass" | "thru" | "mute") => mode,
-  tunerRefLabel: "ref",
-  tunerRefAria: "Pitch de referência (A4) em hertz, de 435 a 445",
-  tunerRefTitle: "REF PITCH: 435–445 Hz (padrão 440 Hz)",
-  tunerRefValue: (hz: number) => `${hz}Hz`,
-  tunerDemoLabel: "▶ demo",
-  tunerDemoRunning: "■ demo",
-  tunerDemoAria: "Tocar demonstração do afinador com tom sintético",
-  tunerDemoTitle: "Amostra sintética varrendo ±30 cents em A2 pelo motor real do afinador — não é áudio do device",
-  tunerIdleNote: "—",
-  tunerFlatMark: "♭",
-  tunerSharpMark: "♯",
+/**
+ * Merge PROFUNDO sobre o pt-BR. Só combina objetos simples: função continua
+ * função (traduzir a função é substituir a função inteira, não mesclar
+ * campos) e array é substituído (metade de uma lista de dados traduzida é
+ * pior do que a lista inteira em pt-BR).
+ */
+export function merge(base: Dict, overlay: DictPatch): Dict {
+  const out: Loose = { ...base };
+  for (const [k, v] of Object.entries(overlay as Loose)) {
+    const b = out[k];
+    out[k] = isPlainObject(b) && isPlainObject(v) ? { ...b, ...v } : v;
+  }
+  return out as Dict;
+}
 
-  /* ── navbar (boot = re-escanear; o app já detecta o device sozinho) ── */
-  rescanAria: "Reescanear device",
-  rescanTitle: "Reescanear (boot): o app detecta o device sozinho ao abrir — use para reescanear",
-  bootProgressAria: "Progresso do boot",
-  bootStarting: "Iniciando",
-  bootStages: {
-    tables: "Tabelas de IR",
-    scan: "Scan de presets",
-    probe: "Sonda banco 02",
-    setlist: "Setlist",
-    names: "Nomes",
-    keepalive: "Keepalive",
+const DICTS: Record<LangCode, Dict> = {
+  "pt-BR": PT_BR,
+  en: merge(PT_BR, EN),
+  es: merge(PT_BR, ES),
+  zh: merge(PT_BR, ZH),
+};
+
+let active: LangCode = "pt-BR";
+const listeners = new Set<() => void>();
+
+export function getLanguage(): LangCode {
+  return active;
+}
+
+/** Troca o idioma e avisa quem está assinado (o App, via `useLanguage`). */
+export function setLanguage(next: LangCode): void {
+  if (next === active || !DICTS[next]) return;
+  active = next;
+  listeners.forEach((fn) => fn());
+}
+
+/**
+ * O catálogo ativo. A assinatura é a de sempre (`MSG.algo`), o tipo é o do
+ * pt-BR — então trocar o idioma não pode quebrar a tipagem de nenhum
+ * componente, e nenhuma string pode sumir do tipo.
+ */
+export const MSG: Dict = new Proxy(PT_BR, {
+  get(_t, prop: string) {
+    return (DICTS[active] as Loose)[prop];
   },
-  connBootError: "Falha no boot do device — verifique a conexão e tente novamente.",
+}) as Dict;
 
-  /* ── board ── */
-  boardAria: "Pedalboard (9 lugares da cadeia)",
-  slotAria: (n: number, fam: string) => `Slot ${n}: ${fam}`,
-  slotEmpty: "vazio",
-  slotArrange: "arraste ⇄",
-  stageFooter: "9 slots · ordem do sinal →",
-  stageFooterArrange: "arraste ⇄ para trocar dois pedais de posição",
-  stageIn: "⏻ IN",
-  stageOut: "OUT ⏻",
-
-  /* ── biblioteca ── */
-  libAria: "Biblioteca de presets",
-  libTabsAria: "Tipo de patch",
-  libTabFactory: "Factory Patch",
-  libTabUser: "User Patch",
-  libListAria: "Presets de fábrica",
-  searchPlaceholder: "Buscar nome, nº ou estilo…",
-  searchAria: "Buscar preset por nome, número ou estilo",
-  searchEmpty: (q: string) => `Nenhum preset para “${q}”. Dica: busque por estilo (Rock, Funk…) ou nº.`,
-  libRowTitle: (name: string, type: string) => `Abrir “${name}” (${type})`,
-  libPp: (pp: number) => `P${String(pp + 1).padStart(2, "0")}`,
-  libUserPp: (i: number) => `U${String(i + 1).padStart(2, "0")}`,
-
-  /* patches de usuário (PRÉVIA LOCAL — a escrita no device não tem canal) */
-  userPatchNewPlaceholder: "Nomear e salvar o patch atual…",
-  userPatchNameAria: "Nome do patch de usuário a salvar",
-  userPatchSave: "Salvar",
-  userPatchListAria: "Patches de usuário",
-  userPatchEmpty: "Nenhum patch salvo ainda. Ajuste os pedais e salve o que quiser guardar.",
-  userPatchRowTitle: (name: string, from: string) => `Abrir “${name}” (veio de ${from})`,
-  userPatchDeleteAria: (name: string) => `Excluir o patch “${name}”`,
-  userPatchNote: "Prévia local: os patches ficam neste navegador. Salvar no device depende do canal USB.",
-  userPatchDefaultName: (n: number) => `Meu patch ${n + 1}`,
-  userBankType: "User",
-
-  /* lista de efeitos do módulo (issue #19 — "Effects List" do app oficial) */
-  effectListTitle: "Effects List",
-  effectListAria: (fam: string) => `Lista de efeitos do módulo ${fam}`,
-  effectListCount: (n: number) => `${n} efeitos`,
-  effectListSearchPlaceholder: "Buscar efeito…",
-  effectListSearchAria: "Buscar efeito do módulo por nome",
-  effectListEmpty: (q: string) => `Nenhum efeito para “${q}”.`,
-  effectListPick: (name: string) => `Trocar o efeito deste pedal para ${name}`,
-  effectListCurrent: (name: string) => `${name} — efeito atual deste pedal`,
-  effectListNote: "Prévia local: trocar o efeito ainda não é escrito no device.",
-
-  /* ── drum ── */
-  drumNote: `${DRUM_COUNT} ritmos em ${DRUM_GENRE_COUNT} gêneros · metrônomo incluído · prévia local`,
-  drumPanelAria: "Gestão de ritmos da bateria (drum)",
-  drumTitle: "Bateria · ritmos",
-  drumCloseAria: "Fechar gestão de ritmos",
-  drumGenreLabel: "Gênero",
-  drumStyleLabel: "Ritmo",
-  drumBpmLabel: "BPM",
-  drumBeatLabel: "Compasso",
-  drumVolLabel: "Volume",
-  drumSpeedLabel: "Speed",
-
-  /* ── looper ── */
-  looperPlate: "GP-100 · TAPE LOOPER · STEREO",
-  looperAria: "Looper (máquina de fita)",
-  looperSpecs: "loop stereo 24-bit · 44.1 kHz · SNR 110 dB · prévia local",
-  tapeState: (secs: number, mode: "PRE" | "POST") => `fita: ${secs}s (${mode})`,
-  tapeEmpty: "fita: vazia",
-  looperMode: { rec: "REC", play: "PLAY", dub: "DUB", stop: "STOP", ready: "PRONTO", empty: "VAZIA" },
-  looperTransportAria: "Transporte do looper",
-  looperTimerAria: "Posição da fita",
-  looperRewAria: "Retroceder ao início do loop (REW)",
-  looperStopAria: "Parar (STOP)",
-  looperPlayAria: "Tocar loop (PLAY)",
-  looperRecAria: "Gravar loop (REC)",
-  looperRecStopAria: "Parar gravação e tocar",
-  looperDubAria: "Sobrepor (overdub)",
-  looperClearAria: "Limpar fita (pede confirmação)",
-  looperClearConfirmAria: "Confirmar limpar fita",
-  looperClearBtn: "✕",
-  looperClearConfirmBtn: "ok?",
-  looperRecVol: "Rec VOL",
-  looperPlayVol: "Play VOL",
-  looperPVol: "P-VOL",
-  looperRoute: "Rota",
-  looperPreBtn: "PRE · 90s",
-  looperPostBtn: "POST · 45s",
-  looperPreAria: "Looper em PRE (90 segundos, sem efeitos gravados)",
-  looperPostAria: "Looper em POST (45 segundos, com efeitos)",
-  looperVuAria: (channel: string, active: boolean) =>
-    `VU meter canal ${channel}${active ? " com sinal" : " em repouso"}`,
-  /* o deck é uma ilustração única: o nome acessível descreve o mecanismo
-     inteiro (rolos + cabeçotes + capstan) e o estado de movimento */
-  looperDeckAria: (spinning: boolean) =>
-    `Deck de fita: rolo de alimentação, cabeçotes e capstan, rolo de recolhimento${spinning ? ", em movimento" : ", parado"}`,
-  reelSupply: "Supply",
-  reelTakeup: "Take-up",
-
-  /* ── pushes ── */
-  pushTitle: "Pushes do device",
-  pushSummary: "pushes do device",
-  pushEmpty: "Nenhum push recebido ainda.",
-  pushClear: "Limpar",
-  pushListAria: "Log de pushes",
-  pushRepeats: "Repetições seguidas deste push",
-  pushRepeatMark: "×",
-
-  /* ── settings ── */
-  previewBadge: "prévia local",
-  settingsTitle: "Settings",
-  settingsDialogAria: "Configurações",
-  settingsTabsAria: "Abas de configuração",
-  settingsCloseAria: "Fechar configurações",
-  settingsTabs: {
-    General: "General",
-    "Global EQ": "Global EQ",
-    About: "About",
-    "Info Frame": "Info Frame",
-    Help: "Help",
-    "Release Note": "Release Note",
-  },
-  inputLevelLabel: "Input Level",
-  inputLevelAria: "Input level",
-  normalLevelLabel: "Normal Level",
-  normalLevelAria: "Normal level",
-  usbAudioLabel: "USB Audio",
-  usbAudioAria: "USB Audio",
-  hintModeLabel: "Hint Mode",
-  hintModeAria: "Hint mode",
-  engineerModeLabel: "Modo engenheiro",
-  engineerModeSub: "tooltips dos knobs mostram addr/code/ctrl do comando SET",
-  engineerModeAria: "Modo engenheiro — tooltips com addr, code e ctrl do comando SET",
-  hintLeft: "Left",
-  hintRight: "Right",
-  tapTempoLabel: "Tap Tempo Mode",
-  tapTempoLabels: { pre: "PRE", mod: "MOD", dly: "DLY" },
-  footswitchLabel: "Footswitch Mode",
-  footswitchSub: "modo dos footswitches do hardware",
-  footswitchAria: "Footswitch mode (disponível em uma próxima versão)",
-  footswitchSoon: "— disponível em uma próxima versão —",
-  languageLabel: "APP Language",
-  languageAria: "Idioma do app (disponível em uma próxima versão)",
-  globalEqIntro:
-    "Equalização global do device: 5 bandas (FREQ · Q · GAIN) e cortes de graves/agudos. Os controles ficam disponíveis em uma próxima versão.",
-  eqBandGroupAria: "Banda do Global EQ",
-  eqBandBtn: (n: number) => `B${n}/5`,
-  eqFreqLabel: (n: number) => `Band ${n} FREQ`,
-  eqQLabel: (n: number) => `Band ${n} Q`,
-  eqGainLabel: (n: number) => `Band ${n} GAIN`,
-  eqFreqAria: (n: number) => `Banda ${n} freq`,
-  eqQAria: (n: number) => `Banda ${n} Q`,
-  eqGainAria: (n: number) => `Banda ${n} ganho`,
-  lcutLabel: "L-CUT FREQ",
-  hcutLabel: "H-CUT FREQ",
-  lcutAria: "L-CUT freq",
-  hcutAria: "H-CUT freq",
-  aboutIntro:
-    "GP-100 NextGen Editor — editor não-oficial e independente para a pedaleira Valeton GP-100. Sem vínculo com a Valeton.",
-  aboutDataAria: "Dados do device nesta versão",
-  aboutData: [
-    ["Biblioteca", `${PRESET_COUNT} presets de fábrica (da memória do device)`],
-    ["Bateria", `${DRUM_COUNT} ritmos em ${DRUM_GENRE_COUNT} gêneros + metrônomo · compassos ${DRUM_BEAT_RANGE}`],
-    ["Looper", "stereo 24-bit · 44.1 kHz · SNR 110 dB — 90 s PRE / 45 s POST"],
-    ["Catálogo", `${FX_COUNT} algoritmos / ${CTRL_COUNT} controles mapeados`],
-  ] as ReadonlyArray<readonly [string, string]>,
-  infoFrameIntro: "Identificação do device, lida na conexão.",
-  infoFrameAria: "Identificação do device",
-  infoFrame: [
-    ["Firmware", "V2.1"],
-    ["Software", "1.2.0"],
-    ["Modelo", "Valeton GP-100 Multi-Effects Processor"],
-    ["Conexão", "USB"],
-  ] as ReadonlyArray<readonly [string, string]>,
-  helpShortcutsIntro: "Atalhos globais de teclado (funcionam em qualquer lugar da casca):",
-  helpKeySpace: "Espaço",
-  helpKeyR: "R",
-  helpKeyEsc: "Esc",
-  helpShortcutSpace: "Bateria: tocar/parar o ritmo selecionado (drum play/stop)",
-  helpShortcutR: "Looper: REC — igual ao botão ● (gravar → tocar → overdub)",
-  helpShortcutEsc: "Fecha o painel aberto do topo para a base: Settings → Drum → pushes",
-  helpTableAria: "Atalhos de teclado",
-  helpNotes:
-    "Notas: os atalhos de transporte não disparam enquanto você digita em busca, BPM ou selects; Espaço sobre um botão focado ativa o PRÓPRIO botão (comportamento nativo de acessibilidade); Ctrl/Alt/⌘ + tecla é ignorado; com o modal Settings aberto, Espaço e R ficam inativos e Esc fecha o modal.",
-  helpControlsIntro: "Controles:",
-  helpControls: [
-    "Tab navega todos os controles; foco visível",
-    "Afinador (cabeçalho do palco): o ♪ liga/desliga o monitor (LED verde/vermelho); modo e REF PITCH ficam sempre visíveis; ▶ demo liga o monitor e toca uma amostra sintética",
-    "Esc fecha este modal (global — de qualquer foco)",
-  ] as string[],
-
-  /* ── Help → Informações do sistema (dados reais do ambiente) ── */
-  sysInfoTitle: "Informações do sistema",
-  sysInfoAria: "Versões do app e do ambiente",
-  sysInfoHint: "Só leitura — nada daqui é enviado a servidores.",
-  sysInfo: [
-    ["Versão do app", "0.1.0"],
-    ["React", REACT_VERSION],
-    ["Backend", "simulado (mock) — o device real alimenta tudo na integração USB"],
-    ["Firmware do device", "V2.1 (prévia local)"],
-    ["Navegador/SO", typeof navigator !== "undefined" ? navigator.userAgent : "-"],
-  ] as ReadonlyArray<readonly [string, string]>,
-  sysNote:
-    "No app instalado (Tauri), a versão do app vem do pacote; em navegador é a versão de desenvolvimento.",
-  releaseNote:
-    `Versão de prévia: biblioteca de fábrica (${PRESET_COUNT} presets), bateria com ${DRUM_COUNT} ritmos, looper de fita (90 s PRE / 45 s POST), afinador de palco com monitor contínuo (LED verde/vermelho, REF PITCH 435–445 Hz), atalhos de teclado e layout responsivo. O board já renderiza os pedais do preset — no palco cada pedal é compacto e os knobs são SÓ LEITURA (mostram o valor de cada controle): clicar no pedal abre a edição ampliada, e o que se ajusta lá aparece no palco na hora.`,
-
-  /* ── pedais (textos catálogados antes dos componentes entrarem no board) ── */
-  pedalGroupAria: (kind: string, name: string, on: boolean) =>
-    `Pedal ${kind} — ${name} (${on ? "ligado" : "desligado"})`,
-  pedalToggleOff: "Desligar efeito",
-  pedalToggleOn: "Ligar efeito",
-  pedalValueAria: "Valor (Enter para editar)",
-  pedalValueEditAria: "Valor do knob (Enter aplica, Esc cancela)",
-  pedalExpandTitle: "Valores do pedal no palco são só leitura — clique (ou Enter) para editar",
-  pedalModalAria: (name: string) => `Edição do pedal ${name}`,
-  pedalModalHint: "Esc fecha · os ajustes aplicam na hora",
-  pedalModalCloseAria: "Fechar edição do pedal",
-  brandPlate: "GP-100",
-  onSuffix: " ON",
-
-  /* ── erros amigáveis (detalhe técnico vai pro console) ── */
-  errOpenPreset: "Não foi possível abrir o preset — tente novamente.",
-  errSelectPreset: "O device não aceitou a troca de preset — a UI segue no preset atual.",
-  errSetParam: "O device não aceitou o ajuste do knob — tente novamente.",
-  errRetry: "Tentar de novo",
-  errRetryAria: "Tentar novamente a operação que falhou",
-} as const;
+/**
+ * Assina a troca de idioma. Só o App precisa: ele é a raiz da árvore, e um
+ * re-render dele redesenha todos os `MSG.*` sem que nenhum outro componente
+ * saiba que existe idioma.
+ */
+export function useLanguage(): LangCode {
+  return useSyncExternalStore(
+    (fn) => {
+      listeners.add(fn);
+      return () => listeners.delete(fn);
+    },
+    getLanguage,
+    () => "pt-BR" as LangCode,
+  );
+}

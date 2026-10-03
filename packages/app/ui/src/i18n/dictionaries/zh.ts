@@ -1,0 +1,333 @@
+/**
+ * ZH — dicionário 中文（简体）。`DictPatch` de propósito: o que faltar aqui
+ * cai no pt-BR (merge profundo em `../messages.ts`), então um idioma pela
+ * metade nunca mostra chave crua — degrada para a língua garantida.
+ *
+ * O que NÃO é traduzido, e por quê:
+ *  - termos que o próprio device imprime (PRE/POST, REC, PLAY, DUB, STOP,
+ *    BPM, REW, FREQ/Q/GAIN, SET, e as abas de Settings) — o usuário precisa
+ *    bater o olho na UI e no painel de-hardware ao mesmo tempo; traduzi-los
+ *    faria os dois discordarem;
+ *  - marca e nome de modelo (GP-100, Valeton, Mock Device) e os nomes de
+ *    ritmo/efeito que vêm dos artefatos gerados.
+ */
+import type { DictPatch } from "./pt-BR";
+import {
+  CTRL_COUNT,
+  DRUM_BEAT_RANGE,
+  DRUM_COUNT,
+  DRUM_GENRE_COUNT,
+  FX_COUNT,
+  PRESET_COUNT,
+  REACT_VER,
+  UA,
+} from "../facts";
+
+export const ZH: DictPatch = {
+  /* ── 品牌 / 顶栏 ── */
+  brand: "GP-100",
+  brandMono: "GP",
+  tagline: "非官方编辑器",
+  connShortOn: "on",
+  connShortOff: "off",
+  mockBadge: "Mock Device",
+  patchLabel: "patch",
+  patchPrevAria: "上一个音色",
+  patchPrevTitle: "上一个音色（P01–P99 循环）",
+  patchNextAria: "下一个音色",
+  patchNextTitle: "下一个音色（P01–P99 循环）",
+  drumChipPre: "drum · ",
+  drumChipAria: (style: string, bpm: number, beat: string) =>
+    `鼓机 (drum)：${style}，${bpm} BPM，${beat} 拍号 — 打开节奏管理`,
+  drumToggleAria: "播放或停止鼓机节奏",
+  drumBpmDownAria: "降低节奏 BPM",
+  drumBpmUpAria: "提高节奏 BPM",
+  masterLabel: "master",
+  masterAria: "主音量",
+  arrangeLabel: "🔒",
+  arrangeLabelOpen: "🔓",
+  arrangeAria: "移动 pedal 锁定 — 解锁后才能拖放",
+  arrangeTitle: "解锁后才能拖动 pedal（可保护旋钮微调值）",
+  killLabel: "⭘ kill",
+  killLabelOn: "⏻ killed",
+  killAria: "Kill 开关（静音主输出、鼓机和 looper）",
+  killTitle: "全局静音：关闭主输出和鼓机 — 再点一次恢复",
+  openSettingsAria: "打开设置",
+
+  /* ── navbar（连接区：短状态 + 徽标 + 启动） ── */
+  connClusterAria: "连接与启动",
+
+  /* ── 舞台调音器 ── */
+  tunerAria: "调音器",
+  tunerPowerAria: "打开或关闭音准监听",
+  tunerPowerIcon: "♪",
+  tunerPowerTitle: (on: boolean) =>
+    on
+      ? "音准监听已开启 — 实时显示你弹奏的音（在设备上：按住两个 footswitch）"
+      : "音准监听已关闭 — 点击即可实时查看音准（在设备上：按住两个 footswitch）",
+  tunerModeAria: "调音器模式 — 在 bypass、thru、mute 之间切换",
+  tunerModeTitle:
+    "调音时设备如何处理信号：bypass（干声）、thru（带效果）或 mute（静音）",
+  tunerModeLabel: (mode: "bypass" | "thru" | "mute") => mode,
+  tunerRefLabel: "ref",
+  tunerRefAria: "参考音高（A4），单位为赫兹，范围 435 到 445",
+  tunerRefTitle: "REF PITCH: 435–445 Hz（标准 440 Hz）",
+  tunerRefValue: (hz: number) => `${hz}Hz`,
+  tunerDemoLabel: "▶ demo",
+  tunerDemoRunning: "■ demo",
+  tunerDemoAria: "用合成音播放调音器演示",
+  tunerDemoTitle:
+    "通过调音器的真实引擎扫过 A2 的 ±30 音分合成采样 — 不是设备音频",
+  tunerIdleNote: "—",
+  tunerFlatMark: "♭",
+  tunerSharpMark: "♯",
+
+  /* ── navbar（启动 = 重新扫描；应用打开时会自动检测设备） ── */
+  rescanAria: "重新扫描设备",
+  rescanTitle: "重新扫描（启动）：应用打开时会自动检测设备 — 需要时可手动重扫",
+  bootProgressAria: "启动进度",
+  bootStarting: "正在启动",
+  bootStages: {
+    tables: "IR 表",
+    scan: "扫描音色",
+    probe: "探测 bank 02",
+    setlist: "Setlist",
+    names: "名称",
+    keepalive: "Keepalive",
+  },
+  connBootError: "设备启动失败 — 请检查连接后重试。",
+
+  /* ── board ── */
+  boardAria: "Pedalboard（信号链 9 个位置）",
+  slotAria: (n: number, fam: string) => `Slot ${n}: ${fam}`,
+  slotEmpty: "空",
+  slotArrange: "拖动 ⇄",
+  stageFooter: "9 个位置 · 信号顺序 →",
+  stageFooterArrange: "拖动 ⇄ 可交换两个 pedal 的位置",
+  stageIn: "⏻ IN",
+  stageOut: "OUT ⏻",
+
+  /* ── 音色库 ── */
+  libAria: "音色库",
+  libTabsAria: "音色类型",
+  libTabFactory: "Factory Patch",
+  libTabUser: "User Patch",
+  libListAria: "出厂音色",
+  searchPlaceholder: "搜索名称、编号或风格…",
+  searchAria: "按名称、编号或风格搜索音色",
+  searchEmpty: (q: string) => `没有匹配“${q}”的音色。提示：可以按风格（Rock、Funk…）或编号搜索。`,
+  libRowTitle: (name: string, type: string) => `打开“${name}”（${type}）`,
+  libPp: (pp: number) => `P${String(pp + 1).padStart(2, "0")}`,
+  libUserPp: (i: number) => `U${String(i + 1).padStart(2, "0")}`,
+
+  /* 用户音色（本地预览 — 写入设备还没有通道） */
+  userPatchNewPlaceholder: "为当前音色命名并保存…",
+  userPatchNameAria: "要保存的用户音色名称",
+  userPatchSave: "保存",
+  userPatchListAria: "用户音色",
+  userPatchEmpty: "还没有保存任何音色。调整 pedal 后保存你想保留的配置。",
+  userPatchRowTitle: (name: string, from: string) => `打开“${name}”（来自 ${from}）`,
+  userPatchDeleteAria: (name: string) => `删除音色“${name}”`,
+  userPatchNote: "本地预览：音色保存在这个浏览器里。保存到设备取决于 USB 通道。",
+  userPatchDefaultName: (n: number) => `我的音色 ${n + 1}`,
+  userBankType: "User",
+
+  /* 模块效果列表（issue #19 — 官方 app 的 “Effects List”） */
+  effectListTitle: "Effects List",
+  effectListAria: (fam: string) => `${fam} 模块的效果列表`,
+  effectListCount: (n: number) => `${n} 个效果`,
+  effectListSearchPlaceholder: "搜索效果…",
+  effectListSearchAria: "按名称搜索该模块的效果",
+  effectListEmpty: (q: string) => `没有匹配“${q}”的效果。`,
+  effectListPick: (name: string) => `把这个 pedal 的效果切换为 ${name}`,
+  effectListCurrent: (name: string) => `${name} — 该 pedal 当前的效果`,
+  effectListNote: "本地预览：切换效果还不会写入设备。",
+
+  /* ── drum ── */
+  drumNote: `${DRUM_GENRE_COUNT} 种风格共 ${DRUM_COUNT} 个节奏 · 含节拍器 · 本地预览`,
+  drumPanelAria: "鼓机节奏管理 (drum)",
+  drumTitle: "鼓机 · 节奏",
+  drumCloseAria: "关闭节奏管理",
+  drumGenreLabel: "风格",
+  drumStyleLabel: "节奏",
+  drumBpmLabel: "BPM",
+  drumBeatLabel: "拍号",
+  drumVolLabel: "音量",
+  drumSpeedLabel: "Speed",
+
+  /* ── looper ── */
+  looperPlate: "GP-100 · TAPE LOOPER · STEREO",
+  looperAria: "Looper（磁带机）",
+  looperSpecs: "24-bit 立体声 loop · 44.1 kHz · SNR 110 dB · 本地预览",
+  tapeState: (secs: number, mode: "PRE" | "POST") => `磁带：${secs}s (${mode})`,
+  tapeEmpty: "磁带：空",
+  looperMode: { rec: "REC", play: "PLAY", dub: "DUB", stop: "STOP", ready: "就绪", empty: "空带" },
+  looperTransportAria: "Looper 走带控制",
+  looperTimerAria: "磁带位置",
+  looperRewAria: "回到循环开头 (REW)",
+  looperStopAria: "停止 (STOP)",
+  looperPlayAria: "播放循环 (PLAY)",
+  looperRecAria: "录制循环 (REC)",
+  looperRecStopAria: "停止录音并播放",
+  looperDubAria: "叠录 (overdub)",
+  looperClearAria: "清空磁带（会请求确认）",
+  looperClearConfirmAria: "确认清空磁带",
+  looperClearBtn: "✕",
+  looperClearConfirmBtn: "ok?",
+  looperRecVol: "Rec VOL",
+  looperPlayVol: "Play VOL",
+  looperPVol: "P-VOL",
+  looperRoute: "路由",
+  looperPreBtn: "PRE · 90s",
+  looperPostBtn: "POST · 45s",
+  looperPreAria: "Looper 处于 PRE（90 秒，不含录下的效果）",
+  looperPostAria: "Looper 处于 POST（45 秒，含效果）",
+  looperVuAria: (channel: string, active: boolean) =>
+    `VU meter ${channel} 通道${active ? " 有信号" : " 无信号"}`,
+  looperDeckAria: (spinning: boolean) =>
+    `磁带机：供带盘、磁头和主导轴、收带盘${spinning ? "，运转中" : "，已停止"}`,
+  reelSupply: "Supply",
+  reelTakeup: "Take-up",
+
+  /* ── pushes ── */
+  pushTitle: "设备推送",
+  pushSummary: "设备推送",
+  pushEmpty: "还没有收到任何推送。",
+  pushClear: "清空",
+  pushListAria: "推送日志",
+  pushRepeats: "该推送的连续重复次数",
+  pushRepeatMark: "×",
+
+  /* ── 设置 ── */
+  previewBadge: "本地预览",
+  settingsTitle: "Settings",
+  settingsDialogAria: "设置",
+  settingsTabsAria: "设置选项卡",
+  settingsCloseAria: "关闭设置",
+  settingsTabs: {
+    General: "General",
+    "Global EQ": "Global EQ",
+    About: "About",
+    "Info Frame": "Info Frame",
+    Help: "Help",
+    "Release Note": "Release Note",
+  },
+  inputLevelLabel: "Input Level",
+  inputLevelAria: "输入电平",
+  normalLevelLabel: "Normal Level",
+  normalLevelAria: "标准电平",
+  usbAudioLabel: "USB Audio",
+  usbAudioAria: "USB Audio",
+  hintModeLabel: "Hint Mode",
+  hintModeAria: "提示模式",
+  engineerModeLabel: "工程师模式",
+  engineerModeSub: "旋钮的提示框会显示 SET 命令的 addr/code/ctrl",
+  engineerModeAria: "工程师模式 — 提示框带 SET 命令的 addr、code 和 ctrl",
+  hintLeft: "Left",
+  hintRight: "Right",
+  tapTempoLabel: "Tap Tempo Mode",
+  tapTempoLabels: { pre: "PRE", mod: "MOD", dly: "DLY" },
+  footswitchLabel: "Footswitch Mode",
+  footswitchSub: "硬件 footswitch 的行为模式",
+  footswitchAria: "Footswitch 模式（将在后续版本提供）",
+  footswitchSoon: "— 将在后续版本提供 —",
+  languageLabel: "APP Language",
+  languageAria: "应用语言",
+  globalEqIntro:
+    "设备全局均衡：5 个频段（FREQ · Q · GAIN）以及低/高频截止。这些控件将在后续版本开放。",
+  eqBandGroupAria: "Global EQ 频段",
+  eqBandBtn: (n: number) => `B${n}/5`,
+  eqFreqLabel: (n: number) => `Band ${n} FREQ`,
+  eqQLabel: (n: number) => `Band ${n} Q`,
+  eqGainLabel: (n: number) => `Band ${n} GAIN`,
+  eqFreqAria: (n: number) => `频段 ${n} 频率`,
+  eqQAria: (n: number) => `频段 ${n} Q`,
+  eqGainAria: (n: number) => `频段 ${n} 增益`,
+  lcutLabel: "L-CUT FREQ",
+  hcutLabel: "H-CUT FREQ",
+  lcutAria: "L-CUT freq",
+  hcutAria: "H-CUT freq",
+  aboutIntro:
+    "GP-100 NextGen Editor — 面向 Valeton GP-100 效果器的独立非官方编辑器，与 Valeton 无任何关联。",
+  aboutDataAria: "本版本的设备数据",
+  aboutData: [
+    ["音色库", `${PRESET_COUNT} 个出厂音色（来自设备内存）`],
+    ["鼓机", `${DRUM_GENRE_COUNT} 种风格共 ${DRUM_COUNT} 个节奏 + 节拍器 · 拍号 ${DRUM_BEAT_RANGE}`],
+    ["Looper", "24-bit 立体声 · 44.1 kHz · SNR 110 dB — 90 s PRE / 45 s POST"],
+    ["目录", `${FX_COUNT} 个算法 / ${CTRL_COUNT} 个已映射控件`],
+  ],
+  infoFrameIntro: "设备标识信息，在连接时读取。",
+  infoFrameAria: "设备标识",
+  infoFrame: [
+    ["固件", "V2.1"],
+    ["软件", "1.2.0"],
+    ["型号", "Valeton GP-100 Multi-Effects Processor"],
+    ["连接方式", "USB"],
+  ],
+  helpShortcutsIntro: "全局键盘快捷键（在整个界面任何位置都有效）：",
+  helpKeySpace: "空格",
+  helpKeyR: "R",
+  helpKeyEsc: "Esc",
+  helpShortcutSpace: "鼓机：播放/停止当前选中的节奏（drum play/stop）",
+  helpShortcutR: "Looper：REC — 等同 ● 按钮（录音 → 播放 → 叠录）",
+  helpShortcutEsc: "关闭从顶层展开的面板，一路退回底层：Settings → Drum → pushes",
+  helpTableAria: "键盘快捷键",
+  helpNotes:
+    "注意：在搜索框、BPM 或 select 里输入时，走带快捷键不会触发；焦点在按钮上时空格激活的是该按钮（原生无障碍行为）；Ctrl/Alt/⌘ + 按键会被忽略；设置弹窗打开时，空格和 R 失效，Esc 关闭弹窗。",
+  helpControlsIntro: "控件：",
+  helpControls: [
+    "Tab 依次聚焦所有控件；焦点始终可见",
+    "调音器（舞台标题栏）：♪ 开关监听（绿/红 LED）；模式和 REF PITCH 始终可见；▶ demo 会开启监听并播放合成采样",
+    "Esc 关闭此弹窗（全局 — 任意焦点下都有效）",
+  ],
+
+  /* ── Help → 系统信息（环境的真实数据） ── */
+  sysInfoTitle: "系统信息",
+  sysInfoAria: "应用与环境版本",
+  sysInfoHint: "只读 — 这些内容不会发送到任何服务器。",
+  sysInfo: [
+    ["应用版本", "0.1.0"],
+    ["React", REACT_VER],
+    ["后端", "模拟（mock）— 真实设备通过 USB 提供全部数据"],
+    ["设备固件", "V2.1（本地预览）"],
+    ["浏览器/系统", UA],
+  ],
+  sysNote:
+    "在安装版应用（Tauri）里，版本来自安装包；在浏览器中则是开发版本。",
+  releaseNote:
+    `预览版本：出厂音色库（${PRESET_COUNT} 个音色）、含 ${DRUM_COUNT} 个节奏的鼓机、磁带 looper（90 s PRE / 45 s POST）、带持续监听的舞台调音器（绿/红 LED，REF PITCH 435–445 Hz）、键盘快捷键和响应式布局。board 已经会渲染音色里的 pedal — 舞台上每个 pedal 都是紧凑的，旋钮是只读的（显示每个控件的值）：点击 pedal 打开放大编辑，在那里调的东西会立刻反映到舞台上。`,
+
+  /* ── pedals ── */
+  pedalKind: {
+    Pre: "前级",
+    Drive: "失真",
+    Amp: "音箱",
+    Gate: "噪声门",
+    Cabinet: "箱体",
+    EQ: "均衡",
+    Mod: "调制",
+    Delay: "延迟",
+    Reverb: "混响",
+  },
+  // `kind` JÁ VEM TRADUZIDO de `pedalKind` (前级/失真/音箱…), então aqui não
+  // se repete "pedal" em inglês no meio da frase.
+  pedalGroupAria: (kind: string, name: string, on: boolean) =>
+    `${kind}效果器 — ${name}（${on ? "开启" : "关闭"}）`,
+  pedalToggleOff: "关闭效果",
+  pedalToggleOn: "开启效果",
+  pedalValueAria: "数值（按 Enter 编辑）",
+  pedalValueEditAria: "旋钮数值（Enter 应用，Esc 取消）",
+  pedalExpandTitle: "舞台上 pedal 的数值是只读的 — 点击（或按 Enter）进入编辑",
+  pedalModalAria: (name: string) => `编辑 ${name} pedal`,
+  pedalModalHint: "Esc 关闭 · 调整立即生效",
+  pedalModalCloseAria: "关闭 pedal 编辑",
+  brandPlate: "GP-100",
+  onSuffix: " ON",
+
+  /* ── 友好错误（技术细节进 console） ── */
+  errOpenPreset: "无法打开该音色 — 请重试。",
+  errSelectPreset: "设备没有接受音色切换 — 界面仍停留在当前音色。",
+  errSetParam: "设备没有接受旋钮调整 — 请重试。",
+  errRetry: "重试",
+  errRetryAria: "重试失败的操作",
+};

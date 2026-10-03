@@ -192,5 +192,5 @@ dialogar com um driver. Princípios vinculantes para todas as telas da M1+:
 - [ ] Foco de teclado visível em TODOS os interativos (tab passou por tudo?)
 - [ ] Estado nunca só pela cor; erro sempre com ação; empty sempre com hint
 - [ ] Alvos clicáveis ≥32×32; janela 800×600 e ultrawide sobrevivem
-- [ ] Strings via `t()` (i18n); datas/números via helper (locale)
+- [x] Strings via `t()` (i18n) — **FEITO na #30**: `MSG` é Proxy sobre 4 dicionários (UI_REFERENCE §8.1); datas/números ainda via helper (locale)
 - [ ] `prefers-reduced-motion` respeitado; `--font-mono` em valores de fio

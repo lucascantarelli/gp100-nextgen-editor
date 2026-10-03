@@ -37,9 +37,10 @@
 ### R4. Modal Settings (⚙)
 1. ⚙ abre o modal com 6 abas: General | Global EQ | About | Info Frame | Help |
    Release Note; badge "prévia local" visível.
-2. General: sliders (Input/Normal Level), toggles (Noise Gate 1/2, USB Audio),
-   selects (Hint/Noise Mode), checkboxes Tap Tempo (PRE/MOD/DLY) e idioma — todos
-   operam e PERSISTEM: recarregar a página mantém os valores (localStorage).
+2. General: sliders (Input/Normal Level), toggles (USB Audio),
+   select Hint Mode, checkboxes Tap Tempo (PRE/MOD/DLY) e **APP Language**
+   (4 idiomas, funcional desde a #30) — todos operam e PERSISTEM: recarregar a
+   página mantém os valores (localStorage).
 3. Global EQ: seletor 1/5…5/5 e controles desabilitados (aguardando captura G3–G6).
 4. Esc fecha; clique no fundo fecha; ✕ fecha; foco não "escapa" do modal.
 5. `prefers-reduced-motion` respeitado (sem animações).
@@ -262,7 +263,7 @@ corta com casca quebrada.
 | Achado | Correção | Teste que trava agora |
 |---|---|---|
 | Noise Gate (1)/(2) e Noise Mode NÃO existem no device | removidos do Settings | unit: `not.toContain("Noise Gate")` |
-| APP Language ativo mas sem trocar idioma (mesmo engano) | desabilitado + "próxima versão" | R4 e2e (desabilitado) |
+| APP Language ativo mas sem trocar idioma (mesmo engano) | desabilitado + "próxima versão" → **resolvido na #30**: os 4 idiomas existem e o select troca a casca inteira | R4 e2e + `tests/i18n.test.tsx` (14) |
 | Nome do preset congelado (fallback do board ignorava o pp) | fallback usa presetData; pp/ppType reais | e2e: NOME completo nos 3 locais (R1/R2) |
 | Efeito colateral dentro do updater (StrictMode 2×) | updater puro + useEffect([pp]) | unit R1 (◀ ▶ com nome) |
 | Vocabulário interno visível (fases/fios/capturas/§) | centralizado em `src/i18n/messages.ts` + limpeza | padrão §8 do UI_REFERENCE |
@@ -516,6 +517,44 @@ módulo igual.
 **Status:** ✅ 141 unit · 53 e2e funcionais (R1–R6 + drum + looper + 3
 responsivos + atalhos) · cobertura 90,1%/85,9% · baselines visuais
 regeneradas pela CI.
+
+### Rodada #30 — i18n pt-BR/en/es/zh (03/10)
+
+**Efeito:** APP Language sai de "desabilitado + próxima versão" e passa a
+trocar a casca inteira entre os 4 idiomas que o próprio Settings sempre
+previu. Configuração em `src/i18n/` (base `pt-BR` + `en`/`es`/`zh` como
+sobrescritas, `facts.ts` com os números derivados dos artefatos, registro com
+Proxy + `useLanguage`).
+
+**Achados:**
+- **`as const` no base bloqueava a tradução.** `looperMode.ready` tem tipo
+  `"PRONTO"` — nenhum valor cabe nele, nem o "LISTO" do espanhol nem o "就绪"
+  do chinês. Traduzir exigia afrouxar o rótulo sem afrouxar o resto: nasceu o
+  `DictPatch`, que abre o *conteúdo* dos rótulos para `string` e mantém a
+  *forma* (chave, aridade e tipos dos parâmetros, tipo dos arrays).
+- **Fallback por merge profundo, não spread.** Um `{...base, ...EN}` troca o
+  sub-objeto inteiro: traduzir `bootStages.probe` e perderia os outros cinco
+  rótulos de boot. O merge mescla objeto, e substitui array/função por inteiro
+  (metade de uma lista de dados traduzida é pior que a lista inteira em PT).
+- **"Números" divergiam entre idiomas.** "99 presets", "87 ritmos" e "52
+  algoritmos" vivem em 3 idiomas: traduzir reescrevendo o número abre caminho
+  para o texto dizer 99 com o catálogo em 100. Viraram `facts.ts`, derivados
+  dos artefatos, lidos pelos 4 dicionários.
+- **Terms do device não são traduzidos** (PRE/POST, REC/PLAY/DUB/STOP, REW,
+  BPM, FREQ/Q/GAIN, SET, e as abas e linhas de Settings). O usuário compara a
+  UI com o painel de-hardware na mão; dois idiomas para o mesmo botão é
+  pior que nenhum. Isso virou teste (`terms do device iguais nos 4`).
+- **O tipo do pedal escapava do catálogo.** "Pre · Cry Baby" era literal em
+  `Pedal.tsx` — fora do alcance do lint (que só lê JSX) e 9 vezes no palco.
+  Virou `MSG.pedalKind`; pt-BR mantém o texto atual para não mexer nas
+  baselines, es/zh traduzem.
+
+**Posições testadas:** os 4 idiomas × todas as ~210 chaves do catálogo, os
+sub-objetos (`bootStages`, `looperMode`, `settingsTabs`, `tapTempoLabels`), os
+formatadores (chamados com placeholders), e o seletor em Settings → General.
+
+**Status:** ✅ 178 unit (15 arquivos, +14 de i18n) · 78 e2e verdes sem mexer
+em baseline · cobertura 91,7%/86,7% (gate 85%) · tsc + eslint limpos.
 
 ## Registro de rodada (colar no fim de docs/UI_REFERENCE.md §3)
 
