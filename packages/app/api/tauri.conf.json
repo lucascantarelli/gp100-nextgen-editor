@@ -1,6 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "GP-100 NextGen Editor",
+  "mainBinaryName": "gp100-nextgen-editor",
   "version": "0.1.0",
   "identifier": "com.gp100.nextgen.editor",
   "build": {
@@ -26,7 +27,44 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["nsis"],
-    "icon": ["icons/icon.png", "icons/icon.ico"]
+    "targets": ["nsis", "msi", "dmg", "deb", "appimage"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "category": "Music",
+    "shortDescription": "Editor do pedal GP-100 (NextGen)",
+    "longDescription": "Editor de presets e parâmetros da pedaleira Valeton GP-100, com upload de IR e controle ao vivo.",
+    "copyright": "",
+    "linux": {
+      "deb": {
+        "depends": [
+          "libwebkit2gtk-4.1-0",
+          "libgtk-3-0"
+        ],
+        "files": {
+          "/usr/share/doc/gp100-nextgen-editor/README.md": "../../../README.md"
+        }
+      }
+    },
+    "macOS": {
+      "minimumSystemVersion": "10.15",
+      "dmg": {
+        "appPosition": { "x": 180, "y": 170 },
+        "applicationFolderPosition": { "x": 480, "y": 170 },
+        "windowSize": { "width": 660, "height": 400 }
+      }
+    },
+    "windows": {
+      "nsis": {
+        "installMode": "perMachine"
+      },
+      "wix": {
+        "language": ["pt-BR", "en-US"]
+      }
+    }
   }
 }

@@ -1,8 +1,6 @@
 # GP-100 NextGen Editor
 
 [![ci](https://github.com/lucascantarelli/gp100-nextgen-editor/actions/workflows/ci.yml/badge.svg)](https://github.com/lucascantarelli/gp100-nextgen-editor/actions/workflows/ci.yml)
-[![release](https://github.com/lucascantarelli/gp100-nextgen-editor/actions/workflows/release.yml/badge.svg)](https://github.com/lucascantarelli/gp100-nextgen-editor/actions/workflows/release.yml)
-[![container](https://github.com/lucascantarelli/gp100-nextgen-editor/actions/workflows/container.yml/badge.svg)](https://github.com/lucascantarelli/gp100-nextgen-editor/actions/workflows/container.yml)
 
 > 📇 **Mapa da documentação:** `docs/INDEX.md` — rotas por objetivo, fonte de
 > verdade por assunto e inventário anotado. Comece por lá se está lost.
@@ -99,7 +97,80 @@ boot/scan de presets (S1), upload de IRs mono+estéreo (S2), edição de knobs p
 
 ---
 
-## 3. Ambiente
+## 3. Instalação
+
+Binários na aba **Releases**. O `Distribuição · instalador` do CI gera os três no
+mesmo tag, a partir do mesmo `cargo build --release` — então `.deb`, `.dmg` e o
+PKGBUILD são o **mesmo** binário, não três builds parecidos.
+
+| Plataforma | Artefato | Como instalar |
+|---|---|---|
+| **Windows** | `.msi` e instalador `.exe` (NSIS) | baixar o `.msi` e dar duplo clique; o `.exe` é a alternativa por máquina, sem admin |
+| **macOS** | `.dmg` | arrastar o app para *Aplicativos*; na primeira abertura pode pedir "app de origem desconhecida" (o Gatekeeper bloqueia binário sem assinatura — botão direito → Abrir contorna) |
+| **Ubuntu/Debian** | `.deb` | `sudo apt install ./gp100-nextgen-editor_<versão>_amd64.deb` |
+| **Arch** | PKGBUILD (receita) | `makepkg -si` no `packaging/arch/`, ou via AUR quando publicado |
+
+<details>
+<summary><b>Debian/Ubuntu em detalhe</b></summary>
+
+```bash
+sudo apt install ./gp100-nextgen-editor_0.1.0_amd64.deb
+```
+
+O `.deb` declara `libwebkit2gtk-4.1-0` e `libgtk-3-0` — o shell é WebKitGTK.
+`apt install ./` (e não `dpkg -i`) resolve as dependências; com `dpkg -i` puro
+o pacote instala e o app não abre, que é o sintoma clássico de dependência
+faltando.
+</details>
+
+<details>
+<summary><b>Arch em detalhe</b></summary>
+
+```bash
+git clone https://github.com/lucascantarelli/gp100-nextgen-editor
+cd gp100-nextgen-editor/packaging/arch
+makepkg -si
+```
+
+O PKGBUILD compila do tarball da **release** (`gp100-nextgen-editor-<versão>.tar.gz`),
+não do branch clonado — é o que garante que o Arch sirva o mesmo binário do
+`.deb`. Antes de publicar no AUR, fixe o digest real em `sha256sums` (hoje está
+`SKIP`, e o AUR exige valor válido — `updpkgsums` resolve).
+
+Dependências de build: `cargo`, `nodejs`, `npm`. Em tempo de execução:
+`webkit2gtk-4.1`, `gtk3`.
+</details>
+
+<details>
+<summary><b>macOS em detalhe</b></summary>
+
+O `.dmg` não é assinado nem notarizado (custa Apple Developer Program). O
+Gatekeeper então bloqueia o primeiro open com "o aplicativo foi danificado".
+Saída: ** botão direito → Abrir**, ou
+
+```bash
+xattr -dr com.apple.quarantine /Applications/GP-100\ NextGen\ Editor.app
+```
+
+Isso é esperado em qualquer build open-source de desktop fora da loja, não é
+defeito do pacote.
+</details>
+
+<details>
+<summary><b>Windows em detalhe</b></summary>
+
+O `.msi` (WiX) traz as versões pt-BR e en-US. O `.exe` (NSIS) instala por
+máquina e é o caminho para quem não quer admin.
+</details>
+
+> **Compilando do fonte:** `cd packages/app/api && tauri build`. Exige Rust
+> stable, Node 22 e, no Linux, `libwebkit2gtk-4.1-dev libgtk-3-dev`. Os ícones
+> são derivados de `scripts/make_icon.py` (1024×1024, paleta do tema) via
+> `tauri icon` — mexer num implica rodar o outro.
+
+---
+
+## 4. Ambiente
 
 Windows + Git Bash (desenvolvido em `D:\GP-100 app`). Requisitos:
 
@@ -111,11 +182,13 @@ Windows + Git Bash (desenvolvido em `D:\GP-100 app`). Requisitos:
   `scripts/add_cargo_path.ps1` (uma vez, como admin). Gates de código Rust:
   `.agents/skills/rust-practices/SKILL.md`
 - **CI (GitHub Actions):** os mesmos gates (`uv run pytest` + `cargo fmt/clippy/test`)
-  rodam na validação (`ci.yml` → reusable `_validate.yml`; matrix 3-OS com filtro
-  por caminho E por função de branch); a varredura de segurança é à parte
-  (`security.yml`, noturno) e a máquina de release (publish por tag + cadeia
-  rc→promote) vive em `release.yml` + `_publish.yml`. Passos reutilizáveis em
-  `.github/actions/*`; o fluxo completo está em `docs/CONTRIBUTING.md`.
+  rodam num **único** workflow, o [`ci.yml`](.github/workflows/ci.yml), dividido em
+  11 tipos de job e 25 jobs de responsabilidade única (`Validação` · `Lint` ·
+  `Compilação` · `Testes` · `Cobertura` · `Segurança` · `Relatório` · `Infra` ·
+  `Release` · `Distribuição` · `Fechamento`). Os jobs de teste/cobertura/segurança
+  são filtrados por caminho E por função de branch; a distribuição roda só na tag.
+  Passos reutilizáveis em `.github/actions/*`; o fluxo completo está em
+  `docs/CONTRIBUTING.md`.
 - Agente/IA: ver `knowledge.md` (armadilhas) e `.agents/skills/` (workflows:
   github-flow, proxy-build, capture-analyze, new-session, spec-baseline,
   protocol-validate, core-dev, docs-sync, rust-practices, ui-ux-practices)
@@ -125,7 +198,7 @@ em mensagens paginadas) estão catalogadas no `knowledge.md`.
 
 ---
 
-## 4. Workflows de regeneração
+## 5. Workflows de regeneração
 
 ### 4.1 Proxy winmm (instrumentação do Suite)
 ```bash
@@ -168,7 +241,7 @@ uv run python analysis/validate_knob_map.py # revalida knob_map.json
 
 ---
 
-## 5. Roadmap
+## 6. Roadmap
 
 - **M0 — gp100-core (Rust) — ✅ 100% (8/8, 29/09):** model (M0.1), preset
   round-trip byte-idêntico (M0.2), golden consumer (M0.3), codec de fio
@@ -196,7 +269,7 @@ em §13.12 — não são dívidas.)
 
 ---
 
-## 6. Roteiro para novos contribuidores
+## 7. Roteiro para novos contribuidores
 
 **Onboarding (leia nesta ordem):**
 1. `docs/INDEX.md` — o mapa da documentação (rotas por objetivo, fontes de verdade)
@@ -234,7 +307,7 @@ cargo test --workspace
 
 ---
 
-## 7. Nota legal
+## 8. Nota legal
 
 Projeto de **interoperabilidade**, desenvolvido por análise de artefatos obtidos
 legalmente (instaladores públicos, firmware do próprio dispositivo, documentação

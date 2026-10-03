@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Resumo visual da run — o estágio de MÉTRICAS.
+Resumo visual da run — o job `Relatório`.
 
 POR QUE UM ESTÁGIO PRÓPRIO (e com `if: always()`): o `$GITHUB_STEP_SUMMARY` é
 onde se olha primeiro quando algo quebrou. Se o resumo morresse junto com o
@@ -9,8 +9,8 @@ job que falhou, ele só serviria para anunciar que o job falhou.
 O que ele mostra:
   1. veredito no topo (verde/vermelho) e os contadores de stages;
   2. a tabela de ESTÁGIOS com os jobs e o tempo de cada um;
-  3. a cobertura agregada, lida dos artefatos `cov-*` que o estágio 4 publica;
-  4. o que foi DEIXADO DE FORA nesta branch (a regra branch → estágios),
+  3. a cobertura agregada, lida dos artefatos `cov-*` que o job `Cobertura` publica;
+  4. o que foi DEIXADO DE FORA nesta branch (a regra branch → tipos de job),
      porque "por que meu job não rodou?" é a dúvida que mais custa tempo.
 
 Os tempo vêm da API (`actions/runs/<id>/jobs`), não de um cronômetro próprio:
@@ -33,17 +33,21 @@ try:
 except (AttributeError, OSError):
     pass
 
-# Ordem dos estágios: o número é o prefixo do `name:` do job.
+# Ordem de execução dos tipos de job. O `name:` é `Tipo · o que é`, então o
+# tipo é o texto ANTES do ` · ` — é isso que agrupa o resumo na ordem real,
+# que é justamente o que a lista de checks do PR (alfabética) não entrega.
 STAGE_ORDER = [
-    ("0", "plan · contexto"),
-    ("1", "lint"),
-    ("2", "build (verificação)"),
-    ("3", "test"),
-    ("4", "coverage"),
-    ("5", "security"),
-    ("6", "metrics"),
-    ("7", "release / dist"),
-    ("8", "close · issues"),
+    "Validação",
+    "Lint",
+    "Compilação",
+    "Testes",
+    "Cobertura",
+    "Segurança",
+    "Relatório",
+    "Infra",
+    "Release",
+    "Distribuição",
+    "Fechamento",
 ]
 
 ICON = {
@@ -101,6 +105,17 @@ def duration(job: dict) -> str:
     return f"{secs // 60}m{secs % 60:02d}s" if secs >= 60 else f"{secs}s"
 
 
+def job_tipo(job: dict) -> str:
+    """Tipo de um job = texto antes do ` · ` no `name:`.
+
+    É o que substituiu o prefixo numérico: o `name:` é `Tipo · o que é`, então
+    agrupar por tipo devolve a ordem de execução mesmo com a lista do GitHub
+    em ordem alfabética.
+    """
+    name = str(job.get("name") or "")
+    return name.split(" · ")[0].strip() if " · " in name else "?"
+
+
 def coverage_rows(coverage_dir: str) -> list[str]:
     rows: list[str] = []
     for name in ("ui",):
@@ -139,31 +154,29 @@ def build_summary(jobs: list[dict], klass: str) -> str:
         "",
         f"**{verdict}** · ✅ {ok} · ❌ {failed} · ⏭️ {skipped} · 🚫 {cancelled}",
         "",
-        f"_Branch classificada como **{klass}** — o estágio que não rodou está justificado pela "
-        "regra `branch → estágios` (issue #68)._",
+        f"_Branch classificada como **{klass}** — o que não rodou está justificado pela "
+        "regra `branch → tipos de job` (issue #68)._",
         "",
     ]
 
     by_stage: dict[str, list[dict]] = {}
     for job in jobs:
-        name = job.get("name", "?")
-        prefix = name.split()[0] if name and name[0].isdigit() else "?"
-        by_stage.setdefault(prefix, []).append(job)
+        by_stage.setdefault(job_tipo(job), []).append(job)
 
-    lines += ["### Estágios", "", "| Estágio | Job | Estado | Tempo |", "|---|---|---|---|"]
-    for prefix, label in STAGE_ORDER:
-        for job in sorted(by_stage.get(prefix, []), key=lambda j: j.get("name", "")):
+    lines += ["### Tipos de job", "", "| Tipo | Job | Estado | Tempo |", "|---|---|---|---|"]
+    for tipo in STAGE_ORDER:
+        for job in by_stage.get(tipo, []):
             state = job.get("conclusion") or job.get("status") or "unknown"
             lines.append(
-                f"| `{prefix} {label}` | {job.get('name', '?')} | "
+                f"| **{tipo}** | {job.get('name', '?')} | "
                 f"{ICON.get(state, '·')} {state} | {duration(job)} |"
             )
-    # Jobs que caíram fora da numeração (ou com nome inesperado) não somem.
+    # Jobs cujo nome nao segue `Tipo · ...` nao somem do relatorio.
     for job in jobs:
-        name = job.get("name", "?")
-        if not (name and name[0].isdigit()):
+        if job_tipo(job) not in STAGE_ORDER:
+            name = job.get("name", "?")
             state = job.get("conclusion") or job.get("status") or "unknown"
-            lines.append(f"| _sem estágio_ | {name} | {ICON.get(state, '·')} {state} | {duration(job)} |")
+            lines.append(f"| _sem tipo_ | {name} | {ICON.get(state, '·')} {state} | {duration(job)} |")
 
     rows = coverage_rows(os.environ.get("COVERAGE_DIR", ".cov"))
     lines += ["", "### Cobertura", ""]
@@ -171,7 +184,7 @@ def build_summary(jobs: list[dict], klass: str) -> str:
         lines += ["| Produto · métrica | Valor | |", "|---|---|---|", *rows]
     else:
         lines.append("_Nenhum resumo de cobertura publicado nesta run "
-                     "(o estágio 4 roda em `dev`, `develop`, `main`, `hotfix` e tag)._")
+                     "(o job `Cobertura` roda em `dev`, `develop`, `main`, `hotfix` e tag)._")
 
     slowest = sorted(
         (j for j in jobs if (j.get("conclusion") == "success")),
@@ -182,7 +195,7 @@ def build_summary(jobs: list[dict], klass: str) -> str:
         for job in slowest:
             lines.append(f"- `{job.get('name')}` — **{duration(job)}**")
 
-    lines += ["", "---", "", "_Gerado por `scripts/ci_report.py` no estágio `6 metrics`._"]
+    lines += ["", "---", "", "_Gerado por `scripts/ci_report.py` no job `Relatório`._"]
     return "\n".join(lines)
 
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Plano do CI: classifica a branch e decide quais estágios rodam.
+Plano do CI: classifica a branch e decide quais tipos de job rodam.
 
 POR QUE UM SCRIPT E NÃO `if:` ESPALHADO NO YAML: a regra "build roda em toda
 branch, dist só na tag, testes não rodam em release/**" apareceia em cinco
@@ -16,10 +16,10 @@ Contrato de saída (lido pelo `plan` do .github/workflows/ci.yml):
     scope-rust       gp100-core/cli/ui mudaram?
     scope-front      packages/app/ui mudou?
     scope-spec       analysis|docs|pyproject mudaram?
-    stage-test       estágio 3 roda?
-    stage-coverage   estágio 4 roda?
-    stage-security   estágio 5 roda?
-    stage-dist       estágio 7 (artefatos de distribuição) roda?
+    stage-test       Testes rodam?
+    stage-coverage   Cobertura roda?
+    stage-security   Segurança roda?
+    stage-dist       Distribuição (artefatos) roda?
     stage-release    versionamento está autorizado (dispatch com action)?
     rust-matrix      {include:[{os,project,workdir}]}
     front-matrix     {include:[{os}]}
@@ -91,7 +91,7 @@ def matrices(sc: dict[str, bool]) -> tuple[str, str]:
     """Matrizes por projeto afetado.
 
     `ui-rust` fica em Windows (hosted) + Linux (container ci-linux, no job
-    `3 test · e2e webview`); o macOS saiu porque compilar o shell Tauri lá
+    `Testes · e2e webview`); o macOS saiu porque compilar o shell Tauri lá
     (~96s) não pegava classe de bug própria — o vitest 3-OS já cobre a UI.
     """
     rust: list[dict[str, str]] = []
@@ -122,7 +122,7 @@ def main() -> int:
     klass = classify(ref, base_ref, event)
     sc = scopes(changed)
 
-    # ── a regra branch → estágios ──────────────────────────────────────────
+    # ── a regra branch → tipos de job ──────────────────────────────────────
     # release/** é um FREEZE da develop (que já foi testada no merge): lint +
     # build verificam que o freeze não quebrou nada, e o gate de verdade da
     # release é o push da tag v*, que roda a suíte inteira. hotfix/** é o

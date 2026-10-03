@@ -8,7 +8,7 @@ DEPOIS de subir as camadas anteriores, e a falha sai como
 sem dizer que o problema era uma tag montada por concatenacao. Foi
 exatamente o que travou o bootstrap da `ci-base`: um ARG `DEBIAN_VERSION`
 com default `bookworm-slim` remontado em `FROM rust:${DEBIAN_VERSION}`, quando
-a tag oficial e `slim-bookworm` (sufixo depois). O `7 ci · imagens` gastava o
+a tag oficial e `slim-bookworm` (sufixo depois). O `Infra · imagens de container` gastava o
 runner inteiro para falhar em 3s e o consome morria depois com
 `manifest unknown`, sem nenhuma ligacao com a causa.
 

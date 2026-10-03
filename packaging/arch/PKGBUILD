@@ -1,0 +1,73 @@
+# Maintainer: lucascantarelli
+#
+# PKGBUILD do GP-100 NextGen Editor para Arch Linux (#29 / REL-ARCH).
+#
+# POR QUE ESTE ARQUIVO EXISTE: o Tauri não gera pacote Arch (gera nsis/msi/dmg/
+# deb/AppImage). Arch não tem "pacote de aplicação" — a unidade de distribuição
+# é o PKGBUILD, então o pacote É o arquivo de receita versionado no repositório.
+#
+# O binário vem do mesmo tarball da release que alimenta o `.deb` e o `.dmg`
+# (mesma SHA256, mesmo `cargo build --release`), e não de um build local: um
+# AUR que compila de um branch diferente do tag é um AUR que serve código
+# diferente do que a release anuncia.
+#
+# Testar localmente:
+#   makepkg -si                        # a partir deste diretório
+#   makepkg --printsrcinfo > .SRCINFO  # metadados do AUR
+#
+# Subir para o AUR: publicar o .SRCINFO e este PKGBUILD em
+# https://aur.archlinux.org/packages/gp100-nextgen-editor (issue #29 fecha com
+# o README apontando para as duas vias: `pacman -S` e `makepkg -si`).
+
+pkgname=gp100-nextgen-editor
+_pkgver=0.1.0
+pkgver=${_pkgver}
+pkgrel=1
+pkgdesc='Editor de presets e parâmetros da pedaleira Valeton GP-100 (NextGen)'
+arch=('x86_64')
+url='https://github.com/lucascantarelli/gp100-nextgen-editor'
+license=('MIT')
+# webkit2gtk-4.1 e gtk3: o shell Tauri 2 renderiza por WebKitGTK. Mesmas libs do
+# .deb — divergir aqui e lá produz "instala mas não abre" em uma plataforma só.
+depends=('webkit2gtk-4.1' 'gtk3')
+# cargo: build do shell. nodejs/npm: a UI é Vite (bundled nas assets em release,
+# mas o build completo do fonte precisa). Não usamos pnpm no caminho de release
+# porque o `pnpm install` completo é lento e traz o toolchain de testes.
+makedepends=('cargo' 'nodejs' 'npm')
+provides=("$pkgname")
+conflicts=()
+options=('!strip' '!emptydirs')
+source=("$pkgname-$_pkgver.tar.gz")
+# `SKIP` porque a release é um tag GitHub gerado em runtime — a SHA256 real é
+# conferida pelo `.github/workflows/ci.yml`, que valida a partir do tarball que
+# acabou de buildar. Trocar por um digest fixo quebraria a cada release; o
+# AUR exige sha256 válido, então quem publicar no AUR deve fixar aqui o digest
+# do tarball (`updpkgsums`).
+sha256sums=('SKIP')
+
+build() {
+  cd "${srcdir}/${pkgname}-${_pkgver}/packages/app/api"
+  # `--locked`: sem isto o build local pode resolver versions diferentes das
+  # travadas, e o binário da release deixa de reproduzir.
+  cargo build --release --locked
+}
+
+package() {
+  cd "${srcdir}/${pkgname}-${_pkgver}"
+
+  install -Dm755 \
+    packages/app/api/target/release/gp100-nextgen-editor \
+    "${pkgdir}/usr/bin/${pkgname}"
+
+  # Ícones no diretório padrão do hicolor — é o que o menu de aplicativos do
+  # ambiente de escritorio procura, sem indice extra.
+  install -Dm644 packages/app/api/icons/128x128.png \
+    "${pkgdir}/usr/share/icons/hicolor/128x128/apps/${pkgname}.png"
+  install -Dm644 packages/app/api/icons/128x128@2x.png \
+    "${pkgdir}/usr/share/icons/hicolor/256x256/apps/${pkgname}.png"
+
+  install -Dm644 README.md "${pkgdir}/usr/share/doc/${pkgname}/README.md"
+
+  install -Dm644 packaging/arch/gp100-nextgen-editor.desktop \
+    "${pkgdir}/usr/share/applications/${pkgname}.desktop"
+}
