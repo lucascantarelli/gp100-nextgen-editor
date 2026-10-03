@@ -226,23 +226,27 @@ jobs:
       # expressao invalido. O `validate_workflows.py` cobre os CONTRATOS do
       # projeto; os dois juntos fecham workflow sintatico E semantico. Sem o
       # actionlint, um workflow pode passar no YAML e quebrar no runner.
-      # `docker run` EXPLICITO, e nao `docker://`. Tres tentativas, e o motivo
-      # de cada uma esta aqui para a proxima nao repetir:
-      #   1) `args: -ignore 'label "..." is unknown'` — com `docker://` o
-      #      `args:` vira argumento do `docker run` sem preservar aspas, e a
-      #      regexp chegou em tres pedacos: `could not read "unknown'"`.
-      #   2) `args: -config-file <caminho>` — chegou, mas o config nao pegou.
-      #   3) sem `args:`, confiando no auto-descoberto do config — tambem nao
-      #      pegou: o actionlint procura `.github/actionlint.yaml` a partir do
-      #      diretorio de trabalho, e o container do `docker://` nao tem o
-      #      workspace na raiz.
-      # Com `docker run` o volume e o workdir sao explicitos, o shell preserva
-      # aspas e o config e encontrado. A opcao continua morando em
-      # `.github/actionlint.yaml`, com a justificativa do ignore.
+      # `docker run` EXPLICITO com `-config-file` EXPLICITO — nada de
+      # `docker://` nem de auto-descoberto. Quatro tentativas, e o motivo de
+      # cada uma fica aqui para a proxima nao repetir:
+      #   1) `docker://` + `args: -ignore '...'` — o `args:` vira argumento do
+      #      `docker run` sem preservar aspas: `could not read "unknown'"`.
+      #   2) `docker://` + `args: -config-file ...` — o ignore nao pegou.
+      #   3) `docker://` sem `args:` (auto-descoberto) — nao pegou.
+      #   4) `docker run -w /repo` sem `-config-file` (auto-descoberto) — nao
+      #      pegou, mesmo com o workspace montado e o workdir na raiz.
+      # Nenhuma das tres formas de "achar o config sozinho" funcionou; falta
+      # depender do comportamento de busca e nomear o arquivo. O volume e o
+      # workdir explicitos vem do caminho de uso documentado do actionlint.
+      #
+      # O ignore e de UM rotulo: `macos-15-intel` e real (Intel do macOS 15,
+      # ate ago/2027) e trocar por `macos-latest` traria arm64, tirando a
+      # cobertura do build que o `.dmg` exige.
       - name: actionlint (expressões e contextos do runner)
         run: |
           set -euo pipefail
-          docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.7
+          docker run --rm -v "$PWD:/repo" -w /repo \
+            rhysd/actionlint:1.7.7 -config-file /repo/.github/actionlint.yaml
       - name: sintaxe + contratos + empacotamento + simulação do GitFlow
         run: |
           # `pyyaml` e `jsonschema` ja vem no `pyproject.toml` (#80); a linha
