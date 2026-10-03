@@ -26,12 +26,29 @@ cargo build
 
 ## CI (GitHub Actions) — mesma régua do local
 
-O CI roda os MESMOS gates no reusable `.github/workflows/_validate.yml`
-(job `rust`: matriz filtrada por caminhos — core/cli em 3-OS (windows-latest,
-ubuntu-24.04, macos-15-intel); **ui-rust em 2 OS**: Windows (MSVC) + Linux no
-container `ci-linux` — issue #41), disparado pelo `ci.yml` em PR/push das
-branches de INTEGRAÇÃO (push em `feature/*` etc. NÃO roda CI — validação
-acontece no PR). Armadilhas mordidas — não reabrir:
+A CI é **um workflow só**, `.github/workflows/ci.yml` (consolidado na #68; os
+5 workflows legados foram apagados). Os gates Rust são **três jobs separados**,
+não um `rust` único:
+
+| Job | Gate | Matriz |
+|---|---|---|
+| `Lint · Rust (fmt)` | `cargo fmt --check` | — |
+| `Lint · Rust (clippy · …)` | `cargo clippy --all-targets -- -D warnings` | core/cli/ui-rust |
+| `Compilação · Rust (cargo check · …)` | `cargo check` | core/cli/ui-rust |
+| `Testes · Rust (cargo test · …)` | `cargo test` + build do binário de campo | core/cli/ui-rust |
+
+Matriz: **core e cli em 3-OS** (windows-latest, ubuntu-24.04, macos-15-intel);
+**ui-rust em 2 OS** — Windows (MSVC) + Linux no container `ci-linux` (issue
+#41). O macOS saiu do ui-rust de propósito: compilar o shell Tauri lá não pegava
+classe de bug própria.
+
+**Quando roda:** `push` em `develop`/`main` e em tags `v*`; branch de trabalho
+**não** dispara push — entra só por `pull_request` (a #68 restringiu `on.push`
+a integration porque `feature/**` + `pull_request` davam duas runs por push).
+O filtro é de *caminho* (`scripts/ci_plan.py`): PR que só mexe em `docs/` não
+sobe Rust nem front.
+
+Armadilhas mordidas — não reabrir:
 
 - **Toolchain por OS/projeto (ADR-8)**: o pin gnu do `rust-toolchain.toml` da
   raiz vale para o host Windows; a CI define `RUSTUP_TOOLCHAIN` por OS/projeto

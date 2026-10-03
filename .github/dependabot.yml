@@ -1,6 +1,7 @@
 # DEPENDABOT — PRs automáticos de upgrade de dependências.
 #
-# Complementa a auditoria noturna do CI (`5 sec · auditorias`): ela DETETA
+# Complementa a auditoria noturna do CI (`Segurança · auditorias de
+# dependência`): ela DETETA
 # (cargo/pnpm audit → issue ACHADOS), o Dependabot REMEDIA (PR pronto p/ review).
 # Upgrades continuam sendo decisão do owner (A-1/A-3 foram manuais); aqui
 # só muda a MECÂNICA: o PR abre pronto, com CI disparada (pull_request,
@@ -14,8 +15,8 @@
 #   - docker "/.github/docker/ci-linux" → base Ubuntu da imagem de CI do
 #     Tauri (issue #41) e "/.github/docker/ci-base" → base Debian slim da
 #     imagem dos jobs sem GUI (issue #68). O PR de bump é rebuildado pelo job
-#     `7 ci · imagens` do ci.yml — a imagem é artefato versionado do repo,
-#     então o bump tem que passar por review.
+#     `Infra · imagens de container` do ci.yml — a imagem é artefato
+#     versionado do repo, então o bump tem que passar por review.
 # ⚠️ SEM entry `cargo /` (lockfile da raiz, core+cli) — DELIBERADO (ADR-8):
 #   o updater do Dependabot roda em container Linux e NÃO expõe
 #   RUSTUP_TOOLCHAIN; o pin windows-gnu do rust-toolchain.toml da raiz
@@ -36,7 +37,7 @@
 # Labels PROVISIONADAS antecipadamente via `gh label create --force`
 # (dependencies, rust, npm, github-actions): o Dependabot NÃO cria labels
 # e um PR com label inexistente falha o update — mesma lição do
-# achados-security no `5 sec · auditorias`.
+# achados-security no job de auditorias.
 #
 # open-pull-requests-limit 5: com os groups o teto é teórico; evita fila
 # infinita se passar semanas sem review.

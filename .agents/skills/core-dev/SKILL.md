@@ -24,7 +24,8 @@ UMA por vez, na ordem — o ciclo issue→branch→PR→merge é a skill `github
    teste novo sempre acompanha código novo (padrão de DoD da issue).
 6. **Encerramento inclui CI**: branch → commits → PR para `develop` → CI verde
    (`gh pr checks --watch` ou `gh run watch <id> --exit-status`) ATÉ VERDE — só
-   então a issue fecha pelo merge (`Closes #N` no corpo do PR; job `close-linked`)
+   então a issue fecha pelo merge (`Closes #N` no corpo do PR; job
+   `Fechamento · issues`)
    e entra a linha no knowledge (marco com CI vermelha não é marco).
 7. **Commit é CONVENTIONAL** (o gate da CI rejeita fora do padrão):
    `tipo(escopo): resumo` — ex.: `fix(core): …`, `feat(cli): …`, `test(core): …`,

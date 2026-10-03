@@ -247,10 +247,12 @@ REC→PLAY, digitação não dispara, precedência do Esc).
 5. Matriz de cobertura do manual: `docs/MANUAL_COVERAGE.md` (33 ✅ · 5 🟡 · 5 🔴 —
    nada silencioso; 🔴 = Fase 2/3 documentadas).
 
-**CI (`_validate.yml`):** job `e2e` = setup pnpm → `playwright install --with-deps
-chromium` → `playwright test` (webServer sobe o `pnpm dev` na :5173);
-o publish (`release.yml`) só roda depois do `validate` completo — tag não
-corta com casca quebrada.
+**CI (`.github/workflows/ci.yml`, um workflow só desde a #68):** job
+`Testes · E2E shell (Chromium)` = setup pnpm → `playwright install --with-deps
+chromium` → `playwright test` (o `webServer` sobe o `pnpm dev` na :5173).
+O job `Testes · E2E visual` compara as baselines, e o `Testes · E2E webview`
+sobe o shell Tauri real no Linux. A distribuição só roda depois de tudo isso —
+`Release · RC` exige `workflow_dispatch`, e a tag não corta com casca quebrada.
 
 ---
 
@@ -300,9 +302,9 @@ oficial Tauri v2 (webkit2gtk-driver + xvfb + WEBKIT_DISABLE_DMABUF_RENDERER).
 | Item | Estado |
 |---|---|
 | 9 baselines win32 geradas e estáveis | ✅ (rodada 30/09) |
-| job e2e-visual (Ubuntu) + input update-snapshots | ✅ _validate.yml |
-| baselines linux commitadas | ✅ 48 PNGs (issue #45; 1º run do input) |
-| job e2e-tauri (smoke webview real + DeviceGone) | ✅ _validate.yml (gate de release via validate) |
+| job `Testes · E2E visual` (Ubuntu) + input update-snapshots | ✅ ci.yml |
+| baselines linux commitadas | ✅ (issue #45; contagem atual em `docs/INDEX.md` §6) |
+| job `Testes · E2E webview` (smoke webview real + DeviceGone) | ✅ ci.yml (gate de release: só roda com o resto verde) |
 
 ---
 

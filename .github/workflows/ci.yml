@@ -138,7 +138,7 @@ concurrency:
 
 env:
   CARGO_TERM_COLOR: always
-  # Imagens de CI (publicadas pelo job `7 ci · imagens`).
+  # Imagens de CI (publicadas pelo job `Infra · imagens de container`).
   # ⚠️ `container.image` NÃO aceita o contexto `env` (a tabela do GitHub só
   # permite github/needs/strategy/matrix/vars/inputs ali) — por isso os jobs
   # de container repetem a ref literal, e `scripts/validate_workflows.py`
@@ -701,13 +701,20 @@ jobs:
   #
   # Separei em dois porque os gatilhos são incompatíveis:
   #
-  #   7 ci · imagens   publica a imagem de CI (ferramenta do pipeline, não
-  #                    artefato de usuário) — caminho de código estável
-  #   7 release · rc    versiona + cria a release branch — SÓ `workflow_dispatch`
-  #   7 release · promote  rc → tag final → main recebe o SHA da tag
-  #   7 release · play   corta tag pelo semver dos commits
-  #   7 dist · ui        gera o instalador por plataforma (a tag já passou pela
-  #   7 dist · cli       suíte inteira no estágio 3)
+  #   Infra · imagens de container  publica a imagem de CI (ferramenta do
+  #                    pipeline, não artefato de usuário) — código estável
+  #   Release · guarda da main  recusa push direto na main (só SHA de tag v*)
+  #   Release · RC        versiona + cria a release branch — SÓ `workflow_dispatch`
+  #   Release · promote   rc → tag final → main recebe o SHA da tag
+  #   Release · play      corta tag pelo semver dos commits
+  #   Distribuição · instalador  gera o instalador por plataforma
+  #   Distribuição · tarball de fonte  insumo do PKGBUILD do Arch (#72)
+  #   Distribuição · CLI de campo  o binário + kit do gate H1
+  #
+  # A numeração de outrora ("7 dist · ui") era do prefixo numérico de nome,
+  # que o owner pediu para tirar: a lista de checks do PR sai em ordem
+  # ALFABÉTICA, então o número era o único vestígio da ordem real — e a ordem
+  # real agora está no grafo `needs:` e no `Relatório · resumo da run`.
   #
   # LIÇÃO QUE VIROU ESTRUTURA (auditoria 01/10): tag empurrada com
   # GITHUB_TOKEN NÃO dispara workflow. Por isso rc/promote/play publicam NO

@@ -24,7 +24,7 @@
 # o install do Chromium que ele eliminaria — o container só entrou onde o pull
 # se paga (lição CI-11 no knowledge.md).
 #
-# COMO USAR: o job `7 ci · imagens` do ci.yml publica `:1` (estável, pull
+# COMO USAR: o job `Infra · imagens de container` do ci.yml publica `:1` (estável, pull
 # pelos jobs) + `sha-<curto>` (auditoria). Os jobs `3 test · e2e webview` e
 # `2/3 build|test · rust` referenciam a tag em `container.image`; a política:
 # README ↔ revisão humana no PR.
@@ -89,7 +89,7 @@ RUN case "$(dpkg --print-architecture)" in \
  && node --version && pnpm --version
 
 # ── Store do pnpm aquecido com o lockfile do repo ──
-# O job `7 ci · imagens` rebuilda quando o lockfile muda, então o store nasce
+# O job `Infra · imagens de container` rebuilda quando o lockfile muda, então o store nasce
 # coerente com o commit; se o lockfile avançar, o `pnpm install
 # --frozen-lockfile` do job baixa só o delta.
 COPY packages/app/ui/package.json packages/app/ui/pnpm-lock.yaml /tmp/warm/

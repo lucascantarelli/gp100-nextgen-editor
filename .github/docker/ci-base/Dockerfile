@@ -69,7 +69,7 @@ RUN rustup component add rustfmt clippy
 
 # uv pelo instalador oficial: a imagem `rust:slim-bookworm` não traz Python
 # gerenciado, e o `pip install uv` cairia no PEP 668 (ambiente externo).
-# O `python3` do sistema vem do apt acima porque `5 sec · auditorias` chama
+# O `python3` do sistema vem do apt acima porque `Segurança · auditorias` chama
 # `python3 scripts/security_report.py` direto -- sem ele o job morre com
 # `python3: not found` no fim, DEPOIS das auditorias passarem (uv traz Python
 # para o pytest, mas nao para um interpretador que o job invoca pelo nome).

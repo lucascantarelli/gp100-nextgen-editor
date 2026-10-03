@@ -2,8 +2,9 @@ name: build-front
 description: >
   Front packages/app/ui: build (tsc + vite). Pré-requisito: setup-node-pnpm já
   rodou (deps congeladas). Nasce daqui o ui/dist que alimenta o shell
-  (ui-rust/smoke). Lint e coverage moram no job `front-gate` (issue #50) —
-  rodar o gate também aqui só duplicaria custo.
+  (ui-rust/smoke) e o tarball de fonte do Arch. Lint e coverage moram nos jobs
+  `Lint · UI (eslint)` e `Cobertura · UI (gate 85%)` — rodar o gate também aqui
+  só duplicaria custo.
 runs:
   using: composite
   steps:

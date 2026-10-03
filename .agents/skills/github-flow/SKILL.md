@@ -36,13 +36,21 @@ vale o que estiver em `docs/CONTRIBUTING.md` + `.github/workflows/`.
 - Nomeie sempre com o número da issue: `feature/42-knob-drag`.
 - **Push em branch de desenvolvimento NÃO dispara CI** (decisão de custo):
   valide localmente os gates da área e abra o PR — o CI roda no PR e na
-  integração.
-- Tags `v*` disparam o **release** (publish CLI+instalador); a cadeia
-  rc→promote é manual (`release.yml`, input `action`).
-- A **imagem de CI** (`container.yml`, ghcr.io) é artefato versionado: mudou o
-  Dockerfile/lockfile em `develop`/`main` → a imagem `:1` é republicada; PR que
-  mexe no Dockerfile só BUILDAA (sem push). Jobs de container referenciam `:1`
-  (nunca `sha-<curto>`); bump de tag é manual e só quando incompatível.
+  integração. ⚠️ `on.push` do `ci.yml` lista **só** `develop`, `main` e tags
+  `v*`; branch de trabalho entra exclusivamente por `pull_request`. Isso não é
+  detalhe: quando `feature/**` estava no `push` **e** no `pull_request`, cada
+  push gerava **duas** runs (uma de push, outra de synchronize) — o filtro do
+  `on.push` no `validate_workflows.py` existe para isso não voltar.
+- Tags `v*` disparam o **release** (publish instalador + CLI + tarball de
+  fonte); a cadeia rc→promote é manual, por `workflow_dispatch` com input
+  `action` (`release` / `promote` / `play`), dentro do próprio `ci.yml`.
+- A **imagem de CI** (ghcr.io) é artefato versionado: mudou o
+  Dockerfile/lockfile em `develop`/`main` → a imagem `:1` é republicada pelo job
+  `Infra · imagens de container`; PR que mexe no Dockerfile só BUILDAA (sem
+  push). O job **sonda o registro** (`docker manifest inspect`) e **confirma a
+  tag depois de publicar** — publicar e assumir que deu certo foi exatamente o
+  defeito que a #68 corrigiu (verde que não publica). Jobs de container
+  referenciam `:1` (nunca `sha-<curto>`); bump de tag é manual.
 
 ## Ciclo operacional (agente)
 
@@ -54,21 +62,25 @@ vale o que estiver em `docs/CONTRIBUTING.md` + `.github/workflows/`.
    REJEITA fora do padrão; footer Codebuff quando você (agente) escreveu.
 5. **Push da branch + PR para `develop`** com o template preenchido; tabela de
    gates executados; **`Closes #N` NO CORPO** (nunca no título/comentário).
-6. **CI do PR** — acompanhe até verde (`gh run watch <id> --exit-status`); PR
-   com label `ci-lite` roda só Windows (WIP barato); tire a label na revisão.
+6. **CI do PR** — acompanhe até verde (`gh run watch <id> --exit-status`).
+   A label `ci-lite` (que rodava só Windows) foi **abolida na #68**: ela
+   reduzia a matriz em silêncio, sem ninguém registrar o motivo. Todo PR roda a
+   matriz inteira — em WIP, valide localmente e abra o PR mesmo assim.
 7. **Review** — releia o diff (`git diff develop...HEAD`) e o PR antes do merge;
    achou algo? corrige na branch (novo commit) — nunca em commit "fix" solto
    na develop.
-8. **Merge (squash) em `develop`** — o job `close-linked` do `ci.yml` fecha a
-   issue via API com comentário de rastreabilidade (PR + sha + run).
+8. **Merge (squash) em `develop`** — o job `Fechamento · issues` fecha a
+   issue via API com comentário de rastreabilidade (PR + sha + run). ⚠️ O
+   fechamento só acontece quando o PR foi **mesmo** mergeado; PR fechado sem
+   merge não resolveu nada.
 9. **Backport/limpeza**: hotfix mergeia também em `develop`; release branch é
    apagada pelo `promote` (não apague à mão).
 
 ## Proibições explícitas
 
 - **Nunca** `git push` direto em `main`/`develop` para trabalho normal (as
-  branches de integração recebem PR; exceção: o próprio fluxo de release
-  automatizado do `release.yml`).
+  branches de integração recebem PR; exceção: o próprio fluxo de release, que é
+  `workflow_dispatch` no `ci.yml`).
 - **Nunca** commitar sem issue correspondente (nem "arruma isso rapidinho").
 - **Nunca** marcar ✅ em doc antes do CI verde (marco com CI vermelha não é marco).
 - **Nunca** usar `Closes #N` em PR que não conclui a issue (só o PR final).
