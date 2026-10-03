@@ -23,12 +23,12 @@ plataformas sem nova decisão do owner registrada aqui.
 | Área | Estado hoje | Prova |
 |---|---|---|
 | Empacotamento | **Só Windows x64**: instalador NSIS (app) + `gp100-cli.exe` (gnu) | `packages/app/api/tauri.conf.json` → `bundle.targets: ["nsis"]`; jobs `release-cli`/`release-installer` em `windows-latest` |
-| Versão nos bundlers | **`tauri.conf.json` com `version: "0.1.0"` hardcode** — o release-gitflow bumpa só `Cargo.toml`×2 + `version.json` → instaladores sairiam com a versão errada | `tauri.conf.json` vs steps do `.github/workflows/release.yml` |
+| Versão nos bundlers | ✅ **RESOLVIDO (#73)** — `scripts/sync_version.py` governa os 5 manifests (`Cargo.toml`×2, `tauri.conf.json`, `package.json`, `version.json`) e tem `--check` no gate do Lint | `sync_version.py --check` |
 | Assinatura | Nenhuma (Windows nem macOS) — nada de cert/entitlements/notarization | ausente no pipeline |
-| Smoke de instalação | Só smoke de **hardware** (`hardware-smoke`) e testes de cargo — nenhum teste de instalador em ambiente limpo | `_publish.yml` (build da release) |
+| Smoke de instalação | Só smoke de **hardware** (`hardware-smoke`) e testes de cargo — nenhum teste de instalador em ambiente limpo | `Distribuição · instalador` (build da release) |
 | Auto-update | Inexistente (`tauri-plugin-updater` ausente, sem endpoint/keys) | `tauri.conf.json` sem `plugins` |
 | Rollback | Manual e sem runbook | — |
-| Base que AJUDA | Matriz 3-OS já existe (windows-latest, ubuntu-24.04, macos-26); tags `v*` disparam release; guard de prerelease p/ `-rc`; cadeia rc→promote **simulada no gate** (`scripts/simulate_release.py`) | `_validate.yml`, `release.yml`/`_publish.yml` |
+| Base que AJUDA | Matriz 3-OS já existe (windows-latest, ubuntu-24.04, macos-15-intel); tags `v*` disparam release; guard de prerelease p/ `-rc`; cadeia rc→promote **simulada no gate** (`scripts/simulate_release.py`) | `ci.yml` |
 
 **Lacunas → 5 épicos, 22 issues.** Dependências críticas: assinatura (EPIC-03)
 é o que torna o download direto viável (sem ela, SmartScreen/Gatekeeper
@@ -54,7 +54,7 @@ encaixar nessa cadeia (rc publica binários de teste; promote publica os finais)
   o release-gitflow bumpa `Cargo.toml`×2 + `version.json`. O bundler do Tauri
   prioriza a versão do conf → qualquer instalador sairia `0.1.0` numa rc `0.2.0-rc.1`.
   Definir fonte única: remover `version` do conf (o Tauri cai no `Cargo.toml` do
-  crate `gp100-ui`) **ou** sincronizar o conf no step do release.yml. Provar nos
+  crate `gp100-ui`) **ou** sincronizar o conf no passo de release. Provar nos
   3 SOs que o número aparece certo no binário e nos instaladores.
 - **ci_cd_workflow_spec:**
   - `trigger_event`: push de tag `v*` + simulação local
@@ -65,7 +65,7 @@ encaixar nessa cadeia (rc publica binários de teste; promote publica os finais)
   - [ ] rc de simulação `0.2.0-rc.1` produz instalador `0.2.0-rc.1` (não `0.1.0`)
   - [ ] `simulate_release.py` valida também `tauri.conf.json`/`package.json`
   - [ ] Sem duplicação: UM lugar define a versão (version.json)
-- **edge_cases_and_risks:** ["bundler pode exigir version no conf — fallback: step sed no release.yml", "CLI não usa tauri — Cargo.toml da raiz continua a fonte dele"]
+- **edge_cases_and_risks:** ["bundler usa a version do conf — resolvido por `sync_version.py` (#73)", "CLI não usa tauri — Cargo.toml da raiz continua a fonte dele"]
 
 ### REL-WIN-01 · [Windows] NSIS x64 — binário de referência (formalizar naming)
 - **Epic:** EPIC-01 · **Plataformas:** Windows x64 · **Prioridade:** Blocker
@@ -342,7 +342,7 @@ encaixar nessa cadeia (rc publica binários de teste; promote publica os finais)
 - **ci_cd_workflow_spec:**
   - `trigger_event`: push de tag `v*`
   - `runner_matrix`: ubuntu-22.04, ubuntu-24.04, macos-26, windows-latest
-  - `steps_to_execute`: ["consolidar release.yml + _publish.yml", "smoke gates antes de publish", "summary com artefatos por plataforma"]
+  - `steps_to_execute`: ["consolidar os workflows (FEITO na #68)", "smoke gates antes de publicar", "summary com artefatos por plataforma"]
   - `expected_artifacts`: ["todos os binários na MESMA release"]
 - **definition_of_done:**
   - [ ] Tag de rc gera release com todos os formatos marcados prerelease

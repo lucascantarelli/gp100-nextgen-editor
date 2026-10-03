@@ -653,6 +653,9 @@
     (`e2e/ipc.edge.spec.ts`) — **os números atuais vivem em `docs/INDEX.md` §6**.
   - ✅ FEITO 01/10 — GitFlow completo + cadeia rc sob `workflow_dispatch`:
     `.github/workflows/release.yml` (release-gitflow) com `action=rc`
+    ⚠️ **SUPERSEDIDO na #68**: o `release.yml` foi consolidado no `ci.yml`
+    (jobs `Release · RC` / `· promote` / `· play`). O marco abaixo é o que foi
+    entregue em 01/10; o mecanismo não existe mais.
     (corta/reutiliza release/x.y.z de develop, etiqueta vX.Y.Z-rc.N —
     o pipeline publica PRERELEASE; N incrementa sozinho) e
     `action=promote` (tag final vX.Y.Z, merge --no-ff em main, backport
@@ -661,12 +664,12 @@
     pipeline para tags -rc (CLI + instalador). Validação sintática dos
     workflows no gate do pipeline (`scripts/validate_workflows.py`:
     YAML dos workflows + contratos de fluxo ci/_validate/_publish/release/
-    security — o teste de integração real do close-linked continua sendo o
+    security — o teste de integração real do fechamento continua sendo o
     próprio merge em develop; act exigiria Docker no gate). Proteção de
     branches = configuração do repo (não-workflow).
   - ✅ FEITO 01/10 — **simulação end-to-end da cadeia no gate**
     (`scripts/simulate_release.py`): extrai os blocos `run:` DO PRÓPRIO
-    release.yml e os executa num sandbox git local (origin bare + clones
+    ci.yml e os executa num sandbox git local (origin bare + clones
     descartáveis), com `${{ inputs/steps/env }}` resolvidos e
     GITHUB_OUTPUT simulado — prova rc1→rc2 (branch reutilizada, N
     incrementa)→promote (tag final, merge --no-ff em main, backport em
@@ -678,7 +681,7 @@
     atribuições/expansões no interop WSL do Windows, diagnosticado e
     documentado no próprio harness).
   - ✅ FEITO 30/09 — fechamento de issue no merge em develop (a parte
-    "vinculação issue↔PR" da nota): o job `close-linked` do `ci.yml`
+    "vinculação issue↔PR" da nota): o job `Fechamento · issues` do `ci.yml`
     (era close-issues.yml; integrado em 01/10) extrai `Closes/Fixes/Resolves #N`
     do corpo do PR mergeado em develop e
     fecha via API com comentário de rastreabilidade (PR + sha + run).
@@ -725,7 +728,7 @@
     centralização): `docs/CONTRIBUTING.md` liga o ciclo completo
     issue → branch (GitFlow, develop como integração) → conventional
     commits → gates por área (coverage 85% incluso) → PR (tabelas do
-    template) → fechamento automático da issue pelo job `close-linked`;
+    template) → fechamento automático da issue pelo job `Fechamento · issues`;
     regras de casa escritas (epic não fecha por filha, vínculo de
     fechamento no CORPO do PR, ci-lite, achados-security manual).
     Indexado no INDEX.md (rota + inventário) e no seletor de issues

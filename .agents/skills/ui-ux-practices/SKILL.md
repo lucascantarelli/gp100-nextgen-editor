@@ -10,8 +10,8 @@ metadata:
 Use ao escrever ou revisar QUALQUER código de front do projeto (issues do
 GitHub, milestone `v1.0.0`; fases UI no ROADMAP/UI_PLAN — branch/PR pela skill
 `github-flow`). Complementa a skill `rust-practices` (gates do lado Rust) e os
-ADRs de `docs/DECISIONS.md`. Fontes: [docs/UI_DESIGN.md](../../docs/UI_DESIGN.md)
-(tokens — FONTE ÚNICA de valores), [docs/UI_PLAN.md](../../docs/UI_PLAN.md)
+ADRs de `docs/DECISIONS.md`. Fontes: [docs/UI_DESIGN.md](../../../docs/UI_DESIGN.md)
+(tokens — FONTE ÚNICA de valores), [docs/UI_PLAN.md](../../../docs/UI_PLAN.md)
 (arquitetura/issues) e as práticas citadas em cada seção (WCAG 2.2, Fitts,
 Miller, escala 8pt/Fibonacci).
 
@@ -94,9 +94,13 @@ pnpm build         # vite build (bundle; tsc já rodou acima)
 - **A11y é gate**: primitivos têm testes de papel/label/foco; regressão de
   contraste/foco = falha de CI, não sugestão.
 - Rust lado Tauri (`packages/app/api/`, crate `gp100-ui` — ADR-7): mesmos
-  gates da `rust-practices` (fmt, clippy -D warnings, testes).
-- CI roda os dois mundos no reusable `.github/workflows/_validate.yml`
-  (job `front` 3-OS + job `rust`/ui-rust; e2e/e2e-visual/e2e-tauri por cima).
+  gates da `rust-practices` (fmt, clippy -D warnings, testes), no job
+  `Lint`/`Compilação`/`Testes · Rust (… · ui-rust · windows-latest)`.
+- CI é **um workflow só** (`.github/workflows/ci.yml`, #68). Os gates do front:
+  `Lint · UI (eslint)` · `Compilação · UI (tsc + vite · <os>)` em 3-OS ·
+  `Testes · UI (vitest)` · `Cobertura · UI (gate 85%)` · e os e2e
+  (`Testes · E2E shell`, `· E2E visual`, `· E2E webview`). Não existe mais o
+  `_validate.yml` nem jobs `front`/`ui-rust`/`e2e-visual` com esses nomes.
 
 ## Armadilhas específicas de Tauri 2 desktop
 
