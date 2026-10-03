@@ -67,12 +67,14 @@
 
 | # | Item | Estado | Implementação | Teste |
 |---|---|---|---|---|
-| L1 | Rec VOL · Play VOL · P-VOL (0–99) | ✅ rack com os 3 sliders do menu LOOPER do firmware | LooperPanel.tsx | looper e2e |
-| L2 | Pre/Post — 90s PRE / 45s POST | ✅ seletor com os tempos reais; máximo muda com o modo | LooperPanel + LOOP_SECONDS_* | looper e2e |
-| L3 | Transporte REC/PLAY/DUB/STOP/REW | ✅ máquina de estados como pedaleira; PLAY disabled sem fita; **R global = REC** | LooperPanel + useGlobalShortcuts | looper + R-ATALHOS e2e |
+| L1 | Rec VOL · Play VOL · P-VOL (0–99) | ✅ os 3 ganhos do menu LOOPER como faders com sulco e capuz metálico (#12) | LooperPanel.tsx + looper.css | looper e2e + deck unit |
+| L2 | Pre/Post — 90s PRE / 45s POST | ✅ chave de duas posições no sulco, com a ativa acesa; máximo muda com o modo | LooperPanel + LOOP_SECONDS_* | looper e2e + deck unit |
+| L3 | Transporte REC/PLAY/DUB/STOP/REW | ✅ máquina de estados como pedaleira; PLAY disabled sem fita; **R global = REC**; teclas com chanfro + LED de estado (#12) | LooperPanel + useGlobalShortcuts | looper + R-ATALHOS e2e + deck unit |
 | L4 | CLEAR com confirmação | ✅ 2 toques (✕ → ok?) | LooperPanel.tsx | looper e2e |
-| L5 | Contador mm:ss | ✅ role=timer | LooperPanel.tsx | looper e2e (anda + REW) |
-| L6 | Specs 24-bit/44.1kHz/SNR 110dB | ✅ nota única no rack (duplicação removida 30/09) | LooperPanel.tsx | — |
+| L5 | Contador mm:ss | ✅ **7 segmentos** com o `mm:ss` exato no texto acessível (#12) | LooperPanel.tsx | looper e2e (anda + REW) + deck unit |
+| L6 | Specs 24-bit/44.1kHz/SNR 110dB | ✅ nota única no mix (duplicação removida 30/09) | LooperPanel.tsx | — |
+| L7 | *(visual, #12)* Rolo / cabeçote / capstan do caminho da fita | ✅ **deck em 1 SVG** com rolos, ponte, cabeçotes, capstan e fita; pacote de fita dirigido pelos segundos | LooperPanel.tsx | deck unit + visual e2e |
+| L8 | *(visual, #12)* VU com face iluminada | ✅ régua VU não-linear (-30→+3 dB), zona vermelha no +1, agulha em repouso | LooperPanel.tsx | visual e2e |
 
 ## 7. Settings (manual §"menu GLOBAL" + captura §1.2)
 

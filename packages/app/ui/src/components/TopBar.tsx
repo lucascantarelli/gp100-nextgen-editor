@@ -145,15 +145,15 @@ const badge: CSSProperties = {
   background: "color-mix(in srgb, var(--accent) 12%, transparent)",
   whiteSpace: "nowrap",
 };
-/* stepper de BPM da navbar: − valor + (tabular; clamp 40–240 igual ao modal) */
+/* stepper de BPM da navbar: − valor + (tabular; clamp 40–240 igual ao modal).
+   As medidas vivem no CSS (`.nb-step`/`.nb-bpm`) para o media query ≤1024
+   poder encolher o bloco e devolver largura ao chip do ritmo. */
 const stepper: CSSProperties = { display: "inline-flex", alignItems: "center", gap: "var(--space-4)" };
-const stepBtn: CSSProperties = { padding: "4px 8px", minWidth: 28 };
 const bpmVal: CSSProperties = {
   fontFamily: "var(--font-mono)",
   fontSize: "var(--text-sm)",
   fontWeight: 700,
   color: "var(--text)",
-  minWidth: 32,
   textAlign: "center",
   fontVariantNumeric: "tabular-nums",
 };
@@ -267,24 +267,20 @@ export function TopBar({
       <div className="gp-surface gp-surface--flat gp-specular nb-cluster" role="status" aria-label={MSG.connClusterAria}>
         <span className={connected ? "live-dot" : "idle-dot"} aria-hidden="true" />
         <span style={label}>{connected ? MSG.connShortOn : MSG.connShortOff}</span>
-        {mock && <span className="mock-badge" style={badge}>{MSG.mockBadge}</span>}
+        {mock && <span className="mock-badge nb-push" style={badge}>{MSG.mockBadge}</span>}
         <span className="nb-div" style={divider} aria-hidden="true" />
         <button
-          className="gp-btn nb-accent"
-          style={{
-            ...nbBtn,
-            padding: "4px 9px",
-            fontFamily: "var(--font-mono)",
-            fontSize: "var(--text-md)",
-            ...(booting ? { opacity: 0.7, cursor: "progress" } : {}),
-          }}
+          className="gp-btn nb-icon-btn"
+          style={{ ...nbBtn, fontFamily: "var(--font-mono)", fontSize: "var(--text-md)" }}
           onClick={onBoot}
           disabled={booting}
           aria-busy={booting}
           aria-label={MSG.rescanAria}
           title={MSG.rescanTitle}
         >
-          ⟳
+          <span className="nb-spin" aria-hidden="true">
+            ⟳
+          </span>
         </button>
       </div>
 
@@ -315,7 +311,7 @@ export function TopBar({
         </button>
         <button
           className={btn(drumOpen)}
-          style={{ ...nbBtn, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", minWidth: 0, padding: "4px 10px" }}
+          style={{ ...nbBtn, flex: "1 1 auto", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", minWidth: 0, padding: "4px 10px" }}
           onClick={() => onDrumOpenChange(!drumOpen)}
           aria-expanded={drumOpen}
           aria-haspopup="dialog"
@@ -326,17 +322,19 @@ export function TopBar({
         </button>
         <span style={stepper}>
           <button
-            className={btn()}
-            style={{ ...nbBtn, ...stepBtn }}
+            className={`${btn()} nb-step`}
+            style={nbBtn}
             aria-label={MSG.drumBpmDownAria}
             onClick={() => onDrum({ ...drum, bpm: Math.max(40, drum.bpm - 1) })}
           >
             −
           </button>
-          <span style={bpmVal}>{drum.bpm}</span>
+          <span className="nb-bpm" style={bpmVal}>
+            {drum.bpm}
+          </span>
           <button
-            className={btn()}
-            style={{ ...nbBtn, ...stepBtn }}
+            className={`${btn()} nb-step`}
+            style={nbBtn}
             aria-label={MSG.drumBpmUpAria}
             onClick={() => onDrum({ ...drum, bpm: Math.min(240, drum.bpm + 1) })}
           >
@@ -353,7 +351,7 @@ export function TopBar({
         <span className="nb-cap" style={label}>{MSG.masterLabel}</span>
         <Slider value={masterVol} onChange={onMasterVol} ariaLabel={MSG.masterAria} w={68} />
         <span style={val}>{masterVol}</span>
-        <span className="nb-div" style={divider} aria-hidden="true" />
+        <span className="nb-div nb-push" style={divider} aria-hidden="true" />
         <button
           className={[btn(killed), glassCls].filter(Boolean).join(" ")}
           style={{

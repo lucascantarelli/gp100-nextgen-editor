@@ -194,9 +194,10 @@ export const MSG = {
   looperPostAria: "Looper em POST (45 segundos, com efeitos)",
   looperVuAria: (channel: string, active: boolean) =>
     `VU meter canal ${channel}${active ? " com sinal" : " em repouso"}`,
-  reelAria: (label: string, spinning: boolean) =>
-    `Rolo ${label}${spinning ? " girando" : " parado"}`,
-  capstanTitle: "capstan",
+  /* o deck é uma ilustração única: o nome acessível descreve o mecanismo
+     inteiro (rolos + cabeçotes + capstan) e o estado de movimento */
+  looperDeckAria: (spinning: boolean) =>
+    `Deck de fita: rolo de alimentação, cabeçotes e capstan, rolo de recolhimento${spinning ? ", em movimento" : ", parado"}`,
   reelSupply: "Supply",
   reelTakeup: "Take-up",
 

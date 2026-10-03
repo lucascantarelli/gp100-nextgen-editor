@@ -479,6 +479,44 @@ oficial Tauri v2 (webkit2gtk-driver + xvfb + WEBKIT_DISABLE_DMABUF_RENDERER).
 > baselines de painéis foram regeneradas. 72/72 e2e ✅ com comparação
 > limpa na 2ª execução.
 
+### Rodada #12 — Looper deck + navbar em rack (03/10)
+
+**Efeito:** painel do looper redesenhado (issue #12) + navbar com largura de
+módulo igual.
+
+**Achados:**
+- **Cronômetro ao contrário (achado pelo owner em tela).** O `mm:ss` tem 5
+  caracteres e só 4 dígitos; indexando a posição do dígito pelo índice do
+  CARACTERE, a vírgula ocupava um slot da lista e o último dígito caía fora
+  (`undefined` → `x=0`), se sobrepondo ao primeiro. Só era visível quando os
+  segundos saíam do zero: "00:05" desenhava "50:00". O teste anterior contava
+  28 polígonos e passava — contava a pele, não a posição. Agora há assert de
+  4 posições distintas e crescentes.
+- **Fita sumindo atrás do metal.** A fita era pintada antes dos cabeçotes: nos
+  40px onde ela cruza o corpo do cabeçote, o traço âmbar desaparecia e o deck
+  parecia ter um mecanismo solto. A fita vai **por cima** — é assim que ela
+  passa de verdade, contra a face polida do cabeçote.
+- **Alvos abaixo do piso.** A chave de rota (26px) e os faders (26px)
+  reprovaram o gate R6 (≥32px). Ambos foram a 32px.
+- **Chip do drum virando "R…" em 1024.** Com a navbar em colunas iguais o
+  stepper de BPM passou a comer o módulo do drum. `.nb-step`/`.nb-bpm` foram
+  para o CSS para o media query poder encolher o bloco.
+- **Banner quebrando em 2 fileiras.** `flex: 1 1 auto` no rack faz a base do
+  flex virar o max-content (~1360px) e o header quebra a linha. `flex: 1 1 0`
+  resolve — banner volta a 54px.
+- **Tema claro incoerente.** Os tokens de superfície invertem e o looper virava
+  painel branco com deck preto. `.lp` remapeia os tokens para os valores
+  escuros: a máquina é escura nos dois temas.
+- **Espaço vertical.** A 1ª versão do deck ficou 489px (quase o dobro do
+  looper antigo). ViewBox reencolhido para 560×170 (3,3:1) → 423px.
+
+**Posições testadas:** 1–9 (9 slots do palco) + 7 controles do looper
+(REW/STOP/PLAY/REC/CLEAR, PRE/POST, 3 faders) + 4 módulos da navbar.
+
+**Status:** ✅ 141 unit · 53 e2e funcionais (R1–R6 + drum + looper + 3
+responsivos + atalhos) · cobertura 90,1%/85,9% · baselines visuais
+regeneradas pela CI.
+
 ## Registro de rodada (colar no fim de docs/UI_REFERENCE.md §3)
 
 ```

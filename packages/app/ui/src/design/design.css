@@ -248,9 +248,13 @@ body {
   border-color: var(--accent-glow);
 }
 
-/* ── Navbar (issue #10): clusters uniformes + larguras responsivas ──
-   .nb-cluster dá o ritmo dos 4 módulos (gap/padding em CSS para o media
-   query poder apertar a navbar sem quebrar a linha do banner); */
+/* ── Navbar (issues #10 e #12): rack de módulos de LARGURA IGUAL ──────
+   Os quatro módulos (conexão · patch · drum · master) ocupam colunas de
+   mesma largura: o banner deixa de ser uma fileira de blocos de tamanho
+   sorteado e passa a ser um RACK. Em cima disso, uma gramática interna
+   única em todo módulo — LEITURA À ESQUERDA, AÇÃO À DIREITA (o
+   `.nb-push` empurra o segundo grupo para a borda oposta), com os
+   separadores marcando a virada. */
 .nb-cluster {
   display: flex;
   align-items: center;
@@ -258,19 +262,35 @@ body {
   padding: 6px var(--space-12);
   min-width: 0;
 }
-/* CONTroles à direita: nowrap + min-width 0 → os clusters ENCOLHEM
-   (com ellipsis nos filhos) em vez de quebrar o banner em 2 fileiras */
+/* CONTroles à direita: grid de colunas iguais (não flex) — é o que dá a
+   largura uniforme. min-width 0 nas colunas deixa os módulos encolherem
+   (com ellipsis nos filhos) em vez de estourar a janela */
 .nb-controls {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   align-items: center;
   gap: var(--space-8);
-  flex-wrap: nowrap;
+  /* basis 0 (e não auto): com `auto` a base do flex vira o max-content do
+     rack (~1360px) e o header — que é flex-wrap — quebrava o banner em
+     duas fileiras. Com 0 o grupo cresce só até o que sobra da linha. */
+  flex: 1 1 0;
   min-width: 0;
-  justify-content: flex-end;
+}
+/* gramatica do módulo: o que vem depois disto encosta na borda direita */
+.nb-push {
+  margin-left: auto;
+}
+/* stepper de BPM: − valor + (geometria no CSS para o media query poder
+   encolher o bloco sem mexer no componente) */
+.nb-step {
+  padding: 4px 8px;
+  min-width: 28px;
+}
+.nb-bpm {
+  min-width: 32px;
 }
 /* ≤1024 (breakpoint do .nb-cap): a navbar aperta SEM quebrar — some o
-   prefixo do chip e os separadores e o ritmo interno encolhe (medido:
-   o grupo cai de ~890 para ~770 e o banner segue numa linha só) */
+   prefixo do chip e os separadores e o ritmo interno encolhe */
 @media (max-width: 1024px) {
   .nb-controls {
     gap: var(--space-4);
@@ -282,13 +302,28 @@ body {
   .nb-chip-pre {
     display: none;
   }
+  /* o stepper de BPM é o bloco mais caro do módulo do drum: encolhê-lo
+     devolve largura ao chip do ritmo (que estava virando "R…") */
+  .nb-step {
+    padding: 4px 4px;
+    min-width: 24px;
+  }
+  .nb-bpm {
+    min-width: 24px;
+    font-size: var(--text-xs);
+  }
 }
-/* Abaixo de 1024 o grupo volta a QUEBRAR (como o flex-wrap antigo da
-   navbar): sem isso o min-content do header estica a coluna do grid do
-   main em 800px (a página inteira ficava mais larga que a janela) */
+/* Abaixo de 1024 o rack vira 2×2 (o flex-wrap antigo deixava os módulos
+   com larguras diferentes de novo — voltando ao defeito da #12) */
 @media (max-width: 1023px) {
   .nb-controls {
-    flex-wrap: wrap;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+/* E em telas de celular os módulos empilham um a um */
+@media (max-width: 620px) {
+  .nb-controls {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -304,6 +339,41 @@ body {
   border-color: var(--accent-glow);
   box-shadow: inset 0 1px 0 var(--light-top), 0 2px 0 var(--shade-deep),
     0 0 10px color-mix(in srgb, var(--accent-glow) 35%, transparent);
+}
+/* Re-escanear: botão de ÍCONE quieto (o ⟳ antigo era um quadrado violeta
+   que gritava mais que o logo) e com o giro do boot no estado ocupado */
+.nb-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  padding: 0;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  box-shadow: none;
+}
+.nb-icon-btn:hover:not(:disabled) {
+  color: var(--accent-text);
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+}
+.nb-icon-btn:disabled {
+  color: var(--accent-text);
+  opacity: 1;
+  cursor: progress;
+}
+.nb-icon-btn:disabled .nb-spin {
+  animation: nb-rotate 1s linear infinite;
+}
+@keyframes nb-rotate {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nb-icon-btn:disabled .nb-spin {
+    animation: none;
+  }
 }
 
 /* texto GRAVADO (emboss) — rótulos de chapa e legendas de placa */

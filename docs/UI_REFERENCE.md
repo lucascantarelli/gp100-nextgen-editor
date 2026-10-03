@@ -302,22 +302,69 @@ FASE 3 — CONTO E POLIMENTO
   Settings (gênero → estilo dependente, BPM, compasso, volume, speed;
   prévia local persistente — o drum NUNCA volta tocando).
 
-### 7.2 Looper — máquina de fita reel-to-reel (skeuomórfico)
+### 7.2 Looper — máquina de fita reel-to-reel, em alumínio violeta (issue #12, 03/10)
 - **Dados reais (firmware menu LOOPER):** Rec VOL (0–99) · Play VOL (0–99) ·
   Pre/Post · P-VOL.
 - **Specs oficiais (valeton.net + manual v1.8):** loop stereo com efeitos,
   **90 s em PRE / 45 s em POST** (24-bit · 44.1 kHz · SNR 110 dB).
-- **Referências visuais (pesquisa):** Studer A807 / Nagra / Tandberg — dois rolos
-  (supply/take-up) girando quando roda, VU meters com face âmbar e agulha animada,
-  contador mecânico estilo fita, transporte com símbolos clássicos
-  (⏪ ■ ▶ ●) e cabeçotes REC/PB + capstan no caminho da fita.
-- **UI (`LooperPanel`):** deck de fitas + VU L/R + contador mm:ss + transporte
-  (REW/STOP/PLAY/REC/CLEAR com confirmação; PLAY desabilitado com fita vazia;
-  REC→PLAY→DUB→PLAY como looper de pedaleira) + rack com os 4 parâmetros do
-  firmware + seletor PRE·90s/POST·45s + nota de specs. Prévia local (fio aguarda
-  captura G3–G6).
-- **Ajuste de linguagem visual:** painel "madeira/metal" escuro compatível com a
-  paleta palco; animações desligam com `prefers-reduced-motion`.
+- **Referências visuais:** Studer A807 / Nagra / Tandberg — dois rolos
+  (supply/take-up), VU meters com face âmbar e agulha, contador mecânico,
+  cabeçotes REC/PB + capstan no caminho da fita.
+
+**O que mudou na #12 (o painel anterior era sépia/bege dentro de uma casca
+violeta, com três colunas soltas e muito espaço morto):**
+
+| Peça | Antes | Agora |
+|---|---|---|
+| **Cor** | sépia/bege — um deck de 1990 dentro de uma UI violeta | **violeta da identidade**; o âmbar fica só no ANALÓGICO (a fita e a luz de fundo do VU). Violeta = digital, âmbar = analógico |
+| **Deck** | 3 `<svg>` soltos (2 rolos + blocos REC/PB) que não se encaixavam quando a coluna mudava de largura | **1 SVG só** (`viewBox 560×170`) com rolos, ponte, cabeçotes, capstan e o caminho da fita — a geometria é exata em qualquer largura |
+| **Rolos** | disco escuro com 3 raios | flange de alumínio anodizado com canalheado, **3 raios cônicos por cima do pacote de fita** (a fita aparece pelos vãos ENTRE os raios, como no rolo real) + cubo e furo |
+| **Fita** | não existia | **um caminho só**, saindo do fundo do supply, descendo aos cabeçotes e subindo para o take-up. Pintada **POR CIMA** dos cabeçotes (é assim que ela passa de verdade; atrás, a linha sumia no metal) |
+| **Pacote de fita** | fixo | **dirigido pelos segundos**: supply esvazia e take-up enche, e `supply + takeup` é constante (a fita não é criada nem sumida). No repouso a máquina aparece ENFIADA (supply cheio, take-up vazio) |
+| **Contador** | texto mono numa caixa | **7 segmentos** de verdade (28 polígonos) com brilho violeta que muda com o transporte; o texto acessível continua sendo o `mm:ss` exato |
+| **VU** | retângulo bege com agulha curta | visor de vidro com **face mais clara no topo** (lâmpada atrás da escala), régua VU **não-linear** (-30→+3 dB), zona vermelha no +1, risco de luz no vidro, agulha em repouso que só varre com sinal |
+| **Transporte** | 5 botões com gradiente | **teclas de metal com chanfro** (fio de luz em cima + sombra de contato embaixo + recuo no `:active`) e **LED de estado** na face; ícones em SVG (emoji de fonte de sistema denunciava o truque) |
+| **Rota PRE/POST** | 2 botões soltos | **chave de duas posições** num sulco escuro, com a posição ativa acesa por dentro |
+| **Ganhos** | `<input type=range>` com `accentColor` | **fader de verdade**: sulco rebaixado, barra de sinal e **capuz metálico**; o `input` fica transparente por cima (teclado e teste seguem funcionando) |
+| **Layout** | `repeat(auto-fit, minmax(300px,1fr))`, 3–4 colunas soltas | **2 colunas** (deck \| medição+transporte) com head e mix atravessando; 1 coluna ≤900px |
+| **Altura** | 260px | 423px @1440 — **mais alto, e esse é o ponto**: a máquina virou o elemento mais presente da tela, que era o pedido ("a pérola do projeto") |
+
+- **Tema:** a máquina é **escura nos dois temas**. `.lp` remapeia os tokens de
+  superfície para os valores escuros: um instrumento de rack não fica branco
+  quando o sistema fica (sem isto o looper virava painel branco com visor preto).
+- **Uma direção de luz só** em todo o painel (cima, como o `.gp-specular`):
+  peça convexa ganha fio de luz em cima e sombra de contato embaixo; peça côncava
+  (poço do deck, sulco do fader, visor do VU) ganha o inverso. É o que faz o
+  painel ler como um objeto e não como um conjunto de caixas.
+- **Estado nunca só por cor:** transporte em `aria-pressed`, LED da tecla
+  espelhando o mesmo estado, LED de armed no deck aceso em REC/DUB.
+- Animações (rolo girando, agulha, LED piscando) desligam com
+  `prefers-reduced-motion`.
+- **Limite declarado:** é PRÉVIA LOCAL — a escrita no device do looper continua
+  esperando a captura G3–G6 (fio).
+
+### 7.3a Navbar como RACK de largura igual (issue #12, 03/10)
+
+> Pedido do owner: "os componentes estão com tamanhos diferentes de largura,
+> alinha todos os componentes". Os quatro módulos (conexão · patch · drum ·
+> master) ocupavam 220/267/266/317px — larguras sorteadas.
+
+- `.nb-controls` saiu de `flex` para **`grid` de 4 colunas `minmax(0, 1fr)`** —
+  larguras iguais por construção (315px cada @1440, 214px @1024), medidas e
+  travadas em teste.
+- `flex: 1 1 0` (e não `auto`): com `auto` a base do flex vira o max-content do
+  rack e o header — que é `flex-wrap` — quebrava o banner em duas fileiras.
+- **Gramática interna única em todo módulo:** leitura à esquerda, ação à direita
+  (`.nb-push` empurra o segundo grupo para a borda oposta), separador marcando
+  a virada. `.nb-cluster` nunca mais usa `space-between` (espalhava o módulo de
+  conexão em 4 vãos de 51px).
+- **Abaixo de 1024** o rack vira **2×2** (o `flex-wrap` antigo devolvia
+  larguras diferentes — voltando ao defeito) e **1 coluna ≤620px**.
+- **Reescanear (⟳)** deixou de ser um quadrado violeta que gritava mais que o
+  logo: virou botão de ícone quieto que **gira enquanto o boot roda**.
+- **Stepper de BPM** encolhe em ≤1024 (`.nb-step`/`.nb-bpm` foram para o CSS
+  justamente para o media query poder apertá-lo sem mexer no componente) —
+  sem isso o chip do ritmo virava "R…".
 
 ### 7.3 Responsividade da casca (R-responsivo, 30/09)
 
@@ -330,7 +377,7 @@ FASE 3 — CONTO E POLIMENTO
 |---|---|---|
 | `.shell-main` | `design.css` (usada em `App.tsx`) | `minmax(0,1fr) 248px` (era 320px; estreitada na #11 para devolver largura ao pedalboard — 9 slots ganham ~50px de palco); ≤1100px EMPILHA (biblioteca vira linha, mesma largura do board) |
 | `.board-slots` | `design.css` (usada em `Stage.tsx`) | colunas por conteúdo: `repeat(3, minmax(132px, max-content))`; ≥1700px `repeat(9, minmax(118px, max-content))`; `overflow-x: auto` |
-| Looper `card` | `LooperPanel.tsx` | `repeat(auto-fit, minmax(300px,1fr))`: 4 tracks @1440 (a 4ª colapsa a 0px — sem buraco), 3 tracks @1280/1024 |
+| Looper `card` | `looper.css` | `minmax(0,1.08fr) minmax(0,1fr)`: **2 colunas** (deck \| medição+transporte) com a faixa de head e o mix atravessando as duas; **1 coluna ≤900px** (#12) |
 | `.gp-num` | `design.css` | number input sem spinners (visual idêntico aos selects) |
 
 - **Medidas canônicas (Chrome):** overflow X = 0 nos 3 tamanhos; slots medidos
