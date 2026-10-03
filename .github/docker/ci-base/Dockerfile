@@ -55,7 +55,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
 
 RUN apt-get update -y \
  && apt-get install -y --no-install-recommends \
-      ca-certificates curl git jq pkg-config libasound2-dev \
+      ca-certificates curl git jq pkg-config libasound2-dev xz-utils \
  && rm -rf /var/lib/apt/lists/*
 
 # uv pelo instalador oficial: a imagem `rust:slim-bookworm` não traz Python
@@ -78,8 +78,13 @@ RUN case "$(dpkg --print-architecture)" in \
  && npm install -g "pnpm@${PNPM_VERSION}" --no-fund --no-audit
 
 # ── Sanidade: se faltar ferramenta, o BUILD falha (não o job na CI) ──
+# `xz` entrou na lista de propósito: o `tar -xJf` do Node depende dele e o
+# `rust:slim-bookworm` (debian-slim) não traz — a imagem `ubuntu` da ci-linux
+# traz, e por isso o mesmo trecho passava lá e morria aqui com
+# `xz: Cannot exec: No such file or directory` NO MEIO da instalação do Node.
+# Checando o binário, a falha aparece aqui, com nome, em vez de 6 camadas depois.
 RUN set -eux \
- && for bin in rustc cargo rustfmt cargo-clippy uv node pnpm git jq pkg-config; do \
+ && for bin in rustc cargo rustfmt cargo-clippy uv node pnpm git jq pkg-config xz; do \
       command -v "$bin"; \
     done \
  && rustc --version && cargo --version && uv --version \
