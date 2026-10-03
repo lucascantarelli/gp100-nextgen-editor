@@ -102,6 +102,9 @@ Instaladores, firmware V2.1, manual, driver, DebugView, screenshots,
 | `check_commits.py` | Conventional commits (`--no-merges`) | `Lint · mensagens de commit` |
 | `ci_report.py` / `security_report.py` / `ci_timings.py` | Step summary, achado de segurança como issue, medição de tempos | `Relatório · resumo` / `Segurança · auditorias` |
 | `make_icon.py` | Gera a fonte 1024² do ícone a partir dos tokens do tema | local (`tauri icon` deriva o set) |
+| `gates.py` | **Roda todos os gates de script de uma vez**, na ordem do CI (`--list` mostra a lista) | local (`python3 scripts/gates.py`) |
+| `make_sdist.py` | Tarball de fonte com o `ui/dist` embutido — insumo do PKGBUILD | `Distribuição · tarball de fonte` |
+| `sync_version.py` | Os 5 manifests de versão em sincronia (`--check` é o gate) | `Lint · contratos do pipeline` |
 | `add_cargo_path.ps1` / `h1_field.sh` | Fix do PATH do cargo (HKLM) · runbook do gate H1 | local / campo |
 
 ### Raiz do repo — governança

@@ -7,11 +7,20 @@ dependencies = [
     "capstone>=5.0",
     "pefile>=2023.2.7",
     "ziglang>=0.13",
+    # `scripts/validate_workflows.py` importa `yaml`. Ate #80 ele nao era
+    # declarado aqui, entao `uv sync && uv run python
+    # scripts/validate_workflows.py` morria com ModuleNotFoundError e so
+    # funcionava na CI, onde o job instala pyyaml na linha de comando. Gate
+    # que so reproduz no servidor e gate que ninguem roda antes de commitar.
+    "pyyaml>=6.0",
 ]
 
 [dependency-groups]
 test = [
     "pytest>=8.0",
+    # Mesmo motivo para o grupo de teste: `check_bundle.py` valida o
+    # `tauri.conf.json` contra o schema oficial e cai para AVISO sem isto.
+    "jsonschema>=4.0",
 ]
 
 [tool.uv]
