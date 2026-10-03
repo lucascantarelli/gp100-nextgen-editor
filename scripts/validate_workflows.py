@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Validação sintática + de CONTRATO do pipeline (gate do CI, estágio `1 lint`).
+Validação sintática + de CONTRATO do pipeline (gate do CI, job `Lint · contratos do pipeline`).
 
 Por que este arquivo existe: o YAML do GitHub aceita muita coisa que só quebra
 em produção — um `permissions` que o reusable pede e o caller não concede morre
@@ -18,14 +18,15 @@ Contratos verificados:
   2. gatilhos: push em develop/main/feature/bugfix/hotfix/release + tag v*;
      PR em develop/main com o tipo `closed`;
   3. permissão MÍNIMA no topo (`contents: read`) — o `write` é por job;
-  4. os 9 estágios e os 25 jobs existem, com prefixo numérico único e em ordem;
-  5. a regra branch → estágios mora em `scripts/ci_plan.py` e NÃO volta para
+  4. os 11 tipos de job e os 25 jobs existem, com nome no padrão `Tipo · o que é`,
+     sem prefixo numérico, e declarados na sequência da execução;
+  5. a regra branch → tipos de job mora em `scripts/ci_plan.py` e NÃO volta para
      `if:` espalhado no YAML (duas fontes de verdade é como o gate divergiu);
      e o CodeQL NÃO é configurado aqui (o setup padrão do repo está ligado e o
      GitHub recusa SARIF de configuração avançada enquanto ele estiver ativo);
   6. versionamento e distribuição só por `workflow_dispatch`/tag;
   7. `close-issues` exige `merged == true` (PR fechado sem merge não fecha nada);
-  8. o estágio de métricas roda com `if: always()`;
+  8. o job `Relatório` roda com `if: always()`;
   9. as duas imagens: ci-linux (toolset do Tauri) e ci-base (sem GUI, com uv);
  10. composites preservados (shared-key, add-job-id-key, cache do Playwright);
  11. nenhum action da geração Node 20 (deprecada pelo runner).
@@ -67,18 +68,27 @@ def triggers(doc: dict) -> dict:
     return doc.get("on") or doc.get(True) or {}
 
 
-# ── 9 estágios × jobs que cada um DEVE ter ────────────────────────────────
-STAGES: dict[str, list[str]] = {
-    "0": ["plan"],
-    "1": ["lint-workflows", "lint-commits", "lint-rust-fmt", "lint-rust-clippy", "lint-ui"],
-    "2": ["build-rust", "build-ui"],
-    "3": ["test-rust", "test-ui", "test-spec", "test-e2e", "test-e2e-visual", "test-e2e-webview"],
-    "4": ["coverage-ui"],
-    "5": ["sec-audit"],
-    "6": ["metrics"],
-    "7": ["ci-images", "main-guard", "release-rc", "release-promote", "release-play", "dist-ui", "dist-cli"],
-    "8": ["close-issues"],
+# ── TIPOS de job × jobs que cada um DEVE ter ─────────────────────────────
+# A ordem do dicionário É a sequência de execução pedida (validação → lint →
+# compilação → testes → cobertura → segurança → relatório → infra → release →
+# distribuição → fechamento). O GitHub não tem `stages:`; a ordem real é o
+# grafo `needs:`. Então a sequência é garantida aqui como ORDEM DE DECLARAÇÃO
+# no arquivo (que é como a gente lê e como o diff mostra), e o `needs:` garante
+# que ela é real.
+TIPOS: dict[str, list[str]] = {
+    "Validação": ["plan"],
+    "Lint": ["lint-workflows", "lint-commits", "lint-rust-fmt", "lint-rust-clippy", "lint-ui"],
+    "Compilação": ["build-rust", "build-ui"],
+    "Testes": ["test-rust", "test-ui", "test-spec", "test-e2e", "test-e2e-visual", "test-e2e-webview"],
+    "Cobertura": ["coverage-ui"],
+    "Segurança": ["sec-audit"],
+    "Relatório": ["metrics"],
+    "Infra": ["ci-images"],
+    "Release": ["main-guard", "release-rc", "release-promote", "release-play"],
+    "Distribuição": ["dist-ui", "dist-cli"],
+    "Fechamento": ["close-issues"],
 }
+SEQUENCIA_ESPERADA = [j for jobs_ in TIPOS.values() for j in jobs_]
 
 # Legados: a consolidação da #68 os substituiu por um workflow só.
 LEGACY = (
@@ -103,6 +113,14 @@ NODE20_REFS = (
 
 
 def main() -> int:
+    # A console do Windows e cp1252 por padrao, e as mensagens deste arquivo usam
+    # `→` e `·`. Sem isto, uma falha que CONTEM um caractere fora do cp1252
+    # morre com UnicodeEncodeError no `print` — o gate estoura um traceback em
+    # vez de dizer o que reprovou, e parece bug do gate.
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
     workflows = sorted(p.replace("\\", "/") for p in glob.glob(os.path.join(REPO, ".github/workflows/*.yml")))
     workflows = [p[len(REPO) + 1:] for p in workflows]
     docs: dict[str, dict] = {}
@@ -151,28 +169,44 @@ def main() -> int:
     if perms.get("packages") != "read":
         FAILURES.append("ci: permissions.packages precisa ser 'read' (pull das imagens no ghcr.io)")
     if perms.get("actions") != "read":
-        FAILURES.append("ci: permissions.actions precisa ser 'read' (o estágio de métricas lista os jobs)")
+        FAILURES.append("ci: permissions.actions precisa ser 'read' (o job `Relatório` lista os jobs)")
 
     jobs = ci.get("jobs") or {}
 
-    # ── 4. os 9 estágios e seus jobs ──────────────────────────────────────
-    for prefix, expected in STAGES.items():
+    # ── 4. os tipos de job e a ordem de declaração ──────────────────────
+    for tipo, expected in TIPOS.items():
         for job in expected:
             if job not in jobs:
-                FAILURES.append(f"ci: estágio {prefix} perdeu o job '{job}'")
+                FAILURES.append(f"ci: tipo '{tipo}' perdeu o job '{job}'")
 
-    seen_prefix: set[str] = set()
+    tipo_de = {j: t for t, jobs_ in TIPOS.items() for j in jobs_}
     for job_id, job in jobs.items():
         name = str(job.get("name") or "")
-        if not name or not name[0].isdigit():
-            FAILURES.append(f"ci: job '{job_id}' sem prefixo de estágio no name: ('N nome')")
-            continue
-        seen_prefix.add(name.split()[0])
-    for prefix in STAGES:
-        if prefix not in seen_prefix:
-            FAILURES.append(f"ci: estágio {prefix} não tem nenhum job")
+        # O prefixo numérico saiu de propósito (a lista de checks do PR é
+        # alfabética e o número só servia para ordenar a leitura). Este check
+        # impede que ele volte por descuido.
+        if name[:1].isdigit():
+            FAILURES.append(
+                f"ci: job '{job_id}' voltou a ter prefixo numérico no name: {name!r} — "
+                "o padrão é `Tipo · o que é`"
+            )
+        esperado_tipo = tipo_de.get(job_id)
+        if esperado_tipo and not name.startswith(f"{esperado_tipo} · "):
+            FAILURES.append(
+                f"ci: job '{job_id}' deveria ser `{esperado_tipo} · …`, mas é {name!r}"
+            )
+    desconhecidos = sorted(set(jobs) - set(tipo_de))
+    if desconhecidos:
+        FAILURES.append(f"ci: jobs fora de qualquer tipo: {desconhecidos}")
 
-    # ── 5. a REGRA branch → estágios mora no ci_plan.py, e só lá ──────────
+    declarados = list(jobs)
+    if declarados != SEQUENCIA_ESPERADA:
+        FAILURES.append(
+            "ci: ordem de declaração fora da sequência "
+            f"({' → '.join(SEQUENCIA_ESPERADA)}); veio {(' → '.join(declarados))}"
+        )
+
+    # ── 5. a REGRA branch → tipos de job mora no ci_plan.py, e só lá ──────────
     plan_raw = raw("scripts/ci_plan.py")
     ci_raw = raw(".github/workflows/ci.yml")
     for token in ("def classify", "def scopes", "stage-test", "stage-dist", "stage-release"):
@@ -188,7 +222,7 @@ def main() -> int:
     # Se a regra voltar a ser `if:` espalhada, os dois lugares divergem — e o
     # lugar que diverge é sempre o que ninguém lê.
     if "startsWith(github.ref, 'refs/heads/release" in ci_raw or "startsWith(github.ref, 'refs/heads/hotfix" in ci_raw:
-        FAILURES.append("ci: regra branch → estágios NÃO pode voltar como `if:` no YAML (fonte única é ci_plan.py)")
+        FAILURES.append("ci: regra branch → tipos de job NÃO pode voltar como `if:` no YAML (fonte única é ci_plan.py)")
 
     # ── 6. versionamento e dist por evento, nunca por push/PR ────────────
     # A main só recebe o sha de uma tag v*; como o GitHub não deixa expressar
@@ -196,10 +230,10 @@ def main() -> int:
     guard = jobs.get("main-guard") or {}
     guard_if = str(guard.get("if") or "")
     if "refs/heads/main" not in guard_if:
-        FAILURES.append("ci: `7 release · guarda da main` precisa rodar em push na main")
+        FAILURES.append("ci: `Release · guarda da main` precisa rodar em push na main")
     guard_run = " ".join(str(s.get("run") or "") for s in (guard.get("steps") or []))
     if "--points-at" not in guard_run:
-        FAILURES.append("ci: `7 release · guarda da main` precisa conferir se o sha é o de uma tag v*")
+        FAILURES.append("ci: `Release · guarda da main` precisa conferir se o sha é o de uma tag v*")
 
     for job_id in ("release-rc", "release-promote", "release-play"):
         job_if = str((jobs.get(job_id) or {}).get("if") or "")
@@ -235,18 +269,18 @@ def main() -> int:
     # ── 9. as duas imagens ───────────────────────────────────────────────
     images_job = jobs.get("ci-images") or {}
     if (images_job.get("permissions") or {}).get("packages") != "write":
-        FAILURES.append("ci: `7 ci · imagens` precisa de packages: write (push no ghcr.io)")
+        FAILURES.append("ci: `Infra · imagens de container` precisa de packages: write (push no ghcr.io)")
     if "pull_request" not in str(images_job.get("if") or ""):
         FAILURES.append(
-            "ci: `7 ci · imagens` não pode publicar em PR — a imagem é infraestrutura "
+            "ci: `Infra · imagens de container` não pode publicar em PR — a imagem é infraestrutura "
             "versionada, e publicar de um PR colocaria código não revisado no ghcr.io"
         )
     image_matrix = str((images_job.get("strategy") or {}).get("matrix") or "")
     for image in ("ci-linux", "ci-base"):
         if image not in raw(".github/workflows/ci.yml"):
-            FAILURES.append(f"ci: imagem {image} não está na matriz de `7 ci · imagens`")
+            FAILURES.append(f"ci: imagem {image} não está na matriz de `Infra · imagens de container`")
     if image_matrix.count("Dockerfile") < 2:
-        FAILURES.append("ci: `7 ci · imagens` precisa das DUAS imagens (matrix com 2 Dockerfiles)")
+        FAILURES.append("ci: `Infra · imagens de container` precisa das DUAS imagens (matrix com 2 Dockerfiles)")
 
     tauri_docker = raw(".github/docker/ci-linux/Dockerfile")
     for tool in ("tauri-driver", "libwebkit2gtk-4.1-dev", "webkit2gtk-driver", "xvfb", "pnpm fetch"):
@@ -281,12 +315,12 @@ def main() -> int:
     )
     if "check_base_images.py" not in images_run:
         FAILURES.append(
-            "ci: `7 ci · imagens` precisa rodar `check_base_images.py` antes do build — "
+            "ci: `Infra · imagens de container` precisa rodar `check_base_images.py` antes do build — "
             "tag invalida no FROM so aparece DEPOIS de o runner subir camadas, e sem nome de arquivo"
         )
     if "manifest inspect" not in images_run:
         FAILURES.append(
-            "ci: `7 ci · imagens` precisa sondar a tag no ghcr.io (`docker manifest inspect`) — "
+            "ci: `Infra · imagens de container` precisa sondar a tag no ghcr.io (`docker manifest inspect`) — "
             "decidir só pelo diff trava o bootstrap quando a imagem some do registro"
         )
     for consumer in ("test-spec", "sec-audit", "test-e2e-webview"):
