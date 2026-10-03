@@ -408,6 +408,15 @@ jobs:
       - name: testes
         if: matrix.project != 'cli'
         run: cargo test -p ${{ matrix.project == 'ui-rust' && 'gp100-ui' || 'gp100-core' }}
+      # `cargo test` compila o bin-alvo COMO HARNESS (`--test`), e o artefato
+      # fica em target/debug/deps/gp100_cli-<hash>, não em
+      # `target/debug/gp100-cli.exe`. Quem produz o binário de verdade é
+      # `cargo build`. O build de distribution foi para o estagio 7 na #68 e o
+      # smoke ficou sem insumo — o job reprovava com exit 127 ("command not
+      # found") parecendo que o smoke estava quebrado.
+      - name: binário do smoke (o `cargo test` acima não produz o .exe)
+        if: runner.os == 'Windows' && matrix.project == 'cli'
+        run: cargo build -p gp100-cli --features real-device
       - name: smoke da política de hardware (o stack de campo é WinMM)
         if: matrix.project == 'cli' && runner.os == 'Windows'
         uses: ./.github/actions/hardware-smoke
