@@ -58,7 +58,10 @@ const retryBtn: React.CSSProperties = {
 function loadDrum(): DrumState {
   try {
     const raw = localStorage.getItem(DRUM_KEY);
-    if (raw) return JSON.parse(raw) as DrumState;
+    // o drum NUNCA volta tocando: restaura os parâmetros (gênero, estilo,
+    // BPM, compasso, volume, speed) mas play/stop inicia DESLIGADO — o
+    // device não parte em execução nem o navegador herda reprodução
+    if (raw) return { ...(JSON.parse(raw) as DrumState), on: false };
   } catch {
     /* teste: sem localStorage */
   }
@@ -91,7 +94,7 @@ export default function App() {
   const [celebrate, setCelebrate] = useState(false);
   /** Erro amigável + AÇÃO de recuperação (issue #20: nunca spinner eterno). */
   const [err, setErr] = useState<{ message: string; retry: () => void } | null>(null);
-  const [drumOpen, setDrumOpen] = useState(false); // popover do drum (subiu do TopBar p/ precedência do Esc)
+  const [drumOpen, setDrumOpen] = useState(false); // modal do drum (subiu do TopBar p/ precedência do Esc)
   const [recRequest, setRecRequest] = useState(0); // pulso do atalho R (looper)
   const [tuner, setTuner] = useState<TunerSettings>(loadTuner);
   const [, setLooperPlaying] = useState(false); /* looper reporta tocar/gravar */

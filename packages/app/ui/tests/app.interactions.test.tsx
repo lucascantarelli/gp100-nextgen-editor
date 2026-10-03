@@ -478,7 +478,7 @@ describe("Sliders do shell — drum (persistência local)", () => {
     const { root, host } = mount();
     await settle();
 
-    // abre o drawer do drum (chip na navbar)
+    // abre o modal de gestão do drum (chip na navbar)
     const chip = Array.from(host.querySelectorAll("button")).find((b) =>
       (b.getAttribute("aria-label") ?? "").includes("abrir gestão de ritmos"),
     );
@@ -497,27 +497,31 @@ describe("Sliders do shell — drum (persistência local)", () => {
     teardown(root, host);
   });
 
-  it("on/off e compasso do drum aplicam pelo handler (estado do chip)", async () => {
+  it("on/off e compasso do drum aplicam pelo handler (toggle da navbar)", async () => {
     const { root, host } = mount();
     await settle();
 
+    // play/stop vive na navbar (sem abrir o modal — UX da issue #10)
+    const onOff = () =>
+      host.querySelector<HTMLButtonElement>(
+        'button[aria-label="Tocar ou parar o ritmo da bateria"]',
+      )!;
+    expect(onOff().getAttribute("aria-pressed")).toBe("false");
+    act(() => onOff().dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    await settle();
+    expect(onOff().getAttribute("aria-pressed")).toBe("true"); // handler ligou o drum
+    expect(onOff().textContent).toContain("⏹");
+    act(() => onOff().dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    await settle();
+    expect(onOff().getAttribute("aria-pressed")).toBe("false"); // e desligou
+    expect(onOff().textContent).toContain("⏵");
+
+    // o modal de gestão continua abrindo pelo chip (compassos reais)
     const chip = Array.from(host.querySelectorAll("button")).find((b) =>
       (b.getAttribute("aria-label") ?? "").includes("abrir gestão de ritmos"),
     );
     act(() => chip!.dispatchEvent(new MouseEvent("click", { bubbles: true })));
     await settle();
-
-    const onOff = () =>
-      Array.from(host.querySelectorAll("button")).find(
-        (b) => b.textContent === "⏵ tocar" || b.textContent === "⏹ parar",
-      )!;
-    expect(onOff().textContent).toBe("⏵ tocar");
-    act(() => onOff().dispatchEvent(new MouseEvent("click", { bubbles: true })));
-    await settle();
-    expect(onOff().textContent).toBe("⏹ parar"); // handler ligou o drum
-    act(() => onOff().dispatchEvent(new MouseEvent("click", { bubbles: true })));
-    await settle();
-    expect(onOff().textContent).toBe("⏵ tocar"); // e desligou
 
     // compasso: opções reais do firmware, mudança aplicada
     const beat = host.querySelector<HTMLSelectElement>("#drum-beat")!;

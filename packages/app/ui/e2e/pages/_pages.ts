@@ -308,16 +308,19 @@ export class LooperPage {
   }
 }
 
-/* ── Drum: chip da navbar + drawer ── */
+/* ── Drum: chip da navbar + MODAL de gestão (padrão Settings) ── */
 export class DrumPage {
   readonly page: Page;
   readonly chip: Locator;
+  /** play/stop DIRETO na navbar (não exige o modal) */
+  readonly toggle: Locator;
   readonly panel: Locator;
 
   constructor(page: Page) {
     this.page = page;
     this.chip = page.getByRole("button", { name: /^Bateria \(drum\):/ });
-    this.panel = page.getByRole("group", { name: /Gestão de ritmos/ });
+    this.toggle = page.getByRole("button", { name: "Tocar ou parar o ritmo da bateria" });
+    this.panel = page.getByRole("dialog", { name: /Gestão de ritmos/ });
   }
 
   /** chip alternativo com nome acessível longo (muda com o estado) */

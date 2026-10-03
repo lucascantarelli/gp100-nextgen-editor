@@ -98,7 +98,7 @@ test("kill switch: mute global (master→0 + drum off) por teclado e volta", asy
   await page.keyboard.press("Enter");
   await expect(kill).toHaveAttribute("aria-pressed", "true");
   await expect(master).toHaveValue("0");
-  await expect(shell.drum.chip).not.toContainText("⏹"); // bateria parada
+  await expect(shell.drum.toggle).not.toContainText("⏹"); // bateria parada
   await expect(shell.banner).toBeVisible();
   await expect(shell.library.listbox()).toBeVisible();
 
