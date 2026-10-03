@@ -522,27 +522,42 @@
      sulco e é ele que o gate mede */
   height: 32px;
   min-width: 0;
+  /* GEOMETRIA DECLARADA UMA VEZ. O capuz viaja de (inset + thumb/2) até
+     (largura - tail - thumb/2); sulco, preenchimento e input precisam
+     concordar com essas tres medidas, senão a barra sai de registro —
+     foi exatamente o defeito: o preenchimento nascia no left:1 do
+     elemento, usava value% do elemento inteiro (e não value/99 do
+     trilho) e ainda ignorava a largura do capuz. */
+  --lp-inset: 9px; /* recuo esquerdo: onde o capuz começa em 0 */
+  --lp-tail: 34px; /* espaço da leitura numérica à direita */
+  --lp-thumb: 14px; /* largura do capuz */
 }
 .lp-fader::before {
   content: "";
   position: absolute;
-  left: 0;
-  right: 0;
+  left: var(--lp-inset);
+  right: var(--lp-tail);
   top: 50%;
-  height: 8px;
+  height: 10px;
   transform: translateY(-50%);
   border-radius: 999px;
   background: linear-gradient(180deg, var(--hw-display-2) 0%, var(--hw-display-1) 100%);
   border: 1px solid var(--hw-edge);
   box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.85), 0 1px 0 var(--light-top);
 }
+/* a ponta do preenchimento acompanha o CENTRO do capuz em qualquer valor:
+   thumb/2 no repouso, + (trilho - thumb) × fração */
 .lp-fader-fill {
   position: absolute;
-  left: 1px;
+  left: var(--lp-inset);
   top: 50%;
   height: 6px;
   transform: translateY(-50%);
   border-radius: 999px;
+  width: calc(
+    var(--lp-thumb) / 2 +
+      (100% - var(--lp-inset) - var(--lp-tail) - var(--lp-thumb)) * var(--r, 0)
+  );
   background: linear-gradient(
     90deg,
     color-mix(in srgb, var(--accent) 55%, transparent) 0%,
@@ -556,7 +571,7 @@
   width: 100%;
   height: 32px;
   margin: 0;
-  padding: 0 26px 0 9px;
+  padding: 0 var(--lp-tail) 0 var(--lp-inset);
   background: transparent;
   appearance: none;
   -webkit-appearance: none;
@@ -569,7 +584,7 @@
 .lp-fader input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 14px;
+  width: var(--lp-thumb);
   height: 22px;
   border-radius: 4px;
   background: linear-gradient(
@@ -586,7 +601,7 @@
   background: transparent;
 }
 .lp-fader input[type="range"]::-moz-range-thumb {
-  width: 14px;
+  width: var(--lp-thumb);
   height: 22px;
   border-radius: 4px;
   background: linear-gradient(
@@ -609,7 +624,7 @@
   right: 0;
   top: 50%;
   transform: translateY(-50%);
-  min-width: 30px;
+  width: calc(var(--lp-tail) - 4px);
   text-align: right;
   font-family: var(--font-mono);
   font-size: var(--text-sm);

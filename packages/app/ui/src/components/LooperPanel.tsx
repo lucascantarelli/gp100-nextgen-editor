@@ -23,6 +23,7 @@
  * está implementada); volumes/rota ficam em localStorage, transporte é de sessão.
  */
 import { useEffect, useRef, useState } from "react";
+import type { CSSProperties } from "react";
 import { MSG } from "../i18n/messages";
 
 export interface LooperSettings {
@@ -609,7 +610,14 @@ export function LooperPanel({
               {label}
             </label>
             <div className="lp-fader">
-              <span className="lp-fader-fill" style={{ width: `calc(${value}% + 2px)` }} aria-hidden="true" />
+              {/* --r = fração real do curso (0..99) — o CSS usa a MESMA
+                  fração para a ponta do preenchimento e para a posição
+                  do capuz, então os dois não podem sair de registro */}
+              <span
+                className="lp-fader-fill"
+                style={{ "--r": value / 99 } as CSSProperties}
+                aria-hidden="true"
+              />
               <input
                 id={id}
                 type="range"
