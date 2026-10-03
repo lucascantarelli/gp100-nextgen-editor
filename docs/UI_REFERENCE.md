@@ -93,7 +93,7 @@ General:
 | Footswitch Mode | texto do manual ao lado do Global EQ | Stomp Mode / FS1-FS2 (fase futura) |
 | USB Audio ON/OFF | idem | aba General (toggle prévia) |
 | Tap Tempo Mode | tooltip do manual no checkbox (PRE/MOD/DLY) | aba General (checkbox trio) |
-| APP Language | combo English (firmware tem en/zh/CN/es) | i18n 4 línguas (UI_PLAN M1.5) |
+| APP Language | combo English (firmware tem en/zh/CN/es) | i18n 4 línguas — **FEITO (#30)**, select funcional |
 | Página do pedal | painel grande = 1 módulo com knobs + ⓘ | modal de edição do pedal (fase 2) |
 
 ---
@@ -516,8 +516,8 @@ o retrato do PALCO, não do preset de fábrica.
 3. **Números e dados reais** — 87 ritmos, 99 presets, 90/45 s vêm dos artefatos
    gerados; nada de "100 patterns" de marketing.
 4. **Módulo pronto p/ i18n** — `MSG` é um dict plano tipado (strings e
-   funções puras `t(q) => string`); trocar por dicionário por idioma é
-   mecânico quando o i18n entrar (M1.5 do UI_PLAN).
+   funções puras `t(q) => string`). **FEITO na #30** (ver §8.1 abaixo): hoje
+   `MSG` é um `Proxy` que troca de catálogo inteiro com uma linha.
 
 **Já removidos por violação:** "pedal na fase 2" → "vazio"; "(D7)" no PushLog;
 "captura G3–G6" (drum/looper/settings); "Fase M"/"H1" na ConnectionBar;
@@ -531,6 +531,65 @@ literal (`{cond ? "ok?" : "✕"}`) nos mesmos pontos de texto. A mensagem manda
 mover para MSG. Texto novo de usuário = chave nova em `messages.ts` — se o lint
 deixou passar, é buraco da regra (fechar, não contornar); só sobrevivem
 literais técnicos (className, data-*, role, state).
+
+### 8.1 i18n de 4 idiomas — entregue na #30 (pt-BR · en · es · zh)
+
+> APP Language saiu de "desabilitado + próxima versão" para **funcional**: é
+> software local puro, nunca precisou de canal USB.
+
+**Arquitetura (o mínimo que resolve o problema):**
+
+| Peça | Papel |
+|---|---|
+| `src/i18n/dictionaries/pt-BR.ts` | dicionário BASE; exporta `Dict` (o tipo que o app consome) e `DictPatch` |
+| `src/i18n/dictionaries/{en,es,zh}.ts` | `DictPatch` — sobrescrita parcial por idioma |
+| `src/i18n/facts.ts` | os NÚMEROS dos textos (`PRESET_COUNT`, `DRUM_COUNT`, `FX_COUNT`, `REACT_VER`…), derivados dos artefatos |
+| `src/i18n/messages.ts` | registro: `merge()` profundo, `MSG` (Proxy), `setLanguage`/`getLanguage`, `useLanguage()` |
+
+**Três decisões que valem a pena saber:**
+
+1. **Proxy em vez de contexto React.** ~200 textos em ~15 componentes já fazem
+   `import { MSG }`. Exigir `useT()` de cada um seria uma migração que só
+   pagaria bem depois. O Proxy mantém a assinatura `MSG.x` intacta e troca o
+   idioma inteiro com `setLanguage("en")` + o App re-renderizar — só o App
+   assina (`useLanguage()`), nenhum outro componente sabe que existe idioma.
+2. **`DictPatch` alarga rótulos, não chaves.** O `as const` do pt-BR fixa
+   `"PRONTO"` como tipo — nenhum valor cabe nele, nem `"LISTO"`. `DictPatch`
+   abre o *conteúdo* dos rótulos para `string` e mantém a *forma*: nome da
+   chave, aridade e tipos dos parâmetros das funções, tipo dos arrays. Traduzir
+   continua impossível de quebrar a tipagem em qualquer ponto do app.
+3. **Fallback por `merge` profundo.** O que falta num idioma (ou num
+   sub-objeto como `bootStages`) vem do pt-BR no registro. Sub-objeto MESCLA;
+   array e função SUBSTITUEM por inteiro — metade de uma lista de dados
+   traduzida é pior do que a lista inteira em português. Um idioma incompleto
+   nunca mostra chave crua nem string vazia: degrada para a língua garantida.
+
+**Costura fechada na mesma rodada:** o TIPO do pedal ("Pre", "Drive", "Amp",
+"Gate", "Cabinet", "EQ", "Mod", "Delay", "Reverb") vivia hard-coded em
+`Pedal.tsx` e aparecia 9 vezes no palco + em todos os `aria-label` — é texto de
+usuário, não artefato, e o lint `no-user-literals` não pega porque não é JSX.
+Virou `MSG.pedalKind` (9 chaves, uma por família). pt-BR devolve os mesmos
+loanwords que a UI já mostrava (virar "Pré"/"Cabine" é decisão editorial do
+owner, não falta de i18n); es/zh traduzem os que têm palavra própria
+(`Cabinete`, `前级`, `噪声门`…). A assinatura `pedalGroupAria(kind, name, on)`
+foi preservada — o que muda é a origem do `kind`, não o contrato.
+
+**O que NÃO é traduzido (e por quê):** termos que o próprio device imprime —
+PRE/POST, REC, PLAY, DUB, STOP, REW, BPM, FREQ/Q/GAIN, SET, e as abas/linhas de
+Settings (`Settings`, `General`, `Global EQ`, `About`, `Info Frame`, `Help`,
+`Release Note`, `Input Level`, `Footswitch Mode`, `Effects List`, `Factory/User
+Patch`, `Supply`/`Take-up`). O usuário precisa bater o olho na UI e no painel
+de-hardware ao mesmo tempo; traduzir os dois separadamente os faz discordar.
+Marca (`GP-100`, `Valeton`, `Mock Device`) e os nomes de ritmo/efeito dos
+artefatos gerados também ficam.
+
+**Testes (`tests/i18n.test.tsx`, 14):** troca de idioma troca `MSG.*` · merge
+preenche sub-objeto parcial · array/função substituem inteiro · nenhum idioma
+deixa `undefined` ou texto vazio · nenhum idioma imprime a chave crua · a ÁRVORE
+inteira do catálogo é idêntica nos 4 (pega buraco em sub-objeto) · overlays só
+usam chaves que existem · os 3 idiomas cobrem todas as chaves de topo · termos
+do device iguais nos 4 · o selector lista os 4, persiste e redesenha a casca ·
+reabrir o app volta no idioma salvo.
 
 ---
 

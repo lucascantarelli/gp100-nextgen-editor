@@ -290,7 +290,10 @@ export function Pedal({
     r != null && (!Number.isInteger(r[0]) || !Number.isInteger(r[1]));
 
   const nameText = clip(slot.name, nameMax);
-  const refText = clip(`${compact ? "" : `${fam.kind} · `}${model.ref}`, nameMax + 6);
+  // O TIPO do pedal é texto de usuário (#30): vem do catálogo, com a sigla
+  // como fallback para uma família que o device ganhe depois.
+  const kindText = (MSG.pedalKind as Record<string, string>)[fam.kind] ?? fam.kind;
+  const refText = clip(`${compact ? "" : `${kindText} · `}${model.ref}`, nameMax + 6);
 
   return (
     <svg
@@ -298,7 +301,7 @@ export function Pedal({
       height={H}
       viewBox={`0 0 ${W} ${H}`}
       role="group"
-      aria-label={MSG.pedalGroupAria(fam.kind, slot.name, on)}
+      aria-label={MSG.pedalGroupAria(kindText, slot.name, on)}
       style={{
         // PALCO: o desenho acompanha a coluna do .board-slots (100% da
         // célula, nunca além da largura real do catálogo) — o aspect do

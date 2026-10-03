@@ -7,7 +7,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
-import { MSG } from "../i18n/messages";
+import { MSG, LANGS, LANG_NAMES } from "../i18n/messages";
 
 export interface GeneralSettings {
   inputLevel: number;
@@ -269,12 +269,20 @@ export function SettingsModal({ open, general, onChangeGeneral, onClose }: Props
               </div>
               <div style={line}>
                 <span style={lbl}>{MSG.languageLabel}</span>
+                {/* O ÚNICO select sem canal USB que funciona: é software
+                    local puro. Trocar aqui chama `set()` → o App aplica via
+                    `setLanguage` e toda a casca redesenha. */}
                 <select
                   aria-label={MSG.languageAria}
-                  disabled
-                  style={{ ...input, opacity: 0.55 }}
+                  value={general.language}
+                  onChange={(e) => set({ language: e.target.value as GeneralSettings["language"] })}
+                  style={input}
                 >
-                  <option>{MSG.footswitchSoon}</option>
+                  {LANGS.map((l) => (
+                    <option key={l} value={l}>
+                      {LANG_NAMES[l]}
+                    </option>
+                  ))}
                 </select>
               </div>
             </>

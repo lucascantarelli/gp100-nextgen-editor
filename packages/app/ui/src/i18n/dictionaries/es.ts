@@ -1,0 +1,331 @@
+/**
+ * ES — dicionário Español. `DictPatch` de propósito: o que faltar aqui cai
+ * no pt-BR (merge profundo em `../messages.ts`), então um idioma pela metade
+ * nunca mostra chave crua — degrada para a língua garantida.
+ *
+ * O que NÃO é traduzido, e por quê:
+ *  - termos que o próprio device imprime (PRE/POST, REC, PLAY, DUB, STOP,
+ *    BPM, REW, FREQ/Q/GAIN, SET, e as abas de Settings) — traduzi-los
+ *    desalinearia a UI do que está na frente do usuário, que precisa bater
+ *    com o painel de-hardware na mão;
+ *  - marca e nome de modelo (GP-100, Valeton, Mock Device) e os nomes de
+ *    ritmo/efeito que vêm dos artefatos gerados.
+ */
+import type { DictPatch } from "./pt-BR";
+import {
+  CTRL_COUNT,
+  DRUM_BEAT_RANGE,
+  DRUM_COUNT,
+  DRUM_GENRE_COUNT,
+  FX_COUNT,
+  PRESET_COUNT,
+  REACT_VER,
+  UA,
+} from "../facts";
+
+export const ES: DictPatch = {
+  /* ── marca / topbar ── */
+  brand: "GP-100",
+  brandMono: "GP",
+  tagline: "editor no oficial",
+  connShortOn: "on",
+  connShortOff: "off",
+  mockBadge: "Mock Device",
+  patchLabel: "patch",
+  patchPrevAria: "Patch anterior",
+  patchPrevTitle: "Patch anterior (P01–P99 en ciclo)",
+  patchNextAria: "Patch siguiente",
+  patchNextTitle: "Patch siguiente (P01–P99 en ciclo)",
+  drumChipPre: "drum · ",
+  drumChipAria: (style: string, bpm: number, beat: string) =>
+    `Batería (drum): ${style}, ${bpm} BPM, compás ${beat} — abrir la gestión de ritmos`,
+  drumToggleAria: "Reproducir o detener el ritmo de la batería",
+  drumBpmDownAria: "Bajar el BPM del ritmo",
+  drumBpmUpAria: "Subir el BPM del ritmo",
+  masterLabel: "master",
+  masterAria: "Volumen master",
+  arrangeLabel: "🔒",
+  arrangeLabelOpen: "🔓",
+  arrangeAria: "Bloqueo de mover pedales — arrastrar y soltar solo cuando está desbloqueado",
+  arrangeTitle: "Desbloquea para arrastrar pedales (protege el ajuste de los knobs)",
+  killLabel: "⭘ kill",
+  killLabelOn: "⏻ killed",
+  killAria: "Kill switch (silenciar master, batería y looper)",
+  killTitle: "Silencio global: apaga el master y la batería — haz clic otra vez para restaurar",
+  openSettingsAria: "Abrir ajustes",
+
+  /* ── navbar (cluster de conexión: estado corto + badge + arranque) ── */
+  connClusterAria: "Conexión y arranque",
+
+  /* ── afinador del escenario ── */
+  tunerAria: "Afinador",
+  tunerPowerAria: "Encender o apagar la monitorización de afinación",
+  tunerPowerIcon: "♪",
+  tunerPowerTitle: (on: boolean) =>
+    on
+      ? "Monitor de afinación ENCENDIDO — muestra lo que tocas en tiempo real (en el device: mantén los 2 footswitches)"
+      : "Monitor de afinación apagado — haz clic para seguir la afinación en tiempo real (en el device: mantén los 2 footswitches)",
+  tunerModeAria: "Modo del afinador — alternar entre bypass, thru y mute",
+  tunerModeTitle:
+    "Lo que hace el device con la señal mientras afinas: bypass (seco), thru (con efecto) o mute (silencio)",
+  tunerModeLabel: (mode: "bypass" | "thru" | "mute") => mode,
+  tunerRefLabel: "ref",
+  tunerRefAria: "Tono de referencia (A4) en hercios, de 435 a 445",
+  tunerRefTitle: "REF PITCH: 435–445 Hz (estándar 440 Hz)",
+  tunerRefValue: (hz: number) => `${hz}Hz`,
+  tunerDemoLabel: "▶ demo",
+  tunerDemoRunning: "■ demo",
+  tunerDemoAria: "Reproducir la demo del afinador con un tono sintético",
+  tunerDemoTitle:
+    "Muestra sintética barriendo ±30 cents en A2 con el motor real del afinador — no es audio del device",
+  tunerIdleNote: "—",
+  tunerFlatMark: "♭",
+  tunerSharpMark: "♯",
+
+  /* ── navbar (arranque = reescanear; el app ya detecta el device solo) ── */
+  rescanAria: "Reescanear el device",
+  rescanTitle: "Reescanear (arranque): el app detecta el device solo al abrir — usa esto para reescanear",
+  bootProgressAria: "Progreso del arranque",
+  bootStarting: "Iniciando",
+  bootStages: {
+    tables: "Tablas de IR",
+    scan: "Escaneo de presets",
+    probe: "Sonda banco 02",
+    setlist: "Setlist",
+    names: "Nombres",
+    keepalive: "Keepalive",
+  },
+  connBootError: "Falló el arranque del device — revisa la conexión e inténtalo de nuevo.",
+
+  /* ── board ── */
+  boardAria: "Pedalboard (9 huecos de la cadena)",
+  slotAria: (n: number, fam: string) => `Slot ${n}: ${fam}`,
+  slotEmpty: "vacío",
+  slotArrange: "arrastra ⇄",
+  stageFooter: "9 slots · orden de la señal →",
+  stageFooterArrange: "arrastra ⇄ para intercambiar dos pedales de posición",
+  stageIn: "⏻ IN",
+  stageOut: "OUT ⏻",
+
+  /* ── biblioteca ── */
+  libAria: "Biblioteca de presets",
+  libTabsAria: "Tipo de patch",
+  libTabFactory: "Factory Patch",
+  libTabUser: "User Patch",
+  libListAria: "Presets de fábrica",
+  searchPlaceholder: "Buscar nombre, nº o estilo…",
+  searchAria: "Buscar presets por nombre, número o estilo",
+  searchEmpty: (q: string) => `Ningún preset para “${q}”. Consejo: busca por estilo (Rock, Funk…) o por número.`,
+  libRowTitle: (name: string, type: string) => `Abrir “${name}” (${type})`,
+  libPp: (pp: number) => `P${String(pp + 1).padStart(2, "0")}`,
+  libUserPp: (i: number) => `U${String(i + 1).padStart(2, "0")}`,
+
+  /* patches de usuario (PRÉVIA LOCAL — escribir en el device no tiene canal) */
+  userPatchNewPlaceholder: "Nombra y guarda el patch actual…",
+  userPatchNameAria: "Nombre del patch de usuario a guardar",
+  userPatchSave: "Guardar",
+  userPatchListAria: "Patches de usuario",
+  userPatchEmpty: "Todavía no hay patches guardados. Ajusta los pedales y guarda lo que quieras conservar.",
+  userPatchRowTitle: (name: string, from: string) => `Abrir “${name}” (viene de ${from})`,
+  userPatchDeleteAria: (name: string) => `Eliminar el patch “${name}”`,
+  userPatchNote: "Vista previa local: los patches se quedan en este navegador. Guardar en el device depende del canal USB.",
+  userPatchDefaultName: (n: number) => `Mi patch ${n + 1}`,
+  userBankType: "User",
+
+  /* lista de efectos del módulo (issue #19 — "Effects List" del app oficial) */
+  effectListTitle: "Effects List",
+  effectListAria: (fam: string) => `Lista de efectos del módulo ${fam}`,
+  effectListCount: (n: number) => `${n} efectos`,
+  effectListSearchPlaceholder: "Buscar efecto…",
+  effectListSearchAria: "Buscar los efectos del módulo por nombre",
+  effectListEmpty: (q: string) => `Ningún efecto para “${q}”.`,
+  effectListPick: (name: string) => `Cambiar el efecto de este pedal a ${name}`,
+  effectListCurrent: (name: string) => `${name} — efecto actual de este pedal`,
+  effectListNote: "Vista previa local: cambiar el efecto todavía no se escribe en el device.",
+
+  /* ── drum ── */
+  drumNote: `${DRUM_COUNT} ritmos en ${DRUM_GENRE_COUNT} géneros · metrónomo incluido · vista previa local`,
+  drumPanelAria: "Gestión de ritmos de la batería (drum)",
+  drumTitle: "Batería · ritmos",
+  drumCloseAria: "Cerrar la gestión de ritmos",
+  drumGenreLabel: "Género",
+  drumStyleLabel: "Ritmo",
+  drumBpmLabel: "BPM",
+  drumBeatLabel: "Compás",
+  drumVolLabel: "Volumen",
+  drumSpeedLabel: "Speed",
+
+  /* ── looper ── */
+  looperPlate: "GP-100 · TAPE LOOPER · STEREO",
+  looperAria: "Looper (máquina de cinta)",
+  looperSpecs: "loop estéreo 24-bit · 44.1 kHz · SNR 110 dB · vista previa local",
+  tapeState: (secs: number, mode: "PRE" | "POST") => `cinta: ${secs}s (${mode})`,
+  tapeEmpty: "cinta: vacía",
+  looperMode: { rec: "REC", play: "PLAY", dub: "DUB", stop: "STOP", ready: "LISTO", empty: "VACÍA" },
+  looperTransportAria: "Transporte del looper",
+  looperTimerAria: "Posición de la cinta",
+  looperRewAria: "Rebobinar al inicio del loop (REW)",
+  looperStopAria: "Parar (STOP)",
+  looperPlayAria: "Reproducir el loop (PLAY)",
+  looperRecAria: "Grabar el loop (REC)",
+  looperRecStopAria: "Parar la grabación y reproducir",
+  looperDubAria: "Superponer (overdub)",
+  looperClearAria: "Borrar la cinta (pide confirmación)",
+  looperClearConfirmAria: "Confirmar el borrado de la cinta",
+  looperClearBtn: "✕",
+  looperClearConfirmBtn: "ok?",
+  looperRecVol: "Rec VOL",
+  looperPlayVol: "Play VOL",
+  looperPVol: "P-VOL",
+  looperRoute: "Ruta",
+  looperPreBtn: "PRE · 90s",
+  looperPostBtn: "POST · 45s",
+  looperPreAria: "Looper en PRE (90 segundos, sin efectos grabados)",
+  looperPostAria: "Looper en POST (45 segundos, con efectos)",
+  looperVuAria: (channel: string, active: boolean) =>
+    `VU meter canal ${channel}${active ? " con señal" : " en reposo"}`,
+  looperDeckAria: (spinning: boolean) =>
+    `Deck de cinta: rollo de alimentación, cabezales y cabrestante, rollo de recogida${spinning ? ", en movimiento" : ", parado"}`,
+  reelSupply: "Supply",
+  reelTakeup: "Take-up",
+
+  /* ── pushes ── */
+  pushTitle: "Pushes del device",
+  pushSummary: "pushes del device",
+  pushEmpty: "Todavía no llegó ningún push.",
+  pushClear: "Limpiar",
+  pushListAria: "Registro de pushes",
+  pushRepeats: "Repeticiones seguidas de este push",
+  pushRepeatMark: "×",
+
+  /* ── ajustes ── */
+  previewBadge: "vista previa local",
+  settingsTitle: "Settings",
+  settingsDialogAria: "Ajustes",
+  settingsTabsAria: "Pestañas de ajustes",
+  settingsCloseAria: "Cerrar los ajustes",
+  settingsTabs: {
+    General: "General",
+    "Global EQ": "Global EQ",
+    About: "About",
+    "Info Frame": "Info Frame",
+    Help: "Help",
+    "Release Note": "Release Note",
+  },
+  inputLevelLabel: "Input Level",
+  inputLevelAria: "Nivel de entrada",
+  normalLevelLabel: "Normal Level",
+  normalLevelAria: "Nivel normal",
+  usbAudioLabel: "USB Audio",
+  usbAudioAria: "USB Audio",
+  hintModeLabel: "Hint Mode",
+  hintModeAria: "Modo de dicas",
+  engineerModeLabel: "Modo ingeniero",
+  engineerModeSub: "los tooltips de los knobs muestran el addr/code/ctrl del comando SET",
+  engineerModeAria: "Modo ingeniero — tooltips con el addr, code y ctrl del comando SET",
+  hintLeft: "Left",
+  hintRight: "Right",
+  tapTempoLabel: "Tap Tempo Mode",
+  tapTempoLabels: { pre: "PRE", mod: "MOD", dly: "DLY" },
+  footswitchLabel: "Footswitch Mode",
+  footswitchSub: "modo de los footswitches del hardware",
+  footswitchAria: "Footswitch mode (disponible en una próxima versión)",
+  footswitchSoon: "— disponible en una próxima versión —",
+  languageLabel: "APP Language",
+  languageAria: "Idioma del app",
+  globalEqIntro:
+    "Ecualización global del device: 5 bandas (FREQ · Q · GAIN) y cortes de graves/agudos. Los controles estarán disponibles en una próxima versión.",
+  eqBandGroupAria: "Banda del Global EQ",
+  eqBandBtn: (n: number) => `B${n}/5`,
+  eqFreqLabel: (n: number) => `Band ${n} FREQ`,
+  eqQLabel: (n: number) => `Band ${n} Q`,
+  eqGainLabel: (n: number) => `Band ${n} GAIN`,
+  eqFreqAria: (n: number) => `Banda ${n} freq`,
+  eqQAria: (n: number) => `Banda ${n} Q`,
+  eqGainAria: (n: number) => `Banda ${n} ganancia`,
+  lcutLabel: "L-CUT FREQ",
+  hcutLabel: "H-CUT FREQ",
+  lcutAria: "L-CUT freq",
+  hcutAria: "H-CUT freq",
+  aboutIntro:
+    "GP-100 NextGen Editor — editor no oficial e independiente para la pedalera Valeton GP-100. Sin vínculo con Valeton.",
+  aboutDataAria: "Datos del device en esta versión",
+  aboutData: [
+    ["Biblioteca", `${PRESET_COUNT} presets de fábrica (de la memoria del device)`],
+    ["Batería", `${DRUM_COUNT} ritmos en ${DRUM_GENRE_COUNT} géneros + metrónomo · compases ${DRUM_BEAT_RANGE}`],
+    ["Looper", "estéreo 24-bit · 44.1 kHz · SNR 110 dB — 90 s PRE / 45 s POST"],
+    ["Catálogo", `${FX_COUNT} algoritmos / ${CTRL_COUNT} controles mapeados`],
+  ],
+  infoFrameIntro: "Identificación del device, leída al conectar.",
+  infoFrameAria: "Identificación del device",
+  infoFrame: [
+    ["Firmware", "V2.1"],
+    ["Software", "1.2.0"],
+    ["Modelo", "Valeton GP-100 Multi-Effects Processor"],
+    ["Conexión", "USB"],
+  ],
+  helpShortcutsIntro: "Atajos globales de teclado (funcionan en cualquier sitio de la casca):",
+  helpKeySpace: "Espacio",
+  helpKeyR: "R",
+  helpKeyEsc: "Esc",
+  helpShortcutSpace: "Batería: reproducir/detener el ritmo seleccionado (drum play/stop)",
+  helpShortcutR: "Looper: REC — igual que el botón ● (grabar → reproducir → overdub)",
+  helpShortcutEsc: "Cierra el panel abierto desde el nivel superior hasta la base: Settings → Drum → pushes",
+  helpTableAria: "Atajos de teclado",
+  helpNotes:
+    "Notas: los atajos de transporte no se disparan mientras escribes en una búsqueda, un BPM o un select; Espacio sobre un botón enfocado activa ESE botón (comportamiento nativo de accesibilidad); Ctrl/Alt/⌘ + tecla se ignora; con el modal de ajustes abierto, Espacio y R quedan inactivos y Esc cierra el modal.",
+  helpControlsIntro: "Controles:",
+  helpControls: [
+    "Tab recorre todos los controles; el foco siempre es visible",
+    "Afinador (cabecera del escenario): ♪ enciende/apaga el monitor (LED verde/rojo); el modo y REF PITCH siempre están visibles; ▶ demo enciende el monitor y reproduce una muestra sintética",
+    "Esc cierra este modal (global — desde cualquier foco)",
+  ],
+
+  /* ── Help → Información del sistema (datos reales del entorno) ── */
+  sysInfoTitle: "Información del sistema",
+  sysInfoAria: "Versiones del app y del entorno",
+  sysInfoHint: "Solo lectura — nada de esto se envía a servidores.",
+  sysInfo: [
+    ["Versión del app", "0.1.0"],
+    ["React", REACT_VER],
+    ["Backend", "simulado (mock) — el device real alimenta todo por USB"],
+    ["Firmware del device", "V2.1 (vista previa local)"],
+    ["Navegador/SO", UA],
+  ],
+  sysNote:
+    "En la app instalada (Tauri), la versión viene del paquete; en el navegador es la versión de desarrollo.",
+  releaseNote:
+    `Versión de vista previa: biblioteca de fábrica (${PRESET_COUNT} presets), batería con ${DRUM_COUNT} ritmos, looper de cinta (90 s PRE / 45 s POST), afinador de escenario con monitorización continua (LED verde/rojo, REF PITCH 435–445 Hz), atajos de teclado y layout responsivo. El board ya dibuja los pedales del preset — en el escenario cada pedal es compacto y los knobs son de SOLO LECTURA (muestran el valor de cada control): haz clic en el pedal para abrir la edición ampliada, y lo que cambies ahí aparece en el escenario al instante.`,
+
+  /* ── pedales ── */
+  pedalKind: {
+    Pre: "Preamp",
+    Drive: "Drive",
+    Amp: "Amp",
+    Gate: "Gate",
+    Cabinet: "Cabinete",
+    EQ: "EQ",
+    Mod: "Mod",
+    Delay: "Delay",
+    Reverb: "Reverb",
+  },
+  pedalGroupAria: (kind: string, name: string, on: boolean) =>
+    `Pedal ${kind} — ${name} (${on ? "encendido" : "apagado"})`,
+  pedalToggleOff: "Apagar el efecto",
+  pedalToggleOn: "Encender el efecto",
+  pedalValueAria: "Valor (Enter para editar)",
+  pedalValueEditAria: "Valor del knob (Enter aplica, Esc cancela)",
+  pedalExpandTitle: "Los valores del pedal en el escenario son de solo lectura — haz clic (o Enter) para editar",
+  pedalModalAria: (name: string) => `Edición del pedal ${name}`,
+  pedalModalHint: "Esc cierra · los cambios se aplican al instante",
+  pedalModalCloseAria: "Cerrar la edición del pedal",
+  brandPlate: "GP-100",
+  onSuffix: " ON",
+
+  /* ── errores amigables (el detalle técnico va a la consola) ── */
+  errOpenPreset: "No se pudo abrir el preset — inténtalo de nuevo.",
+  errSelectPreset: "El device no aceptó el cambio de preset — la UI sigue en el preset actual.",
+  errSetParam: "El device no aceptó el ajuste del knob — inténtalo de nuevo.",
+  errRetry: "Reintentar",
+  errRetryAria: "Reintentar la operación que falló",
+};

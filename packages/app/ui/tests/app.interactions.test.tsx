@@ -496,7 +496,8 @@ describe("Settings — as 6 abas", () => {
     expect(range.value).toBe("70");
     expect(JSON.parse(localStorage.getItem("gp100.settings.general.v1")!)).toMatchObject({ inputLevel: 70 });
 
-    // selects ainda sem canal no device vêm desabilitados (Footswitch, Idioma)
+    // Footswitch ainda sem canal no device vem desabilitado; Idioma NÃO
+    // (#30) — é software local puro, funcional e coberto em tests/i18n.
     const disabled = Array.from(dialog.querySelectorAll("select")).filter((s) => s.disabled);
     expect(disabled.length).toBeGreaterThanOrEqual(1);
     teardown(root, host);
