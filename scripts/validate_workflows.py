@@ -15,10 +15,11 @@ estrutura — e, desde a #68, que a ESTRUTURA nova é o que o projeto adoptou.
 
 Contratos verificados:
   1. existe UM workflow (.github/workflows/ci.yml) e os cinco legados sumiram;
-  2. gatilhos: push em develop/main/feature/bugfix/hotfix/release + tag v*;
-     PR em develop/main com o tipo `closed`;
+  2. gatilhos: push SO em develop/main + tag v*; PR em develop/main com o tipo
+     `closed`. Branch de trabalho entra so por `pull_request` -- listar os dois
+     eventos era o que gerava a run duplicada a cada push;
   3. permissão MÍNIMA no topo (`contents: read`) — o `write` é por job;
-  4. os 11 tipos de job e os 25 jobs existem, com nome no padrão `Tipo · o que é`,
+  4. os 11 tipos de job e os 26 jobs existem, com nome no padrão `Tipo · o que é`,
      sem prefixo numérico, e declarados na sequência da execução;
   5. a regra branch → tipos de job mora em `scripts/ci_plan.py` e NÃO volta para
      `if:` espalhado no YAML (duas fontes de verdade é como o gate divergiu);
@@ -29,7 +30,9 @@ Contratos verificados:
   8. o job `Relatório` roda com `if: always()`;
   9. as duas imagens: ci-linux (toolset do Tauri) e ci-base (sem GUI, com uv);
  10. composites preservados (shared-key, add-job-id-key, cache do Playwright);
- 11. nenhum action da geração Node 20 (deprecada pelo runner).
+ 11. PISO de versao por action (o Node 20 foi descontinuado pelo runner):
+     toda action usada esta no mapa e na major minima; entrada sem uso
+     tambem falha, senao a regra vira letra morta sem ninguem perceber.
 
 Uso: python3 scripts/validate_workflows.py  (exit 1 na primeira violação)
 """
@@ -37,6 +40,7 @@ from __future__ import annotations
 
 import glob
 import os
+import re
 import sys
 
 import yaml
@@ -104,22 +108,27 @@ LEGACY = (
     "close-issues.yml",
 )
 
-# Actions que rodam em Node 20, que o GitHub descontinuou: o runner força
-# Node 24 e emite aviso em TODA run. A lista e por action e nao por faixa
-# porque cada uma publica a migracao numa versao diferente.
-NODE20_REFS = (
-    "actions/cache@v4",
-    "actions/download-artifact@v4",
-    "actions/download-artifact@v5",
-    "actions/download-artifact@v6",
-    "actions/upload-artifact@v3",
-    "actions/upload-artifact@v4",
-    "actions/upload-artifact@v5",
-    "actions/upload-artifact@v6",
-    "docker/setup-buildx-action@v3",
-    "docker/login-action@v3",
-    "docker/metadata-action@v5",
-)
+# Piso de versão por action. O GitHub descontinuou o runtime Node 20 (set/2025):
+# o runner força Node 24 e emite aviso em TODA run. O contrato é um PISO, e não
+# uma lista de versões ruins -- assim uma versão que ninguém catalogou ainda
+# falha em vez de passar, e subir o piso é uma edição de uma linha.
+# Referência: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+PISO_VERSAO_ACTION = {
+    "actions/cache": 6,
+    "actions/checkout": 7,
+    "actions/download-artifact": 7,
+    "actions/setup-node": 7,
+    "actions/upload-artifact": 7,
+    "Swatinem/rust-cache": 2,
+    "astral-sh/setup-uv": 10,
+    "awalsh128/cache-apt-pkgs-action": 1,
+    "docker/build-push-action": 7,
+    "docker/login-action": 4,
+    "docker/metadata-action": 6,
+    "docker/setup-buildx-action": 4,
+    "softprops/action-gh-release": 3,
+    "taiki-e/install-action": 2,
+}
 
 
 def main() -> int:
@@ -394,15 +403,29 @@ def main() -> int:
     if "add-job-id-key" not in raw(".github/actions/setup-rust/action.yml"):
         FAILURES.append("setup-rust: shared-key exige add-job-id-key: false (senão a chave volta a ser por job)")
 
-    # ── 11. geração Node 20 (o runner força Node 24 e avisa) ────────────
+    # ── 11. piso de versão das actions (Node 20 descontinuado) ──────────
     scan = workflows + sorted(
         p[len(REPO) + 1:].replace("\\", "/") for p in glob.glob(os.path.join(REPO, ".github/actions/*/action.yml"))
     )
+    usados = set()
     for path in scan:
-        text = raw(path)
-        for ref in NODE20_REFS:
-            if ref in text:
-                FAILURES.append(f"{path}: '{ref}' mira Node 20 (deprecado) — subir a major")
+        for acao, versao in re.findall(r"uses:\s*([\w.-]+/[\w./-]+?)@v(\d+)", raw(path)):
+            usados.add(acao)
+            piso = PISO_VERSAO_ACTION.get(acao)
+            if piso is None:
+                FAILURES.append(
+                    f"{path}: action '{acao}' fora do mapa de pisos — declarar a major minima "
+                    f"em PISO_VERSAO_ACTION (sem isso a deprecacao volta em silencio)"
+                )
+            elif int(versao) < piso:
+                FAILURES.append(
+                    f"{path}: '{acao}@v{versao}' abaixo do piso v{piso} (Node 20 descontinuado) — subir a major"
+                )
+    for acao in sorted(set(PISO_VERSAO_ACTION) - usados):
+        FAILURES.append(
+            f"PISO_VERSAO_ACTION declara '{acao}' mas nenhuma action usa — piso obsoleto, "
+            f"a regra parada deixa de ser conferida"
+        )
 
     # ── relatório ───────────────────────────────────────────────────────
     for path in sorted(docs):

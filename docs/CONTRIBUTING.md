@@ -119,6 +119,15 @@ Só a área que você tocou — o CI filtra o resto por caminhos.
   Todas as dependências (`pyyaml`, `jsonschema`) estão no `pyproject.toml`, então
   `uv sync --all-groups` basta — nada de instalar pacote na linha de comando
   (#80).
+- **Piso de versão das actions** — o GitHub descontinuou o runtime Node 20
+  (set/2025): o runner força Node 24 e emite aviso em **toda** run. O contrato é
+  um **piso de major por action** em `PISO_VERSAO_ACTION`
+  ([validate_workflows.py](../scripts/validate_workflows.py)), não uma lista de
+  versões ruins — assim uma major que ninguém catalogou ainda falha em vez de
+  passar. Adicionar uma action nova? Declare o piso dela no mesmo commit, senão o
+  gate cobra. Subir uma major? Suba o piso junto.
+  O `actionlint` roda no mesmo job (`Lint · contratos do pipeline`) e é o que
+  pega erro de expressão (`${{ }}`, `secrets`, `inputs`) que o YAML aceitaria.
 - **Teste acompanha código novo** — padrão de DoD das issues; coverage caiu
   abaixo de 85%? O gate falha e pede teste, não exceção.
 - Regras **R1–R4** do [ROADMAP](ROADMAP.md) continuam valendo (protocolo
