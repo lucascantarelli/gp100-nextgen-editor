@@ -1,7 +1,8 @@
 name: playwright-setup
 description: >
   Chromium do Playwright + deps de sistema (Linux). Steps repetidos pelos
-  jobs e2e e e2e-visual do _validate.yml — um lugar por regra. O browser fica
+  jobs `3 test · e2e shell` e `3 test · e2e visual` do ci.yml — um lugar por
+  regra. O browser fica
   em ~/.cache/ms-playwright e é cacheado pela VERSÃO (hash do pnpm-lock.yaml):
   no hit, o install só confere o que já está no runner. Esta é a alavanca
   destes jobs — o pull da imagem de container custaria mais (lição CI-11).

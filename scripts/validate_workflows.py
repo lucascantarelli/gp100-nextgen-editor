@@ -1,46 +1,52 @@
 #!/usr/bin/env python3
 """
-Validação sintática + de CONTRATO dos workflows/templates do GitHub (gate do CI).
+Validação sintática + de CONTRATO do pipeline (gate do CI, estágio `1 lint`).
 
-Os testes de INTEGRAÇÃO real acontecem onde o workflow é a própria prova:
-o close-linked fecha issue no merge em develop; a cadeia rc->promote roda no
-`scripts/simulate_release.py`. Aqui travamos os CONTRATOS que guardam o fluxo:
+Por que este arquivo existe: o YAML do GitHub aceita muita coisa que só quebra
+em produção — um `permissions` que o reusable pede e o caller não concede morre
+no LOAD da run (mensagem só na annotation), uma matriz vazia faz a run INTEIRA
+falhar sem nenhum job marcado como falha, um token que não sobe de permissão
+para `write` falha no meio do job. Nenhuma dessas dá erro de sintaxe.
 
-  1. TODO workflow/template parseia como YAML;
-  2. ci.yml: gatilhos por FUNÇÃO de branch (push só em integração — feature/*
-     NÃO dispara), close-linked integrado (types closed + develop + guards) e
-     o job `validate` chamando o reusable _validate.yml;
-  3. _validate.yml: workflow_call + o conjunto de jobs de validação;
-  4. _publish.yml: workflow_call com inputs tag/prerelease + jobs cli/installer;
-  5. release.yml: inputs action (version|rc|promote), jobs rc/promote e os
-     publishes do MESMO run (lição: tag do bot não dispara workflow);
-  6. security.yml: schedule + issue ACHADOS;
-  7. container.yml + .github/docker/ci-linux/Dockerfile: a imagem de CI (o
-     toolset que os jobs deixam de instalar a cada run);
-  8. _validate.yml em modo CUSTO (issue #41): os jobs de container
-     (ui-rust-linux, e2e-tauri) rodam na imagem SEM apt/cargo install no
-     caminho quente, o cache do cargo é por workspace (shared-key) e o ui-rust
-     ficou em 2 OS; as composites guardam o contrato (shared-key, browsers do
-     Playwright, store/node da imagem);
-  9. os workflows legados (pipeline.yml, close-issues.yml) NÃO existem mais e o
-     composite tauri-linux-deps foi aposentado pela imagem ci-linux.
+Os testes de INTEGRAÇÃO reais acontecem onde o workflow é a própria prova: o
+fechamento de issues roda no merge, e `scripts/simulate_release.py` executa de
+ verdade os blocos `run:` da rc/promote num sandbox git. Aqui travamos o que é
+estrutura — e, desde a #68, que a ESTRUTURA nova é o que o projeto adoptou.
 
-Uso: python3 scripts/validate_workflows.py  (exit 1 na primeira violação de
-contrato; YAML inválido acumula falhas e lista todas).
+Contratos verificados:
+  1. existe UM workflow (.github/workflows/ci.yml) e os cinco legados sumiram;
+  2. gatilhos: push em develop/main/feature/bugfix/hotfix/release + tag v*;
+     PR em develop/main com o tipo `closed`;
+  3. permissão MÍNIMA no topo (`contents: read`) — o `write` é por job;
+  4. os 9 estágios e os 25 jobs existem, com prefixo numérico único e em ordem;
+  5. a regra branch → estágios mora em `scripts/ci_plan.py` e NÃO volta para
+     `if:` espalhado no YAML (duas fontes de verdade é como o gate divergiu);
+     e o CodeQL NÃO é configurado aqui (o setup padrão do repo está ligado e o
+     GitHub recusa SARIF de configuração avançada enquanto ele estiver ativo);
+  6. versionamento e distribuição só por `workflow_dispatch`/tag;
+  7. `close-issues` exige `merged == true` (PR fechado sem merge não fecha nada);
+  8. o estágio de métricas roda com `if: always()`;
+  9. as duas imagens: ci-linux (toolset do Tauri) e ci-base (sem GUI, com uv);
+ 10. composites preservados (shared-key, add-job-id-key, cache do Playwright);
+ 11. nenhum action da geração Node 20 (deprecada pelo runner).
+
+Uso: python3 scripts/validate_workflows.py  (exit 1 na primeira violação)
 """
 from __future__ import annotations
 
 import glob
+import os
 import sys
 
 import yaml
 
+REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FAILURES: list[str] = []
 
 
 def load(path: str) -> dict | None:
     try:
-        with open(path, encoding="utf-8") as fh:
+        with open(os.path.join(REPO, path), encoding="utf-8") as fh:
             data = yaml.safe_load(fh)
         return data if isinstance(data, dict) else {}
     except Exception as exc:  # noqa: BLE001 — reportar qualquer YAML quebrado
@@ -48,295 +54,305 @@ def load(path: str) -> dict | None:
         return None
 
 
-def triggers(doc: dict) -> dict:
-    """`on:` — PyYAML 1.1 parseia a chave `on` como booleano True."""
-    return doc.get("on") or doc.get(True) or {}
-
-
 def raw(path: str) -> str:
-    """Texto cru do arquivo ("" se não existir) — para contratos de presença
-    de palavra (ações, imagens, ferramentas do Dockerfile)."""
     try:
-        with open(path, encoding="utf-8") as fh:
+        with open(os.path.join(REPO, path), encoding="utf-8") as fh:
             return fh.read()
     except OSError:
         return ""
 
 
+def triggers(doc: dict) -> dict:
+    """`on:` — PyYAML 1.1 parseia a chave `on` como o booleano True."""
+    return doc.get("on") or doc.get(True) or {}
+
+
+# ── 9 estágios × jobs que cada um DEVE ter ────────────────────────────────
+STAGES: dict[str, list[str]] = {
+    "0": ["plan"],
+    "1": ["lint-workflows", "lint-commits", "lint-rust-fmt", "lint-rust-clippy", "lint-ui"],
+    "2": ["build-rust", "build-ui"],
+    "3": ["test-rust", "test-ui", "test-spec", "test-e2e", "test-e2e-visual", "test-e2e-webview"],
+    "4": ["coverage-ui"],
+    "5": ["sec-audit"],
+    "6": ["metrics"],
+    "7": ["ci-images", "main-guard", "release-rc", "release-promote", "release-play", "dist-ui", "dist-cli"],
+    "8": ["close-issues"],
+}
+
+# Legados: a consolidação da #68 os substituiu por um workflow só.
+LEGACY = (
+    "_validate.yml",
+    "_publish.yml",
+    "release.yml",
+    "security.yml",
+    "container.yml",
+    "pipeline.yml",
+    "close-issues.yml",
+)
+
+NODE20_REFS = (
+    "actions/cache@v4",
+    "actions/download-artifact@v4",
+    "actions/upload-artifact@v3",
+    "docker/setup-buildx-action@v3",
+    "docker/login-action@v3",
+    "docker/metadata-action@v5",
+    "docker/build-push-action@v6",
+)
+
+
 def main() -> int:
-    workflows = sorted(glob.glob(".github/workflows/*.yml"))
-    templates = sorted(glob.glob(".github/ISSUE_TEMPLATE/*.yml"))
-    # normaliza separadores (glob no Windows devolve backslash — e as chaves
-    # de contrato abaixo usam /)
-    workflows = [p.replace("\\", "/") for p in workflows]
-    templates = [p.replace("\\", "/") for p in templates]
+    workflows = sorted(p.replace("\\", "/") for p in glob.glob(os.path.join(REPO, ".github/workflows/*.yml")))
+    workflows = [p[len(REPO) + 1:] for p in workflows]
     docs: dict[str, dict] = {}
-    for path in workflows + templates:
+    for path in workflows:
         doc = load(path)
         if doc is not None:
             docs[path] = doc
 
-    # ── legados: a reestruturação de 01/10 substituiu estes dois ──
-    for legacy in (".github/workflows/pipeline.yml", ".github/workflows/close-issues.yml"):
-        if docs.get(legacy):
-            FAILURES.append(f"{legacy}: workflow legado ainda existe (substituído por ci/_validate/security)")
+    # ── 1. UM workflow só, e os legados fora ──────────────────────────────
+    for legacy in LEGACY:
+        if f".github/workflows/{legacy}" in docs:
+            FAILURES.append(f".github/workflows/{legacy}: legado ainda existe (a #68 consolidou tudo em ci.yml)")
+    if set(workflows) != {".github/workflows/ci.yml"}:
+        FAILURES.append(f"esperado exatamente 1 workflow (ci.yml); existem: {workflows}")
 
-    # ── ci.yml: gatilhos por função de branch + close-linked integrado ──
-    ci_path = ".github/workflows/ci.yml"
-    ci = docs.get(ci_path) or {}
-    ci_on = triggers(ci)
-    push = ci_on.get("push") or {}
-    push_branches = push.get("branches") or []
-    if not {"develop", "main"} <= set(push_branches):
-        FAILURES.append("ci: push deve mirar develop+main (GitFlow)")
-    for dev_prefix in ("feature/", "fix/", "chore/", "docs/", "refactor/", "bugfix/"):
-        if any(str(b).startswith(dev_prefix) for b in push_branches):
-            FAILURES.append(f"ci: push não deve disparar em {dev_prefix}* (validação só no PR)")
-    if not {"release/**", "hotfix/**"} <= set(push_branches):
-        FAILURES.append("ci: push deve mirar release/** e hotfix/** (branches de versão/correção)")
-    pr = ci_on.get("pull_request") or {}
+    ci = docs.get(".github/workflows/ci.yml") or {}
+    if not ci:
+        print("FALHAS:\n - ci.yml ausente")
+        return 1
+
+    on = triggers(ci)
+    push = on.get("push") or {}
+    pr = on.get("pull_request") or {}
+    push_branches = set(push.get("branches") or [])
+    pr_branches = set(pr.get("branches") or [])
+
+    # ── 2. gatilhos ──────────────────────────────────────────────────────
+    for needed in ("develop", "main", "feature/**", "bugfix/**", "hotfix/**", "release/**"):
+        if needed not in push_branches:
+            FAILURES.append(f"ci: on.push.branches precisa de {needed}")
+    if "v*" not in (push.get("tags") or []):
+        FAILURES.append("ci: on.push.tags precisa de v* (a release publica no push da tag)")
+    if "develop" not in pr_branches or "main" not in pr_branches:
+        FAILURES.append("ci: on.pull_request.branches precisa de develop e main")
     if "closed" not in (pr.get("types") or []):
-        FAILURES.append("ci: on.pull_request.types precisa incluir 'closed' (close-linked)")
-    if "develop" not in (pr.get("branches") or []):
-        FAILURES.append("ci: on.pull_request.branches precisa incluir 'develop'")
-    if (ci.get("permissions") or {}).get("issues") != "write":
-        FAILURES.append("ci: permissions.issues precisa ser 'write' (close-linked)")
+        FAILURES.append("ci: on.pull_request.types precisa incluir 'closed' (fechamento de issue)")
+    if "schedule" not in on:
+        FAILURES.append("ci: precisa de on.schedule (auditoria noturna)")
+
+    # ── 3. permissão mínima no topo ──────────────────────────────────────
+    perms = ci.get("permissions") or {}
+    if perms.get("contents") != "read":
+        FAILURES.append("ci: permissions.contents no topo precisa ser 'read' — o `write` é por job")
+    if perms.get("issues") != "write":
+        FAILURES.append("ci: permissions.issues precisa ser 'write' (fechamento de issues)")
+    if perms.get("packages") != "read":
+        FAILURES.append("ci: permissions.packages precisa ser 'read' (pull das imagens no ghcr.io)")
+    if perms.get("actions") != "read":
+        FAILURES.append("ci: permissions.actions precisa ser 'read' (o estágio de métricas lista os jobs)")
+
     jobs = ci.get("jobs") or {}
-    close_job = jobs.get("close-linked") or {}
-    if not close_job:
-        FAILURES.append("ci: job close-linked ausente")
-    else:
-        job_if = str(close_job.get("if") or "")
-        if "merged == true" not in job_if:
-            FAILURES.append("ci: guard 'merged == true' ausente no job close-linked")
-        if "github-actions[bot]" not in job_if:
-            FAILURES.append("ci: guard anti-loop do bot ausente no job close-linked")
-        run_blocks = " ".join(
-            str(step.get("run") or "") for step in close_job.get("steps") or []
+
+    # ── 4. os 9 estágios e seus jobs ──────────────────────────────────────
+    for prefix, expected in STAGES.items():
+        for job in expected:
+            if job not in jobs:
+                FAILURES.append(f"ci: estágio {prefix} perdeu o job '{job}'")
+
+    seen_prefix: set[str] = set()
+    for job_id, job in jobs.items():
+        name = str(job.get("name") or "")
+        if not name or not name[0].isdigit():
+            FAILURES.append(f"ci: job '{job_id}' sem prefixo de estágio no name: ('N nome')")
+            continue
+        seen_prefix.add(name.split()[0])
+    for prefix in STAGES:
+        if prefix not in seen_prefix:
+            FAILURES.append(f"ci: estágio {prefix} não tem nenhum job")
+
+    # ── 5. a REGRA branch → estágios mora no ci_plan.py, e só lá ──────────
+    plan_raw = raw("scripts/ci_plan.py")
+    ci_raw = raw(".github/workflows/ci.yml")
+    for token in ("def classify", "def scopes", "stage-test", "stage-dist", "stage-release"):
+        if token not in plan_raw:
+            FAILURES.append(f"ci_plan.py: perdeu '{token}' (é a fonte de verdade da regra)")
+    if "ci_plan.py" not in ci_raw:
+        FAILURES.append("ci: o job `plan` precisa chamar scripts/ci_plan.py")
+    if "codeql-action" in ci_raw:
+        FAILURES.append(
+            "ci: CodeQL não pode ser configurado aqui — o repo tem o setup PADRÃO ligado "
+            "e o GitHub recusa SARIF de configuração avançada enquanto ele estiver ativo"
         )
-        for word in ("Closes", "GITHUB_STEP_SUMMARY", "achados-security"):
-            if word not in run_blocks and word not in job_if:
-                FAILURES.append(f"ci: passo do close-linked perdeu '{word}'")
-    validate_job = jobs.get("validate") or {}
-    if "uses" not in validate_job:
-        FAILURES.append("ci: job validate precisa CHAMAR o reusable _validate.yml")
-    elif "_validate.yml" not in str(validate_job["uses"]):
-        FAILURES.append("ci: job validate deve referenciar ./.github/workflows/_validate.yml")
-    if "closed" not in str(validate_job.get("if") or ""):
-        FAILURES.append("ci: job validate deve guardar action != 'closed'")
+    # Se a regra voltar a ser `if:` espalhada, os dois lugares divergem — e o
+    # lugar que diverge é sempre o que ninguém lê.
+    if "startsWith(github.ref, 'refs/heads/release" in ci_raw or "startsWith(github.ref, 'refs/heads/hotfix" in ci_raw:
+        FAILURES.append("ci: regra branch → estágios NÃO pode voltar como `if:` no YAML (fonte única é ci_plan.py)")
 
-    # ── _validate.yml: reusable com o conjunto de jobs de validação ──
-    val = docs.get(".github/workflows/_validate.yml") or {}
-    if "workflow_call" not in triggers(val):
-        FAILURES.append("_validate: precisa de on.workflow_call (reusable)")
-    val_job_defs = val.get("jobs") or {}
-    val_jobs = set(val_job_defs.keys())
-    for job in ("plan", "gate", "spec", "rust", "ui-rust-linux", "front", "front-gate", "e2e", "e2e-visual", "e2e-tauri"):
-        if job not in val_jobs:
-            FAILURES.append(f"_validate: job '{job}' ausente")
+    # ── 6. versionamento e dist por evento, nunca por push/PR ────────────
+    # A main só recebe o sha de uma tag v*; como o GitHub não deixa expressar
+    # isso como regra em repo pessoal, o guard transforma a regra em ALARME.
+    guard = jobs.get("main-guard") or {}
+    guard_if = str(guard.get("if") or "")
+    if "refs/heads/main" not in guard_if:
+        FAILURES.append("ci: `7 release · guarda da main` precisa rodar em push na main")
+    guard_run = " ".join(str(s.get("run") or "") for s in (guard.get("steps") or []))
+    if "--points-at" not in guard_run:
+        FAILURES.append("ci: `7 release · guarda da main` precisa conferir se o sha é o de uma tag v*")
 
-    # ── _publish.yml: reusable de publicação ──
-    pub = docs.get(".github/workflows/_publish.yml") or {}
-    pub_call = (triggers(pub).get("workflow_call") or {})
-    pub_inputs = pub_call.get("inputs") or {}
-    for inp in ("tag", "prerelease"):
-        if inp not in pub_inputs:
-            FAILURES.append(f"_publish: input '{inp}' ausente no workflow_call")
-    pub_jobs = set((pub.get("jobs") or {}).keys())
-    for job in ("cli", "installer"):
-        if job not in pub_jobs:
-            FAILURES.append(f"_publish: job '{job}' ausente")
+    for job_id in ("release-rc", "release-promote", "release-play"):
+        job_if = str((jobs.get(job_id) or {}).get("if") or "")
+        if "workflow_dispatch" not in job_if:
+            FAILURES.append(f"ci: {job_id} precisa ser só por workflow_dispatch (versionar no push é tag prematura)")
+    for job_id in ("dist-ui", "dist-cli"):
+        job_if = str((jobs.get(job_id) or {}).get("if") or "")
+        if "stage-dist" not in job_if:
+            FAILURES.append(f"ci: {job_id} precisa passar pelo stage-dist do plano (artefato só na tag)")
+        if (jobs.get(job_id) or {}).get("permissions", {}).get("contents") != "write":
+            FAILURES.append(f"ci: {job_id} precisa de permissions.contents: write (anexa na Release)")
 
-    # ── release.yml: GitFlow + publish no MESMO run ──
-    rel = docs.get(".github/workflows/release.yml") or {}
-    rel_on = triggers(rel)
-    rel_in = (rel_on.get("workflow_dispatch") or {}).get("inputs") or {}
-    if "action" not in rel_in:
-        FAILURES.append("release: input 'action' ausente (version|rc|promote)")
-    else:
-        options = (rel_in.get("action") or {}).get("options") or []
-        if not {"rc", "promote"} <= set(options):
-            FAILURES.append("release: input action deve aceitar rc e promote")
-    if "v*" not in ((rel_on.get("push") or {}).get("tags") or []):
-        FAILURES.append("release: push de tags v* precisa publicar")
-    rel_jobs = rel.get("jobs") or {}
-    for job in ("rc", "promote", "validate", "publish-tag", "publish-rc", "publish-promote"):
-        if job not in rel_jobs:
-            FAILURES.append(f"release: job '{job}' ausente")
-    # publish do MESMO run: rc/promote precisam de um job de publish que os siga
-    for dep, pub_job in (("rc", "publish-rc"), ("promote", "publish-promote")):
-        needs = rel_jobs.get(pub_job, {}).get("needs")
-        needs_list = needs if isinstance(needs, list) else ([needs] if needs else [])
-        if dep not in needs_list:
-            FAILURES.append(f"release: {pub_job} precisa de needs: {dep} (tag do bot não dispara workflow)")
+    # ── 7. fechamento de issue só em PR MERGEADO ─────────────────────────
+    close = jobs.get("close-issues") or {}
+    close_if = str(close.get("if") or "")
+    for guard in ("pull_request", "closed", "merged == true", "github-actions[bot]"):
+        if guard not in close_if:
+            FAILURES.append(f"ci: `8 close` perdeu o guard '{guard}' (PR fechado sem merge NÃO fecha issue)")
+    close_run = " ".join(str(s.get("run") or "") for s in (close.get("steps") or []))
+    for token in ("achados-security", "GITHUB_STEP_SUMMARY"):
+        if token not in close_run:
+            FAILURES.append(f"ci: `8 close` perdeu '{token}'")
 
-    # ── security.yml: varredura noturna + issue ACHADOS ──
-    sec = docs.get(".github/workflows/security.yml") or {}
-    if "schedule" not in triggers(sec):
-        FAILURES.append("security: precisa de trigger schedule (varredura noturna)")
-    sec_jobs = sec.get("jobs") or {}
-    if "security" not in sec_jobs:
-        FAILURES.append("security: job 'security' ausente")
-    else:
-        sec_runs = " ".join(
-            str(step.get("run") or "") for step in (sec_jobs["security"].get("steps") or [])
+    # ── 8. métricas SEMPRE (mesmo com falha) ─────────────────────────────
+    metrics_if = str((jobs.get("metrics") or {}).get("if") or "")
+    if "always()" not in metrics_if:
+        FAILURES.append("ci: `6 metrics` precisa de if: always() (o resumo é onde se vê o que quebrou)")
+    metrics_needs = (jobs.get("metrics") or {}).get("needs")
+    needs = metrics_needs if isinstance(metrics_needs, list) else [metrics_needs]
+    if "plan" not in [n for n in needs if n]:
+        FAILURES.append("ci: `6 metrics` precisa depender só de `plan` — um `needs` vermelho atrasa o resumo")
+
+    # ── 9. as duas imagens ───────────────────────────────────────────────
+    images_job = jobs.get("ci-images") or {}
+    if (images_job.get("permissions") or {}).get("packages") != "write":
+        FAILURES.append("ci: `7 ci · imagens` precisa de packages: write (push no ghcr.io)")
+    if "pull_request" not in str(images_job.get("if") or ""):
+        FAILURES.append(
+            "ci: `7 ci · imagens` não pode publicar em PR — a imagem é infraestrutura "
+            "versionada, e publicar de um PR colocaria código não revisado no ghcr.io"
         )
-        for word in ("cargo audit", "pnpm audit", "uv run pytest", "gh issue create"):
-            if word not in sec_runs:
-                FAILURES.append(f"security: job perdeu '{word}'")
+    image_matrix = str((images_job.get("strategy") or {}).get("matrix") or "")
+    for image in ("ci-linux", "ci-base"):
+        if image not in raw(".github/workflows/ci.yml"):
+            FAILURES.append(f"ci: imagem {image} não está na matriz de `7 ci · imagens`")
+    if image_matrix.count("Dockerfile") < 2:
+        FAILURES.append("ci: `7 ci · imagens` precisa das DUAS imagens (matrix com 2 Dockerfiles)")
 
-    # ── container.yml: publica a imagem de CI no ghcr.io (issue #41) ──
-    cont_path = ".github/workflows/container.yml"
-    cont = docs.get(cont_path) or {}
-    cont_on = triggers(cont)
-    if not cont:
-        FAILURES.append("container: workflow ausente (imagem ci-linux do ghcr.io)")
+    tauri_docker = raw(".github/docker/ci-linux/Dockerfile")
+    for tool in ("tauri-driver", "libwebkit2gtk-4.1-dev", "webkit2gtk-driver", "xvfb", "pnpm fetch"):
+        if tool not in tauri_docker:
+            FAILURES.append(f"ci-linux/Dockerfile: perdeu '{tool}' (toolset do Tauri/WebKit)")
+    base_docker = raw(".github/docker/ci-base/Dockerfile")
+    if not base_docker:
+        FAILURES.append("ci-base/Dockerfile ausente")
     else:
-        cont_push = cont_on.get("push") or {}
-        if not {"develop", "main"} <= set(cont_push.get("branches") or []):
-            FAILURES.append("container: push deve mirar develop+main (publica a imagem)")
-        if not any(str(p).startswith(".github/docker/") for p in (cont_push.get("paths") or [])):
-            FAILURES.append("container: push.paths precisa cobrir .github/docker/**")
-        if "workflow_dispatch" not in cont_on:
-            FAILURES.append("container: precisa de workflow_dispatch (rebuild manual)")
-        if (cont.get("permissions") or {}).get("packages") != "write":
-            FAILURES.append("container: permissions.packages precisa ser 'write' (push no ghcr.io)")
-        cont_raw = raw(cont_path)
-        for word in (
-            "docker/build-push-action",
-            "docker/login-action",
-            "ghcr.io",
-            "github.event_name != 'pull_request'",
-        ):
-            if word not in cont_raw:
-                FAILURES.append(f"container: perdeu '{word}'")
+        for token in ("uv", "rust", "node"):
+            if token not in base_docker:
+                FAILURES.append(f"ci-base/Dockerfile: precisa de {token} (jobs sem GUI também rodam Python e pnpm)")
+        # Comentário NÃO é instrução: os arquivos explicam POR QUE não levam
+        # WebKitGTK, e mencionar o pacote no texto não o instala.
+        instructions = "\n".join(
+            line for line in base_docker.splitlines() if not line.lstrip().startswith("#")
+        )
+        for forbidden in ("libwebkit2gtk", "xvfb", "webkit2gtk-driver"):
+            if forbidden in instructions:
+                FAILURES.append(
+                    f"ci-base/Dockerfile: instala '{forbidden}', que é da ci-linux — aqui é peso morto (e ~1,5 GB)"
+                )
 
-    # ── Dockerfile: contrato do TOOLSET (o que o hot path deixa de instalar) ──
-    dockerfile_path = ".github/docker/ci-linux/Dockerfile"
-    dockerfile_raw = raw(dockerfile_path)
-    if not dockerfile_raw:
-        FAILURES.append("container: .github/docker/ci-linux/Dockerfile ausente")
-    else:
-        for word in (
-            "tauri-driver",
-            "libwebkit2gtk-4.1-dev",
-            "webkit2gtk-driver",
-            "xvfb",
-            "rustup.sh",
-            "pnpm fetch",
-        ):
-            if word not in dockerfile_raw:
-                FAILURES.append(f"Dockerfile ci-linux: perdeu '{word}' (toolset da imagem)")
+    # Só o diff não publica: a run que introduz a imagem pode morrer ANTES do
+    # push (foi o que travou este repo — a imagem nunca existiu e todo job que
+    # a consome ficou em `manifest unknown` para sempre, porque nenhum diff
+    # seguinte tocava `.github/docker`). A sonda no registro é o que torna o
+    # bootstrap auto-curativo, e a verificação pós-push é o que impede o
+    # "verde que não publicou".
+    images_run = "\n".join(
+        str(s.get("run") or "") for s in (images_job.get("steps") or [])
+    )
+    if "check_base_images.py" not in images_run:
+        FAILURES.append(
+            "ci: `7 ci · imagens` precisa rodar `check_base_images.py` antes do build — "
+            "tag invalida no FROM so aparece DEPOIS de o runner subir camadas, e sem nome de arquivo"
+        )
+    if "manifest inspect" not in images_run:
+        FAILURES.append(
+            "ci: `7 ci · imagens` precisa sondar a tag no ghcr.io (`docker manifest inspect`) — "
+            "decidir só pelo diff trava o bootstrap quando a imagem some do registro"
+        )
+    for consumer in ("test-spec", "sec-audit", "test-e2e-webview"):
+        needs_raw = (jobs.get(consumer) or {}).get("needs")
+        needs_list = needs_raw if isinstance(needs_raw, list) else [needs_raw]
+        if "ci-images" not in [n for n in needs_list if n]:
+            FAILURES.append(
+                f"ci: '{consumer}' consome a imagem mas não depende de `ci-images` — roda em paralelo "
+                "e morre em `manifest unknown` na MESMA run em que a imagem é publicada"
+            )
 
-    # ── _validate: ONDE o container se paga + zero instalação por run ──
-    val_raw = raw(".github/workflows/_validate.yml")
-    for job in ("ui-rust-linux", "e2e-tauri"):
-        job_def = val_job_defs.get(job) or {}
-        image = str((job_def.get("container") or {}).get("image") or "")
-        if "ghcr.io/" not in image or "ci-linux" not in image:
-            FAILURES.append(f"_validate: job '{job}' precisa rodar na imagem ci-linux")
-        runs = " ".join(str(s.get("run") or "") for s in (job_def.get("steps") or []))
-        for instala in ("apt-get", "cargo install"):
-            if instala in runs:
-                FAILURES.append(f"_validate: '{job}' voltou a instalar por run ('{instala}') — isso é da imagem")
-    for aposentado in ("tauri-linux-deps", "apt-get"):
-        if aposentado in val_raw:
-            FAILURES.append(f"_validate: '{aposentado}' voltou ao caminho quente (imagem ci-linux + cache-apt)")
-    plan_def = val_job_defs.get("plan") or {}
-    plan_runs = " ".join(str(s.get("run") or "") for s in (plan_def.get("steps") or []))
-    if "rust-ui-linux=" not in plan_runs:
-        FAILURES.append("_validate: plano precisa emitir rust-ui-linux (job de container)")
-    if 'o == "windows-latest"' not in plan_runs:
-        FAILURES.append("_validate: ui-rust deve ficar em 2 OS (Windows no host + Linux no container)")
+    # `container.image` NÃO aceita o contexto `env` (a run morre no LOAD com
+    # 0 jobs e mensagem genérica). A ref é escrita literal; o `env` do topo
+    # documenta a fonte, e este check é o que impede as duas de divergirem.
+    wf_env = {k: str(v) for k, v in (ci.get("env") or {}).items()}
+    for job_id, env_key in (("test-spec", "CI_IMAGE_BASE"), ("sec-audit", "CI_IMAGE_BASE"),
+                            ("test-e2e-webview", "CI_IMAGE_TAURI")):
+        image = str(((jobs.get(job_id) or {}).get("container") or {}).get("image") or "")
+        if "env." in image:
+            FAILURES.append(
+                f"ci: '{job_id}' usa ${{{{ env.* }}}} em container.image — contexto inválido ali "
+                "(a run morre no LOAD); escreva a ref literal"
+            )
+        expected = wf_env.get(env_key, "").replace("${{ github.repository }}", "<repo>")
+        actual = image.replace("${{ github.repository }}", "<repo>")
+        if expected != actual:
+            FAILURES.append(f"ci: '{job_id}' usa {actual!r} mas o env {env_key} diz {expected!r} — diverge")
 
-    # ── gate do front em JOB PRÓPRIO (issue #50; antes: OS único do #43) ──
-    # O gate (lint + coverage) roda em job próprio, EM PARALELO com a matriz
-    # de build 3-OS: antes ele ficava atrás do Setup Node da leg ubuntu e
-    # serializava o caminho crítico. Plataforma-independente (eslint/jsdom) —
-    # 1 OS basta (racional do #43), escolhido pelo plan (gate-os).
-    gate_def = val_job_defs.get("front-gate") or {}
-    gate_runs = " ".join(str(s.get("run") or "") for s in (gate_def.get("steps") or []))
-    if "pnpm lint" not in gate_runs or "test:coverage" not in gate_runs:
-        FAILURES.append("_validate: job front-gate precisa rodar lint + test:coverage (gate do #50)")
-    front_def = val_job_defs.get("front") or {}
-    if any("full" in str(step.get("with") or "") for step in front_def.get("steps") or []):
-        FAILURES.append("_validate: job front não deve repassar `full` — o gate saiu para o front-gate (#50)")
-    if "gate-os=" not in plan_runs:
-        FAILURES.append("_validate: plano precisa emitir gate-os (OS do gate do front — #50)")
-    if "shared-key" not in val_raw:
-        FAILURES.append("_validate: cache do cargo precisa ser por workspace (shared-key)")
-    if "add-job-id-key" not in raw(".github/actions/setup-rust/action.yml"):
-        FAILURES.append("setup-rust: shared-key exige add-job-id-key: false (senão a chave por job volta)")
-
-    # ── composites: contrato de cada alavanca de custo ──
-    composite_contracts = {
+    # ── 10. composites: as alavancas de custo ───────────────────────────
+    composites = {
         ".github/actions/setup-rust/action.yml": ("shared-key", "cache-workspace-crates", "GP100_CI_IMAGE"),
-        ".github/actions/setup-node-pnpm/action.yml": ("GP100_CI_IMAGE", "npm_config_store_dir"),
+        ".github/actions/setup-node-pnpm/action.yml": ("GP100_CI_IMAGE", "npm_config_store_dir", "install"),
         ".github/actions/build-front/action.yml": ("pnpm build",),
         ".github/actions/playwright-setup/action.yml": ("actions/cache", "ms-playwright", "--with-deps"),
+        ".github/actions/version-bump/action.yml": ("next-version", "release", "bump"),
     }
-    for path, words in composite_contracts.items():
+    for path, tokens in composites.items():
         text = raw(path)
         if not text:
             FAILURES.append(f"{path}: action ausente")
             continue
-        for word in words:
-            if word not in text:
-                FAILURES.append(f"{path}: perdeu '{word}'")
-    if raw(".github/actions/tauri-linux-deps/action.yml"):
-        FAILURES.append(".github/actions/tauri-linux-deps: aposentado pela imagem ci-linux (remover)")
-    if "shared-key" not in raw(".github/workflows/_publish.yml"):
-        FAILURES.append("_publish: setup-rust precisa de shared-key (cache por workspace)")
+        for token in tokens:
+            if token not in text:
+                FAILURES.append(f"{path}: perdeu '{token}'")
+    if "add-job-id-key" not in raw(".github/actions/setup-rust/action.yml"):
+        FAILURES.append("setup-rust: shared-key exige add-job-id-key: false (senão a chave volta a ser por job)")
 
-    # ── permissão do CALLEE × CALLER (lição #41: startup_failure no LOAD) ──
-    # O reusable declara o que precisa; o caller tem que CONCEDER. Se o callee
-    # pede packages e o caller não dá, o GitHub recusa o workflow inteiro antes
-    # de rodar qualquer job (mensagem só na annotation da run).
-    if (val.get("permissions") or {}).get("packages"):
-        for caller_path in (".github/workflows/ci.yml", ".github/workflows/release.yml"):
-            caller = docs.get(caller_path) or {}
-            if not (caller.get("permissions") or {}).get("packages"):
-                FAILURES.append(
-                    f"{caller_path}: precisa conceder packages: read (o _validate.yml pede "
-                    f"imagem de container — sem o grant o run morre no LOAD)"
-                )
-
-    # ── runtime das actions: geração node24 (aviso de deprecação do runner) ──
-    # O runner avisa "Node.js 20 is deprecated... forced to run on Node.js 24"
-    # e o fix é subir o MAJOR da action. Trava aqui para um PR conservador de
-    # Dependabot não reintroduzir a geração antiga sem discussão.
-    node20_refs = (
-        "actions/cache@v4",
-        "docker/setup-buildx-action@v3",
-        "docker/login-action@v3",
-        "docker/metadata-action@v5",
-        "docker/build-push-action@v6",
+    # ── 11. geração Node 20 (o runner força Node 24 e avisa) ────────────
+    scan = workflows + sorted(
+        p[len(REPO) + 1:].replace("\\", "/") for p in glob.glob(os.path.join(REPO, ".github/actions/*/action.yml"))
     )
-    for path in workflows + sorted(glob.glob(".github/actions/*/action.yml")):
-        path = path.replace("\\", "/")
+    for path in scan:
         text = raw(path)
-        for ref in node20_refs:
+        for ref in NODE20_REFS:
             if ref in text:
-                FAILURES.append(f"{path}: '{ref}' mira Node 20 (deprecado) — usar o major node24")
+                FAILURES.append(f"{path}: '{ref}' mira Node 20 (deprecado) — subir a major")
 
-    # ── relatório ──
-    PREFIX_TO_FILE = {
-        "ci": ".github/workflows/ci.yml",
-        "_validate": ".github/workflows/_validate.yml",
-        "_publish": ".github/workflows/_publish.yml",
-        "release": ".github/workflows/release.yml",
-        "security": ".github/workflows/security.yml",
-        "container": ".github/workflows/container.yml",
-    }
-    broken_files = {PREFIX_TO_FILE[f.split(":")[0]] for f in FAILURES if f.split(":")[0] in PREFIX_TO_FILE}
-    for path in workflows + templates:
-        print(("ERR" if path in broken_files else "OK "), path)
+    # ── relatório ───────────────────────────────────────────────────────
+    for path in sorted(docs):
+        print(("ERR " if path == ".github/workflows/ci.yml" and FAILURES else "OK  "), path)
     if FAILURES:
         print("\nFALHAS:")
-        for f in FAILURES:
-            print(" -", f)
+        for failure in FAILURES:
+            print(" -", failure)
         return 1
-    print(f"\n{len(workflows)} workflows + {len(templates)} templates: YAML válido e contratos de fluxo preservados.")
+    print("\n1 workflow + 5 actions compostas + 2 imagens: YAML válido e contratos preservados.")
     return 0
 
 

@@ -19,9 +19,9 @@
 4. **Gates locais** da sua área (§4) — o PR nasce verde.
 5. **PR** para `develop` com o [template](../.github/PULL_REQUEST_TEMPLATE.md),
    tabelas preenchidas e `Closes #N` no **corpo** (§5).
-6. **CI verde + merge** (squash) → o job `close-linked` do
+6. **CI verde + merge** (squash) → o job `8 close · issues` do
    [ci.yml](../.github/workflows/ci.yml) fecha a issue com comentário de
-   rastreabilidade.
+   rastreabilidade (só quando o PR foi MESMO mergeado).
 
 ---
 
@@ -40,11 +40,12 @@
 - **Epic não fecha pelo PR de uma filha.** Filhas nunca usam `Closes #N`
   apontando para o epic — referencie com menção simples `#N`. O epic fecha
   manualmente quando o checklist completa (ou vire o vínculo em menção).
-- **Label `achados-security`**: issue automática do
-  [security.yml](../.github/workflows/security.yml) noturno. Prioridade máxima;
-  o `close-linked` **nunca** a fecha — só manualmente, com a correção provada.
-- **Label `ci-lite`** no PR de WIP: a matriz da CI roda só o Windows (barato);
-  tire a label para a revisão final.
+- **Label `achados-security`**: issue automática da auditoria noturna
+  (`5 sec · auditorias de dependência`). Prioridade máxima; o
+  `8 close · issues` **nunca** fecha uma issue com essa label — só
+  manualmente, com a correção provada.
+- **A label `ci-lite` foi abolida (#68)**: ela reduzia a matriz para Windows
+  em silêncio, sem ninguém registrar o motivo. Todo PR roda a matriz inteira.
 - **Vínculo de fechamento vive no CORPO do PR** (não no título, não em
   comentário): `Closes #N`, `Fixes #N` ou `Resolves #N`.
 
@@ -58,16 +59,17 @@
 | `develop` | integração — **destino padrão dos PRs** | — |
 | `feature/<slug>` | trabalho de qualquer fase | `develop` |
 | `hotfix/<slug>` | correção urgente de produção | `main` **e** `develop` |
-| `release/x.y.z` | estabilização de rc (freeze de features) | `main` + backport em `develop` |
+| `release/x.y.z` | estabilização de rc (freeze de features) | vira `main` pelo SHA da tag + `develop` avança para a próxima |
 
 - Inclua o número da issue no nome quando houver: `feature/42-knob-drag`
   (rastreabilidade que sobrevive fora do GitHub).
 - ⚠️ **Por que o PR aponta para develop e a issue ainda fecha:** o GitHub
   nativo só fecha por `Closes #N` em merge na branch **default** (`main`).
-  No GitFlow a integração acontece em `develop` — o job `close-linked`
+  No GitFlow a integração acontece em `develop` — o job `8 close · issues`
   ([ci.yml](../.github/workflows/ci.yml)) cobre essa lacuna via API (§5).
-- **Push em `feature/*`/`fix/*`/`chore/*` NÃO roda CI** (decisão de custo de
-  01/10): valide localmente e abra o PR — o CI dispara no PR e na integração.
+- **Push e PR** disparam a CI em toda branch de desenvolvimento. O filtro é o
+  de *caminho* (`scripts/ci_plan.py`): um PR que só mexe em `docs/` não sobe
+  Rust nem front.
 
 ```bash
 git checkout develop && git pull
@@ -122,30 +124,42 @@ tabela **antes → depois** · tabela de **gates executados** (marque o que rodo
 · ambiente verificado · R1–R4 · política de conteúdo (nenhum material
 proprietário do device).
 
-**CI — 6 workflows com UMA função cada** (reestruturado em 01/10, issues
-#31–#34; imagem de container no #41):
+**CI — UM workflow com 9 estágios** (consolidado na #68; a divisão anterior em
+6 arquivos por função veio da #31–#34 e da imagem de container da #41):
 
-| Arquivo | Função | Dispara em |
+| Estágio | Jobs | Quando roda |
 |---|---|---|
-| [ci.yml](../.github/workflows/ci.yml) | triggers + `close-linked` | PR para develop/main/release · push develop/main/release/hotfix |
-| [_validate.yml](../.github/workflows/_validate.yml) | a régua completa (reusable) | chamado pelo ci.yml e pelo release.yml |
-| [release.yml](../.github/workflows/release.yml) | version/rc/promote + publish | tag `v*` · dispatch manual |
-| [_publish.yml](../.github/workflows/_publish.yml) | CLI + instalador (reusable) | chamado pelo release.yml |
-| [security.yml](../.github/workflows/security.yml) | audits RustSec/npm + issue ACHADOS | agendado (06:30 UTC) · dispatch |
-| [container.yml](../.github/workflows/container.yml) | imagem de CI Linux (`ci-linux`) no ghcr.io | push develop/main com mudança no Dockerfile/lockfile · PR que mexe no Dockerfile (build sem push) · dispatch |
+| `0 plan` | contexto: o que mudou, tipo da branch, matrizes | sempre |
+| `1 lint` | contratos do pipeline · mensagens de commit · rust fmt · rust clippy · eslint | **sempre**, em toda branch |
+| `2 build` | rust `cargo check` · front (tsc + vite) | **sempre** — build ≠ distribuição |
+| `3 test` | rust (unit) · vitest · pytest · e2e Chromium · e2e visual · e2e webview | dev · develop · main · hotfix · tag |
+| `4 coverage` | vitest com instrumentação + gate 85% | dev · develop · main · hotfix · tag |
+| `5 security` | cargo/pnpm audit + issue ACHADOS · CodeQL | sempre (CodeQL não roda no schedule) |
+| `6 metrics` | resumo visual no step summary | **sempre** (`if: always()`), mesmo com falha |
+| `7 release/dist` | imagens de CI · guarda da main · rc · promote · play · instaladores · CLI | dist só na tag `v*`; versionamento só por dispatch |
+| `8 close` | fecha as issues do PR **mergeado** | só em PR fechado com merge |
 
-Dentro do `_validate`: gate (fmt + conventional commits) · spec (se
-`analysis/` mudou) · matrizes Rust/front **filtradas por caminhos** ·
-e2e Playwright · e2e visual (baselines por plataforma) · smoke do shell
-Tauri real. O gate do front (lint + `vitest --coverage`) roda em **job
-próprio** (`app/ui — gate`), em **paralelo** com a matriz de build 3-OS — o
-Setup Node dele não serializa mais com a leg ubuntu (issue #50; no `ci-lite`,
-que só sobe Windows, o gate acompanha o Windows). Os demais checks são
-build/typecheck (tsc + vite), a parte sensível à plataforma.
-Docs-only não sobe Rust/front (jobs aparecem como skipped, sem
-custo). **Push em `feature/*`/`fix/*`/`chore/*` não roda CI** — a validação
-acontece no PR (econômico de propósito). O publish depende do `validate`
-completo: tag não sai com a casca quebrada.
+A tabela **branch → estágios** mora em `scripts/ci_plan.py` (uma fonte de
+verdade, testável localmente), e não em `if:` espalhado no YAML — foi
+justamente a duplicação que fez a regra divergir antes.
+
+Imagens de CI no ghcr.io: `ci-linux` (Ubuntu + WebKitGTK/GTK/xvfb/tauri-driver,
+para o shell Tauri) e `ci-base` (Debian slim + Rust/uv/Node, para os jobs sem
+GUI). Alpine foi descartado: `alsa-sys` e crates com código C/linkam contra
+glibc.
+
+A régua é o conjunto de jobs dos estágios `1 lint` a `5 security`. As
+matrizes Rust/front são **filtradas por caminhos** (`scripts/ci_plan.py`): docs
+puro não sobe Rust/front — os jobs aparecem como *skipped*, sem custo. O gate
+do front (`1 lint · app/ui` e `4 coverage`) roda em **jobs próprios**, em
+paralelo com a matriz de build 3-OS, para o Setup Node de um não serializar
+com o do outro (issue #50). O coverage é job separado de propósito: é uma
+métrica com gate, não parte de "os testes passaram".
+
+**Push e PR** em `feature/*`/`bugfix/*` disparam a CI; em `release/*`/
+`hotfix/*`, também. O que muda entre elas não é o gatilho, é a **tabela de
+estágios** de `scripts/ci_plan.py` (a develop e a tag rodam a suíte inteira;
+a release branch, por ser um freeze já testado da develop, roda lint + build).
 
 ### Custo do CI — imagem de container e caches (#41)
 
@@ -172,12 +186,17 @@ job: virou camada da imagem publicada no ghcr.io.
 - **ui-rust em 2 OS:** Windows (MSVC, ADR-7) + Linux (container). O macOS do
   front usa `macos-15-intel` (x86_64): todo label `macos-*` arm64 carrega a
   anotação de fila do GitHub; o Intel não (suporte até ~08/2027).
-- **Rebuild da imagem:** `container.yml` publica sozinho quando o Dockerfile
-  ou o `pnpm-lock.yaml` mudam em `develop`/`main`; PR que mexe no Dockerfile
-  builda **sem** publicar. Bump de tag (`:1` → `:2`) é manual e só quando a
-  mudança for incompatível — os jobs de `_validate.yml` referenciam `:1`.
-  Bootstrap/rebuild manual: `gh workflow run container.yml` (o dispatch exige
-  o arquivo na branch **default**).
+- **Rebuild da imagem:** o job `7 ci · imagens` publica quando a definição em
+  `.github/docker/` mudou **ou** quando a tag `:1` não existe no ghcr.io. A
+  segunda metade é o que torna o bootstrap possível: decidir só pelo diff trava
+  para sempre quando a run que introduziu a imagem morre antes do push (ninguém
+  mais toca `.github/docker`, e todo job que consome fica em `manifest
+  unknown`). Quem decide publicar e não confirma a tag no registro **falha** —
+  verde sem imagem é pior que vermelho, porque a quebra aparece depois, em
+  outro job, sem ligação com a causa. Os jobs que consomem a imagem dependem
+  dele no `needs:`, então não correm em paralelo ao push. Bump de tag (`:1` →
+  `:2`) é manual e só quando a mudança for incompatível — os jobs referenciam
+  `:1`.
 - **Medição (antes/depois):** `python3 scripts/ci_timings.py <run-id> --steps`
   e `--compare <antes> <depois>` — tabela por job/step direto da API do
   Actions (só `gh` + stdlib). Mudança de custo entra com número.
@@ -200,7 +219,7 @@ job: virou camada da imagem publicada no ghcr.io.
 (visual divergente só com decisão de baseline documentada).
 
 **Fechamento automático**
-(job `close-linked` do [ci.yml](../.github/workflows/ci.yml)):
+(job `8 close · issues` do [ci.yml](../.github/workflows/ci.yml)):
 
 1. No merge em `develop`, extrai `Closes/Fixes/Resolves #N` do **corpo**;
 2. Fecha cada issue via API com comentário de rastreabilidade
@@ -221,36 +240,41 @@ job: virou camada da imagem publicada no ghcr.io.
 
 ## 6. Releases — cadeia rc1→rcN→tag final
 
-- **Push de tag `v*`** → `release.yml` valida (reusable) e publica a GitHub
-  Release com CLI de campo (Windows/gnu) + instalador NSIS do app (MSVC).
-  (Tags criadas pelo `rc`/`promote` não disparam workflow — o publish roda no
-  MESMO run que cortou a tag.)
-- **▶ Play (`release.yml`, `action=version`)**: valida tudo (reusable),
-  calcula o semver pelos conventional commits desde a última tag e só
-  corta/publica com bump pendente (ou publique uma tag existente via input
-  `publish-tag`).
-- **Cadeia de Release Candidates** ([release-gitflow](../.github/workflows/release.yml),
-  `workflow_dispatch`):
-  1. **`action=rc`** — corta `release/x.y.z` de develop (ou reutiliza a
-     branch), aplica `x.y.z-rc.N` nos manifests e etiqueta `vX.Y.Z-rc.N`;
-     o pipeline roda a matriz cheia e publica como **PRERELEASE** (CLI +
-     instalador marcados como prerelease). Versão: input `version`
-     explícito, ou o semver pendente (exige `feat` desde a última tag).
-     Correções entre rcs: PR em develop → rode `rc` de novo (o N
+- **Push de tag `v*`** → a suíte inteira roda (lint → build → test →
+  coverage → security) e só então os jobs `7 dist · *` publicam na GitHub
+  Release: instalador do app por plataforma (`.msi`/`.exe`, `.dmg`,
+  `.deb`/`.AppImage`) e CLI de campo (Windows/gnu). Tags criadas pelo
+  `rc`/`promote` não disparam workflow — o publish roda no MESMO run que
+  cortou a tag.
+- **▶ Play (`workflow_dispatch`, `action=play`)**: calcula o semver pelos
+  conventional commits desde a última tag e só corta com bump pendente.
+- **Cadeia de Release Candidates** (`workflow_dispatch`):
+  1. **`action=release`** — corta `release/x.y.z` da `develop` (ou reutiliza
+     a branch), aplica `x.y.z-rc.N` nos manifests e etiqueta `vX.Y.Z-rc.N`,
+     publicando como **PRERELEASE**. `source=main` faz o fluxo de hotfix
+     (patch em vez de minor). Versão: input `version` explícito, ou o semver
+     pendente. Correções entre rcs: rode `action=release` de novo (o N
      incrementa sozinho).
-  2. **`action=promote`** — remove o `-rc.N`, etiqueta `vX.Y.Z` FINAL
-     (pipeline publica a release real), faz merge `--no-ff` em `main`,
-     backport em `develop` e apaga a release branch. Conflito de merge =
-     falha explícita para resolução manual (nada parcial é empurrado;
-     promote é idempotente — tag existente recusa).
-- **Proteção das branches** (`main`/`develop`) é configuração do
-  repositório (Settings → Branches) — não vive nos workflows.
+  2. **`action=promote`** — remove o `-rc.N`, etiqueta `vX.Y.Z` FINAL, faz
+     `main` receber o **SHA da tag**, faz merge `--no-ff` da release na
+     `develop` **avançando a develop para a próxima versão**, e apaga a
+     release branch. Conflito de merge = falha explícita para resolução
+     manual; promote é idempotente (tag existente recusa).
+- **A `main` só recebe o SHA de uma tag `v*`.** Em repositório **pessoal** o
+  GitHub não permite restrição de escrita em branch (a API recusa com
+  "Only organization repositories can have users and team restrictions"), e
+  regra de branch filtra *quem* é protegido, não *de onde* veio o push. A
+  regra é aplicada pelo job `7 release · guarda da main`, que roda em todo
+  push na `main` e **falha a run** se o sha não for o de uma tag `v*`. O que
+  o servidor garante: histórico linear, sem force-push, sem deleção. Em repo
+  de organização dá para trocar a guarda por `restrictions.push` de verdade.
 - **Ensaio da cadeia (gate + local)**: `python3 scripts/simulate_release.py`
-  extrai os blocos `run:` do release.yml e os executa num sandbox git
-  temporário (origin bare + clones) — prova rc1→rc2→promote, idempotência
-  e os guards de recusa ANTES de qualquer uso real. Roda automaticamente
-  no gate do pipeline; local precisa só de git+bash+python3 (+pyyaml).
-  `--keep` preserva o sandbox em $TMPDIR para inspeção.
+  extrai os blocos `run:` do `ci.yml` (jobs `release-rc` e
+  `release-promote`) e os executa num sandbox git temporário — prova
+  rc1→rc2→promote, a `develop` avançando para a próxima versão, idempotência
+  e os guards de recusa ANTES de qualquer uso real. Roda no estágio
+  `1 lint`; local precisa só de git+bash+python3 (+pyyaml). `--keep`
+  preserva o sandbox em $TMPDIR para inspeção.
 
 ---
 
