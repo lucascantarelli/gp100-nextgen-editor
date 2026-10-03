@@ -229,11 +229,12 @@ body {
     0 0 12px color-mix(in srgb, var(--accent-glow) 45%, transparent);
 }
 
-/* ── MODIFICADOR "vidro" (navbar com mock): 34px fixos, blur sutil ──
-   Aplica-se JUNTO do .gp-btn e vem DEPOIS no arquivo de propósito: a
-   ordem define quem vence (o modificador sobrepõe o fundo/borda). */
+/* ── MODIFICADOR "vidro" (navbar com mock): 32px fixos (caixa UNIFORME dos
+   clusters da navbar — issue #10), blur sutil. Aplica-se JUNTO do .gp-btn e
+   vem DEPOIS no arquivo de propósito: a ordem define quem vence (o
+   modificador sobrepõe o fundo/borda). */
 .btn-glass {
-  height: 34px;
+  height: 32px;
   box-sizing: border-box;
   background: color-mix(in srgb, var(--bg-raised) 72%, transparent);
   border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--border));
@@ -245,6 +246,64 @@ body {
 }
 .btn-glass:hover {
   border-color: var(--accent-glow);
+}
+
+/* ── Navbar (issue #10): clusters uniformes + larguras responsivas ──
+   .nb-cluster dá o ritmo dos 4 módulos (gap/padding em CSS para o media
+   query poder apertar a navbar sem quebrar a linha do banner); */
+.nb-cluster {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  padding: 6px var(--space-12);
+  min-width: 0;
+}
+/* CONTroles à direita: nowrap + min-width 0 → os clusters ENCOLHEM
+   (com ellipsis nos filhos) em vez de quebrar o banner em 2 fileiras */
+.nb-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  flex-wrap: nowrap;
+  min-width: 0;
+  justify-content: flex-end;
+}
+/* ≤1024 (breakpoint do .nb-cap): a navbar aperta SEM quebrar — some o
+   prefixo do chip e os separadores e o ritmo interno encolhe (medido:
+   o grupo cai de ~890 para ~770 e o banner segue numa linha só) */
+@media (max-width: 1024px) {
+  .nb-controls {
+    gap: var(--space-4);
+  }
+  .nb-cluster {
+    gap: var(--space-8);
+  }
+  .nb-div,
+  .nb-chip-pre {
+    display: none;
+  }
+}
+/* Abaixo de 1024 o grupo volta a QUEBRAR (como o flex-wrap antigo da
+   navbar): sem isso o min-content do header estica a coluna do grid do
+   main em 800px (a página inteira ficava mais larga que a janela) */
+@media (max-width: 1023px) {
+  .nb-controls {
+    flex-wrap: wrap;
+  }
+}
+
+/* ── Acento por FUNÇÃO + hover refinado (issue #10) ──────────────────
+   .nb-accent colore o repouso (boot ⟳, passos ◀ ▶ do patch) e define o
+   hover com brilho — a cor mora NO CSS porque estilo inline nunca
+   perderia para :hover. */
+.nb-accent {
+  color: var(--accent-text);
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
+}
+.nb-accent:hover {
+  border-color: var(--accent-glow);
+  box-shadow: inset 0 1px 0 var(--light-top), 0 2px 0 var(--shade-deep),
+    0 0 10px color-mix(in srgb, var(--accent-glow) 35%, transparent);
 }
 
 /* texto GRAVADO (emboss) — rótulos de chapa e legendas de placa */
@@ -306,31 +365,8 @@ body {
   }
 }
 
-/* ── Drawer inferior (drums/controles — opção A do alinhamento) ── */
-@keyframes drawer-up {
-  from {
-    transform: translateY(100%);
-  }
-  to {
-    transform: translateY(0);
-  }
-}
-.drum-drawer {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 50;
-  background: var(--bg-raised);
-  border-top: 1px solid var(--accent);
-  box-shadow: 0 -18px 44px rgba(0, 0, 0, 0.55);
-  animation: drawer-up var(--motion-panel) var(--ease-out);
-}
-@media (prefers-reduced-motion: reduce) {
-  .drum-drawer {
-    animation: none;
-  }
-}
+/* O antigo drawer inferior do drum virou MODAL (DrumPanel no padrão do
+   SettingsModal: overlay + gp-surface--floating) — sem CSS próprio. */
 
 /* ── Página FLUIDA: o meio NÃO tem scroll próprio ────────────────────
    Navbar, conteúdo e rodapé rolam JUNTOS na página (a barra é a da
