@@ -32,9 +32,16 @@
 # TAGS: `:1` (estável, a que os jobs referenciam) + `sha-<curto>` (auditoria).
 # ═══════════════════════════════════════════════════════════════════════════
 
-ARG DEBIAN_VERSION=bookworm-slim
+# A imagem é `rust:slim-bookworm`, e o ARG é a ref COMPLETA de propósito: o
+# jeito anterior (`DEBIAN_VERSION=bookworm-slim` + `FROM rust:${DEBIAN_VERSION}`)
+# montava `rust:bookworm-slim`, tag que NÃO existe no Docker Hub (a oficial é
+# `slim-bookworm`, sufixo depois). A build morria em ~3s com
+# `docker.io/library/rust:bookworm-slim: not found` e o bootstrap da imagem
+# ficava travado sem causa visível. Com a ref inteira não há montagem
+# inválida possível; trocar de suíte é trocar a string.
+ARG RUST_IMAGE=rust:slim-bookworm
 
-FROM rust:${DEBIAN_VERSION}
+FROM ${RUST_IMAGE}
 
 ARG NODE_VERSION=22
 ARG PNPM_VERSION=11
@@ -51,7 +58,8 @@ RUN apt-get update -y \
       ca-certificates curl git jq pkg-config libasound2-dev \
  && rm -rf /var/lib/apt/lists/*
 
-# uv pelo instalador oficial: o `rust:bookworm-slim` não traz Python gerenciado,
+# uv pelo instalador oficial: a imagem `rust:slim-bookworm` não traz Python
+# gerenciado,
 # e o `pip install uv` cairia no PEP 668 (ambiente externo).
 COPY --from=ghcr.io/astral-sh/uv:0.9.7 /uv /uvx /usr/local/bin/
 

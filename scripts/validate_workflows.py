@@ -279,6 +279,11 @@ def main() -> int:
     images_run = "\n".join(
         str(s.get("run") or "") for s in (images_job.get("steps") or [])
     )
+    if "check_base_images.py" not in images_run:
+        FAILURES.append(
+            "ci: `7 ci · imagens` precisa rodar `check_base_images.py` antes do build — "
+            "tag invalida no FROM so aparece DEPOIS de o runner subir camadas, e sem nome de arquivo"
+        )
     if "manifest inspect" not in images_run:
         FAILURES.append(
             "ci: `7 ci · imagens` precisa sondar a tag no ghcr.io (`docker manifest inspect`) — "

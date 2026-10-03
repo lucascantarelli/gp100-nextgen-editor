@@ -695,6 +695,12 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+      # Uma tag invalida no FROM morre DEPOIS de o runner subir as camadas
+      # anteriores, e a saida (`docker.io/library/rust:bookworm-slim: not
+      # found`) nao diz que a tag foi montada por concatenacao de ARG. Aqui
+      # custa um HEAD por imagem, antes do build.
+      - name: as imagens base existem no registro?
+        run: python3 scripts/check_base_images.py
       - name: a definição da imagem mudou nesta run?
         id: dirty
         run: |
