@@ -30,25 +30,39 @@ license=('MIT')
 # webkit2gtk-4.1 e gtk3: o shell Tauri 2 renderiza por WebKitGTK. Mesmas libs do
 # .deb — divergir aqui e lá produz "instala mas não abre" em uma plataforma só.
 depends=('webkit2gtk-4.1' 'gtk3')
-# cargo: build do shell. nodejs/npm: a UI é Vite (bundled nas assets em release,
-# mas o build completo do fonte precisa). Não usamos pnpm no caminho de release
-# porque o `pnpm install` completo é lento e traz o toolchain de testes.
-makedepends=('cargo' 'nodejs' 'npm')
+# ⚠️ Só `cargo`. As dependências de build do FRONT saíram de propósito (#72):
+# o tarball da release já embarca `packages/app/ui/dist` compilado, então não
+# há npm/pnpm aqui. As duas razões que faziam o front ser compilado no
+# `makepkg` morrem com isso:
+#   1. o `pnpm-lock.yaml` do projeto é lockfileVersion 9.0 — o `npm` do Arch
+#      não o lê, então `npm ci` nem seria uma opção honesta;
+#   2. o AUR compilar a árvore de testes do Vite a cada build seria lento, e
+#      o resultado poderia diferir do `.deb` da mesma versão — dois pacotes
+#      "da mesma versão" com binários diferentes.
+makedepends=('cargo')
 provides=("$pkgname")
 conflicts=()
 options=('!strip' '!emptydirs')
+# O tarball vem da Release do GitHub e é produzido por
+# `scripts/make_sdist.py` no job `Distribuição · tarball de fonte`. Ele já
+# contém `packages/app/ui/dist` (o `frontendDist` do tauri.conf.json) e
+# `packages/core` (dependência de caminho do crate do Tauri).
 source=("$pkgname-$_pkgver.tar.gz")
-# `SKIP` porque a release é um tag GitHub gerado em runtime — a SHA256 real é
-# conferida pelo `.github/workflows/ci.yml`, que valida a partir do tarball que
-# acabou de buildar. Trocar por um digest fixo quebraria a cada release; o
-# AUR exige sha256 válido, então quem publicar no AUR deve fixar aqui o digest
-# do tarball (`updpkgsums`).
 sha256sums=('SKIP')
+# O digest é REPRODUZÍVEL (o tarball usa mtime fixo, ordem estável e gzip com
+# mtime=0), então dá para fixar um valor de verdade aqui. O passo é:
+#   1. publique a release (o job anexa o SHA256SUMS.txt na Release);
+#   2. copie o sha256 para `sha256sums` acima e incremente `pkgrel`;
+#   3. ou, se preferir não editar à mão, `updpkgsums` — ele preenche sozinho.
+# Enquanto for `SKIP`, `makepkg` avisa e o AUR recusa: isso é intencional e
+# conhecido, não um esquecimento (issue #72).
 
 build() {
   cd "${srcdir}/${pkgname}-${_pkgver}/packages/app/api"
   # `--locked`: sem isto o build local pode resolver versions diferentes das
   # travadas, e o binário da release deixa de reproduzir.
+  # O `frontendDist` (`../ui/dist`) já vem pronto no tarball — sem ele o
+  # `tauri::generate_context!()` faz `panic!` em tempo de compilação.
   cargo build --release --locked
 }
 

@@ -79,11 +79,45 @@ então ele é versionado em [`packaging/arch/`](../packaging/arch):
 - `PKGBUILD` — compila o tarball da release com `cargo build --release --locked`;
 - `gp100-nextgen-editor.desktop` — entrada XDG, `Exec=gp100-nextgen-editor`.
 
-Duas travas em [`scripts/check_bundle.py`](../scripts/check_bundle.py):
+### O tarball de fonte é parte do pacote (#72)
+
+O `build()` **não** compila do branch: compila de
+`gp100-nextgen-editor-<versão>.tar.gz`, publicado na Release pelo job
+`Distribuição · tarball de fonte` via
+[`scripts/make_sdist.py`](../scripts/make_sdist.py). Compilar do branch seria um
+AUR servindo código diferente do que a release anuncia.
+
+Esse tarball **não é o tarball do git**. Ele junta três coisas que o git não
+entrega:
+
+| O que | Por que precisa estar lá |
+|---|---|
+| `packages/app/ui/dist` | É o `frontendDist` do `tauri.conf.json`. Sem ele, `tauri::generate_context!()` faz `panic!` em tempo de compilação (`tauri-codegen`, `context.rs:185-191`). |
+| `packages/core` | Dependência de **caminho** do crate do Tauri (`gp100-core = { path = "../../core" }`). Sem ela, `cargo metadata` nem resolve. |
+| `Cargo.lock` do `gp100-ui` | É um workspace próprio (ADR-7), com o lockfile próprio — `--locked` sem ele resolve versions diferentes das travadas. |
+
+Por isso o `makedepends` do PKGBUILD é **só `cargo`**: não há npm/pnpm. Duas
+razões, ambas definitivas — o `pnpm-lock.yaml` do projeto é lockfileVersion 9.0
+(o `npm` do Arch não lê), e recompilar a árvore de testes do Vite a cada build
+do AUR seria lento *e* poderia produzir um binário diferente do `.deb` da mesma
+versão.
+
+O tarball é **reproduzível** (mtime fixo, ordem estável, gzip com `mtime=0`),
+então o mesmo commit gera o mesmo sha256 e o `sha256sums` pode ser um valor de
+verdade em vez de `SKIP`. O job ainda prova que ele é **consumível**: extrai o
+tarball num diretório temporário e verifica `frontendDist` + `packages/core` +
+`cargo metadata --locked` antes de publicar.
+
+Travas em [`scripts/check_bundle.py`](../scripts/check_bundle.py):
 
 1. `pkgname` do PKGBUILD tem que ser **igual** a `mainBinaryName` da config —
    senão `/usr/bin/<pkgname>` aponta para um binário que não existe;
-2. o `Exec=` do `.desktop` tem que casar com os dois.
+2. o `Exec=` do `.desktop` tem que casar com os dois;
+3. o `source=` do PKGBUILD tem que apontar para o tarball, **e** algum job tem
+   que produzi-lo — `make_sdist.py` ausente, ou nenhum job o invocando, é falha;
+4. o `FRONT_DIST` do `make_sdist.py` tem que resolver para o mesmo caminho que
+   o `frontendDist` do conf (comparação de caminho resolvido, não de substring);
+5. `make_sdist.py` tem que embutir `packages/core`.
 
 A `Infra · imagens de container` não roda em PR (não publicamos no ghcr.io
 código não revisado). Com o `push` restrito a `develop`/`main`/tags, uma
@@ -107,14 +141,23 @@ e pega, com arquivo:linha:
 - `targets` sem o bundle que o job de dist pede;
 - `.deb` sem `libwebkit2gtk-4.1-0`;
 - PKGBUILD/`.desktop`/`mainBinaryName` divergentes;
-- caminho de origem citado no `package()` que não existe.
+- caminho de origem citado no `package()` que não existe;
+- tarball de fonte que ninguém produz, ou que não embute o `frontendDist` /
+  `packages/core` (os três furos do #72).
+
+[`scripts/sync_version.py`](../scripts/sync_version.py) roda no mesmo job e
+falha quando os **cinco** manifests de versão divergem — `Cargo.toml` (raiz),
+`packages/app/api/Cargo.toml`, `packages/app/api/tauri.conf.json`,
+`packages/app/ui/package.json` e `version.json`. O `tauri.conf.json` é o que o
+Tauri usa como **versão do bundle**: sem ele na lista, cortar `v0.2.0` produz um
+instalador que se apresenta como `0.1.0` (#73).
 
 ## Pendências
 
 - **Assinatura/notariação** (#27): `.msi` sem assinatura Authenticode e `.dmg`
   sem notarização. Depende de certificado; o README já documenta o contorno
   (`xattr -dr com.apple.quarantine`).
-- **`LICENSE`**: o `Cargo.toml` declara MIT, mas o repositório não tem o arquivo
-  de licença. O PKGBUILD declara `license=('MIT')` espelhando o `Cargo.toml` —
-  antes de publicar no AUR vale materializar o texto (a escolha é do owner:
-  copyright, ano).
+- **`sha256sums=('SKIP')`**: o digest é fixável agora que o tarball é
+  reproduzível. Quem publicar no AUR copia o `SHA256SUMS.txt` que o job anexa à
+  Release, ou deixa o `updpkgsums` preencher.
+- **Assinatura/notariação** (repetido aqui por completude): ver acima.

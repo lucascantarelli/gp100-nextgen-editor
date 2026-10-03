@@ -224,6 +224,12 @@ jobs:
       - name: sintaxe + contratos + simulação do GitFlow
         run: |
           python3 -c "import yaml" 2>/dev/null || python3 -m pip install --quiet pyyaml
+          # O gate de empacotamento (#71) estava escrito mas NAO LIGADO: o
+          # `docs/PACKAGING.md` afirmava que ele rodava aqui e nao rodava em
+          # lugar nenhum. Sem ele, mainBinaryName, .desktop, .deb e PKGBUILD
+          # podiam divergir em silencio.
+          python3 scripts/check_bundle.py
+          python3 scripts/sync_version.py --check
           python3 scripts/validate_workflows.py
           python3 scripts/simulate_release.py
 
@@ -976,13 +982,11 @@ jobs:
           FULL: ${{ steps.prep.outputs.full }}
         run: |
           set -euo pipefail
-          for f in Cargo.toml packages/app/api/Cargo.toml version.json; do
-            if [ "$f" = "version.json" ]; then
-              printf '{\n  "version": "%s"\n}\n' "$FULL" > version.json
-            else
-              sed -i -E "0,/^version = \".*\"/s//version = \"$FULL\"/" "$f"
-            fi
-          done
+          # Os 5 manifests, nao 3: `tauri.conf.json` e a versao do BUNDLE e
+          # `package.json` o do front. De fora deles, o instalador sai com a
+          # versao velha (#73). O `--check` prova a igualdade.
+          python3 scripts/sync_version.py --set "$FULL"
+          python3 scripts/sync_version.py --check
       - name: commitar + taguear + subir
         env:
           BRANCH: ${{ steps.prep.outputs.branch }}
@@ -991,7 +995,8 @@ jobs:
           set -euo pipefail
           git config user.name "$BOT_NAME"
           git config user.email "$BOT_EMAIL"
-          git add Cargo.toml packages/app/api/Cargo.toml version.json
+          git add Cargo.toml packages/app/api/Cargo.toml \
+            packages/app/api/tauri.conf.json packages/app/ui/package.json version.json
           git commit -m "chore(release): $TAG (release candidate)"
           git push origin "$BRANCH"
           git tag "$TAG"
@@ -1058,13 +1063,11 @@ jobs:
         run: |
           set -euo pipefail
           git checkout "origin/$BRANCH"
-          for f in Cargo.toml packages/app/api/Cargo.toml version.json; do
-            if [ "$f" = "version.json" ]; then
-              printf '{\n  "version": "%s"\n}\n' "$V" > version.json
-            else
-              sed -i -E "0,/^version = \".*\"/s//version = \"$V\"/" "$f"
-            fi
-          done
+          # Os 5 manifests, nao 3: `tauri.conf.json` e a versao do BUNDLE e
+          # `package.json` o do front. De fora deles, o instalador sai com a
+          # versao velha (#73). O `--check` prova a igualdade.
+          python3 scripts/sync_version.py --set "$V"
+          python3 scripts/sync_version.py --check
       - name: commitar + taguear
         id: final
         env:
@@ -1075,7 +1078,8 @@ jobs:
           set -euo pipefail
           git config user.name "$BOT_NAME"
           git config user.email "$BOT_EMAIL"
-          git add Cargo.toml packages/app/api/Cargo.toml version.json
+          git add Cargo.toml packages/app/api/Cargo.toml \
+            packages/app/api/tauri.conf.json packages/app/ui/package.json version.json
           git commit -m "chore(release): $TAG (promove $RC)"
           git push origin "HEAD:refs/heads/$BRANCH"
           git tag "$TAG"
@@ -1113,14 +1117,13 @@ jobs:
             NEXT="${{ steps.rc.outputs.version }}"
             MAJOR=$(echo "$NEXT" | cut -d. -f1); MINOR=$(echo "$NEXT" | cut -d. -f2)
             UP="$MAJOR.$((MINOR+1)).0"
-            for f in Cargo.toml packages/app/api/Cargo.toml version.json; do
-              if [ "$f" = "version.json" ]; then
-                printf '{\n  "version": "%s"\n}\n' "$UP" > version.json
-              else
-                sed -i -E "0,/^version = \".*\"/s//version = \"$UP\"/" "$f"
-              fi
-            done
-            git add Cargo.toml packages/app/api/Cargo.toml version.json
+            # Os 5 manifests, nao 3: `tauri.conf.json` e a versao do BUNDLE e
+            # `package.json` o do front. De fora deles, o instalador sai com a
+            # versao velha (#73). O `--check` prova a igualdade.
+            python3 scripts/sync_version.py --set "$UP"
+            python3 scripts/sync_version.py --check
+            git add Cargo.toml packages/app/api/Cargo.toml \
+            packages/app/api/tauri.conf.json packages/app/ui/package.json version.json
             git commit -m "chore(release): develop avanca para $UP"
             git push origin develop
           else
@@ -1167,7 +1170,8 @@ jobs:
           [ "$PENDING" = "true" ] || { echo "::error::sem bump pendente — nada a cortar"; exit 1; }
           git config user.name "$BOT_NAME"
           git config user.email "$BOT_EMAIL"
-          git add Cargo.toml packages/app/api/Cargo.toml version.json
+          git add Cargo.toml packages/app/api/Cargo.toml \
+            packages/app/api/tauri.conf.json packages/app/ui/package.json version.json
           git diff --cached --quiet || {
             git commit -m "chore(release): v$NEXT (bump por conventional commits)"
             git push origin HEAD; }
@@ -1241,6 +1245,69 @@ jobs:
           prerelease: ${{ contains(github.ref_name, '-rc') }}
           files: |
             dist-pkg/*
+          fail_on_unmatched_files: true
+
+  dist-sdist:
+    name: Distribuição · tarball de fonte (insumo do Arch)
+    needs: plan
+    # O PKGBUILD (#29) compila deste tarball e, ate #72, ele NAO ERA PUBLICADO:
+    # `makepkg` procuraria um arquivo inexistente. Alem disso o tarball do git
+    # nao tem `packages/app/ui/dist` (gitignored, e o `frontendDist` do conf) nem
+    # `packages/core` (dependencia de caminho do crate do Tauri) — o
+    # `make_sdist.py` junta os tres e sobe o front antes de empacotar.
+    if: needs.plan.outputs.stage-dist == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: write # anexar na Release
+      issues: read
+      actions: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.ref }}
+      - uses: ./.github/actions/setup-node-pnpm
+      - uses: ./.github/actions/build-front
+      - uses: ./.github/actions/setup-rust
+        with:
+          workdir: packages/app/api
+          shared-key: ws-api
+      - name: linux precisa dos headers de WebKitGTK
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y --no-install-recommends \
+            libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev \
+            librsvg2-dev pkg-config
+      # Prova de que o tarball e realmente CONSUMIVEL, e nao so um .tar.gz:
+      # o manifesto do crate do Tauri precisa resolver a dependencia de caminho
+      # `gp100-core`, e o `frontendDist` precisa existir (sem ele o
+      # `generate_context!()` faz `panic!` em tempo de compilacao).
+      - name: o tarball tem o que o build do shell exige
+        run: |
+          set -euo pipefail
+          VER="${GITHUB_REF_NAME#v}"
+          python3 scripts/make_sdist.py --version "$VER" --out dist-pkg
+          SRC="dist-pkg/gp100-nextgen-editor-$VER.tar.gz"
+          test -s "$SRC" || { echo "::error::tarball vazio"; exit 1; }
+          rm -rf /tmp/sdist-check && mkdir -p /tmp/sdist-check
+          tar xzf "$SRC" -C /tmp/sdist-check
+          ROOT="/tmp/sdist-check/gp100-nextgen-editor-$VER"
+          test -f "$ROOT/packages/app/ui/dist/index.html" || {
+            echo "::error::frontendDist ausente — o build do shell entra em panic"; exit 1; }
+          test -f "$ROOT/packages/core/Cargo.toml" || {
+            echo "::error::packages/core ausente — dependencia de caminho do gp100-ui"; exit 1; }
+          (cd "$ROOT/packages/app/api" && cargo metadata --format-version 1 --locked >/dev/null) || {
+            echo "::error::manifesto do shell nao resolve dentro do tarball"; exit 1; }
+          echo "tarball consumivel: frontendDist + gp100-core + manifesto"
+      - name: publicar na Release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ github.ref_name }}
+          prerelease: ${{ contains(github.ref_name, '-rc') }}
+          files: |
+            dist-pkg/gp100-nextgen-editor-${{ github.ref_name }}.tar.gz
+            dist-pkg/SHA256SUMS.txt
           fail_on_unmatched_files: true
 
   dist-cli:
