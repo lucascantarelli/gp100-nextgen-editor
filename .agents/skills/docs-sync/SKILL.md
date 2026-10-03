@@ -17,12 +17,24 @@ fonte de retrocesso (viola a regra R1).
    (não reescrever o detalhe da issue aqui); se a fase virou 100%, destacar no topo.
 2. **knowledge.md** — atualizar "Estado vivo" (1–3 linhas por marco, sem prosa).
 3. **docs/INDEX.md** — novo documento? Entrar no inventário com status; doc mudou
-   de natureza (ex.: virou histórico)? Atualizar a tabela.
+   de natureza (ex.: virou histórico)? Atualizar a tabela. **Falta alguma skill na
+   lista "Infra do agente"?** (as 10 skills estão lá — conferido 03/10).
 4. **README.md** — só se algo do panorama mudou (marco estrutural, não issue menor).
 5. **Banners de status** — qualquer doc que ganhou obsolescência parcial ganha
    banner ✅/⚠️/📜 com ponteiro para o substituto.
 6. **PROTOCOL.md** — descobertas de protocolo SEMPRE aqui (com evidência), nunca
    só no knowledge/ROADMAP.
+7. **CONTADORES (regra de 03/10 — nasce do achado #81)** — número de teste,
+   cobertura, e2e, baselines ou contagem de arquivo de ícone **pertence a
+   `docs/INDEX.md` §6** e a nenhum outro lugar. Se o número mudar: atualizar o §6 e
+   **apagar** as ocorrências antigas em README/ROADMAP/knowledge/docs de UI,
+   substituindo por ponteiro ("N testes: `INDEX.md` §6"). Contador repetido em 2
+   docs = dívida garantida — a auditoria de 03/10 achará de novo.
+8. **Mecanismo citado ≠ mecanismo atual** — quando um doc descreve *como* uma
+   parte do repo funciona (workflow, job, action, label, script), conferir o arquivo
+   real antes de dar o fato por bom. A #68 mudou a arquitetura da CI e 6 documentos
+   continuaram ensinando a anterior por semanas. Afeção do mesmo: a lista de
+   skills desta pasta é ela própria parte do que este checklist sincroniza.
 
 ## Regras
 - **Commit da docs-sync é PRÓPRIO e SEPARADO** do commit da mudança, na MESMA
@@ -35,3 +47,7 @@ fonte de retrocesso (viola a regra R1).
 - ROADMAP.md = plano e progresso (owner acompanha por ele).
 - Nunca deixar a mesma informação viva em 2 lugares: uma fonte de verdade por
   assunto (tabela do INDEX §2), os outros lugares apenas apontam para ela.
+- **Documento de histórico preserva o marco, não o mecanismo**: ao superseder um
+  workflow/script, o ROADMAP continua dizendo "FEITO em 01/10 — `release.yml` com
+  `action=rc`", mas ganha uma linha dizendo que o mecanismo **foi supersedido** e
+  por quê. Não reescrever o marco; marcar o desvio.
