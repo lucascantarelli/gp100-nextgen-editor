@@ -5,6 +5,9 @@
 > Este documento fixa os VALORES (escala, cores, rácios de contraste medidos,
 > tipografia, motion). Os valores vivem em `ui/src/design/tokens.ts` +
 > `ui/src/design/design.css` — este doc explica o PORQUÊ e as regras de uso.
+> `ui/src/design/looper.css` — a folha do looper (issue #12), separada porque
+> a máquina tem um sistema próprio: ver “a máquina é escura nos dois temas” em
+> UI_REFERENCE §7.2.
 > Mudou um valor aqui → muda o token → muda o teste de token (os 3 juntos).
 
 ## 1. Escala de espaçamento — Fibonacci sobre base 4

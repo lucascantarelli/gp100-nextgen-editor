@@ -32,9 +32,10 @@ for (const [w, h] of [
 
     await expectShellAligned(page, w);
 
-    // looper: nº de tracks por largura (auto-fit; 4ª colapsa a 0px @1440 — ok)
+    // looper (#12): 2 colunas (deck | medição+transporte) com o head e o
+    // mix atravessando as duas; abaixo de 900px empilha em 1 coluna
     const m = await measureShell(page);
-    const wantTracks = w <= 1100 ? 3 : w <= 1340 ? 3 : 4;
+    const wantTracks = w <= 900 ? 1 : 2;
     expect(m.looper.tracks).toBe(wantTracks);
   });
 }

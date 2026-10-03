@@ -19,6 +19,8 @@ export interface ShellMeasure {
   vuInside: boolean;
   clippedCount: number;
   clippedSample: string[];
+  /** navbar como RACK: largura/altura de cada um dos 4 módulos (#12) */
+  navbar: { count: number; widths: number[]; heights: number[]; topSpread: number } | null;
 }
 
 /** mede o shell inteiro: board × biblioteca, slots e looper */
@@ -84,6 +86,20 @@ export async function measureShell(page: Page): Promise<ShellMeasure> {
     const looperCols = getComputedStyle(looperEl)
       .gridTemplateColumns.split(" ")
       .map((v) => parseFloat(v));
+
+    // NAVBAR (#12): os 4 módulos da navbar têm que ter a MESMA largura e a
+    // MESMA altura, e compartilhar o mesmo topo — é o que separa um rack
+    // de uma fileira de blocos de tamanho sorteado.
+    const mods = [...document.querySelectorAll(".nb-controls > *")].map(rectOf);
+    const navbar = mods.length
+      ? {
+          count: mods.length,
+          widths: mods.map((m) => r1(m.w)),
+          heights: mods.map((m) => r1(m.h)),
+          topSpread: r1(Math.max(...mods.map((m) => m.y)) - Math.min(...mods.map((m) => m.y))),
+        }
+      : null;
+
     return {
       overflowX: document.documentElement.scrollWidth - window.innerWidth,
       slotCols: rowXs.length ? Math.max(...rowXs) : 0,
@@ -98,6 +114,7 @@ export async function measureShell(page: Page): Promise<ShellMeasure> {
       vuInside,
       clippedCount: clipped.length,
       clippedSample: clipped.slice(0, 5),
+      navbar,
     };
   });
 }
@@ -147,4 +164,17 @@ export async function expectShellAligned(page: Page, width: number): Promise<voi
   expect(m.rackW ?? 0, `rack do looper ≥ 240 @${width}`).toBeGreaterThanOrEqual(239.5);
   expect(m.vuInside, `VU meters contidos @${width}`).toBe(true);
   expect(m.clippedCount, `texto clipado @${width}: ${m.clippedSample.join(" | ")}`).toBe(0);
+
+  // NAVBAR EM RACK (#12): 4 módulos, mesma largura, mesma altura, mesmo
+  // topo. Abaixo de 620px eles empilham (1 coluna) — aí só o topo vale.
+  const nb = m.navbar;
+  expect(nb, `navbar medida @${width}`).not.toBeNull();
+  const nbWidths = nb!.widths;
+  const nbSpread = Math.max(...nbWidths) - Math.min(...nbWidths);
+  if (width > 620) {
+    expect(nb!.count, `4 módulos na navbar @${width}`).toBe(4);
+    expect(nbSpread, `larguras iguais na navbar @${width}: ${nbWidths.join("/")}`).toBeLessThanOrEqual(0.5);
+    expect(Math.max(...nb!.heights) - Math.min(...nb!.heights), `alturas iguais @${width}`).toBeLessThanOrEqual(0.5);
+  }
+  expect(nb!.topSpread, `mesmo topo na navbar @${width}`).toBeLessThanOrEqual(1);
 }

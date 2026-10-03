@@ -1,0 +1,641 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   LOOPER — deck de fita em ALUMÍNIO ANODIZADO VIOLETA (issue #12)
+   ──────────────────────────────────────────────────────────────────────────
+   A régua visual da issue: profundidade 3D consistente, rolos com textura,
+   VU com a face superior iluminada, botão com relevo definido e cabeçotes
+   detalhados. O que muda em relação ao painel antigo é também a COR: a
+   versão anterior era sépia/bege (um deck de 1990 dentro de uma casca
+   violeta). Aqui o metal é violeta (a identidade do projeto) e o âmbar
+   fica reservado ao ANALÓGICO — a fita e a luz de fundo do VU —, que é
+   onde o calor realmente pertence numa máquina de fita.
+
+   UMA DIREÇÃO DE LUZ em todo o painel (de cima, levemente à esquerda,
+   a mesma do `.gp-specular`): toda peça convexa ganha fio de luz na
+   aresta superior e sombra de contato embaixo; toda peça côncava
+   (poço, sulco, visor) ganha o inverso. É isso que faz o painel ler
+   como um objeto e não como um conjunto de caixas.
+
+   Ícones do transporte são SVG, nunca emoji/glyph: em 1440px um ⏵ de
+   fonte de sistema fica com a espessura errada e denuncia o truque.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.lp {
+  /* A MÁQUINA É ESCURA NOS DOIS TEMAS.
+     Os tokens de superfície da casca invertem no tema claro, e sem isto o
+     looper virava um painel branco com um deck preto no meio — painel
+     claro em volta de visor escuro, sem nenhuma lógica. Um instrumento de
+     rack não fica branco quando o sistema fica: aqui os tokens são
+     REMAPEADOS para os valores escuros, e toda a subárvore (chaves, sulcos
+     dos faders, texto, foco) sai daí sem nenhuma linha a mais. */
+  --surface-top: #241c36;
+  --surface-bottom: #14101f;
+  --bg: #0c0910;
+  --bg-raised: #181324;
+  --border: #2e2442;
+  --text: #f9fafb;
+  --text-muted: #9c94b0;
+  --silver: #d1d5db;
+  --steel: #9ca3af;
+  --accent-text: #c084fc;
+  --ok: #4ade80;
+  --warn: #fbbf24;
+  --error: #f87171;
+  --light-top: rgba(255, 255, 255, 0.16);
+  --light-rim: rgba(255, 255, 255, 0.1);
+  --shade-soft: rgba(0, 0, 0, 0.35);
+  --shade-deep: rgba(0, 0, 0, 0.6);
+
+  /* paleta local: violeta da identidade + o calor do analógico */
+  --lp-metal: #3b2f5c;
+  --lp-metal-lit: #57457f;
+  --lp-metal-dark: #1e1830;
+  --lp-tape: #4a3320;
+  --lp-tape-hi: #b8843f;
+  --lp-amber: #f0b64a;
+  --lp-amber-deep: #7a4d12;
+
+  position: relative;
+  display: grid;
+  /* deck à esquerda (mais largo: os rolos mandam na proporção) · medição e
+     transporte à direita · head e mix atravessam as duas colunas */
+  grid-template-columns: minmax(0, 1.08fr) minmax(0, 1fr);
+  gap: var(--space-12);
+  padding: var(--space-8);
+  border-radius: var(--radius-xl);
+  background: linear-gradient(
+    180deg,
+    var(--surface-top) 0%,
+    var(--bg-raised) 55%,
+    var(--surface-bottom) 100%
+  );
+  border: 1px solid var(--border);
+  box-shadow: inset 0 1px 0 var(--light-top), 0 18px 34px var(--shade-soft),
+    0 3px 8px var(--shade-deep);
+}
+/* duas colunas só acima de 900px: abaixo disso o deck e a medição
+   empilham (e o mix vira uma coluna) em vez de espremer rolo + VU */
+@media (max-width: 900px) {
+  .lp {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ── FAIXA DE CABEÇALHO ──────────────────────────────────────────────────
+   Placa gravada à esquerda (identidade da máquina), estado no meio, chave
+   de rota PRE/POST à direita. Tudo numa linha só e na MESMA altura — a
+   faixa é o que dá a leitura de "aparelho" e não de "seção de página". */
+.lp-head {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  min-width: 0;
+  padding: var(--space-4) var(--space-12);
+  border-radius: var(--radius-l);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--bg-raised) 88%, white) 0%,
+    var(--bg-raised) 100%
+  );
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--border));
+  box-shadow: inset 0 1px 0 var(--light-top), 0 2px 6px var(--shade-soft);
+}
+/* placa: texto GRAVADO (luz acima, sombra abaixo) — não é rótulo, é chapa */
+.lp-plate {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 2.4px;
+  color: var(--silver);
+  white-space: nowrap;
+  padding: 4px 10px;
+  border-radius: var(--radius-s);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--bg) 92%, white) 0%,
+    var(--bg) 100%
+  );
+  border: 1px solid var(--hw-edge);
+  text-shadow: 0 1px 0 var(--light-top), 0 -1px 0 rgba(0, 0, 0, 0.55);
+}
+/* estado da fita: leitura passiva, do ponto de vista do operador */
+.lp-tape {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 1.2px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+/* estado do transporte: o ● é a cor do estado (repouso neutro, REC
+   vermelho, PLAY verde, DUB âmbar). Fica no fim da faixa com a chave. */
+.lp-mode {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-8);
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: 1.6px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.lp-mode-led {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  box-shadow: 0 0 6px currentColor;
+  color: var(--text-muted);
+}
+.lp-mode--rec,
+.lp-mode--dub {
+  color: var(--error);
+}
+.lp-mode--rec .lp-mode-led,
+.lp-mode--dub .lp-mode-led {
+  background: var(--error);
+  color: var(--error);
+  animation: lp-blink 1s steps(1, end) infinite;
+}
+.lp-mode--play {
+  color: var(--ok);
+}
+.lp-mode--play .lp-mode-led {
+  background: var(--ok);
+  color: var(--ok);
+}
+@keyframes lp-blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0.25;
+  }
+}
+
+/* chave de rota PRE/POST: dois botões de metal com a posição ATIVA
+   iluminada por dentro (o_state vem do aria-pressed, nunca só da cor) */
+.lp-route {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--radius-m);
+  background: var(--hw-display-2);
+  border: 1px solid var(--hw-edge);
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.7);
+}
+.lp-route-btn {
+  box-sizing: border-box;
+  /* 32px = piso de alvo do gate R6 (altura mínima de controle clicável).
+     Com 26px a chave de rota reprovava. */
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-s);
+  background: transparent;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 1px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color var(--motion-fast) var(--ease-out),
+    background var(--motion-fast) var(--ease-out);
+}
+.lp-route-btn:hover {
+  color: var(--text);
+}
+.lp-route-btn[aria-pressed="true"] {
+  color: var(--accent-text);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--accent) 34%, var(--bg-raised)) 0%,
+    color-mix(in srgb, var(--accent) 16%, var(--bg-raised)) 100%
+  );
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+  box-shadow: inset 0 1px 0 var(--light-top),
+    0 0 10px color-mix(in srgb, var(--accent-glow) 45%, transparent);
+}
+
+/* ── DECK (rolos + fita + cabeçotes) ─────────────────────────────────── */
+.lp-deck {
+  position: relative;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border-radius: var(--radius-l);
+  /* poço: a placa afunda, a luz vem de baixo (o inverso das peças
+     convexas) — é o que dá a sensação de "mecanismo dentro de uma caixa" */
+  background: linear-gradient(180deg, var(--hw-display-1) 0%, var(--hw-display-2) 100%);
+  border: 1px solid var(--hw-edge);
+  box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.75), inset 0 -1px 0 var(--light-rim),
+    0 1px 0 var(--light-top);
+}
+.lp-deck-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+/* cada rolo gira em torno do SEU centro (transform-box: view-box torna o
+   origin em unidades do viewBox; o antigo `center` girava o SVG inteiro) */
+.lp-reel--supply {
+  transform-box: view-box;
+  transform-origin: 100px 80px;
+}
+.lp-reel--takeup {
+  transform-box: view-box;
+  transform-origin: 460px 80px;
+}
+/* legenda do rolo: nome da peça em chapa, nas duas pontas do deck */
+.lp-reel-legend {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 520px;
+}
+.lp-reel-label {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--steel);
+  text-transform: uppercase;
+  text-shadow: 0 1px 0 var(--light-top), 0 -1px 0 rgba(0, 0, 0, 0.5);
+}
+
+/* ── MEDIÇÃO (contador + VU) ────────────────────────────────────────── */
+/* coluna da direita: medição em cima, transporte embaixo — as duas peças
+   que o operador olha enquanto a mão está no deck */
+.lp-right {
+  display: grid;
+  align-content: center;
+  gap: var(--space-12);
+  min-width: 0;
+}
+.lp-meter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-12);
+  flex-wrap: wrap;
+  padding: var(--space-8) var(--space-12);
+  border-radius: var(--radius-l);
+  background: linear-gradient(180deg, var(--bg-raised) 0%, var(--bg) 100%);
+  border: 1px solid var(--border);
+  box-shadow: inset 0 1px 0 var(--light-top), 0 2px 8px var(--shade-soft);
+}
+/* contador de 7 segmentos: o texto acessível continua sendo o mm:ss (o
+   teste lê o textContent) — os segmentos são a pele sobre ele */
+.lp-counter {
+  display: block;
+  flex: 0 1 236px;
+  min-width: 0;
+  height: auto;
+  padding: 8px 10px;
+  border-radius: var(--radius-m);
+  background: linear-gradient(180deg, var(--hw-display-1) 0%, var(--hw-display-2) 100%);
+  border: 1px solid var(--hw-edge);
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.8), inset 0 -1px 0 var(--light-rim),
+    0 1px 0 var(--light-top);
+}
+/* contador violeta: é o elemento DIGITAL do painel (o âmbar é do
+   analógico — a fita e o VU). O brilho muda com o transporte ligado. */
+.lp-counter-digits {
+  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--accent-glow) 75%, transparent));
+}
+.lp-counter--rec .lp-counter-digits,
+.lp-counter--dub .lp-counter-digits {
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--error) 70%, transparent));
+}
+.lp-counter--play .lp-counter-digits {
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--ok) 60%, transparent));
+}
+/* texto mm:ss fora da tela: é o que o leitor de tela (e o teste) lê —
+   os segmentos são decorativos e não duplicam a informação */
+.lp-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* VU: visor de vidro com luz de fundo âmbar. A face é MAIS CLARA EM CIMA
+   (item 3 da issue): a "lâmpada" do medidor fica atrás do topo da escala */
+.lp-vus {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-8);
+  flex-wrap: wrap;
+  flex: 0 1 auto;
+}
+.lp-vu {
+  width: 146px;
+  height: auto;
+  display: block;
+}
+.lp-vu-needle {
+  transform-box: view-box;
+  transform-origin: 70px 76px;
+}
+.lp-vu--live .lp-vu-needle {
+  animation: lp-vu-sweep 1.15s ease-in-out infinite alternate;
+}
+@keyframes lp-vu-sweep {
+  0% {
+    transform: rotate(-26deg);
+  }
+  38% {
+    transform: rotate(6deg);
+  }
+  62% {
+    transform: rotate(22deg);
+  }
+  100% {
+    transform: rotate(-4deg);
+  }
+}
+
+/* ── TRANSPORTE ──────────────────────────────────────────────────────── */
+/* transporte: cinco teclas de tamanho de chave, não cinco banners. A
+   largura é limitada para o bloco não virar uma fileira de placas vazias */
+.lp-transport {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--space-8);
+  max-width: 540px;
+  margin: 0 auto;
+  width: 100%;
+}
+/* tecla: bloco de metal com chanfro. O chanfro de verdade é o pseudo
+   `::before` (a borda de cima clara + a de baixo escura) desenhado dentro
+   da própria face — sem ele a tecla fica uma etiqueta com gradiente */
+.lp-key {
+  position: relative;
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  height: 54px;
+  padding: 0;
+  border-radius: var(--radius-m);
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, var(--hw-edge));
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--bg-raised) 78%, white) 0%,
+    var(--bg-raised) 52%,
+    color-mix(in srgb, var(--bg-raised) 72%, black) 100%
+  );
+  color: var(--text);
+  cursor: pointer;
+  transition: filter var(--motion-fast) var(--ease-out),
+    transform var(--motion-fast) var(--ease-out),
+    box-shadow var(--motion-fast) var(--ease-out);
+}
+.lp-key::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: inset 0 1px 0 var(--light-top), inset 0 -2px 0 rgba(0, 0, 0, 0.55),
+    0 3px 0 color-mix(in srgb, var(--hw-display-2) 80%, black),
+    0 5px 10px rgba(0, 0, 0, 0.45);
+}
+.lp-key:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+.lp-key:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.6), inset 0 -1px 0 var(--light-rim);
+}
+.lp-key:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+  filter: saturate(0.35);
+}
+/* LED da tecla: a barra fina no topo que acende conforme o estado —
+   o `aria-pressed` pinta o LED, a cor sozinha nunca conta como estado */
+.lp-key-led {
+  position: absolute;
+  top: 5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 26px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--hw-edge);
+  transition: background var(--motion-fast) var(--ease-out),
+    box-shadow var(--motion-fast) var(--ease-out);
+}
+.lp-key svg {
+  margin-top: 6px;
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+}
+.lp-key-text {
+  margin-top: 6px;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.6px;
+}
+/* estados das teclas: STOP em repouso, PLAY verde, REC/DUB vermelho */
+.lp-key[aria-pressed="true"] {
+  color: var(--text);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--lp-key-tone, var(--accent)) 34%, var(--bg-raised)) 0%,
+    color-mix(in srgb, var(--lp-key-tone, var(--accent)) 14%, var(--bg-raised)) 100%
+  );
+  border-color: color-mix(in srgb, var(--lp-key-tone, var(--accent)) 60%, var(--border));
+}
+.lp-key[aria-pressed="true"] .lp-key-led {
+  background: var(--lp-key-tone, var(--accent));
+  box-shadow: 0 0 8px var(--lp-key-tone, var(--accent));
+}
+.lp-key--play {
+  --lp-key-tone: var(--ok);
+}
+.lp-key--rec {
+  --lp-key-tone: var(--error);
+}
+.lp-key--clear {
+  --lp-key-tone: var(--warn);
+}
+.lp-key--clear[aria-pressed="true"] {
+  color: var(--warn);
+}
+
+/* ── MIX (ganhos do firmware) ────────────────────────────────────────── */
+.lp-mix {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-20);
+  padding: var(--space-8) var(--space-12);
+  border-radius: var(--radius-l);
+  background: linear-gradient(180deg, var(--bg-raised) 0%, var(--bg) 100%);
+  border: 1px solid var(--border);
+  box-shadow: inset 0 1px 0 var(--light-top), 0 2px 8px var(--shade-soft);
+}
+@media (max-width: 900px) {
+  .lp-mix {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-12);
+  }
+}
+.lp-fader-cell {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+}
+.lp-fader-cap {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  letter-spacing: 1.6px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+/* sulco: canal escuro rebaixado com a barra de sinal dentro. O input
+   fica transparente por cima (é o que o teclado e o teste manipulam) e o
+   `span` do valor é irmão IMEDIATO dele — o seletor `#id + span` do e2e
+   depende disso. */
+.lp-fader {
+  position: relative;
+  display: flex;
+  align-items: center;
+  /* 32px pelo mesmo motivo da chave de rota: o input herda a altura do
+     sulco e é ele que o gate mede */
+  height: 32px;
+  min-width: 0;
+}
+.lp-fader::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 8px;
+  transform: translateY(-50%);
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--hw-display-2) 0%, var(--hw-display-1) 100%);
+  border: 1px solid var(--hw-edge);
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.85), 0 1px 0 var(--light-top);
+}
+.lp-fader-fill {
+  position: absolute;
+  left: 1px;
+  top: 50%;
+  height: 6px;
+  transform: translateY(-50%);
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--accent) 55%, transparent) 0%,
+    var(--accent) 100%
+  );
+  box-shadow: 0 0 8px color-mix(in srgb, var(--accent-glow) 55%, transparent);
+  pointer-events: none;
+}
+.lp-fader input[type="range"] {
+  position: relative;
+  width: 100%;
+  height: 32px;
+  margin: 0;
+  padding: 0 26px 0 9px;
+  background: transparent;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+}
+.lp-fader input[type="range"]::-webkit-slider-runnable-track {
+  height: 32px;
+  background: transparent;
+}
+.lp-fader input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 22px;
+  border-radius: 4px;
+  background: linear-gradient(
+    180deg,
+    var(--silver) 0%,
+    var(--steel) 55%,
+    color-mix(in srgb, var(--steel) 60%, black) 100%
+  );
+  border: 1px solid rgba(0, 0, 0, 0.55);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+.lp-fader input[type="range"]::-moz-range-track {
+  height: 32px;
+  background: transparent;
+}
+.lp-fader input[type="range"]::-moz-range-thumb {
+  width: 14px;
+  height: 22px;
+  border-radius: 4px;
+  background: linear-gradient(
+    180deg,
+    var(--silver) 0%,
+    var(--steel) 55%,
+    color-mix(in srgb, var(--steel) 60%, black) 100%
+  );
+  border: 1px solid rgba(0, 0, 0, 0.55);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+.lp-fader input[type="range"]:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-s);
+}
+/* valor: janela numérica à direita do sulco, número tabular */
+.lp-fader-val {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  min-width: 30px;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--accent-text);
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 8px color-mix(in srgb, var(--accent-glow) 45%, transparent);
+}
+.lp-specs {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: 1.1px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  text-align: right;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-mode--rec .lp-mode-led,
+  .lp-mode--dub .lp-mode-led,
+  .lp-vu--live .lp-vu-needle {
+    animation: none;
+  }
+  .lp-key {
+    transition: none;
+  }
+}
