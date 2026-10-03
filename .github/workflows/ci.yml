@@ -221,8 +221,17 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
-      - name: sintaxe + contratos + simulação do GitFlow
+      # actionlint pega erro de EXPRESSAO que o parser Python nao pega:
+      # `${{ }}` malformada, `if:` com tipo errado, matriz vazia, contexto de
+      # expressao invalido. O `validate_workflows.py` cobre os CONTRATOS do
+      # projeto; os dois juntos fecham workflow sintatico E semantico. Sem o
+      # actionlint, um workflow pode passar no YAML e quebrar no runner.
+      - name: actionlint (expressões e contextos do runner)
+        uses: docker://rhysd/actionlint:1.7.7
+      - name: sintaxe + contratos + empacotamento + simulação do GitFlow
         run: |
+          # `pyyaml` e `jsonschema` ja vem no `pyproject.toml` (#80); a linha
+          # abaixo e o fallback para rodar o script fora do ambiente do projeto.
           python3 -c "import yaml" 2>/dev/null || python3 -m pip install --quiet pyyaml
           # O gate de empacotamento (#71) estava escrito mas NAO LIGADO: o
           # `docs/PACKAGING.md` afirmava que ele rodava aqui e nao rodava em

@@ -321,9 +321,15 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
 - **`str_replace` insere ideogramas CJK acidentais ao redigir em português**: já
   aconteceu em vários commits. Depois de escrever corpo de issue/commit em PT-BR,
   varrer: `[c for c in s if '\u3000' <= c <= '\u9fff']` e corrigir.
-- **`uv run python scripts/validate_workflows.py` falha** com
-  `ModuleNotFoundError: No module named 'yaml'` — `pyyaml` não está no
-  `pyproject.toml`; só o CI funciona (instala na linha de comando do job). #80.
+- ~~`uv run python scripts/validate_workflows.py` falha com
+  `ModuleNotFoundError: No module named 'yaml'`~~ → **RESOLVIDO (#80)**: `pyyaml`
+  e `jsonschema` agora estão no `pyproject.toml`. `uv sync --all-groups` basta.
+  Para rodar *todos* os gates de script de uma vez: **`python3 scripts/gates.py`**.
+- **Console cp1252 com `subprocess.run(..., text=True)`**: ler a saída de um
+  `grep` que casa com acento dá `UnicodeDecodeError` DENTRO do reader thread do
+  `subprocess` — o traceback vem do `threading.py`, não do seu código, e parece
+  bug do script. Capturar bytes e decodificar com `errors="replace"`, ou passar
+  `encoding="utf-8"`.
 
 ## Caminhos canônicos
 - `.venv/` (raiz) — ÚNICO venv do projeto (uv); `analysis/.venv` NÃO existe mais

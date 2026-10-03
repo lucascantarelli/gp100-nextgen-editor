@@ -109,7 +109,16 @@ Só a área que você tocou — o CI filtra o resto por caminhos.
 | **Rust core/cli** (raiz) | `cargo fmt --check` · `cargo clippy --workspace --all-targets -- -D warnings` · `cargo test` |
 | **Shell Tauri** (`packages/app/api`) | gates do front (`ui/dist` alimenta o binário) + `cargo clippy/test -p gp100-ui` |
 | **Spec** (`analysis/`, golden) | `uv run pytest` (10/10 — trava da especificação) |
+| **Gates de script** (pipeline, empacotamento, versão, spec, release) | **`python3 scripts/gates.py`** — roda todos de uma vez, na ordem do CI |
 
+- **`gates.py` é o atalho para "os gates de script"**: `validate_workflows`,
+  `check_bundle`, `sync_version`, `pytest`, `check_base_images` e
+  `simulate_release`. Rode `python3 scripts/gates.py --list` para ver a lista,
+  ou passe nomes para rodar só alguns:
+  `python3 scripts/gates.py check_bundle validate_workflows`.
+  Todas as dependências (`pyyaml`, `jsonschema`) estão no `pyproject.toml`, então
+  `uv sync --all-groups` basta — nada de instalar pacote na linha de comando
+  (#80).
 - **Teste acompanha código novo** — padrão de DoD das issues; coverage caiu
   abaixo de 85%? O gate falha e pede teste, não exceção.
 - Regras **R1–R4** do [ROADMAP](ROADMAP.md) continuam valendo (protocolo
