@@ -101,11 +101,17 @@ export const ARCHETYPE_OF: Record<ChainFamily, BoardSlot["archetype"]> = {
 
 /** Board do preset (o pedalboard renderizado no index). */
 export interface BoardView {
+  /** Índice do preset de FÁBRICA (0..98, o cursor do device); −1 quando o
+   *  patch aberto é de usuário (patches locais não existem no device). */
   pp: number;
   name: string;
   ppType: number;
   ppTypeName: string;
   slots: BoardSlot[];
+  /** Banco de origem do patch (#11): fábrica (device) ou usuário (local). */
+  bank: "factory" | "user";
+  /** Etiqueta exibida na UI: "P25" (fábrica, 1-based) ou "U01" (usuário). */
+  ppLabel: string;
 }
 
 /** Entrada da biblioteca de presets (flight case). */

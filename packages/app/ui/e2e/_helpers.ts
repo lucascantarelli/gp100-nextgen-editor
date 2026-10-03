@@ -126,10 +126,11 @@ export async function expectShellAligned(page: Page, width: number): Promise<voi
     expect(m.lib.x).toBe(m.board.x);
     expect(m.lib.w).toBe(m.board.w);
   } else {
-    // hierarquia nova: biblioteca (300px) à ESQUERDA, pedalboard esticando à
-    // direita — MESMA altura (align stretch), sem lacuna entre eles
+    // hierarquia nova: biblioteca (248px, encolhida na #11 p/ o pedalboard
+    // respirar) à ESQUERDA, pedalboard esticando à direita — MESMA altura
+    // (align stretch), sem lacuna entre eles
     expect(m.lib.sameRowAsBoard, `lado a lado @${width}`).toBe(true);
-    expect(m.lib.w, `biblioteca com 300px @${width}`).toBeLessThanOrEqual(300.5);
+    expect(m.lib.w, `biblioteca com 248px @${width}`).toBeLessThanOrEqual(248.5);
     expect(m.lib.x + m.lib.w, `biblioteca à esquerda do board @${width}`).toBeLessThanOrEqual(m.board.x + 0.5);
     expect(Math.abs(m.lib.y - m.board.y), `topos alinhados @${width}`).toBeLessThanOrEqual(1);
   }

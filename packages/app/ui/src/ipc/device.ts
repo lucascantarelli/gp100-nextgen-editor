@@ -20,10 +20,11 @@ import type {
   DeviceInfo,
   PresetLibrary,
 } from "./types";
-import { ARCHETYPE_OF, CHAIN_FAMILIES } from "./types";
-import type { ChainFamily } from "./types";
+import { ARCHETYPE_OF } from "./types";
+import type { BoardSlot, ChainFamily } from "./types";
 import { FX_MODULES } from "../artifacts/fxData";
 import { FACTORY_PRESETS } from "../artifacts/presetData";
+import { PRESET_CHAINS } from "../artifacts/presetChains";
 
 /** Total de transações do script de boot real (inventário default 0..198). */
 const BOOT_TOTAL = 2297;
@@ -250,74 +251,95 @@ const pushListeners = new Set<(hex: string) => void>();
 /* ─── Board/biblioteca (dados do pedalboard artístico) ─── */
 
 /**
- * Cadeia de dev p/ o fallback do board (mesmos nomes reais do all.prst;
- * knobs com ranges reais e code DERIVADO do dicionário). Pre/DST/AMP/NR/
- * CAB/EQ/MOD/DLY/RVB.
+ * Cadeia do fallback de DEV/TESTE — MESMA leitura do core Rust
+ * (`pedalboard::board_view_for`): efeito, `effectCode` e `params_0..14`
+ * REAIS do preset alvo, vindos de `presetChains.ts` (GERADO do all.prst).
+ *
+ * Antes desta fonte a cadeia era FIXA (COMP/Green OD/Bog RedM…): trocar de
+ * preset mudava o nome do LED e os 9 pedais seguiam iguais — o preset não
+ * aparecia no pedalboard. Agora cada preset abre a SUA cadeia, inclusive a
+ * ordem real dos pedais (20 dos 99 têm a cadeia trocada: `@x` manda).
+ *
+ * O valor do knob vem de `params[pos]` (mesma ordem do dicionário) só quando
+ * é plausível: dentro do range do controle, e nunca o sentinel 0xFFFF
+ * (65535 = “não configurado”) — fora disso cai no default do dicionário.
+ * Regra do core para algoritmo fora do dicionário: pedal SEM knobs (nunca
+ * adivinhar controle).
  */
 function localMockBoard(pp?: number): BoardView {
-  // Nome/tipo REAIS do preset alvo (artefato da biblioteca); a cadeia é a
-  // de fábrica com os dados do catálogo gerado (fxData.ts — parameters.json):
-  // nomes, ranges, defaults e a variante que escolhe o MODELO do pedal.
   const preset = FACTORY_PRESETS[pp ?? 0] ?? FACTORY_PRESETS[0];
-  const mk = (module: ChainFamily, name: string, state: boolean): BoardView["slots"][number] => {
-    const alg = FX_MODULES[module]?.find((a) => a.name === name);
-    if (!alg) throw new Error(`fxData sem ${module}/${name}`);
-    // code derivado do ARTEFATO (nibble do módulo no byte alto + index do
-    // algoritmo) — nunca transcrita à mão, que já divergiu do device.
-    const code = (alg.nibble << 24) | alg.index;
-    return {
-      slot: CHAIN_FAMILIES.indexOf(module),
-      family: module,
-      archetype: ARCHETYPE_OF[module],
-      name,
-      variant: alg.variant,
-      code,
-      state,
-      knobs: [
-        ...alg.knobs.map((k) => ({
-          name: k.name,
-          pos: k.pos,
-          kind: "knob" as const,
-          range: k.min != null && k.max != null ? ([k.min, k.max] as [number, number]) : undefined,
-          options: [],
-          value: k.default ?? undefined,
-          default: k.default ?? undefined,
-        })),
-        ...alg.switches.map((k) => ({
-          name: k.name,
-          pos: k.pos,
-          kind: "switch" as const,
-          options: k.options,
-          value: k.default ?? undefined,
-          default: k.default ?? undefined,
-        })),
-        ...alg.comboxes.map((k) => ({
-          name: k.name,
-          pos: k.pos,
-          kind: "combox" as const,
-          options: k.options,
-          value: k.default ?? undefined,
-          default: k.default ?? undefined,
-        })),
-      ],
-    };
+  const chain = PRESET_CHAINS.find((c) => c.pp === preset.pp) ?? PRESET_CHAINS[0];
+
+  const algFor = (family: ChainFamily, code: number, name: string) =>
+    FX_MODULES[family]?.find((a) => ((a.nibble << 24) | a.index) === code) ??
+    FX_MODULES[family]?.find((a) => a.name === name);
+
+  /** valor cru do preset → valor de knob (ou undefined = usa o default) */
+  const realValue = (
+    raw: string | null,
+    range: [number, number] | undefined,
+    options: string[],
+  ): string | undefined => {
+    if (raw == null) return undefined;
+    const n = Number(raw);
+    if (!Number.isFinite(n)) return undefined;
+    if (options.length > 0) {
+      // switch/combox: índice da lista (o que o dicionário usa como default)
+      return Number.isInteger(n) && n >= 0 && n < options.length ? String(n) : undefined;
+    }
+    if (n === 65535) return undefined; // sentinel 0xFFFF = não configurado
+    if (range && (n < Math.min(...range) || n > Math.max(...range))) return undefined;
+    return String(n);
   };
+
+  const slots: BoardSlot[] = chain.slots.map((s) => {
+    const alg = algFor(s.family, s.code, s.name);
+    const knob = (
+      k: { name: string; pos: number; default?: string | null; min?: number | null; max?: number | null },
+      kind: "knob" | "switch" | "combox",
+      options: string[] = [],
+    ) => {
+      const range =
+        kind === "knob" && k.min != null && k.max != null ? ([k.min, k.max] as [number, number]) : undefined;
+      const dflt = k.default ?? undefined;
+      return {
+        name: k.name,
+        pos: k.pos,
+        kind,
+        range,
+        options,
+        value: realValue(s.params[k.pos], range, options) ?? dflt,
+        default: dflt,
+      };
+    };
+
+    return {
+      slot: s.slot,
+      family: s.family,
+      archetype: ARCHETYPE_OF[s.family],
+      name: s.name,
+      // algoritmo fora do dicionário: o pedal renderiza sem knobs (regra R1)
+      variant: alg?.variant ?? "generic",
+      state: s.state,
+      code: s.code,
+      knobs: alg
+        ? [
+            ...alg.knobs.map((k) => knob(k, "knob")),
+            ...alg.switches.map((k) => knob(k, "switch", k.options)),
+            ...alg.comboxes.map((k) => knob(k, "combox", k.options)),
+          ]
+        : [],
+    };
+  });
+
   return {
     pp: preset.pp,
     name: preset.name,
     ppType: preset.ppType,
     ppTypeName: preset.ppTypeName,
-    slots: [
-      mk("PRE", "COMP", true),
-      mk("DST", "Green OD", true),
-      mk("AMP", "Bog RedM", true),
-      mk("NR", "Gate 1", false),
-      mk("CAB", "UK-GN 4x12", true),
-      mk("EQ", "EQ 1", true),
-      mk("MOD", "A-Chorus", true),
-      mk("DLY", "Vin-Rack", true),
-      mk("RVB", "N-Star", true),
-    ],
+    slots,
+    bank: "factory" as const,
+    ppLabel: `P${String(preset.pp + 1).padStart(2, "0")}`,
   };
 }
 

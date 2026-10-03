@@ -128,7 +128,19 @@ export const MSG = {
   searchEmpty: (q: string) => `Nenhum preset para “${q}”. Dica: busque por estilo (Rock, Funk…) ou nº.`,
   libRowTitle: (name: string, type: string) => `Abrir “${name}” (${type})`,
   libPp: (pp: number) => `P${String(pp + 1).padStart(2, "0")}`,
-  userPatchEmpty: "Ainda não há patches de usuário nesta versão.",
+  libUserPp: (i: number) => `U${String(i + 1).padStart(2, "0")}`,
+
+  /* patches de usuário (PRÉVIA LOCAL — a escrita no device não tem canal) */
+  userPatchNewPlaceholder: "Nomear e salvar o patch atual…",
+  userPatchNameAria: "Nome do patch de usuário a salvar",
+  userPatchSave: "Salvar",
+  userPatchListAria: "Patches de usuário",
+  userPatchEmpty: "Nenhum patch salvo ainda. Ajuste os pedais e salve o que quiser guardar.",
+  userPatchRowTitle: (name: string, from: string) => `Abrir “${name}” (veio de ${from})`,
+  userPatchDeleteAria: (name: string) => `Excluir o patch “${name}”`,
+  userPatchNote: "Prévia local: os patches ficam neste navegador. Salvar no device depende do canal USB.",
+  userPatchDefaultName: (n: number) => `Meu patch ${n + 1}`,
+  userBankType: "User",
 
   /* ── drum ── */
   drumNote: `${DRUM_COUNT} ritmos em ${DRUM_GENRE_COUNT} gêneros · metrônomo incluído · prévia local`,

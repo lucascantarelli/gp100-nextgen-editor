@@ -328,7 +328,7 @@ FASE 3 — CONTO E POLIMENTO
 
 | Regra | Onde vive | Comportamento |
 |---|---|---|
-| `.shell-main` | `design.css` (usada em `App.tsx`) | `minmax(0,1fr) 320px`; ≤1100px EMPILHA (biblioteca vira linha, mesma largura do board) |
+| `.shell-main` | `design.css` (usada em `App.tsx`) | `minmax(0,1fr) 248px` (era 320px; estreitada na #11 para devolver largura ao pedalboard — 9 slots ganham ~50px de palco); ≤1100px EMPILHA (biblioteca vira linha, mesma largura do board) |
 | `.board-slots` | `design.css` (usada em `Stage.tsx`) | colunas por conteúdo: `repeat(3, minmax(132px, max-content))`; ≥1700px `repeat(9, minmax(118px, max-content))`; `overflow-x: auto` |
 | Looper `card` | `LooperPanel.tsx` | `repeat(auto-fit, minmax(300px,1fr))`: 4 tracks @1440 (a 4ª colapsa a 0px — sem buraco), 3 tracks @1280/1024 |
 | `.gp-num` | `design.css` | number input sem spinners (visual idêntico aos selects) |
@@ -372,7 +372,56 @@ FASE 3 — CONTO E POLIMENTO
   toggle do drum, REC→PLAY, guarda de digitação, precedência do Esc) e 3 e2e em
   `e2e/atalhos.spec.ts` no Chromium — suíte total: **23 unit · 11 e2e** ✅.
 
-### 7.5 CI: e2e da casca contra o `pnpm dev` + cobertura do manual (30/09)
+### 7.5 BANCOS DE PATCH: o patch aberto É o que o pedalboard mostra (#11)
+
+> Antes desta rodada a biblioteca era decorativa: trocar de preset mudava o nome
+> no LED/navbar e os 9 pedais seguiam IGUAIS. A causa era o **mock web**
+> (`localMockBoard`), que tinha uma cadeia FIXA (COMP/Green OD/Bog RedM/…) para
+> os 99 presets. O core Rust já montava a cadeia por preset
+> (`pedalboard::board_view_for`: `slot` = `@x`, `family` = `effectModuleName`,
+> `code` = `effectCode`, knob = `params_N`) — o gap era só a fonte do mock.
+
+| Peça | Onde | O que faz |
+|---|---|---|
+| Cadeia real dos 99 | `src/artifacts/presetChains.ts` (**GERADO** por `analysis/dump_preset_chains.py` do `all.prst`) | 99 × 9 slots com `family`, `name`, `state`, `code`, `params` crus |
+| Leitura no mock | `src/ipc/device.ts::localMockBoard` | `algFor` pelo `effectCode`; knob = `params[pos]` se plausível (dentro do range, nunca o sentinel `0xFFFF`); algoritmo fora do dicionário → pedal SEM knobs (regra do core) |
+| Ordem do palco | `Stage.tsx::baseOrder` | ordena pelo `slot` REAL, não pela família: **20 dos 99 presets têm a cadeia trocada** (ex.: P06 = DST antes de PRE) |
+| Banco + rótulo | `BoardView.bank` / `BoardView.ppLabel` | `"factory"`/`"user"` + `"P25"` (1-based) ou `"U01"` — o LED e a navbar leem o rótulo do board |
+| Patch de usuário | `src/userPatches.ts` | snapshot PROFUNDO dos 9 slots (retrato imutável), `localStorage` `gp100.userpatch.v1`, `boardOfUserPatch` devolve um `BoardView` no mesmo formato do device |
+
+**Contrato de honestidade da UI:** `pp` só muda DEPOIS do device confirmar
+(`openPreset`); abrir patch de usuário não pode falhar (nada é escrito); excluir
+o patch que está no palco devolve o preset de fábrica confirmado; a aba segue o
+BANCO ABERTO (abrir um patch troca a aba, clicar na aba só navega a visão).
+
+**Por enquanto o patch de usuário é PRÉVIA LOCAL.** O `save_preset` do device
+precisa do canal de escrita USB (BLOCKERS §4: fluxos novos ficam atrás de
+`WRITE_VERIFIED=false` até captura própria). O formato salvo é o do `.prst`
+(`PP ppID` + `Effect`), então a migração é escrever o arquivo — não refazer a UI.
+
+### 7.6 PLANEJADO — lista de efeitos por pedal (issue #19, U-3)
+
+> O manual do firmware (EDIT mode, pág. 7-8) confirma o modelo: 9 módulos
+> selecionados por um knob, parâmetros paginados (3 por página), e
+> pressionar-e-seguir o PARA muda a POSIÇÃO do módulo. O wireframe do §1.1 já
+> prevê a coluna "Effects List" (busca + lista de algoritmos do módulo, com o
+> atual marcado).
+
+**O que já existe no repo:** o dicionário completo (`analysis/parameters.json`,
+`algorithm.xml` do Suite e o artefato `src/artifacts/fxData.ts`) com as 9
+famílias e TODOS os algoritmos, cada um com knobs/switches/comboxes, ranges e
+defaults reais. Trocar de efeito é, no `.prst`, mudar `effectName` + `effectCode`
+do `<Effect>` do slot e reiniciar `params_N`.
+
+**O que falta no fio:** a família `0x4X` do PROTOCOL §4 é `0x43` select,
+**`0x47` change-effect**, `0x48` change-param, `0x49` toggle-block, `0x4F` bulk
+write. Só `0x48` (envelope semântico `10 <slot> 00 02`, §13.11) e `0x4F`
+(`0x1D`, bulk do `.prst`, §4) têm formato validado. **O `0x47` ainda não foi
+caracterizado** — logo, a troca de efeito é UI primeiro (prévia local, a mesma
+política do toggle de footswitch e do switch/combox) e só vira escrita depois da
+captura própria.
+
+### 7.7 CI: e2e da casca contra o `pnpm dev` + cobertura do manual (30/09)
 
 - **Job `e2e` do `_validate.yml`** (ubuntu, Chromium via `playwright install
   --with-deps`): roda a suíte completa contra o dev server que o próprio
