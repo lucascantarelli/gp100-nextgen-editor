@@ -270,6 +270,29 @@ def main() -> int:
                     f"ci-base/Dockerfile: instala '{forbidden}', que é da ci-linux — aqui é peso morto (e ~1,5 GB)"
                 )
 
+    # Só o diff não publica: a run que introduz a imagem pode morrer ANTES do
+    # push (foi o que travou este repo — a imagem nunca existiu e todo job que
+    # a consome ficou em `manifest unknown` para sempre, porque nenhum diff
+    # seguinte tocava `.github/docker`). A sonda no registro é o que torna o
+    # bootstrap auto-curativo, e a verificação pós-push é o que impede o
+    # "verde que não publicou".
+    images_run = "\n".join(
+        str(s.get("run") or "") for s in (images_job.get("steps") or [])
+    )
+    if "manifest inspect" not in images_run:
+        FAILURES.append(
+            "ci: `7 ci · imagens` precisa sondar a tag no ghcr.io (`docker manifest inspect`) — "
+            "decidir só pelo diff trava o bootstrap quando a imagem some do registro"
+        )
+    for consumer in ("test-spec", "sec-audit", "test-e2e-webview"):
+        needs_raw = (jobs.get(consumer) or {}).get("needs")
+        needs_list = needs_raw if isinstance(needs_raw, list) else [needs_raw]
+        if "ci-images" not in [n for n in needs_list if n]:
+            FAILURES.append(
+                f"ci: '{consumer}' consome a imagem mas não depende de `ci-images` — roda em paralelo "
+                "e morre em `manifest unknown` na MESMA run em que a imagem é publicada"
+            )
+
     # `container.image` NÃO aceita o contexto `env` (a run morre no LOAD com
     # 0 jobs e mensagem genérica). A ref é escrita literal; o `env` do topo
     # documenta a fonte, e este check é o que impede as duas de divergirem.

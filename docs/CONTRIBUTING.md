@@ -186,9 +186,17 @@ job: virou camada da imagem publicada no ghcr.io.
 - **ui-rust em 2 OS:** Windows (MSVC, ADR-7) + Linux (container). O macOS do
   front usa `macos-15-intel` (x86_64): todo label `macos-*` arm64 carrega a
   anotação de fila do GitHub; o Intel não (suporte até ~08/2027).
-- **Rebuild da imagem:** o job `7 ci · imagens` publica quando o Dockerfile ou o
-  `pnpm-lock.yaml` mudam em `develop`/`main`. Bump de tag (`:1` → `:2`) é manual
-  e só quando a mudança for incompatível — os jobs referenciam `:1`.
+- **Rebuild da imagem:** o job `7 ci · imagens` publica quando a definição em
+  `.github/docker/` mudou **ou** quando a tag `:1` não existe no ghcr.io. A
+  segunda metade é o que torna o bootstrap possível: decidir só pelo diff trava
+  para sempre quando a run que introduziu a imagem morre antes do push (ninguém
+  mais toca `.github/docker`, e todo job que consome fica em `manifest
+  unknown`). Quem decide publicar e não confirma a tag no registro **falha** —
+  verde sem imagem é pior que vermelho, porque a quebra aparece depois, em
+  outro job, sem ligação com a causa. Os jobs que consomem a imagem dependem
+  dele no `needs:`, então não correm em paralelo ao push. Bump de tag (`:1` →
+  `:2`) é manual e só quando a mudança for incompatível — os jobs referenciam
+  `:1`.
 - **Medição (antes/depois):** `python3 scripts/ci_timings.py <run-id> --steps`
   e `--compare <antes> <depois>` — tabela por job/step direto da API do
   Actions (só `gh` + stdlib). Mudança de custo entra com número.

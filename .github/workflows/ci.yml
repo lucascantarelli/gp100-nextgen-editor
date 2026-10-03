@@ -407,8 +407,8 @@ jobs:
 
   test-spec:
     name: 3 test · especificação (pytest)
-    needs: plan
-    if: needs.plan.outputs.scope-spec == 'true' && needs.plan.outputs.stage-test == 'true'
+    needs: [plan, ci-images]
+    if: always() && needs.plan.outputs.scope-spec == 'true' && needs.plan.outputs.stage-test == 'true' && needs.ci-images.result != 'failure'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     container:
@@ -464,8 +464,8 @@ jobs:
 
   test-e2e-webview:
     name: 3 test · e2e webview (shell Tauri real)
-    needs: [plan, build-rust]
-    if: (needs.plan.outputs.scope-front == 'true' || needs.plan.outputs.scope-rust == 'true') && needs.plan.outputs.stage-test == 'true'
+    needs: [plan, build-rust, ci-images]
+    if: always() && (needs.plan.outputs.scope-front == 'true' || needs.plan.outputs.scope-rust == 'true') && needs.plan.outputs.stage-test == 'true' && needs.ci-images.result != 'failure'
     runs-on: ubuntu-24.04
     container:
       image: ghcr.io/${{ github.repository }}/ci-linux:1
@@ -550,8 +550,8 @@ jobs:
   # ═══════════════════════════════════════════════════════════════════════
   sec-audit:
     name: 5 sec · auditorias de dependência
-    needs: plan
-    if: needs.plan.outputs.stage-security == 'true'
+    needs: [plan, ci-images]
+    if: always() && needs.plan.outputs.stage-security == 'true' && needs.ci-images.result != 'failure'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     container:
@@ -710,21 +710,56 @@ jobs:
             echo "mudou: $(echo "$CHANGED" | tr '\n' ' ')"
             echo "dirty=true" >> "$GITHUB_OUTPUT"
           else
-            echo "sem mudança em .github/docker — nada a publicar"
+            echo "sem mudança em .github/docker"
             echo "dirty=false" >> "$GITHUB_OUTPUT"
           fi
-      - uses: docker/setup-buildx-action@v4
-        if: steps.dirty.outputs.dirty == 'true'
+      # O login NÃO é condicional: sem ele não dá para sondar a tag, e sem
+      # sondar não dá para decidir. Era aqui que o bootstrap morria.
       - name: login no GHCR
-        if: steps.dirty.outputs.dirty == 'true'
         uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: a tag :1 já existe no registro?
+        id: probe
+        env:
+          IMAGE: ghcr.io/${{ github.repository }}/${{ matrix.name }}:1
+        run: |
+          set -uo pipefail
+          if docker manifest inspect "$IMAGE" >/dev/null 2>&1; then
+            echo "registro tem $IMAGE"
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "registro NAO tem $IMAGE — precisa do bootstrap"
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+      # Publicar quando a DEFINIÇÃO mudou **ou** a tag não existe no registro.
+      # Só o diff não basta: o commit que introduz a imagem pode ter morrido
+      # antes de publicar (a run que subiu este Dockerfile died no LOAD), e aí
+      # nenhum diff futuro tocaria `.github/docker` — a imagem nunca existiria
+      # e todo job que a consome morreria em `manifest unknown` para sempre.
+      # A sonda torna o pipeline auto-curativo: sumiu do registro, volta.
+      - name: decidir se publica
+        id: plano
+        env:
+          DIRTY: ${{ steps.dirty.outputs.dirty }}
+          EXISTS: ${{ steps.probe.outputs.exists }}
+          NAME: ${{ matrix.name }}
+        run: |
+          set -euo pipefail
+          if [ "$DIRTY" = "true" ] || [ "$EXISTS" = "false" ]; then
+            echo "publicando $NAME (definição mudou: $DIRTY | tag no registro: $EXISTS)"
+            echo "publicar=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "$NAME intocada e já publicada — nada a fazer"
+            echo "publicar=false" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: docker/setup-buildx-action@v4
+        if: steps.plano.outputs.publicar == 'true'
       - name: tags (:1 estável + sha-<curto> auditável)
         id: meta
-        if: steps.dirty.outputs.dirty == 'true'
+        if: steps.plano.outputs.publicar == 'true'
         uses: docker/metadata-action@v6
         with:
           images: ghcr.io/${{ github.repository }}/${{ matrix.name }}
@@ -732,7 +767,7 @@ jobs:
             type=raw,value=1
             type=sha,format=short,prefix=sha-
       - name: build + push
-        if: steps.dirty.outputs.dirty == 'true'
+        if: steps.plano.outputs.publicar == 'true'
         uses: docker/build-push-action@v7
         with:
           context: .
@@ -742,8 +777,28 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=${{ matrix.name }}
           cache-to: type=gha,mode=max,scope=${{ matrix.name }}
+      # O passo que impede o "verde que não publicou". Um job que decidiu
+      # publicar e terminou sem confirmar nada no registro é FALHA, não sucesso:
+      # verde sem imagem é pior que vermelho, porque o consome só quebra depois,
+      # em outro job, com `manifest unknown` e sem ligação com a causa.
+      - name: a imagem realmente chegou ao registro?
+        if: steps.plano.outputs.publicar == 'true'
+        env:
+          IMAGE: ghcr.io/${{ github.repository }}/${{ matrix.name }}:1
+        run: |
+          set -euo pipefail
+          for i in 1 2 3 4 5; do
+            if docker manifest inspect "$IMAGE" >/dev/null 2>&1; then
+              echo "confirmada no registro: $IMAGE"
+              exit 0
+            fi
+            echo "ainda não propagou ($i/5), esperado logo apos o push"
+            sleep 10
+          done
+          echo "::error::publicou mas $IMAGE continua ausente no ghcr.io — o consome vai morrer em manifest unknown"
+          exit 1
       - name: resumo
-        if: steps.dirty.outputs.dirty == 'true'
+        if: steps.plano.outputs.publicar == 'true'
         env:
           TAGS: ${{ steps.meta.outputs.tags }}
         run: |
@@ -753,6 +808,14 @@ jobs:
             echo '```'
             echo "$TAGS"
             echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: nada a publicar
+        if: steps.plano.outputs.publicar != 'true'
+        run: |
+          {
+            echo "### 🐳 Imagem de CI"
+            echo ""
+            echo "Sem mudança em \`.github/docker\` e a tag \`:1\` já está no ghcr.io."
           } >> "$GITHUB_STEP_SUMMARY"
 
   # A REGRA DA MAIN: ela só pode receber o SHA de uma tag v* aprovada. O
