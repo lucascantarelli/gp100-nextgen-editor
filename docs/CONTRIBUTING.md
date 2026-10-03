@@ -170,8 +170,13 @@ paralelo com a matriz de compilação 3-OS, para o Setup Node de um não seriali
 com o do outro (issue #50). A cobertura é job separado de propósito: é uma
 métrica com gate, não parte de "os testes passaram".
 
-**Push e PR** em `feature/*`/`bugfix/*` disparam a CI; em `release/*`/
-`hotfix/*`, também. O que muda entre elas não é o gatilho, é a **tabela**
+**Uma run por push, não duas.** O gatilho `push` cobre só `develop`, `main` e as
+tags `v*`. Branch de trabalho (`feature/*`, `bugfix/*`, `hotfix/*`, `release/*`)
+entra pelo `pull_request` — que além de não custar o dobro testa o **merge
+sintético** (cabeça do PR fundida na base), ou seja, o que realmente entra. O
+`push` num branch com PR aberto dispara os DOIS eventos no GitHub, e o pipeline
+inteiro rodava duas vezes sem informação nova na segunda. O validador proíbe
+`feature/**`/`bugfix/**`/`hotfix/**`/`release/**` no `push` para isso não voltar. O que muda entre elas não é o gatilho, é a **tabela**
 de `scripts/ci_plan.py` (a develop e a tag rodam a suíte inteira;
 a release branch, por ser um freeze já testado da develop, roda lint + compilação).
 

@@ -70,14 +70,24 @@
 name: CI
 
 on:
+  # push SÓ onde não existe PR: develop, main e as tags. Branch de trabalho
+  # (feature/**, bugfix/**, hotfix/**, release/**) já é coberta pelo
+  # `pull_request` abaixo — e o GitHub dispara os DOIS eventos quando a
+  # branch tem PR aberto, então manter `feature/**` aqui rodava o pipeline
+  # inteiro duas vezes por push, sem informação nova na segunda.
+  #
+  # POR QUE O `pull_request` É O QUE VALE: ele faz checkout do MERGE
+  # SINTÉTICO (cabeça do PR fundida na base) — testa o que realmente entra.
+  # O `push` testa só a cabeça da branch.
+  #
+  # O PREÇO: `Infra · imagens de container` não roda em PR (por segurança,
+  # não publicamos no ghcr.io código não revisado), então uma mudança em
+  # `.github/docker` só publica imagem depois do merge na develop. A sonda no
+  # registro (`docker manifest inspect`) faz isso se recuperar sozinho.
   push:
     branches:
       - develop
       - main
-      - "feature/**"
-      - "bugfix/**"
-      - "hotfix/**"
-      - "release/**"
     tags: ["v*"]
   pull_request:
     branches: [develop, main, "hotfix/**", "release/**"]

@@ -85,6 +85,11 @@ Duas travas em [`scripts/check_bundle.py`](../scripts/check_bundle.py):
    senão `/usr/bin/<pkgname>` aponta para um binário que não existe;
 2. o `Exec=` do `.desktop` tem que casar com os dois.
 
+A `Infra · imagens de container` não roda em PR (não publicamos no ghcr.io
+código não revisado). Com o `push` restrito a `develop`/`main`/tags, uma
+mudança em `.github/docker` só publica imagem no merge — a sonda no registro
+faz o resto se recuperar sozinho.
+
 Pendência conhecida: `sha256sums=('SKIP')` porque a release é um tag gerado em
 runtime. Para publicar no AUR é preciso fixar o digest real (`updpkgsums`); o
 AUR rejeita `SKIP`.

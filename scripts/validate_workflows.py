@@ -148,9 +148,25 @@ def main() -> int:
     pr_branches = set(pr.get("branches") or [])
 
     # ── 2. gatilhos ──────────────────────────────────────────────────────
-    for needed in ("develop", "main", "feature/**", "bugfix/**", "hotfix/**", "release/**"):
+    # `push` só onde NÃO existe PR. Branch de trabalho entra pelo
+    # `pull_request`, que além de não duplicar o custo testa o MERGE SINTÉTICO
+    # (cabeça do PR fundida na base) — o que realmente vai entrar. Push em
+    # `feature/**` com PR aberto rodava o pipeline inteiro duas vezes.
+    for needed in ("develop", "main"):
         if needed not in push_branches:
-            FAILURES.append(f"ci: on.push.branches precisa de {needed}")
+            FAILURES.append(f"ci: on.push.branches precisa de {needed} (integração e produção)")
+    # Regressão: branch de trabalho NUNCA pode voltar ao `push` — cada push
+    # passaria a custar duas runs (push + pull_request/synchronize).
+    for proibido in ("feature/**", "bugfix/**", "hotfix/**", "release/**"):
+        if proibido in push_branches:
+            FAILURES.append(
+                f"ci: on.push.branches nao deve ter {proibido} — a branch de trabalho e coberta "
+                "pelo `pull_request`; no `push` o GitHub dispara os DOIS eventos e o pipeline roda "
+                "duas vezes por push, sem informacao nova na segunda"
+            )
+    for needed in ("develop", "main", "hotfix/**", "release/**"):
+        if needed not in pr_branches:
+            FAILURES.append(f"ci: on.pull_request.branches precisa de {needed}")
     if "v*" not in (push.get("tags") or []):
         FAILURES.append("ci: on.push.tags precisa de v* (a release publica no push da tag)")
     if "develop" not in pr_branches or "main" not in pr_branches:
