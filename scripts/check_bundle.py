@@ -172,10 +172,24 @@ def check_arch(conf: dict, root: Path) -> None:
         if f"Exec={main_bin}" not in dtext:
             fail(f"o .desktop tem Exec= diferente de `mainBinaryName` ({main_bin})")
 
-    # todo caminho de origem citado no package() precisa existir
-    for m in re.finditer(r"install -Dm\d+ [^\n]*?\s(\S+)\s+\"?\$\{pkgdir\}", text):
+    # todo caminho de origem citado no package() precisa existir.
+    # O PKGBUILD usa continuacao de linha (`install -Dm755 \\\n  origem \\\n  destino`),
+    # entao o texto e normalizado para uma linha so ANTES do casamento: sem isso
+    # o `[^\n]` parava no `\\` da primeira linha e tomava a BARRA como caminho
+    # de origem — "PKGBUILD instala `\\`". Defeito real do gate, escondido
+    # enquanto ele nao rodava (#71); a CI revelou no primeiro PR que o ligou.
+    texto_plano = re.sub(r"\\\s*\n\s*", " ", text)
+    for m in re.finditer(
+        r"install -Dm\d+ (?:\S+ )*?(\S+) \"?\$\{pkgdir\}", texto_plano
+    ):
         src = m.group(1)
-        if src.startswith("$") or not (Path(src).is_file() or Path(src).is_dir()):
+        if src.startswith("$"):
+            continue
+        # O build do Tauri produz o binario; ele nao existe no repo ate compilar,
+        # entao `target/release/<mainBinaryName>` e esperado, nao um erro.
+        if src.startswith("target/release/"):
+            continue
+        if not (Path(src).is_file() or Path(src).is_dir()):
             fail(f"PKGBUILD instala `{src}`, que nao existe no repositorio")
 
     for lib in ("webkit2gtk-4.1", "gtk3"):
@@ -192,7 +206,6 @@ def check_arch(conf: dict, root: Path) -> None:
         "",
     )
     if "$pkgname-$_pkgver.tar.gz" not in fonte:
-        fail('PKGBUILD nao declara `source=("$pkgname-$_pkgver.tar.gz")`')
         fail('PKGBUILD nao declara `source=("$pkgname-$_pkgver.tar.gz")`')
 
     sdist = Path("scripts/make_sdist.py")
