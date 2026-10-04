@@ -269,6 +269,12 @@ jobs:
           python3 scripts/check_bundle.py
           python3 scripts/sync_version.py --check
           python3 scripts/validate_workflows.py
+          # O juiz da Fase C do gate H1 (#21) contra o §13. E o gate que impede
+          # o conjunto de referencia do H1 — que e a SAÍDA do MockDevice — de
+          # sair de sincronia com as formas que o §13 manda, sem ninguem
+          # notar. Sem ele, o primeiro sinal de drift seria uma sessão de
+          # hardware com a pedaleira na mão.
+          python3 scripts/h1_compare.py --self-check
           python3 scripts/simulate_release.py
 
   lint-commits:
@@ -1399,12 +1405,19 @@ jobs:
           STAGE="gp100-cli-$TAG"
           mkdir -p "$STAGE"
           cp target/release/gp100-cli.exe "$STAGE/"
-          cp docs/H1_CHECKLIST.md docs/H1_REPORT.md scripts/h1_field.sh "$STAGE/"
+          cp docs/H1_CHECKLIST.md docs/H1_REPORT.md scripts/h1_field.sh scripts/h1_compare.py "$STAGE/"
           cat > "$STAGE/LEIA-ME.txt" <<MD
           GP-100 NextGen Editor — CLI de campo ${TAG}
 
           Uso do gate H1: docs/H1_CHECKLIST.md (roteiro) + h1_field.sh (runbook).
           Relatorio da sessao: docs/H1_REPORT.md.
+
+          A FASE C (comparar e classificar a sessão nos 3 niveis do §4) e
+          automatizada: h1_field.sh chama h1_compare.py ao fim do roteiro e
+          sai com codigo 1 se houver divergencia que bloqueia o H1. Para
+          reprocessar uma sessao sem re-rodar a leitura:
+
+            python h1_compare.py <dir-da-sessao> --markdown
 
           Politica de hardware: leitura real exige --real --i-know-what-im-doing
           (build com feature real-device). ESCRITA permanece bloqueada ate o
