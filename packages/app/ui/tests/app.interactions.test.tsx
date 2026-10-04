@@ -273,8 +273,11 @@ describe("Looper — FSM completa por cliques", () => {
     const timer = host.querySelector('[role="timer"]');
     expect(timer?.textContent).toMatch(/^\d{2}:\d{2}$/);
 
+    // A leitura do REW é SINCRÔNICA de propósito. O transporte toca em
+    // relógio de parede, então um `settle` aqui abre uma janela em que mais
+    // um segundo passa e o timer marca 00:01 — era exatamente a flakiness da
+    // #79. O `act` já devolve o DOM atualizado, então não há o que esperar.
     act(() => byAria(host, "Retroceder ao início do loop (REW)")!.dispatchEvent(new MouseEvent("click", { bubbles: true })));
-    await settle();
     expect(host.querySelector('[role="timer"]')?.textContent).toBe("00:00");
 
     const clear = () =>

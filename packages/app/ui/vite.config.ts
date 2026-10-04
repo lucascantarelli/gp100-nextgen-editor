@@ -16,6 +16,16 @@ export default defineConfig({
     /* 15s: sob instrumentação de coverage o mount do App (99 presets +
      * boot simulado em lotes) passa de 5s — piso para o gate não piscar. */
     testTimeout: 15_000,
+    /* TETO DE WORKERS (#79): sem isto o vitest abre um worker por ARQUIVO (15
+     * para 15 arquivos) e cada um paga ~9s de spawn + ambiente jsdom. Com 8
+     * cores e 15 ambientes disputando, os testes que montam o App estouram o
+     * `testTimeout` de 15s — e é esse o "gate vermelho intermitente": a falha
+     * é CONTENTÃO, não o código. 4 é o paralelismo dos runners do CI
+     * (ubuntu-24.04, 4 cores), então local e CI passam a ter a mesma carga.
+     *
+     * Subir este número economiza tempo até o ponto em que a suíte fica
+     * imprevisível; aqui a economia é ESTABILIDADE. */
+    maxWorkers: 4,
     /*
      * GATE DE COVERAGE (V-7): `pnpm test:coverage` falha se as linhas/funções
      * caírem de 85% — o mesmo gate roda na CI (build-front action). Branques
@@ -26,12 +36,15 @@ export default defineConfig({
       provider: "v8",
       reporter: ["text", "html"],
       include: ["src/**"],
-      /* Honesto por construção: main.tsx é bootstrap sem lógica; design.css
-       * não é código; e o VU é coberto por e2e (rAF por frame, jsdom sem rAF
-       * estável). Tudo que TEM lógica testável fica incluído. */
+      /* Honesto por construção: main.tsx é bootstrap sem lógica; as folhas de
+       * estilo não são código (o `design.css` já estava, o `looper.css`
+       * entrava com 0% e só poluía o relatório — #79); e o VU é coberto por
+       * e2e (rAF por frame, jsdom sem rAF estável). Tudo que TEM lógica
+       * testável fica incluído. */
       exclude: [
         "src/main.tsx",
         "src/design/design.css",
+        "src/design/looper.css",
       ],
       thresholds: {
         statements: 85,
