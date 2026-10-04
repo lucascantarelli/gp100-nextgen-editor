@@ -59,7 +59,7 @@ fn parse_debug_fault(raw: &str) -> Option<MockFault> {
 /// # Erros
 /// Propaga a falha do SQLite/disco. O chamador decide o que fazer — `run`
 /// degrada para uma biblioteca em memoria em vez de derrubar a janela.
-fn abrir_biblioteca(app: &tauri::AppHandle) -> Result<gp100_library::Library, String> {
+fn abrir_biblioteca(app: &tauri::App) -> Result<gp100_library::Library, String> {
     let dir = app
         .path()
         .app_data_dir()
@@ -147,14 +147,14 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
         library: std::sync::Mutex::new(library),
     });
 
-    let result = app.run(|_app, _event| {
-        // Laço de eventos do Tauri (o `run` simples do Builder e o atalho
-        // que faz exatamente isto).
-    });
+    // Laço de eventos do Tauri. `Builder::run` era o atalho que fazia isto e
+    // devolvia `Result`; aqui quem inicializa é `build`, e `App::run` não tem
+    // o que devolver — o `build` acima ja é o ponto que falha.
+    app.run(|_app, _event| {});
     // Ciclo de vida: o actor roda até o app fechar — shutdown explícito
     // (o handle é Clone; Drop em clone derrubaria o actor alheio).
     actor.shutdown();
-    result.map_err(Into::into)
+    Ok(())
 }
 
 #[cfg(test)]

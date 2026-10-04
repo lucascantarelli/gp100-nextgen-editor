@@ -13,11 +13,11 @@
 //! (versão do esquema, modo do import, seed) vive no `gp100-library` e é
 //! testado lá, nas três plataformas da matriz (ADR-9).
 
-use gp100_library::{ImportMode, Library, SearchQuery};
+use gp100_library::{ImportMode, SearchQuery};
 use serde::Serialize;
 use tauri::State;
 
-use crate::AppState;
+use crate::commands::AppState;
 
 /// Estado da biblioteca pronto para o front (o que a UI mostra no rodapé da
 /// biblioteca: "99 de fábrica, 3 meus, esquema v2").
