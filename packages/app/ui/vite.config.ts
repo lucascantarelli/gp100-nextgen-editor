@@ -53,6 +53,21 @@ export default defineConfig({
         /* Branches: medido, sem gate — ganho passo a passo; mapa dos furos
          * está em docs/ROADMAP.md (V-7, mapa de edge cases de IPC). */
         branches: 0,
+
+        /* TETO POR ARQUIVO (#79 parte 2). O agregado de 85% escondia a
+         * distribuição: um arquivo a 69% (TunerPanel) e outro a 100% davam
+         * 91% no agregado, e o buraco ficava invisível no relatório.
+         *
+         * O branch é cobrado só onde há LÓGICA: nos dicionários de i18n
+         * (`facts.ts`/`es.ts` a 50% de branch) o branch mede regra de plural
+         * e fallback de idioma, não caminho de código esquecido — e um teto
+         * ali seria teatro. `effects.ts` entra no agregado só.
+         */
+        "src/components/**": { statements: 75, branches: 75 },
+        "src/hooks/**": { statements: 75, branches: 75 },
+        "src/ipc/**": { statements: 75, branches: 70 },
+        "src/tuner/**": { statements: 75, branches: 75 },
+        "src/design/**": { statements: 85, branches: 85 },
       },
     },
   },
