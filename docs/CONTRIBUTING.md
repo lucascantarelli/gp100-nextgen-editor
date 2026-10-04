@@ -108,7 +108,7 @@ Só a área que você tocou — o CI filtra o resto por caminhos.
 | **Baselines visuais** (mudou layout/paleta) | `pnpm exec playwright test visual.spec.ts --update-snapshots` → inspecione os diffs → commite os PNGs |
 | **Rust core/cli** (raiz) | `cargo fmt --check` · `cargo clippy --workspace --all-targets -- -D warnings` · `cargo test` |
 | **Shell Tauri** (`packages/app/api`) | gates do front (`ui/dist` alimenta o binário) + `cargo clippy/test -p gp100-ui` |
-| **Spec** (`analysis/`, `scripts/`, golden) | `uv run pytest` (trava da especificação) |
+| **Spec** (`analysis/`, `scripts/`, golden) | `uv run pytest` (trava da especificação, incluindo a suite do H3) · `python3 scripts/gates.py baseline` (versão + hash + motivo da baseline) |
 | **Gates de script** (pipeline, empacotamento, versão, spec, release) | **`python3 scripts/gates.py`** — roda todos de uma vez, na ordem do CI |
 
 - **`gates.py` é o atalho para "os gates de script"**: `validate_workflows`,
@@ -161,9 +161,39 @@ prova que nada de escrita entrou por acidente; o ligado prova que a trava não
 virou erro de compilação nem de runtime. `cargo test --workspace` roda os dois
 (14 testes de CLI em cada modo).
 
-Runbooks: [H1_CHECKLIST.md](H1_CHECKLIST.md) (leitura) e
+Runbooks: [H1_CHECKLIST.md](H1_CHECKLIST.md) (leitura),
 [H2_CHECKLIST.md](H2_CHECKLIST.md) (escrita — **muda estado do aparelho do
-usuário**; os 3 fluxos são um por vez, com verificação no display).
+usuário**; os 3 fluxos são um por vez, com verificação no display) e
+[H3_CHECKLIST.md](H3_CHECKLIST.md) (congelamento da especificação).
+
+### A baseline da especificação tem versão e motivo
+
+`docs/protocol_golden.json` é **derivado**; o que é congelado é o par
+(golden, hash) registrado em **`analysis/baseline.json`**. Antes da #23 o hash
+era um literal dentro de um teste — e colar o hash novo passava, sem ninguém
+explicar por quê.
+
+```bash
+uv run python analysis/baseline.py show     # versão, hash, motivo, histórico
+uv run python analysis/baseline.py --check  # gate: reprova se o golden mudou
+uv run python analysis/baseline.py bump --motivo "<por que>" --issue "#23"
+```
+
+O `bump` **recusa** escrever sem `--motivo` — de propósito. O fluxo é sempre
+captura → `build_golden` → `validate_golden` 100% → bump com motivo, e a mesma
+justificativa vai para o §13 do [PROTOCOL.md](PROTOCOL.md).
+
+### Log de fio: os dois schemas, um normalizador
+
+O Suite grava `out_long`/`in_long` + `hex`; o `gp100-cli --log` grava o P4
+`out`/`in` + `func`/`addr`/`data` **com `t`** (ms desde a abertura). São
+incompatíveis, e o `build_golden` carregava **0 eventos** de um log do core
+antes da #23. Para ler qualquer um dos dois, use
+[`analysis/wirelog.py`](../analysis/wirelog.py) — não reparseie na mão. E para
+julgar uma captura nova contra a spec:
+[`analysis/validate_core_capture.py`](../analysis/validate_core_capture.py)
+(exit `0` conforme · `1` divergência de payload, bug · `2` endereço fora da
+spec, precisa de ADR · `3` o log não carregou).
 
 ---
 

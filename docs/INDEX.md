@@ -19,6 +19,7 @@
 | **Planejar o lançamento (release multiplataforma)** | `docs/RELEASE_PLAN.md` (épicos EPIC-01..05 + issues REL-*: binários para download direto na GitHub Release, smoke em ambiente limpo, assinatura, auto-update — sem stores por decisão do owner) |
 | **Levar o gp100-core à pedaleira (gate H1)** | `docs/H1_CHECKLIST.md` (checklist) + `docs/H1_REPORT.md` (relatório/plano de backup) + `scripts/h1_field.sh` (runbook: rehearsal/field/refresh-reference) + `scripts/h1_compare.py` (juiz da Fase C: classifica a sessão nos 3 níveis e imprime a tabela do §5) |
 | **Escrever no device real (gate H2)** | `docs/H2_CHECKLIST.md` (3 fluxos, um por vez) + `docs/H2_REPORT.md` (relatório) — build com `--features real-device,write-verified` |
+| **Congelar a especificação depois do hardware (gate H3)** | `docs/H3_CHECKLIST.md` (4 sessões) + `docs/H3_REPORT.md` + [`PROTOCOL.md` §13.14](PROTOCOL.md) (a conta da baseline v1.1) + `analysis/baseline.py show` |
 | **Implementar o protocolo (gp100-core)** | `docs/protocol_golden.json` (especificação executável) + `docs/PROTOCOL.md` §13 (narrativa) |
 | **Decidir arquitetura/estrutura no core (M0)** | `docs/DECISIONS.md` (ADR-1..9 aceitos) |
 | **Saber onde o código novo do front vai morar** | `docs/ARCHITECTURE.md` (mapa de módulos + o que **não** entra em cada camada + orçamento de tamanho) |
@@ -55,7 +56,7 @@
 |---|---|---|
 | `VISION.md` | Visão de produto/arquitetura, stack, features, roadmap M0–M3 (rev. v1.1) | ✅ atual |
 | `PROTOCOL.md` | Referência única do protocolo: §1–12 formato de arquivo, §13.1–13.12 fio confirmado em campo | ✅ atual |
-| `protocol_golden.json` | 40 templates request→resposta das capturas 1–4; consumir DAQUI no gp100-core | ✅ atual · validado 100% |
+| `protocol_golden.json` | 39 templates request→resposta das capturas 1–4; consumir DAQUI no gp100-core | ✅ atual · **v1.1** (baseline v1.0 tinha template e 63 mensagens de save **fabricados** — §13.14) |
 | `BLOCKERS.md` | Matriz de 12 subsistemas; 11 resolvidos, firmware-update diferido | ✅ atual |
 | `CAPTURE_PLAN.md` | Plano original das rotas de captura | 📜 histórico (cumprido) |
 | `ROADMAP.md` | Plano executivo: preparação (P), gp100-core (M0), gate de hardware (H) com issues e critérios de aceite | ✅ atual |
@@ -72,10 +73,11 @@
 | `H1_REPORT.md` | Relatório do gate H1 (template): execução por etapa, log de divergência, fluxo R3 e PLANO DE BACKUP fixo decidido antes de ligar | 📝 template |
 | `H2_CHECKLIST.md` | Checklist operacional do gate H2 (escrita real — **muda estado do aparelho**): por que a trava é feature de compilação, os 3 fluxos capturados (set-param/save/upload-ir) um por vez com verificação no display, watchlist e critérios de saída | ⏳ aguardando pedaleira + owner — trava ✅ testada (15 testes, mutation-provada) |
 | `H2_REPORT.md` | Relatório do gate H2 (template): veredito por fluxo, divergência classificada em protocolo/comportamento, pistas para o H3 | 📝 template |
-| `DECISIONS.md` | ADR-lite com as decisões estruturais do gp100-core: ADR-1..5 (endian/nibble, erros, transporte, trait, `WRITE_VERIFIED` = feature `write-verified` + `WireKind`) + ADR-6 (FSM `Session`, dispatch do IN ambíguo, save fire-and-forget) + ADR-7 (gp100-ui fora do workspace gnu) + ADR-8 (toolchains portáveis p/ o Dependabot; lockfile raiz fora do escopo dele) + ADR-9 (a persistência fica num crate do workspace gnu, não no crate MSVC do Tauri) | ✅ atual |
 | `packages/library/` | **Biblioteca persistente** (#26, ADR-9): SQLite com migracoes versionadas (`PRAGMA user_version`), busca por nome/nº/estilo, import/export JSON versionado e seed dos 99 presets de fabrica do `all.prst`. Crate do workspace gnu, sem Tauri | ✅ novo (#26) |
+| `H3_CHECKLIST.md` | Checklist operacional do gate H3 (congelamento da especificação): as 4 sessões que tiram o golden do Suite e põem o golden do gp100-core, o que fazer quando o juiz acusa endereço fora da spec, e por que a prova de save foi de 77 para 14 | ⏳ aguardando pedaleira + owner — maquinaria ✅ (normalizador, juiz, baseline versionada, `--log` com relógio) |
 | `skills_audit_2026-09-29.md` | Auditoria das skills: regras que eram prática implícita, agora escritas (5 achados em core-dev/docs-sync/spec-baseline) | ✅ atual |
 | `INDEX.md` | Este índice | ✅ manter atualizado |
+| `analysis/wirelog.py` · `analysis/baseline.py` · `analysis/validate_core_capture.py` | O trilho do H3: normalizador dos dois schemas de log de fio · baseline versionada (versão + hash + motivo + histórico) · juiz frame a frame de uma captura do gp100-core contra a spec | ✅ (`analysis/baseline.py show`) |
 
 ### `analysis/` — laboratório (scripts + produtos + achados)
 | Grupo | Arquivos | Papel |

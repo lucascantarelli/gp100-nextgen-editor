@@ -529,8 +529,22 @@ jobs:
           enable-cache: true
       - name: sync do ambiente (capstone, pefile, ziglang, pytest)
         run: uv sync --all-groups
-      - name: golden, hash da baseline, knob_map e fixtures
+      - name: golden, baseline versionada, knob_map e fixtures
         run: uv run pytest
+      # O pytest já cobre `baseline.py --check` (o teste
+      # `test_golden_baseline_hash_unchanged` chama o gate), mas rodar o
+      # comando aqui deixa o número da baseline VISÍVEL no log do job. Sem
+      # isso, quem quiser saber de qual versão o golden está tem que abrir
+      # o analysis/baseline.json e recontar o sha.
+      - name: baseline do golden (versão + hash + motivo)
+        run: uv run python analysis/baseline.py show
+      # Prova de que o juiz do H3 roda — e o que garante que o caminho de
+      # entrada da captura do gp100-core existe de fato (antes da #23 o
+      # build_golden carregava 0 eventos de um log do core).
+      - name: juiz da captura do core (self-check do normalizador)
+        run: |
+          uv run python analysis/wirelog.py analysis/fixtures/knobs.jsonl > /dev/null
+          uv run python analysis/validate_core_capture.py analysis/fixtures/knobs.jsonl
 
   test-e2e:
     name: Testes · E2E shell (Chromium)
@@ -1435,6 +1449,8 @@ jobs:
           cp target/release/gp100-cli.exe "$STAGE/"
           cp docs/H1_CHECKLIST.md docs/H1_REPORT.md scripts/h1_field.sh scripts/h1_compare.py "$STAGE/"
           cp docs/H2_CHECKLIST.md docs/H2_REPORT.md "$STAGE/"
+          cp docs/H3_CHECKLIST.md docs/H3_REPORT.md "$STAGE/"
+          cp analysis/wirelog.py analysis/validate_core_capture.py analysis/baseline.py analysis/baseline.json "$STAGE/"
           cat > "$STAGE/LEIA-ME.txt" <<MD
           GP-100 NextGen Editor — CLI de campo ${TAG}
 
@@ -1453,6 +1469,20 @@ jobs:
           flag, variavel de ambiente ou argumento que a abra. Para o gate H2
           recompile com a feature write-verified:
               cargo build --release -p gp100-cli --features real-device,write-verified
+
+          Gate H3 (CONGELAMENTO da especificacao): docs/H3_CHECKLIST.md +
+          docs/H3_REPORT.md. E o gate que tira o golden do Suite e poe o
+          golden do gp100-core. Os scripts vao no zip porque a sessao de campo
+          precisa deles na mao:
+
+            python wirelog.py <log.jsonl>          # inspeciona e normaliza
+            python validate_core_capture.py <log.jsonl>   # juz frame a frame
+                                                  # (0 ok / 1 bug / 2 fora da spec)
+            python baseline.py show                # versao + hash + motivo
+            python baseline.py bump --motivo "..." --issue "#23"
+
+          O log que este binario grava tem timestamp (t, em ms), que antes
+          nao tinha: sem relogio nao ha casamento de transacao.
 
           Politica de hardware: leitura real exige --real --i-know-what-im-doing
           (build com feature real-device). A escrita e uma TERCEIRA camada, no

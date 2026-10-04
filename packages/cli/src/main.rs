@@ -307,20 +307,37 @@ fn parse_u32(s: &str) -> Result<u32, String> {
 // ═════════════════════════════════════════════════════════════ logger P4
 //
 // Mesmo schema das fixtures P4 (make_fixtures.py): 1 linha JSON por msg,
-// `{"s","dir","func","addr","data"}`, `data` = payload puro (sem envelope)
-// em hex minúsculo — consumível por `decode_wire.py` e pelos replays.
+// `{"s","t","dir","func","addr","data"}`, `data` = payload puro (sem envelope)
+// em hex minúsculo — consumível por `analysis/wirelog.py` (normalizador) e
+// pelos replays.
+//
+// **`t` entrou na v1.1 do H3 (#23) e antes disso nao existia.** Sem relogio,
+// o `build_golden.py` nao consegue NADA do que faz com uma captura do
+// gp100-core: nem segmentar em fases (gap > 30 s), nem casar OUT→IN com a
+// janela de 3 s do ADR-3. O golden inteiro e derivado de tempo, entao um log
+// sem `t` nao alimenta o pipeline de spec — que era exatamente o DoD do H3.
+// `t` e ms desde a abertura do log, com 1 casa decimal, igual ao
+// `make_fixtures.py`, para que as duas capturas vivam na mesma escala.
 
 /// Logger de fio no schema P4.
 struct WireLogger {
     file: std::fs::File,
+    /// Instante de abertura (relógio monotônico) — origem do `t`.
+    t0: std::time::Instant,
 }
 
 impl WireLogger {
-    /// Cria/trunca o arquivo de log.
+    /// Cria/trunca o arquivo de log e zera o relógio.
     fn create(path: &std::path::Path) -> Result<Self, String> {
         Ok(Self {
             file: std::fs::File::create(path).map_err(|e| e.to_string())?,
+            t0: std::time::Instant::now(),
         })
+    }
+
+    /// ms desde a abertura, com 1 casa decimal (escala do `make_fixtures.py`).
+    fn t_ms(&self) -> f64 {
+        (self.t0.elapsed().as_secs_f64() * 1000.0 * 10.0).round() / 10.0
     }
 
     /// Registra um frame completo (envelope SysEx cru). Frame sem envelope
@@ -336,8 +353,9 @@ impl WireLogger {
         };
         let data: String = payload.iter().map(|b| format!("{b:02x}")).collect();
         let addr_hex: String = addr.iter().map(|b| format!("{b:02x}")).collect();
+        let t = self.t_ms();
         let line = format!(
-            "{{\"s\":\"H1\",\"dir\":\"{dir}\",\"func\":\"{func:02x}\",\"addr\":\"{addr_hex}\",\"data\":\"{data}\"}}"
+            "{{\"s\":\"H3\",\"t\":{t},\"dir\":\"{dir}\",\"func\":\"{func:02x}\",\"addr\":\"{addr_hex}\",\"data\":\"{data}\"}}"
         );
         if let Err(e) = writeln!(self.file, "{line}") {
             eprintln!("[!] falha ao gravar log: {e}");
@@ -889,7 +907,7 @@ mod tests {
         }
     }
 
-    /// Logger P4: linha no schema `{"s","dir","func","addr","data"}` com
+    /// Logger P4: linha no schema `{"s","t","dir","func","addr","data"}` com
     /// payload puro (sem envelope) em hex.
     #[test]
     fn logger_grava_schema_p4() {
@@ -903,11 +921,41 @@ mod tests {
         let content = std::fs::read_to_string(&path).expect("conteúdo");
         let v: serde_json::Value =
             serde_json::from_str(content.lines().next().expect("1 linha")).expect("JSONL");
-        assert_eq!(v["s"], "H1");
+        assert_eq!(v["s"], "H3");
         assert_eq!(v["dir"], "out");
         assert_eq!(v["func"], "12");
         assert_eq!(v["addr"], "10030002");
         // payload puro: 20B nibble-exp = 40 chars hex (envelope fora).
         assert_eq!(v["data"].as_str().map(|s| s.len()), Some(40));
+        // `t` é o que faltava: sem relogio o build_golden não segmenta nem
+        // casa OUT→IN numa captura do core (o DoD do H3).
+        let t = v["t"].as_f64().expect("t numerico");
+        assert!((0.0..5_000.0).contains(&t), "t em ms desde a abertura: {t}");
+    }
+
+    /// O `t` é MONOTÔNICO: um pipeline que fatia a sessão em fases por gap
+    /// (30 s) e casa OUT→IN por janela (3 s) depende de ordem + relogio.
+    #[test]
+    fn o_relogio_do_log_avanca() {
+        let dir = std::env::temp_dir().join("gp100_cli_test_log_t");
+        std::fs::create_dir_all(&dir).expect("tmp dir");
+        let path = dir.join("t.jsonl");
+        let mut log = WireLogger::create(&path).expect("arquivo");
+        let frame = gp100_core::codec::set_param(3, 0x0700_006e, 0, 15.0).expect("vetor");
+        log.record("out", &frame);
+        std::thread::sleep(std::time::Duration::from_millis(25));
+        log.record("in", &frame);
+        let content = std::fs::read_to_string(&path).expect("conteúdo");
+        let ts: Vec<f64> = content
+            .lines()
+            .map(|l| {
+                serde_json::from_str::<serde_json::Value>(l).expect("JSONL")["t"]
+                    .as_f64()
+                    .expect("t")
+            })
+            .collect();
+        assert_eq!(ts.len(), 2, "2 frames gravados");
+        assert!(ts[1] > ts[0], "t avancou entre os frames: {ts:?}");
+        assert!(ts[1] - ts[0] >= 20.0, "delta cobre o sleep: {ts:?}");
     }
 }
