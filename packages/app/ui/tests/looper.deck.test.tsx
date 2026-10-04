@@ -20,7 +20,7 @@
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import type { Root } from "react-dom/client";
-import { beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 import { LOOP_SECONDS_POST, LOOP_SECONDS_PRE, LooperPanel } from "../src/components/LooperPanel";
 import type { LooperSettings } from "../src/components/LooperPanel";
 
@@ -190,4 +190,31 @@ describe("Looper — o deck é uma máquina só", () => {
     expect(panel(host).textContent).toContain("POST · 45s");
     done();
   });
-});
+
+  // O relógio do transporte (bug achado pela CI no e2e R-ATALHOS): com o
+  // `estado` capturado no efeito, cada segundo criava um relógio novo e o
+  // velho — que só é destruído num efeito PASSIVO — disparava depois da
+  // transição do dono e devolvia a máquina para o estado antigo. A fita
+  // sumia sozinha, e o R seguinte parecia não ter acontecido.
+  //
+  // Duas afirmações porque as duas importam: a fita ANDAR prova que o
+  // relógio disparou (senão "criado uma vez só" seria de graça), e o relógio
+  // criado UMA vez prova que ele não foi rearmado a cada segundo.
+  it("o relógio do transporte é UM só: ele avança a máquina, não a traz de volta", async () => {
+    const relogio = vi.spyOn(window, "setInterval");
+    const { host, done } = mount();
+
+    await click(host, "Gravar loop (REC)");
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 3100));
+    });
+
+    const contador = panel(host).querySelector('[role="timer"]')!.textContent ?? "";
+    expect(Number(/00:0(\d)/.exec(contador)?.[1]), `contador parou em ${contador}`).toBeGreaterThanOrEqual(2);
+    expect(relogio.mock.calls.length).toBe(1);
+
+    relogio.mockRestore();
+    done();
+  });
+
+  });

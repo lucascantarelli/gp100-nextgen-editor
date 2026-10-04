@@ -314,11 +314,25 @@ export function LooperPanel({
   const running = rodandoFsm(estado);
   const set = (patch: Partial<LooperSettings>) => onChange({ ...settings, ...patch });
 
+  // O relógio do transporte é UM só, e ele avança a máquina que está VIVA
+  // AGORA — daí o updater de `definir`, e não o `estado` capturado aqui.
+  //
+  // Com o `estado` capturado, cada mudança de estado criava um relógio novo e
+  // destruía o anterior, mas a DESTRUIÇÃO é um efeito passivo: ela só roda
+  // depois do commit. O relógio velho podia disparar nessa janela (o que
+  // acontece sob carga: main thread ocupado) e escrevia por cima do estado
+  // novo — `tick(estadoAntigo)` devolvia a máquina para onde ela estava, e a
+  // fita sumia sozinha. A CI pegou isso: R, R, e o segundo R era apagado pelo
+  // tick do primeiro.
+  //
+  // Depender de `[running, maxSecs]` (e não de `estado`) também mata a
+  // janela: o relógio só nasce quando o transporte começa ou quando a rota
+  // PRE/POST muda de tamanho.
   useEffect(() => {
     if (!running) return;
-    const id = window.setInterval(() => definirEstado(tickFsm(estado, maxSecs)), 1000);
+    const id = window.setInterval(() => definir((atual) => tickFsm(atual, maxSecs)), 1000);
     return () => window.clearInterval(id);
-  }, [running, estado, maxSecs]);
+  }, [running, maxSecs]);
 
   const onRec = () => definirEstado(gravarRec(estado));
   // Atalho global R (App): dispara o MESMO onRec do botão ● (rec→play→dub).
