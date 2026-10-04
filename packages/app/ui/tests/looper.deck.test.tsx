@@ -30,16 +30,23 @@ beforeAll(() => {
 
 const DEFAULTS: LooperSettings = { recVol: 80, playVol: 80, pVol: 80, pre: true };
 
-function mount(settings: LooperSettings = DEFAULTS) {
+/**
+ * `recRequest` entra no helper porque o pulso do atalho R é uma PROP: um teste
+ * que só monta não consegue nem reproduzir o bug (montar com pulso grande é
+ * justamente o replay) nem provar que o pulso novo ainda funciona.
+ */
+function mount(settings: LooperSettings = DEFAULTS, recRequest = 0) {
   const host = document.createElement("div");
   document.body.appendChild(host);
   const root: Root = createRoot(host);
   let current = settings;
+  let pulso = recRequest;
   const render = () =>
     act(() =>
       root.render(
         <LooperPanel
           settings={current}
+          recRequest={pulso}
           onChange={(s) => {
             current = s;
             render();
@@ -50,6 +57,11 @@ function mount(settings: LooperSettings = DEFAULTS) {
   render();
   return {
     host,
+    /** empurra o próximo pulso do atalho R (o que o App faz no keydown) */
+    pulsaR: (n: number) => {
+      pulso = n;
+      render();
+    },
     done: () => {
       act(() => root.unmount());
       host.remove();
@@ -132,6 +144,34 @@ describe("Looper — o deck é uma máquina só", () => {
     expect(xs).toHaveLength(4);
     expect(new Set(xs).size).toBe(4);
     expect([...xs].sort((a, b) => a - b)).toEqual(xs); // já em ordem
+    done();
+  });
+
+  // O `recRequest` é um PULSO contador (o App incrementa no keydown do R).
+  // O efeito antigo tratava o VALOR como pulso, então uma montagem nova —
+  // StrictMode remontando, o painel entrando na tela — reproduzia o contador
+  // e a máquina começava a gravar sem o dono ter pedido nada.
+  it("montar com um pulso já gasto NÃO começa a gravar", () => {
+    const { host, done } = mount(DEFAULTS, 3);
+    // A máquina nasce como nasce: parada, sem fita, com ● em REC.
+    expect(byAria(host, "Gravar loop (REC)")!.getAttribute("aria-pressed")).toBe("false");
+    expect(byAria(host, "Tocar loop (PLAY)")!.disabled).toBe(true);
+    expect(panel(host).textContent).toContain("PRE · 90s");
+    expect(host.querySelector(".lp-reel--supply")).not.toBeNull();
+    done();
+  });
+
+  it("o pulso NOVO do atalho R ainda dispara REC (o guard não come o atalho)", () => {
+    const { host, pulsaR, done } = mount(DEFAULTS, 0);
+    // nada no mount (pulso 0)
+    expect(byAria(host, "Gravar loop (REC)")!.getAttribute("aria-pressed")).toBe("false");
+
+    pulsaR(1);
+    expect(byAria(host, "Parar gravação e tocar")!.getAttribute("aria-pressed")).toBe("true");
+
+    pulsaR(2);
+    expect(byAria(host, "Tocar loop (PLAY)")!.getAttribute("aria-pressed")).toBe("true");
+    expect(byAria(host, "Tocar loop (PLAY)")!.disabled).toBe(false);
     done();
   });
 

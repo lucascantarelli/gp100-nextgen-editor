@@ -341,8 +341,21 @@ export function LooperPanel({
   useEffect(() => {
     onRecRef.current = onRec;
   });
+  // `recRequest` é um PULSO contador, e o que interessa é a DIFERença — não o
+  // valor. O `if (recRequest > 0)` original tratava o VALOR como pulso, então
+  // qualquer montagem nova do painel (StrictMode remontando, o painel
+  // entrando na tela, HMR) recebia o contador já grande e reproduzia o pulso:
+  // a máquina começava a gravar sozinha, sem o dono ter pedido nada.
+  //
+  // O ref guarda o valor do PRIMEIRO render desta instância: o efeito só age
+  // quando o contador anda a partir dali. O preço é simétrico e é o certo —
+  // um pulso emitido durante a desmontagem se perde, e perder é melhor que
+  // gravar sem ninguém ter apertado R.
+  const pulsoBase = useRef(recRequest);
   useEffect(() => {
-    if (recRequest > 0) onRecRef.current();
+    if (recRequest === pulsoBase.current) return;
+    pulsoBase.current = recRequest;
+    onRecRef.current();
   }, [recRequest]);
 
   const onPlay = () => definirEstado(tocarPlay(estado));
