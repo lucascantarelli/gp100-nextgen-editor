@@ -30,7 +30,7 @@ const DEFAULTS: GeneralSettings = {
   language: "pt-BR",
 };
 
-const KEY = "gp100.settings.general.v1";
+export const KEY = "gp100.settings.general.v1";
 
 export function loadGeneral(): GeneralSettings {
   try {

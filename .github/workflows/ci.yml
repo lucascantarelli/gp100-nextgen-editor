@@ -365,6 +365,10 @@ jobs:
         # Cobre 100% nao prova que o contrato e consumivel: um arquivo 100%
         # coberto cujos exports ninguem chama e o pior dos dois (#78).
         run: python3 scripts/check_deadcode.py
+      - name: orcamento de tamanho do front
+        # A #82 cortou o App.tsx de 514 para 274 linhas e escreveu um numero.
+        # Numero sem gate se cumpre no dia do PR e se esquece depois.
+        run: python3 scripts/check_module_size.py
 
 # ═══════════════════════════════════════════════════════════════════════
   # COMPILAÇÃO — verificação; sempre (build ≠ distribuição)
