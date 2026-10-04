@@ -78,7 +78,7 @@ export default function App() {
     presetName,
     board,
     openUserId,
-    userPatches,
+    lib,
     err,
     openPreset,
     stepPreset,
@@ -225,11 +225,11 @@ export default function App() {
         <div className="shell-main">
           <LibraryPanel
             currentPp={pp}
-            bank={board?.bank ?? "factory"}
-            userPatches={userPatches}
+            bankDoPalco={board?.bank ?? "factory"}
+            lib={lib}
             currentUserId={openUserId}
-            onSelect={(target) => void openPreset(target)}
-            onOpenUser={openUserPatch}
+            onOpenFactory={(target) => void openPreset(target)}
+            onOpenUser={(id, index) => void openUserPatch(id, index)}
             onSave={saveUserPatch}
             onDelete={deleteUserPatch}
           />

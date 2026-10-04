@@ -127,7 +127,7 @@ export const EN: DictPatch = {
   userPatchEmpty: "No patch saved yet. Adjust the pedals and save whatever you want to keep.",
   userPatchRowTitle: (name: string, from: string) => `Open “${name}” (from ${from})`,
   userPatchDeleteAria: (name: string) => `Delete the patch “${name}”`,
-  userPatchNote: "Local preview: patches stay in this browser. Saving to the device depends on the USB channel.",
+  userPatchNote: "In the library file (SQLite), not in the browser. Saving to the device needs the USB channel.",
   userPatchDefaultName: (n: number) => `My patch ${n + 1}`,
   userBankType: "User",
 
@@ -323,6 +323,34 @@ export const EN: DictPatch = {
   errOpenPreset: "Could not open the preset — try again.",
   errSelectPreset: "The device did not accept the preset switch — the UI stays on the current preset.",
   errSetParam: "The device did not accept the knob change — try again.",
+  /* ── library (#26): local file, not the device ── */
+  errLibrarySearch: "Could not read the library — try again.",
+  errLibraryStats: "Could not read the library counts.",
+  errLibrarySave: "Could not save the patch — the library file did not respond.",
+  errLibraryDelete: "Could not delete the patch from the library.",
+  errLibraryImport: "The library rejected the imported file — nothing was written.",
+  errLibraryExport: "Could not export the library.",
+
+  /* ── library: UI labels ── */
+  libSearchPlaceholder: "Search by name, number or style...",
+  libSearchAria: "Search the preset library",
+  libSearchClear: "Clear the search",
+  libFilterAll: "All styles",
+  libFilterAria: "Filter the library by style",
+  libExport: "Export",
+  libExportAria: "Export the library to a file",
+  libImport: "Import",
+  libImportAria: "Import a library from a file",
+  libEmpty: "No preset matches this filter.",
+  libEmptySearch: (q: string) => `Nothing found for “${q}”.`,
+  libStats: (total: number, user: number, schema: number) =>
+    `${total} presets · ${user} mine · schema v${schema}`,
+  libMigrated: (n: number) =>
+    `${n} of your patches moved from local storage to the library.`,
+  libImportDone: (inserted: number, replaced: number, skipped: number) =>
+    `Imported: ${inserted} new, ${replaced} updated, ${skipped} already there.`,
+  libImportRejected: "That file is not a library from this editor — nothing was imported.",
+
   errRetry: "Try again",
   errRetryAria: "Retry the operation that failed",
 };

@@ -110,8 +110,30 @@ impl crate::Library {
             // coluna normalizada, "acucar" achando "açúcar" seria uma promessa
             // que o SQLite não cumpre. Fold de acento aqui seria um
             // `unorm` em Rust para cada linha, mudando o plano de consulta.
-            sql.push_str(" AND name LIKE ? ESCAPE '\\'");
-            filtros.push(Box::new(format!("%{}%", escape_like(texto.trim()))));
+            //
+            // O texto casa em QUATRO colunas, e não só no nome, porque é uma
+            // caixa de busca única — o `placeholder` promete "nome, nº ou
+            // estilo" e o filtro de estilo do painel é o caminho preciso, não
+            // o único:
+            //
+            //  - `name`: o preset pelo nome ("blink");
+            //  - `pp_type_name`: o estilo pelo nome ("rock", "funk");
+            //  - `printf('%02d', pp + 1)`: o número QUE A COLUNA MOSTRA
+            //    (P01..P99, 1-based como no app oficial). Sem este braço,
+            //    buscar pelo número — a forma mais rápida de achar um patch que
+            //    o dono já usou — não acha nada, porque o preset 25 se chama
+            //    "Mist", não "25";
+            //  - `printf('%d', pp)`: o `ppID` cru do `all.prst` (0-based), que
+            //    é o número que está escrito no PROTOCOL.md.
+            //
+            // `pp` nulo dá `NULL` nos dois números, e `NULL LIKE '…'` não é
+            // verdadeiro: patch de usuário não casa por número — casar abriria
+            // o patch errado sem erro visível.
+            sql.push_str(" AND (name LIKE ? ESCAPE '\\' OR pp_type_name LIKE ? ESCAPE '\\' OR printf('%02d', pp + 1) LIKE ? ESCAPE '\\' OR printf('%d', pp) LIKE ? ESCAPE '\\')");
+            let padrao = format!("%{}%", escape_like(texto.trim()));
+            for _ in 0..4 {
+                filtros.push(Box::new(padrao.clone()));
+            }
         }
 
         sql.push_str(" ORDER BY bank DESC, pp IS NULL, pp ASC, name ASC");

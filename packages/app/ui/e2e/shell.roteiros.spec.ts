@@ -69,7 +69,7 @@ test("R2 biblioteca: 99 presets reais, busca, seleção e empty state", async ({
   expect(n).toBeGreaterThan(10);
   await lib.searchFor("zzzz");
   await expect(lib.options()).toHaveCount(0);
-  await expect(page.getByText(/Nenhum preset para/)).toBeVisible();
+  await expect(page.getByText(/Nada encontrado para/)).toBeVisible();
 
   // abrir preset (select real no shell; fallback dev troca o corrente)
   await lib.searchFor("mist");
@@ -91,7 +91,7 @@ test("R2b user patch: salvar a cadeia corrente, abrir de volta (U01) e excluir",
   // a aba NÃO é mais decorativa: mostra o estado vazio e o caminho para salvar
   await lib.userTab().click();
   await expect(page.getByText(/Nenhum patch salvo ainda/)).toBeVisible();
-  await expect(page.getByText(/Prévia local/)).toBeVisible();
+  await expect(page.getByText(/SQLite/)).toBeVisible();
   await expect(lib.userRows()).toHaveCount(0);
 
   // salvar o patch CORRENTE (o app abre em P01) como patch de usuário

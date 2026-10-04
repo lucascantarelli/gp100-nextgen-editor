@@ -128,7 +128,7 @@ export const ZH: DictPatch = {
   userPatchEmpty: "还没有保存任何音色。调整 pedal 后保存你想保留的配置。",
   userPatchRowTitle: (name: string, from: string) => `打开“${name}”（来自 ${from}）`,
   userPatchDeleteAria: (name: string) => `删除音色“${name}”`,
-  userPatchNote: "本地预览：音色保存在这个浏览器里。保存到设备取决于 USB 通道。",
+  userPatchNote: "在音色库文件（SQLite）里，不在浏览器中。保存到设备依赖于 USB 通道。",
   userPatchDefaultName: (n: number) => `我的音色 ${n + 1}`,
   userBankType: "User",
 
@@ -328,6 +328,34 @@ export const ZH: DictPatch = {
   errOpenPreset: "无法打开该音色 — 请重试。",
   errSelectPreset: "设备没有接受音色切换 — 界面仍停留在当前音色。",
   errSetParam: "设备没有接受旋钮调整 — 请重试。",
+  /* ── 音色库 (#26)：本地文件，不是设备 ── */
+  errLibrarySearch: "无法读取音色库 — 请重试。",
+  errLibraryStats: "无法读取音色库的数量。",
+  errLibrarySave: "无法保存音色 — 音色库文件没有响应。",
+  errLibraryDelete: "无法从音色库删除该音色。",
+  errLibraryImport: "音色库拒绝了导入的文件 — 没有写入任何内容。",
+  errLibraryExport: "无法导出音色库。",
+
+  /* ── 音色库：界面文案 ── */
+  libSearchPlaceholder: "按名称、编号或风格搜索...",
+  libSearchAria: "在音色库中搜索",
+  libSearchClear: "清除搜索",
+  libFilterAll: "所有风格",
+  libFilterAria: "按风格筛选音色库",
+  libExport: "导出",
+  libExportAria: "把音色库导出为文件",
+  libImport: "导入",
+  libImportAria: "从文件导入音色库",
+  libEmpty: "没有符合此筛选的音色。",
+  libEmptySearch: (q: string) => `没有找到“${q}”。`,
+  libStats: (total: number, user: number, schema: number) =>
+    `${total} 个音色 · 我的 ${user} 个 · 架构 v${schema}`,
+  libMigrated: (n: number) =>
+    `你的 ${n} 个音色已从本地存储迁移到音色库。`,
+  libImportDone: (inserted: number, replaced: number, skipped: number) =>
+    `导入完成：新增 ${inserted}，更新 ${replaced}，已存在 ${skipped}。`,
+  libImportRejected: "该文件不是本编辑器的音色库 — 没有导入任何内容。",
+
   errRetry: "重试",
   errRetryAria: "重试失败的操作",
 };

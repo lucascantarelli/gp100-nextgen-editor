@@ -22,6 +22,8 @@ import { createRoot } from "react-dom/client";
 import type { Root } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { BoardSlot, BoardView } from "../src/ipc/types";
+import type { LibraryPreset } from "../src/ipc/library";
+import { resetaFallback } from "../src/ipc/library";
 import { useStage } from "../src/hooks/useStage";
 import { usePrefs } from "../src/hooks/usePrefs";
 import { MSG } from "../src/i18n/messages";
@@ -34,7 +36,13 @@ const mocks = vi.hoisted(() => ({
   deviceInfo: vi.fn(),
   onBootProgress: vi.fn(),
 }));
-vi.mock("../src/ipc/device", () => mocks);
+// mock PARCIAL: o palco fala com o device por estes seis, mas a biblioteca
+// (#26) entra pela mesma porta e precisa de `semRetry` — um mock total
+// rebentaria no import antes de o teste rodar.
+vi.mock("../src/ipc/device", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../src/ipc/device")>()),
+  ...mocks,
+}));
 
 /** Board mínimo com 1 slot e 1 knob — o suficiente para exercitar o palco.
  *  O slot é FIEL ao `BoardSlot` de verdade (code numérico, `options` sempre
@@ -90,6 +98,10 @@ beforeEach(() => {
   mocks.deviceInfo.mockReset().mockResolvedValue(null);
   mocks.onBootProgress.mockReset().mockResolvedValue(() => {});
   localStorage.clear();
+  // a biblioteca (#26) tem um banco em memoria para quando nao ha webview: ele
+  // vive enquanto o modulo viver, e um patch salvo num teste contaminaria o
+  // seguinte. Mesma razao do `localStorage.clear()` acima.
+  resetaFallback();
 });
 
 // ════════════════════════════════════ useStage
@@ -97,6 +109,8 @@ beforeEach(() => {
 type Stage = ReturnType<typeof useStage>;
 let stage: Stage | null = null;
 let closed = 0;
+/** A raiz viva do probe (ver `montarStage`: a anterior é desmontada). */
+let raizAnterior: Root | null = null;
 
 function StageProbe({ onChanged }: { onChanged?: () => void }) {
   stage = useStage(onChanged ?? (() => {}));
@@ -105,6 +119,17 @@ function StageProbe({ onChanged }: { onChanged?: () => void }) {
 
 /** Monta o probe dentro de `act` e devolve o hook já com o efeito inicial rodado. */
 async function montarStage(opts: { onChanged?: () => void; strict?: boolean } = {}) {
+  // A raiz ANTERIOR é desmontada antes da nova: a biblioteca (#26) tem busca
+  // com debounce de 180 ms, então uma árvore velha continua re-renderizando
+  // DEPOIS do fim do teste — e como `stage` é uma variavel de módulo escrita a
+  // cada render, o teste seguinte passava a ler o palco do teste anterior.
+  if (raizAnterior != null) {
+    const velha = raizAnterior;
+    raizAnterior = null;
+    await act(async () => {
+      velha.unmount();
+    });
+  }
   const host = document.createElement("div");
   document.body.appendChild(host);
   let root!: Root;
@@ -118,7 +143,28 @@ async function montarStage(opts: { onChanged?: () => void; strict?: boolean } = 
       ),
     );
   });
+  raizAnterior = root;
   return { host, root };
+}
+
+/**
+ * A lista de patches do dono não é mais um array do hook: é o BANCO (#26).
+ * Abrir a aba do dono e esperar a leitura é o que o dono faz na tela — o teste
+ * faz o mesmo, para não afirmar sobre um estado que a UI nunca mostra.
+ */
+async function primeiroDoDono(): Promise<LibraryPreset> {
+  await act(async () => {
+    stage!.lib.setBanco("user");
+  });
+  // a troca de ABA é uma busca: o hook a debounce em 180 ms (é o que segura
+  // uma requisição por tecla). O teste espera como a tela espera — e relê o
+  // hook DEPOIS, porque o objeto do library nasce a cada render.
+  await act(async () => {
+    await new Promise((r) => setTimeout(r, 260));
+  });
+  const linha = stage!.lib.rows.find((r) => r.bank === "user");
+  if (linha == null) throw new Error("nenhum patch de dono no banco");
+  return linha;
 }
 
 describe("useStage", () => {
@@ -310,7 +356,7 @@ describe("useStage", () => {
     expect(stage!.board).toBeNull();
     // salvar sem palco nao inventa patch: um "Patch 1" vazio seria um preset
     // de usuario que so existe na lista e nao da para abrir.
-    expect(stage!.userPatches).toHaveLength(0);
+    expect(stage!.lib.stats?.user ?? 0).toBe(0);
   });
 
   it("salva patch do que está no palco e reabre sem device", async () => {
@@ -318,14 +364,15 @@ describe("useStage", () => {
     await act(async () => {
       stage!.saveUserPatch("meu patch");
     });
-    expect(stage!.userPatches).toHaveLength(1);
+    const linha = await primeiroDoDono();
+    expect(linha.name).toBe("meu patch");
     mocks.deviceBoard.mockClear();
     await act(async () => {
-      stage!.openUserPatch(stage!.userPatches[0], 0);
+      await stage!.openUserPatch(linha.id, 0);
     });
-    expect(stage!.openUserId).toBe(stage!.userPatches[0].id);
+    expect(stage!.openUserId).toBe(linha.id);
     expect(stage!.presetName).toBe("meu patch");
-    // abrir patch é relido do storage local: nenhum comando de device
+    // abrir patch é relido do BANCO: nenhum comando de device
     expect(mocks.deviceBoard).not.toHaveBeenCalled();
   });
 
@@ -334,15 +381,16 @@ describe("useStage", () => {
     await act(async () => {
       stage!.saveUserPatch("boom");
     });
+    const linha = await primeiroDoDono();
     await act(async () => {
-      stage!.openUserPatch(stage!.userPatches[0], 0);
+      await stage!.openUserPatch(linha.id, 0);
     });
     expect(stage!.openUserId).not.toBeNull();
     await act(async () => {
-      stage!.deleteUserPatch(stage!.userPatches[0].id);
+      stage!.deleteUserPatch(linha.id);
     });
     expect(stage!.openUserId).toBeNull();
-    expect(stage!.userPatches).toHaveLength(0);
+    expect(stage!.lib.stats?.user ?? 0).toBe(0);
     expect(mocks.deviceSelectPreset).toHaveBeenCalled();
   });
 
@@ -350,13 +398,16 @@ describe("useStage", () => {
     await montarStage();
     await act(async () => {
       stage!.saveUserPatch("a");
+    });
+    await act(async () => {
       stage!.saveUserPatch("b");
     });
     const antes = mocks.deviceSelectPreset.mock.calls.length;
+    const linha = await primeiroDoDono();
     await act(async () => {
-      stage!.deleteUserPatch(stage!.userPatches[0].id);
+      stage!.deleteUserPatch(linha.id);
     });
-    expect(stage!.userPatches).toHaveLength(1);
+    expect(stage!.lib.stats?.user ?? 0).toBe(1);
     expect(mocks.deviceSelectPreset.mock.calls.length).toBe(antes);
   });
 });

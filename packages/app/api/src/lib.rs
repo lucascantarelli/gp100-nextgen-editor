@@ -126,6 +126,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
             library_commands::library_stats,
             library_commands::library_save,
             library_commands::library_delete,
+            library_commands::library_get,
             library_commands::library_import,
             library_commands::library_export,
         ])

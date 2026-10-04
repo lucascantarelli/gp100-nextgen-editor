@@ -13,7 +13,7 @@
 //! (versão do esquema, modo do import, seed) vive no `gp100-library` e é
 //! testado lá, nas três plataformas da matriz (ADR-9).
 
-use gp100_library::{ImportMode, SearchQuery};
+use gp100_library::{Bank, ImportMode, SearchQuery};
 use serde::Serialize;
 use tauri::State;
 
@@ -38,6 +38,10 @@ pub struct LibraryStats {
 
 /// Executa a busca da biblioteca.
 ///
+/// `bank` desce como `Option<Bank>` (serde, "factory"/"user") e é o que
+/// separa a aba de fábrica da aba do dono: sem ele, o painel buscaria entre os
+/// 99 de fábrica e a lista do dono apareceria vazia sem mensagem nenhuma.
+///
 /// # Erros
 /// String de erro se o banco não abrir/migrar (o front mostra o banner com retry).
 #[tauri::command]
@@ -46,13 +50,14 @@ pub fn library_search(
     text: Option<String>,
     pp: Option<u16>,
     pp_type: Option<u16>,
+    bank: Option<Bank>,
 ) -> Result<Vec<gp100_library::PresetRow>, String> {
     let lib = state.library.lock().map_err(|e| e.to_string())?;
     let q = SearchQuery {
         text,
         pp,
         pp_type,
-        bank: None,
+        bank,
         limit: Some(SearchQuery::LIMITE_PADRAO),
     };
     lib.search(&q).map_err(|e| e.to_string())
@@ -90,6 +95,25 @@ pub fn library_save(
 ) -> Result<(), String> {
     let lib = state.library.lock().map_err(|e| e.to_string())?;
     lib.upsert(&preset).map_err(|e| e.to_string())
+}
+
+/// Lê um registro pelo id (incluindo a cadeia, que a lista não traz).
+///
+/// Existe separado da busca porque a LISTA é o que a tela mostra: ela é leve e
+/// não carrega o `payload` de 99 patches. O palco, porém, precisa da cadeia
+/// para redesenhar os 9 pedais — e recarregar a biblioteca inteira para isso
+/// seria trocar uma leitura de 1 registro por uma de 99. `null` = não existe
+/// (o dono apagou o patch em outro lugar; a UI volta para a fábrica).
+///
+/// # Erros
+/// String de erro se o banco falhar.
+#[tauri::command]
+pub fn library_get(
+    state: State<'_, AppState>,
+    id: String,
+) -> Result<Option<gp100_library::Preset>, String> {
+    let lib = state.library.lock().map_err(|e| e.to_string())?;
+    lib.get(&id).map_err(|e| e.to_string())
 }
 
 /// Apaga pelo id.

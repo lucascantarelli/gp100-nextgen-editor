@@ -434,7 +434,8 @@ violeta, com três colunas soltas e muito espaço morto):**
 | Leitura no mock | `src/ipc/device.ts::localMockBoard` | `algFor` pelo `effectCode`; knob = `params[pos]` se plausível (dentro do range, nunca o sentinel `0xFFFF`); algoritmo fora do dicionário → pedal SEM knobs (regra do core) |
 | Ordem do palco | `Stage.tsx::baseOrder` | ordena pelo `slot` REAL, não pela família: **20 dos 99 presets têm a cadeia trocada** (ex.: P06 = DST antes de PRE) |
 | Banco + rótulo | `BoardView.bank` / `BoardView.ppLabel` | `"factory"`/`"user"` + `"P25"` (1-based) ou `"U01"` — o LED e a navbar leem o rótulo do board |
-| Patch de usuário | `src/userPatches.ts` | snapshot PROFUNDO dos 9 slots (retrato imutável), `localStorage` `gp100.userpatch.v1`, `boardOfUserPatch` devolve um `BoardView` no mesmo formato do device |
+| Patch de usuário | `src/userPatches.ts` + `src/hooks/useLibrary.ts` | snapshot PROFUNDO dos 9 slots (retrato imutável) gravado no **banco SQLite** (`library_save`; #26), **migrado do `localStorage` no boot**; `patchDeRegistro` devolve o `BoardView` no mesmo formato do device, `boardOfUserPatch` monta a partir dele |
+| Busca da biblioteca | `src/ipc/library.ts` | o texto e o filtro de estilo vão para o **banco** (`library_search`), com debounce de 180ms; casa nome, estilo, número de display (1-based) e `ppID` cru |
 
 **Contrato de honestidade da UI:** `pp` só muda DEPOIS do device confirmar
 (`openPreset`); abrir patch de usuário não pode falhar (nada é escrito); excluir

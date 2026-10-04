@@ -39,7 +39,7 @@
 | B4 | Abrir preset | ✅ deviceSelectPreset REAL §13.10 (fallback dev determinístico); corrente destacada+aria-selected; **o pedalboard redesenha a CADEIA REAL do patch** (20 dos 99 têm a cadeia trocada) | App.openPreset + presetChains.ts (GERADO) | R2 e R2b e2e + unit |
 | B5 | Teclado (listbox) | ✅ setas+Enter; foco visível; alvo ≥32px | LibraryPanel.tsx | R1/R2/R6 e2e |
 | B6 | Import/Export/Rename/Save no device | 🔴 escrita no device — depende do canal USB do `save_preset` (§4 do PROTOCOL); a UI já tem o fluxo de usuário (B7) em prévia local | — | — |
-| B7 | Patch de usuário (salvar/abrir/excluir) | ✅ PRÉVIA LOCAL (#11): snapshot da cadeia corrente, U## no LED/navbar, excluir devolve a fábrica; persiste em localStorage; retrato imutável | userPatches.ts + App.openUserPatch/saveUserPatch/deleteUserPatch | R2b e2e + 8 unit |
+| B7 | Patch de usuário (salvar/abrir/excluir) | ✅ (#11 + #26): snapshot da cadeia corrente, U## no LED/navbar, excluir devolve a fábrica; retrato imutável; persiste no **banco SQLite** (o `localStorage` foi migrado no boot, e a chave legacy é apagada só depois do import) | userPatches.ts + useLibrary + library_commands.rs | R2b e2e + 26 unit |
 
 ## 4. Board / cadeia (manual §"Rodapé da cadeia")
 

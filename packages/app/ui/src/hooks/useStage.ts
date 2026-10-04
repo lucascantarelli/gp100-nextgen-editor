@@ -27,8 +27,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { BoardSlot, BoardView } from "../ipc/types";
 import { deviceBoard, deviceSelectPreset, deviceSetParam } from "../ipc/device";
 import { MSG } from "../i18n/messages";
-import { boardOfUserPatch, loadUserPatches, snapshotOf, storeUserPatches } from "../userPatches";
-import type { UserPatch } from "../userPatches";
+import { boardOfUserPatch, patchDeRegistro, registroDePatch, snapshotOf } from "../userPatches";
+import { useLibrary } from "./useLibrary";
+import type { Library } from "./useLibrary";
 import { withAlgorithm } from "../effects";
 import type { FxAlgorithm } from "../artifacts/fxData";
 
@@ -47,12 +48,13 @@ export interface Stage {
   board: BoardView | null;
   /** Patch de usuário aberto no palco (null = banco de fábrica em uso). */
   openUserId: string | null;
-  userPatches: UserPatch[];
+  /** A biblioteca é o dono da lista (#26): busca no SQLite, números e erros. */
+  lib: Library;
   err: StageError | null;
   clearErr: () => void;
   openPreset: (target: number) => Promise<void>;
   stepPreset: (delta: 1 | -1) => void;
-  openUserPatch: (patch: UserPatch, index: number) => void;
+  openUserPatch: (id: string, index: number) => Promise<void>;
   saveUserPatch: (name: string) => void;
   deleteUserPatch: (id: string) => void;
   applyKnob: (slot: BoardSlot, pos: number, value: string) => void;
@@ -80,10 +82,11 @@ export function useStage(onPresetChanged: () => void): Stage {
   /** Board REAL do preset (device_board): slots/knobs do dicionário. */
   const [board, setBoard] = useState<BoardView | null>(null);
   const [err, setErr] = useState<StageError | null>(null);
-  /** Patches de USUÁRIO (#11): a escrita no device não tem canal USB ainda,
-   *  então vivem no localStorage como PRÉVIA — abrir um deles repõe no palco
-   *  exatamente a cadeia salva (mesmo shape de BoardView do device). */
-  const [userPatches, setUserPatches] = useState<UserPatch[]>(loadUserPatches);
+  /** A biblioteca é o dono da lista (#26): busca no SQLite (o texto vai para o
+   *  banco, não para um .filter), números no rodapé e a migração do
+   *  localStorage. O `bank` é o banco ABERTO no palco — a aba da biblioteca
+   *  segue o palco, e é ele que diz de onde a lista vem. */
+  const lib = useLibrary(board?.bank ?? "factory");
   const [openUserId, setOpenUserId] = useState<string | null>(null);
 
   // Abre um preset: select no device + leitura do board. O estado `pp`/nome
@@ -112,26 +115,50 @@ export function useStage(onPresetChanged: () => void): Stage {
     }
   }, []);
 
-  // Abre um patch de USUÁRIO: o palco passa a desenhar o snapshot salvo
-  // (mesmo formato do device — o Stage não sabe a diferença). Sem erro de
-  // device possível aqui: nada é escrito, é relido do armazenamento local.
-  const openUserPatch = useCallback((patch: UserPatch, index: number) => {
-    setBoard(boardOfUserPatch(patch, index));
-    setPresetName(patch.name);
-    setOpenUserId(patch.id);
-    setErr(null);
-    changedRef.current();
-  }, []);
+  // Abre um patch de USUÁRIO: o palco passa a desenhar o retrato salvo (mesmo
+  // formato do device — o Stage não sabe a diferença). A CADEIA vem do banco
+  // (`library_get`): a lista não carrega o payload dos 99 registros, e abrir um
+  // patch recarregar a biblioteca inteira seria trocar uma leitura de 1 por
+  // uma de 99 a cada clique.
+  //
+  // `null` = o registro sumiu (o dono apagou em outro lugar). Aí a UI volta
+  // para a fábrica confirmada em vez de abrir um palco vazio sem explicação.
+  const openUserPatch = useCallback(
+    async (id: string, index: number) => {
+      const rec = await lib.carrega(id);
+      if (rec == null) {
+        setOpenUserId(null);
+        changedRef.current();
+        setErr({ message: MSG.errLibrarySearch, retry: () => void openUserPatch(id, index) });
+        return;
+      }
+      const patch = patchDeRegistro(rec);
+      if (patch == null) {
+        setOpenUserId(null);
+        changedRef.current();
+        setErr({ message: MSG.errOpenPreset, retry: () => void openPreset(pp) });
+        return;
+      }
+      setBoard(boardOfUserPatch(patch, index));
+      setPresetName(patch.name);
+      setOpenUserId(patch.id);
+      setErr(null);
+      changedRef.current();
+    },
+    [changedRef, lib, openPreset, pp],
+  );
 
   // Salva o patch CORRENTE: a cadeia que está no palco agora (fábrica ou
   // usuário), com o nome digitado — sem nome, numeração do dono.
   const saveUserPatch = useCallback(
     (name: string) => {
       if (board == null) return;
-      const label = name.trim() || MSG.userPatchDefaultName(userPatches.length);
-      setUserPatches((list) => [...list, snapshotOf(board, label, list.length)]);
+      // o número do dono vem do BANCO (`stats.user`), não do tamanho de um
+      // array em memória: com filtro de busca ativo, o array não é a lista
+      const label = name.trim() || MSG.userPatchDefaultName(lib.stats?.user ?? 0);
+      void lib.salva(registroDePatch(snapshotOf(board, label, lib.stats?.user ?? 0)));
     },
-    [board, userPatches.length],
+    [board, lib],
   );
 
   // Exclui um patch de usuário. Se era o que estava no palco, volta para o
@@ -139,13 +166,13 @@ export function useStage(onPresetChanged: () => void): Stage {
   // mentindo sobre o que existe.
   const deleteUserPatch = useCallback(
     (id: string) => {
-      setUserPatches((list) => list.filter((p) => p.id !== id));
+      void lib.apaga(id);
       if (openUserId === id) {
         setOpenUserId(null);
         void openPreset(pp);
       }
     },
-    [openUserId, openPreset, pp],
+    [lib, openUserId, openPreset, pp],
   );
 
   // ◀ ▶ reproduzem a coluna do patch do app oficial: 0..98 em ciclo.
@@ -224,11 +251,6 @@ export function useStage(onPresetChanged: () => void): Stage {
     void openPreset(0);
   }, [openPreset]);
 
-  // patches de usuário persistem local (prévia) — o storage é a única fonte
-  useEffect(() => {
-    storeUserPatches(userPatches);
-  }, [userPatches]);
-
   const clearErr = useCallback(() => setErr(null), []);
 
   return {
@@ -236,7 +258,7 @@ export function useStage(onPresetChanged: () => void): Stage {
     presetName,
     board,
     openUserId,
-    userPatches,
+    lib,
     err,
     clearErr,
     openPreset,

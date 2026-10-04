@@ -30,6 +30,37 @@ fn nome_e_substring_sem_distincao_de_caixa() {
 }
 
 #[test]
+fn texto_casa_o_numero_que_a_tela_mostra() {
+    let lib = bib();
+    // A coluna mostra P01..P99 (1-based, como o app oficial): quem digita "02"
+    // está procurando o preset exibido como P02, que se chama "Blink OD".
+    let r = lib.search(&SearchQuery::nome("02")).unwrap();
+    assert_eq!(r.len(), 1, "numero de display: {:?}", r);
+    assert_eq!(r[0].name, "Blink OD");
+    assert_eq!(r[0].pp, Some(1));
+
+    // o número cru (ppID do all.prst, 0-based) também acha: quem leu o
+    // PROTOCOL.md digita 1, não 02
+    let r = lib.search(&SearchQuery::nome("1")).unwrap();
+    assert!(r.iter().any(|x| x.name == "Blink OD"), "pp cru: {:?}", r);
+
+    // patch de usuário não tem número de fábrica: casar "02" com ele seria
+    // abrir o patch errado sem erro visível
+    let so_user = lib
+        .search(&SearchQuery {
+            bank: Some(Bank::User),
+            text: Some("02".into()),
+            ..SearchQuery::default()
+        })
+        .unwrap();
+    assert!(
+        so_user.is_empty(),
+        "user nao casa por numero: {:?}",
+        so_user
+    );
+}
+
+#[test]
 fn curinga_do_usuario_e_literal_e_nao_seletor() {
     let lib = bib();
     // `%` em LIKE é "qualquer coisa". Se não fosse escapado, isto traria os 5.
