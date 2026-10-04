@@ -14,7 +14,7 @@
  * — `slot` e `family` por isso são campos independentes.
  */
 
-export interface PresetSlot {
+interface PresetSlot {
   slot: number;
   family: "PRE" | "DST" | "AMP" | "NR" | "CAB" | "EQ" | "MOD" | "DLY" | "RVB";
   name: string;
@@ -23,7 +23,7 @@ export interface PresetSlot {
   params: (string | null)[];
 }
 
-export interface PresetChain {
+interface PresetChain {
   pp: number;
   slots: PresetSlot[];
 }

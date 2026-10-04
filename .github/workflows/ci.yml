@@ -355,6 +355,10 @@ jobs:
       - name: eslint (inclui a regra local/no-user-literals)
         working-directory: packages/app/ui
         run: pnpm lint
+      - name: export orfao (todo export de src/ tem consumidor)
+        # Cobre 100% nao prova que o contrato e consumivel: um arquivo 100%
+        # coberto cujos exports ninguem chama e o pior dos dois (#78).
+        run: python3 scripts/check_deadcode.py
 
 # ═══════════════════════════════════════════════════════════════════════
   # COMPILAÇÃO — verificação; sempre (build ≠ distribuição)

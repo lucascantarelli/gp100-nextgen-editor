@@ -17,14 +17,12 @@ export const SPACE = {
   52: 52, // F10 — respiro lateral de página
   84: 84, // F11 — herói/empty
 } as const;
-export type SpaceStep = keyof typeof SPACE;
 
 /**
  * Raio de borda — MESMA escala do espaçamento (§1): o doc diz "raio usa a
  * escala (4/8/12)"; o 16 fica como passo de destaque (modais/flutuantes).
  */
 export const RADIUS = { s: SPACE[4], m: SPACE[8], l: SPACE[12], xl: 16 } as const;
-export type RadiusStep = keyof typeof RADIUS;
 
 /**
  * Tipografia refinada (§3): passos, pesos, entrelinha e tracking. Os pesos
@@ -39,9 +37,12 @@ export const TYPE = {
   lg: 21, // título de seção
   xl: 34, // herói/empty state
 } as const;
-export type TypeStep = keyof typeof TYPE;
 
-/** Pesos usados pela UI (nada de 100/900 fora do display). */
+/**
+ * Pesos usados pela UI (nada de 100/900 fora do display).
+ * Espelham `--weight-*` no design.css — o teste de token garante o valor,
+ * e nenhum CSS escreve peso cru.
+ */
 export const WEIGHT = {
   regular: 400,
   medium: 500,
@@ -50,10 +51,14 @@ export const WEIGHT = {
   black: 800,
 } as const;
 
-/** Entrelinha por papel (a escala modular usa 1.2–1.55). */
+/** Entrelinha por papel (a escala modular usa 1.2–1.55). Espelha `--leading-*`. */
 export const LEADING = { tight: 1.2, snug: 1.3, normal: 1.45, body: 1.55 } as const;
 
-/** Tracking: negativo só em títulos grandes; positivo em texto caixa-alta. */
+/**
+ * Tracking: negativo só em títulos grandes; positivo em texto caixa-alta.
+ * O valor é FRAÇÃO de 1em (0.02 = 2%) e o CSS escreve a unidade:
+ * `--tracking-caps: 0.08em`. Sem isso a mesma escala teria duas grafias.
+ */
 export const TRACKING = { tight: -0.01, normal: 0, wide: 0.02, caps: 0.08 } as const;
 
 /** Stacks: nativas do SO primeiro (sem download de fonte — desktop offline). */
@@ -85,7 +90,7 @@ export const LIGHT = {
   /** sombra de contato (profundidade/oclusão) */
   shadeDeep: 0.6,
 } as const;
-export type LightKey = keyof typeof LIGHT;
+type LightKey = keyof typeof LIGHT;
 
 /** Custom property de cada token de luz (design.css) — teste de token usa. */
 export const LIGHT_VAR: Record<LightKey, string> = {
@@ -97,9 +102,13 @@ export const LIGHT_VAR: Record<LightKey, string> = {
   shadeDeep: "--shade-deep",
 } as const;
 
-/** Níveis de elevação (quanto o módulo "sai" da mesa). */
+/**
+ * Níveis de elevação (quanto o módulo "sai" da mesa). O CSS implementa
+ * cada nível como modificador `.gp-surface--<nível>`; `raised`/`panel` são o
+ * `.gp-surface` base e por isso não têm classe própria (o teste de token
+ * confere os dois sentidos da ligação).
+ */
 export const ELEVATION = { flat: 0, raised: 1, panel: 2, floating: 3 } as const;
-export type ElevationLevel = keyof typeof ELEVATION;
 
 /** Rácios de contraste medidos (WCAG 2.x, paleta Valeton Violet) — testados abaixo. */
 export const CONTRAST_RATIOS = {
@@ -128,7 +137,10 @@ export const WCAG = {
   minTargetPx: 32, // alvo clicável mínimo (desktop híbrido)
 } as const;
 
-/** Motion (ms) — respeita prefers-reduced-motion via design.css. */
+/**
+ * Motion (ms) — respeita prefers-reduced-motion via design.css.
+ * Espelha `--motion-*`; o CSS carrega a unidade (ms).
+ */
 export const MOTION = { fast: 120, panel: 200 } as const;
 
 /** Pares de contraste válidos (fg/bg) por tema — o ÚNICO caminho para texto. */

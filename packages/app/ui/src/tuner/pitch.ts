@@ -22,9 +22,9 @@
  * o componente recebe a leitura daqui — nada de simulação falsa.
  */
 
-export const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"] as const;
+const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"] as const;
 
-export type TunerBand = "ok" | "warn" | "error";
+type TunerBand = "ok" | "warn" | "error";
 
 export interface TunerReading {
   frequency: number;

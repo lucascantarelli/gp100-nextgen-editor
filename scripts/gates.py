@@ -46,6 +46,11 @@ GATES: list[tuple[str, list[str], str]] = [
         "os 5 manifests de versao em sincronia",
     ),
     (
+        "check_deadcode",
+        [sys.executable, "scripts/check_deadcode.py"],
+        "todo export de src/ tem consumidor fora do arquivo",
+    ),
+    (
         "pytest",
         ["uv", "run", "pytest", "-q"],
         "trava da especificacao (provas A-E do golden)",

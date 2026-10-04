@@ -37,7 +37,7 @@ const FAMILY_STYLE: Record<
 };
 
 /** Escala do pedal: palco (compacto) ou modal de edição (grande). */
-export type PedalVariant = "board" | "modal";
+type PedalVariant = "board" | "modal";
 
 /** Métricas de layout por escala (arte do palco — não é dado do device). */
 const SCALES = {

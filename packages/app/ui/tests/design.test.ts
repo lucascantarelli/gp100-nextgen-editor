@@ -6,15 +6,21 @@
 import { describe, expect, it } from "vitest";
 import {
   CONTRAST_RATIOS,
+  ELEVATION,
   FONT_STACKS,
+  LEADING,
   LIGHT,
   LIGHT_VAR,
+  MOTION,
   RADIUS,
   SPACE,
   TEXT_PAIRS,
+  TRACKING,
   TYPE,
   WCAG,
+  WEIGHT,
 } from "../src/design/tokens";
+import { DRUM_GENRES, DRUM_TOTAL_STYLES } from "../src/artifacts/drumData";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -79,6 +85,126 @@ describe("luz e profundidade (tokens de luz × design.css)", () => {
   it("stacks de fonte do CSS batem com FONT_STACKS", () => {
     for (const [k, stack] of Object.entries(FONT_STACKS)) {
       expect(css).toContain(`--font-${k}: ${stack}`);
+    }
+  });
+});
+
+/**
+ * Tipografia e motion no MESMO esquema do LIGHT (#78): ate aqui o TS declarava
+ * ser a fonte unica de peso/entrelinha/tracking/motion, mas o CSS escrevia
+ * `font-weight: 700` cru e o teste nao olhava. Fonte unica que so vale pela
+ * metade e pior que nenhuma — ela promete uma garantia que ninguem cumpre.
+ */
+/** Texto do CSS sem o bloco `:root` — la os tokens sao declarados, nao usados. */
+function semRoot(css: string): string[] {
+  return css.replace(/:root\s*\{[^}]*\}/, "").split("\n");
+}
+
+describe("tipografia e motion (tokens x design.css)", () => {
+  const css = readFileSync(uiFile("src", "design", "design.css"), "utf8");
+  const looper = readFileSync(uiFile("src", "design", "looper.css"), "utf8");
+
+  it("todo peso de WEIGHT existe no CSS com o MESMO valor", () => {
+    for (const [k, peso] of Object.entries(WEIGHT)) {
+      expect(css, `--weight-${k} espelha WEIGHT.${k} = ${peso}`).toContain(`--weight-${k}: ${peso};`);
+    }
+  });
+
+  it("toda entrelinha de LEADING existe no CSS com o MESMO valor", () => {
+    for (const [k, valor] of Object.entries(LEADING)) {
+      expect(css, `--leading-${k} espelha LEADING.${k} = ${valor}`).toContain(`--leading-${k}: ${valor};`);
+    }
+  });
+
+  it("todo tracking de TRACKING existe no CSS, com a unidade que o token omite", () => {
+    // O token e fracao de 1em; sem a unidade no CSS a mesma escala teria duas
+    // grafias e a comparacao nao diria nada.
+    for (const [k, valor] of Object.entries(TRACKING)) {
+      expect(css, `--tracking-${k} espelha TRACKING.${k} = ${valor}em`).toContain(
+        `--tracking-${k}: ${valor}em;`,
+      );
+    }
+  });
+
+  it("todo tempo de MOTION existe no CSS com o MESMO valor", () => {
+    for (const [k, ms] of Object.entries(MOTION)) {
+      expect(css, `--motion-${k} espelha MOTION.${k} = ${ms}ms`).toContain(`--motion-${k}: ${ms}ms;`);
+    }
+  });
+
+  it("nenhum CSS escreve peso cru — so var(--weight-*)", () => {
+    // `font-weight: 700` cru era o estado anterior, em 9 lugares. O peso e
+    // escala do design system: sair da custom property e o unico jeito de
+    // ele divergir de WEIGHT sem ninguem perceber.
+    for (const [nome, texto] of [
+      ["design.css", css],
+      ["looper.css", looper],
+    ] as const) {
+      const cru = semRoot(texto).filter((l) => /font-weight:\s*[0-9]/.test(l));
+      expect(cru, `${nome} ainda escreve font-weight cru`).toEqual([]);
+    }
+  });
+
+  it("todo letter-spacing tem unidade — sem ela a declaracao e descartada", () => {
+    // `letter-spacing: 1.2` era o estado anterior em `.pg-jack` e `.pg-mark`:
+    // nao era so feio, era DECLARACAO INVALIDA. O navegador jogava a linha
+    // fora e o efeito nunca existiu. Nudge local em px/em continua livre.
+    for (const [nome, texto] of [
+      ["design.css", css],
+      ["looper.css", looper],
+    ] as const) {
+      const semUnidade = semRoot(texto).filter((l) => /letter-spacing:\s*-?[0-9.]+\s*;/.test(l));
+      expect(semUnidade, `${nome} tem letter-spacing sem unidade`).toEqual([]);
+    }
+  });
+});
+
+describe("elevacao (tokens x design.css)", () => {
+  const css = readFileSync(uiFile("src", "design", "design.css"), "utf8");
+  /** Niveis que sao o `.gp-surface` base, sem modificador proprio. */
+  const BASE = ["raised", "panel"];
+  const modificadores = () => [...css.matchAll(/\.gp-surface--([a-z]+)/g)].map((m) => m[1]);
+
+  it("todo modificador .gp-surface--X do CSS e um nivel declarado em ELEVATION", () => {
+    // O sentido que pega o erro caro: um classe nova no CSS sugerindo um nivel
+    // que o TS nao conhece — e o sistema de elevacao passa a ter um degrau
+    // invisivel para quem le os tokens.
+    expect(modificadores().length).toBeGreaterThan(0);
+    for (const nivel of modificadores()) {
+      expect(
+        Object.keys(ELEVATION),
+        `classe .gp-surface--${nivel} sem nivel correspondente em ELEVATION`,
+      ).toContain(nivel);
+    }
+  });
+
+  it("todo nivel de ELEVATION e o base da superficie ou tem modificador", () => {
+    // O sentido contrario: nivel declarado que nada desenha.
+    const mods = new Set(modificadores());
+    for (const nivel of Object.keys(ELEVATION)) {
+      expect(
+        mods.has(nivel) || BASE.includes(nivel),
+        `nivel ${nivel} nao tem modificador .gp-surface--${nivel} nem e nivel base`,
+      ).toBe(true);
+    }
+  });
+});
+
+describe("dados do drum derivam, nao declaram", () => {
+  it("DRUM_TOTAL_STYLES e a soma dos generos (derivado, nunca literal)", () => {
+    const soma = DRUM_GENRES.reduce((t, g) => t + g.styles.length, 0);
+    expect(DRUM_TOTAL_STYLES).toBe(soma);
+  });
+
+  it("o total bate com o firmware: 87 estilos em 5 generos", () => {
+    // Se o dado mudar, este e o teste que avisa — o painel mostra o total.
+    expect(DRUM_TOTAL_STYLES).toBe(87);
+    expect(DRUM_GENRES.length).toBe(5);
+  });
+
+  it("nenhum genero tem lista vazia", () => {
+    for (const g of DRUM_GENRES) {
+      expect(g.styles.length, `genero ${g.genre} sem estilos`).toBeGreaterThan(0);
     }
   });
 });

@@ -4,7 +4,7 @@
  * Regenerar: uv run python analysis/dump_preset_list.py
  */
 
-export interface FactoryPreset {
+interface FactoryPreset {
   pp: number;
   name: string;
   ppTypeName: string;

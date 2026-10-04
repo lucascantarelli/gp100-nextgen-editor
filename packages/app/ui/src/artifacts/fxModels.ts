@@ -10,7 +10,7 @@
  */
 import type { BoardSlot } from "../ipc/types";
 
-export type ModelShape =
+type ModelShape =
   | "mini" // enclosure pequeno (1–2 knobs)
   | "box" // caixa compacta 3 colunas (Boss/MXR vibe)
   | "widebox" // caixão largo 4–5 colunas (Timeline/BigSky vibe)
@@ -22,7 +22,7 @@ export type ModelShape =
   | "amphead" // cabeçote de amp (tolex + painel dourado + válvulas)
   | "echo"; // rack de eco (janela de display + knobs em fileira)
 
-export interface ModelSpec {
+interface ModelSpec {
   shape: ModelShape;
   /** Largura base do SVG (a altura cresce com os knobs). */
   w: number;
@@ -123,7 +123,7 @@ const VARIANTS: Record<string, ModelSpec> = {
 };
 
 /** Fallbacks por archetype (garantem capacidade p/ as variantes sem entry). */
-export const ARCHETYPE_FALLBACK: Record<BoardSlot["archetype"], ModelSpec> = {
+const ARCHETYPE_FALLBACK: Record<BoardSlot["archetype"], ModelSpec> = {
   BUFFER: { shape: "mini", w: 112, cols: 1, ref: "Buffer/switcher (mini)" },
   DISTORTION: { shape: "box", w: 156, cols: 3, ref: "Dist compact" },
   // AMP é ITEM DA CADEIA: cabeçote com os knobs reais do algoritmo
