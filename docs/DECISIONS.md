@@ -110,25 +110,48 @@ pub trait DeviceTransport {
 
 ## ADR-5 — Feature-flag `WRITE_VERIFIED` (mock sempre permite)
 
-**Status:** Accepted · **Pré-assinada:** 28/09 (owner) · **Afeta:** M0.5, Gate H (H2)
+**Status:** Accepted · **Pré-assinada:** 28/09 (owner) · **rev. 04/10** (feature
+`write-verified` + `WireKind` declarado pela `Session`) · **Afeta:** M0.5, Gate H
+(H2)
 
-**Decisão.** Escrita no device **real** é guardada por flag `WRITE_VERIFIED`
-(constante/config do transporte real). Enquanto `WRITE_VERIFIED == false`, o
-transporte real **recusa writes com erro explícito**. O `MockDevice` **sempre
-permite** writes — caso contrário os replays das fixtures (knob/save/IR) não
-existiriam.
+**Decisão.** Escrita no device **real** é guardada por `WRITE_VERIFIED` — que
+virou, na revisão de 04/10 (H2), uma **feature de compilação** `write-verified`
+(default OFF), não uma constante de config: a trava é da **build**, então não
+existe flag, variável de ambiente ou argumento que a abra num binário que não a
+tem. Enquanto `WRITE_VERIFIED == false`, o transporte real **recusa writes com
+erro tipado** (`TransportError::WriteBlocked { op }`, com o endereço do frame
+recusado). O `MockDevice` **sempre permite** writes — caso contrário os replays
+das fixtures (knob/save/IR) não existiriam.
+
+**Como a escrita é classificada (rev. 04/10).** `DeviceTransport::send_raw`
+passa a receber um `WireKind` (`Read` | `Write`) **obrigatório, sem default** — a
+classificação é **declarada pela `Session`**, que é quem conhece a semântica, e
+**não deduzida do byte FUNC**. Deduzir por FUNC estaria errado: `0x12` é usado
+tanto para escrita quanto para a leitura de página do §13.10, e um gate por FUNC
+recusaria o próprio caminho de leitura. Parâmetro obrigatório (em vez de
+`Option`/`default`) porque o compilador é a trava secundária: esquecer de
+classificar é erro de build, não erro de campo.
 
 **Estado atual:** os 3 fluxos capturados (set §13.11, save §13.12, IR §13.7) já
 foram verificados em campo na S4 (persistência confirmada no display —
-BLOCKERS item 11 fechado), mas a flag **começa false** e só vira `true` com o
-DoD do H2 executado **pelo gp100-core no device** (3 fluxos, um por vez, com
-read-back/verificação no display).
+BLOCKERS item 11 fechado), mas a feature **nasce OFF** e só é ligada no binário
+de campo com o DoD do H2 executado **pelo gp100-core no device** (3 fluxos, um
+por vez, com read-back/verificação no display). O PR do H2 **não a liga por
+padrão** — entrega o mecanismo e deixa a decisão com o owner e a pedaleira.
+
+**Consequência registrada pelo PR (não óbvia):** o keepalive de boot
+(`12/00020001`, §13.12) é um frame OUT que não pede resposta — logo é `Write`
+pelo critério acima, e o **boot completo (B5 do H1) passa a exigir a feature do
+H2**. A decisão de fundo (pular o keepalive no B5, ou promover o B5 para o H2)
+é do owner; ver [H2_CHECKLIST.md](H2_CHECKLIST.md) §0.
 
 **Consequências.**
 - Divergência de fio descoberta no H1/H2 = fluxo R3 (captura → golden → validate),
   nunca "ajuste" ad-hoc no codec.
 - Fluxo de escrita novo (fora os 3 capturados) = proibido até captura própria +
-  baseline nova + esta flag reavaliada por ADR.
+  baseline nova + esta trava reavaliada por ADR.
+- Trava **atômica por operação** (ADR-6, consequência 6): `save_preset` é barrado
+  ANTES do 1º write do `meta_block`, então nunca sai frame parcial de save.
 
 ---
 

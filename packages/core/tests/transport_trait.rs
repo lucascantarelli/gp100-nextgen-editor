@@ -5,7 +5,7 @@
 
 use std::time::Duration;
 
-use gp100_core::transport::{DeviceTransport, TransportError};
+use gp100_core::transport::{DeviceTransport, TransportError, WireKind};
 use gp100_core::{SYSEX_EOX, SYSEX_HEADER};
 
 /// Implementador EXTERNO mínimo (loopback): prova que a trait é pública,
@@ -56,7 +56,7 @@ impl DeviceTransport for LoopbackTransport {
         Ok(())
     }
 
-    fn send_raw(&mut self, data: &[u8]) -> Result<(), TransportError> {
+    fn send_raw(&mut self, data: &[u8], _kind: WireKind) -> Result<(), TransportError> {
         if !self.opened {
             return Err(TransportError::Closed);
         }
@@ -99,7 +99,7 @@ fn envelope() -> Vec<u8> {
 fn ciclo_de_vida_e_eco_via_trait() {
     let mut t = LoopbackTransport::new(vec![]);
     t.open().expect("abre");
-    t.send_raw(&envelope()).expect("envia");
+    t.send_raw(&envelope(), WireKind::Write).expect("envia");
     let got = t
         .recv_raw(Duration::from_millis(100))
         .expect("eco na janela");
@@ -123,7 +123,7 @@ fn recv_sem_mensagem_estoura_timeout_tipado() {
 fn send_fechado_e_erro_tipado_sem_panic() {
     let mut t = LoopbackTransport::new(vec![]);
     assert!(matches!(
-        t.send_raw(&envelope()),
+        t.send_raw(&envelope(), WireKind::Write),
         Err(TransportError::Closed)
     ));
     assert!(matches!(
@@ -138,7 +138,7 @@ fn trait_e_object_safe_para_dyn() {
     // FSM optar por injeção dinâmica — a trait precisa suportar desde já.
     let mut t: Box<dyn DeviceTransport> = Box::new(LoopbackTransport::new(vec![envelope()]));
     t.open().expect("abre via dyn");
-    assert!(t.send_raw(&envelope()).is_ok());
+    assert!(t.send_raw(&envelope(), WireKind::Write).is_ok());
     assert!(t.recv_raw(Duration::from_millis(100)).is_ok());
 }
 
@@ -148,12 +148,13 @@ fn trait_e_object_safe_para_dyn() {
 fn device_gone_durante_sessao_e_reconexao_no_mesmo_objeto() {
     let mut t = LoopbackTransport::new(vec![]);
     t.open().expect("abre");
-    t.send_raw(&envelope()).expect("envia com device presente");
+    t.send_raw(&envelope(), WireKind::Write)
+        .expect("envia com device presente");
 
     // usuário desconecta a pedal: próxima operação detecta DeviceGone
     t.unplug();
     assert!(matches!(
-        t.send_raw(&envelope()),
+        t.send_raw(&envelope(), WireKind::Write),
         Err(TransportError::DeviceGone { .. })
     ));
     assert!(matches!(
@@ -164,7 +165,8 @@ fn device_gone_durante_sessao_e_reconexao_no_mesmo_objeto() {
     // SEM fechar/sem recriar: device volta, open() reconecta
     t.plug();
     t.open().expect("reconecta no MESMO objeto");
-    t.send_raw(&envelope()).expect("envia pós-reconexão");
+    t.send_raw(&envelope(), WireKind::Write)
+        .expect("envia pós-reconexão");
     assert_eq!(
         t.recv_raw(Duration::from_millis(100)).expect("eco"),
         envelope()

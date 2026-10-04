@@ -10,8 +10,9 @@
 //!
 //! **Subcomandos (todos contra o mock por default):**
 //!   `info`, `list-user-irs`, `dump-preset <pp>`, `set-param --dry-run`,
-//!   `save --dry-run`. Escrita EFETIVA não existe nesta fase (escritas exigem
-//!   `--dry-run`; escrita real só no gate H2, `WRITE_VERIFIED`).
+//!   `save --dry-run`, `upload-ir --dry-run`. A escrita EFETIVA no device real
+//!   só existe num binário compilado com a feature `write-verified` (ADR-5),
+//!   e mesmo assim só depois do gate H2 — ver o USAGE para as duas camadas.
 //!
 //! **`--log` (requisito do `docs/H1_CHECKLIST.md`):** grava TODOS os frames de
 //! fio (OUT e IN) no MESMO schema das fixtures P4 —
@@ -31,7 +32,7 @@ use std::time::Duration;
 
 use gp100_core::session::Session;
 use gp100_core::transport::mock::{MockDevice, MockState};
-use gp100_core::transport::{DeviceTransport, TransportError};
+use gp100_core::transport::{DeviceTransport, TransportError, WireKind};
 
 /// Código de saída para violação de uso/política de hardware.
 ///
@@ -55,6 +56,7 @@ SUBCOMANDOS
   set-param <slot> <code> <ctrl> <value>
                               knob da cadeia (§13.11) — exige --dry-run
   save <pp> <pp-type> <name>  metadados + ops (§13.12) — exige --dry-run
+  upload-ir <slot> <arquivo> blob de User IR (§13.7) — exige --dry-run
 
 OPÇÕES
   --dry-run                   imprime os frames e NÃO envia (escritas)
@@ -67,8 +69,19 @@ OPÇÕES
 POLÍTICA DE HARDWARE (VISION §7)
   DUAS camadas: (1) --real exige --i-know-what-im-doing; (2) o build precisa
   da feature `real-device` (default OFF). No build de campo, H1 = leitura
-  real (roteiro do docs/H1_CHECKLIST.md; NENHUMA escrita); escrita real só
-  pós-H2 com WRITE_VERIFIED — a guarda de --dry-run permanece sempre.
+  real (roteiro do docs/H1_CHECKLIST.md; NENHUMA escrita).
+
+  ESCRITA REAL = gate H2, e ela é uma TERCEIRA camada, no TRANSPORTE
+  (ADR-5): um frame mutante num device real só passa num binário compilado
+  com a feature `write-verified` (que depende de `real-device`).
+
+      H1 (leitura)   cargo build --release -p gp100-cli --features real-device
+      H2 (escrita)   cargo build --release -p gp100-cli \
+                       --features real-device,write-verified
+
+  Sem essa feature a escrita é IMPOSSÍVEL — não há flag, env ou argumento
+  que destrave. E o keepalive de boot (12/00020001) é escrita, então o
+  boot completo (B5 do H1) exige a feature do H2: o boot não é só leitura.
   Números aceitam hex (0x0100) ou decimal.
 ";
 
@@ -95,6 +108,15 @@ enum Command {
         pp: u16,
         pp_type: u16,
         name: String,
+    },
+    /// Gate H2, 3º fluxo: upload de User IR (§13.7).
+    UploadIr {
+        /// Slot de destino do User IR (0..=19) — NAO confundir com o slot da
+        /// cadeia de efeito (1..=9 de `set-param`; rev.2 do ADR-6).
+        slot: u8,
+        /// Caminho do blob binario do IR (multiplo de 15B; §13.7 rev.2
+        /// REJEITA o resto, nao padroniza).
+        path: PathBuf,
     },
 }
 
@@ -147,8 +169,9 @@ fn parse_args<I: Iterator<Item = String>>(args: I) -> Result<Args, UsageError> {
     // (a) `--real` exige `--i-know-what-im-doing` (dupla confirmação);
     // (b) o build precisa da feature `real-device` (default OFF — ADR-4/ADR-5).
     // Com as duas, o binário de campo abre o RealDevice: LEITURA real = gate
-    // H1 (roteiro do H1_CHECKLIST; só leitura); ESCRITA real segue bloqueada
-    // pela guarda de dry-run (pós-H2 WRITE_VERIFIED) — independente de mock.
+    // H1 (roteiro do H1_CHECKLIST; só leitura); ESCRITA real é uma TERCEIRA
+    // camada, no transporte (ADR-5, feature `write-verified`) — e ainda exige
+    // o gate H2. independente de mock.
     if real && !acknowledge {
         return Err(UsageError(
             "modo --real exige também --i-know-what-im-doing (dupla confirmação; \
@@ -208,6 +231,28 @@ fn parse_args<I: Iterator<Item = String>>(args: I) -> Result<Args, UsageError> {
             let pp = parse_u16(&pos.pop().expect("len >= 1 garantido"))
                 .map_err(|e| UsageError(format!("pp: {e}")))?;
             Command::Save { pp, pp_type, name }
+        }
+        // H2 3º fluxo: upload de User IR. O slot é 0..=19 (§13.7) e o blob
+        // tem de ser múltiplo de 15B — a FSM valida o resto (rev.2: rejeita,
+        // não padroniza); aqui só o caminho do arquivo.
+        "upload-ir" => {
+            if pos.len() != 2 {
+                return Err(UsageError(
+                    "upload-ir exige <slot 0..=19> <arquivo-do-blob>".into(),
+                ));
+            }
+            let path = pos.pop().expect("len == 2 garantido acima");
+            let slot = parse_u8(&pos.pop().expect("len >= 1 garantido"))
+                .map_err(|e| UsageError(format!("upload-ir slot: {e}")))?;
+            if slot >= 20 {
+                return Err(UsageError(format!(
+                    "upload-ir: slot {slot} fora de 0..=19 (§13.7 — os 20 User IRs)"
+                )));
+            }
+            Command::UploadIr {
+                slot,
+                path: PathBuf::from(path),
+            }
         }
         other => {
             return Err(UsageError(format!(
@@ -315,11 +360,15 @@ impl<T: DeviceTransport> DeviceTransport for LoggingTransport<T> {
     fn close(&mut self) -> Result<(), TransportError> {
         self.inner.close()
     }
-    fn send_raw(&mut self, data: &[u8]) -> Result<(), TransportError> {
+    /// Transparente em TUDO, inclusive na POLICY: repassa o `kind` para o
+    /// transporte interno. Se o wrapper decidisse o `kind`, ele seria uma
+    /// segunda fonte de politica de escrita — e a trava do ADR-5 valeria
+    /// só para quem não passa por aqui (D8: o logger nao filtra nada).
+    fn send_raw(&mut self, data: &[u8], kind: WireKind) -> Result<(), TransportError> {
         if let Some(l) = self.logger.as_mut() {
             l.record("out", data);
         }
-        self.inner.send_raw(data)
+        self.inner.send_raw(data, kind)
     }
     fn recv_raw(&mut self, timeout: Duration) -> Result<Vec<u8>, TransportError> {
         let msg = self.inner.recv_raw(timeout)?;
@@ -476,14 +525,27 @@ fn run<T: DeviceTransport>(
             }
             0
         }
-        Command::SetParam { .. } | Command::Save { .. } => {
-            // Política: escrita real NÃO existe nesta fase —
-            // só --dry-run (imprime frames). Efetiva = pós-H2 WRITE_VERIFIED.
-            if !args.dry_run {
+        Command::SetParam { .. } | Command::Save { .. } | Command::UploadIr { .. } => {
+            // A política de escrita tem DUAS camadas independentes, e a
+            // segunda é a que realmente segura o hardware:
+            //
+            //   1. `--dry-run` (aqui): imprime os frames e NÃO envia nada.
+            //   2. `WRITE_VERIFIED` (o TRANSPORTE, ADR-5): um frame
+            //      mutante num device real so passa num binário compilado
+            //      com `--features real-device,write-verified`.
+            //
+            // Por que a segunda não é redundante: o `if !args.dry_run` e
+            // uma linha do CLI. Quem viesse falar com o `RealDevice` sem
+            // passar pelo `run` — um subcomando novo, um teste de campo, um
+            // dia a UI — não encontraria essa linha. O ADR-5 pede a trava
+            // no transporte, e a 2 é a que sobrevive ao próximo subcomando.
+            if !args.dry_run && !escrita_verificada() {
                 eprintln!(
-                    "[!] escrita exige --dry-run nesta fase (escrita efetiva = \
-                     gate H2, WRITE_VERIFIED).\n    o dry-run imprime os frames \
-                     e NÃO envia nada ao device."
+                    "[!] escrita exige --dry-run neste binário.\n    \
+                     O dry-run imprime os frames e NÃO envia nada ao device.\n    \
+                     Escrita REAL é o gate H2 e depende da feature de \
+                     compilação (ADR-5):\n      cargo build --release -p gp100-cli \
+                     --features real-device,write-verified"
                 );
                 return EXIT_POLICY_BLOCKED;
             }
@@ -495,6 +557,7 @@ fn run<T: DeviceTransport>(
                     value,
                 } => run_set_param(*slot, *code, *ctrl, *value),
                 Command::Save { pp, pp_type, name } => run_save(*pp, *pp_type, name),
+                Command::UploadIr { slot, path } => run_upload_ir(session, *slot, path, args),
                 _ => unreachable!("o match externo já filtrou estes comandos"),
             }
         }
@@ -556,6 +619,75 @@ fn run_save(pp: u16, pp_type: u16, name: &str) -> i32 {
 fn fail(e: &gp100_core::ProtocolError) -> i32 {
     eprintln!("[!] erro de protocolo: {e}");
     EXIT_PROTOCOL_ERROR
+}
+
+/// `WRITE_VERIFIED` DESTE binário (ADR-5), por compilação.
+///
+/// `cfg!` nos dois ramos é o que torna a resposta uma CONSTANTE: não há
+/// `env::var`, flag de CLI ou arquivo que a vire. O `--dry-run` acima é a
+/// conveniência; isto é a trava.
+fn escrita_verificada() -> bool {
+    #[cfg(feature = "write-verified")]
+    {
+        true
+    }
+    #[cfg(not(feature = "write-verified"))]
+    {
+        false
+    }
+}
+
+/// `upload-ir` — gate H2, 3º fluxo (§13.7).
+///
+/// **O `--dry-run` e honesto sobre o que imprime:** o caminho dos 295
+/// chunks (com idx em páginas de 128) e o marcador de fim sao o que o
+/// device vai receber, e a FSM e quem monta isso. Aqui o que muda é o
+/// destino: no dry-run o blob vai para o log de fio e nada mais.
+fn run_upload_ir<T: DeviceTransport>(
+    session: &mut Session<T>,
+    slot: u8,
+    path: &PathBuf,
+    args: &Args,
+) -> i32 {
+    let blob = match std::fs::read(path) {
+        Ok(b) => b,
+        Err(e) => {
+            eprintln!("[!] não li o blob {path:?}: {e}");
+            return EXIT_POLICY_BLOCKED;
+        }
+    };
+    if !blob.len().is_multiple_of(15) {
+        // A FSM também rejeita (rev.2 do ADR-6); aqui é para a mensagem
+        // dizer o número, que é o que o operador precisa para cortar o WAV.
+        eprintln!(
+            "[!] blob de {} bytes não é múltiplo de 15 (§13.7 rev.2: a FSM \
+             REJEITA, não padroniza — corte ou escolha outro arquivo)",
+            blob.len()
+        );
+        return EXIT_POLICY_BLOCKED;
+    }
+    let chunks = blob.len() / 15;
+    println!(
+        "upload-ir slot {slot} ({} bytes = {chunks} chunks de 15B)",
+        blob.len()
+    );
+    if args.dry_run {
+        println!("  §13.7: ir_begin -> {chunks} chunks (idx em páginas de 128) -> último chunk 2x");
+        println!("  DRY-RUN: frames no log, NADA enviado ao device.");
+        return 0;
+    }
+    match session.upload_ir(slot, &blob) {
+        Ok(r) => {
+            println!(
+                "  enviado: {r} chunks, {acks} ACKs (inclui o dup final §13.7)",
+                r = r.chunks,
+                acks = r.acks
+            );
+            println!("  CONFIRME NO DISPLAY antes de considerar o H2 verde.");
+            0
+        }
+        Err(e) => fail(&e),
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════ testes
@@ -673,8 +805,87 @@ mod tests {
             "dump-preset",
             "set-param",
             "save",
+            "upload-ir",
         ] {
             assert!(USAGE.contains(term), "USAGE não documenta {term}");
+        }
+    }
+
+    /// **A constante do ADR-5 reflete a feature de compilação.** É o teste
+    /// que garante que o binário de campo do H1 (compilado SEM a feature)
+    /// não se declara verificado — e que o do H2 se declara.
+    ///
+    /// Os dois ramos são `cfg!` de propósito: com a feature ligada o teste
+    /// continua rodando e confere o outro valor.
+    #[test]
+    fn escrita_verificada_segue_a_feature() {
+        #[cfg(not(feature = "write-verified"))]
+        assert!(
+            !escrita_verificada(),
+            "build sem `write-verified` NÃO pode se declarar verificado — é o \
+             que segura o H1 (leitura) de escrever"
+        );
+        #[cfg(feature = "write-verified")]
+        assert!(
+            escrita_verificada(),
+            "build com `write-verified` se declara verificado (gate H2)"
+        );
+    }
+
+    /// O USAGE diz COMO destravar a escrita. Sem isso, quem pega a recusa
+    /// "escrita bloqueada" em campo conclui que o binário está quebrado.
+    #[test]
+    fn o_uso_diz_como_destravar_a_escrita() {
+        assert!(
+            USAGE.contains("write-verified"),
+            "o USAGE precisa nomear a feature que destrava a escrita (ADR-5)"
+        );
+        assert!(
+            USAGE.contains("upload-ir"),
+            "o 3º fluxo do H2 precisa estar no USAGE"
+        );
+    }
+
+    /// `upload-ir` valida o slot no parser: 20 é o primeiro inválido (os 20
+    /// User IRs são 0..=19, §13.12). Um slot 20 aceito aqui viraria um
+    /// `begin` para um slot que o device não tem.
+    #[test]
+    fn upload_ir_recusa_slot_fora_de_0_a_19() {
+        for slot in ["0", "19"] {
+            assert!(
+                parse_args(args(&["upload-ir", slot, "blob.bin"]).into_iter()).is_ok(),
+                "slot {slot} é válido"
+            );
+        }
+        let err = parse_args(args(&["upload-ir", "20", "blob.bin"]).into_iter())
+            .expect_err("slot 20 não existe");
+        assert!(err.0.contains("0..=19"), "{}", err.0);
+
+        let err = parse_args(args(&["upload-ir", "0x14", "blob.bin"]).into_iter())
+            .expect_err("0x14 = 20, também inválido");
+        assert!(err.0.contains("0..=19"), "{}", err.0);
+    }
+
+    /// `upload-ir` sem os 2 posicionais é erro de uso, não um caminho que
+    /// chegue a ler arquivo.
+    #[test]
+    fn upload_ir_exige_slot_e_arquivo() {
+        assert!(parse_args(args(&["upload-ir"]).into_iter()).is_err());
+        assert!(parse_args(args(&["upload-ir", "0"]).into_iter()).is_err());
+    }
+
+    /// O nome tem espaço: `upload-ir` recebe o caminho por `pos`, não por
+    /// flag, então o arquivo não pode ser confundido com o slot.
+    #[test]
+    fn upload_ir_guarda_o_caminho_do_blob() {
+        let parsed =
+            parse_args(args(&["upload-ir", "3", "C:/meus/test ir.bin"]).into_iter()).expect("ok");
+        match parsed.command {
+            Command::UploadIr { slot, path } => {
+                assert_eq!(slot, 3);
+                assert_eq!(path, PathBuf::from("C:/meus/test ir.bin"));
+            }
+            _ => panic!("comando errado"),
         }
     }
 

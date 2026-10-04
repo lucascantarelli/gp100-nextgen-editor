@@ -138,6 +138,35 @@ Só a área que você tocou — o CI filtra o resto por caminhos.
 
 ---
 
+## 4b. Binários de campo (H1 leitura / H2 escrita)
+
+O CLI de campo tem **duas camadas**, e elas não são interchangeáveis:
+
+```bash
+# H1 — leitura real. A escrita é IMPOSSÍVEL neste binário.
+cargo build --release -p gp100-cli --features real-device
+
+# H2 — escrita real dos 3 fluxos capturados (set-param, save, upload-ir).
+cargo build --release -p gp100-cli --features real-device,write-verified
+```
+
+`write-verified` é **feature de compilação, default OFF** (ADR-5): não existe
+flag, variável de ambiente ou argumento que abra a escrita num binário que não
+foi compilado com ela. `write-verified` implica `real-device`, então listar as
+duas é redundante — mas explícito é melhor que implícito num comando que alguém
+vai colar com a pedaleira ligada.
+
+Ao mexer em transporte/`Session`/CLI, **compile nos dois modos**: o desligado
+prova que nada de escrita entrou por acidente; o ligado prova que a trava não
+virou erro de compilação nem de runtime. `cargo test --workspace` roda os dois
+(14 testes de CLI em cada modo).
+
+Runbooks: [H1_CHECKLIST.md](H1_CHECKLIST.md) (leitura) e
+[H2_CHECKLIST.md](H2_CHECKLIST.md) (escrita — **muda estado do aparelho do
+usuário**; os 3 fluxos são um por vez, com verificação no display).
+
+---
+
 ## 5. PR — review, CI e fechamento da issue
 
 **Abertura** ([template](../.github/PULL_REQUEST_TEMPLATE.md)): o quê/por quê ·

@@ -19,3 +19,14 @@ default = []
 # transporte com device REAL (USB-MIDI). Mock é o default (política de hardware).
 # H1 = leitura real; ESCRITA real só pós-H2 (WRITE_VERIFIED, BLOCKERS §4).
 real-device = ["dep:midir"]
+# WRITE_VERIFIED (ADR-5): permite frame MUTANTE no device real. É o gate H2.
+#
+# DEPENDE de `real-device` de propósito: escrever sem transporte real não
+# tem sentido, e uma flag de escrita que ligasse independente do
+# transporte seria um caminho aberto. Sem o `?`, `--features write-verified`
+# puxa `real-device` (e o `midir`) junto — o build que pode escrever é
+# sempre um build que também tem o transporte, por construção.
+#
+# Default OFF, e o default é o que segura o H1: o binário de campo do gate
+# de leitura não tem como mandar escrita.
+write-verified = ["real-device"]

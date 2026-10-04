@@ -18,6 +18,7 @@
 | **Executar o plano de desenvolvimento** | **Issues do GitHub** (milestone **v1.0.0**: epics #13–#18 + filhas #19–#30) — o `docs/ROADMAP.md` guarda o histórico entregue e as regras (R1–R4) e aponta para as issues |
 | **Planejar o lançamento (release multiplataforma)** | `docs/RELEASE_PLAN.md` (épicos EPIC-01..05 + issues REL-*: binários para download direto na GitHub Release, smoke em ambiente limpo, assinatura, auto-update — sem stores por decisão do owner) |
 | **Levar o gp100-core à pedaleira (gate H1)** | `docs/H1_CHECKLIST.md` (checklist) + `docs/H1_REPORT.md` (relatório/plano de backup) + `scripts/h1_field.sh` (runbook: rehearsal/field/refresh-reference) + `scripts/h1_compare.py` (juiz da Fase C: classifica a sessão nos 3 níveis e imprime a tabela do §5) |
+| **Escrever no device real (gate H2)** | `docs/H2_CHECKLIST.md` (3 fluxos, um por vez) + `docs/H2_REPORT.md` (relatório) — build com `--features real-device,write-verified` |
 | **Implementar o protocolo (gp100-core)** | `docs/protocol_golden.json` (especificação executável) + `docs/PROTOCOL.md` §13 (narrativa) |
 | **Decidir arquitetura/estrutura no core (M0)** | `docs/DECISIONS.md` (ADR-1..8 aceitos) |
 | **Escrever/revisar código Rust (M0)** | `.agents/skills/rust-practices/SKILL.md` (gates fmt/clippy/test + estilo de docs) |
@@ -66,7 +67,9 @@
 | `UI_DESIGN.md` | Design system da UI: paleta palco Valeton (âmbar/preto/vermelho/lavanda com rácios WCAG medidos), escala de Fibonacci, tipografia, motion, identidade "pedalboard ao vivo", checklist de review | ✅ atual (M1.0) |
 | `H1_CHECKLIST.md` | Checklist operacional do gate H1 (primeiro contato real, só leitura): pré-requisitos, procedimento de campo, níveis de comparação (framing × estado × estrutural), log de divergência, fluxo R3 | ⏳ aguardando pedaleira + owner — RealDevice ✅, kit de campo ✅ e Fase C automatizada (`h1_compare.py`) |
 | `H1_REPORT.md` | Relatório do gate H1 (template): execução por etapa, log de divergência, fluxo R3 e PLANO DE BACKUP fixo decidido antes de ligar | 📝 template |
-| `DECISIONS.md` | ADR-lite com as decisões estruturais do gp100-core: ADR-1..5 (endian/nibble, erros, transporte, trait, WRITE_VERIFIED) + ADR-6 (FSM `Session`, dispatch do IN ambíguo, save fire-and-forget) + ADR-7 (gp100-ui fora do workspace gnu) + ADR-8 (toolchains portáveis p/ o Dependabot; lockfile raiz fora do escopo dele) | ✅ atual |
+| `H2_CHECKLIST.md` | Checklist operacional do gate H2 (escrita real — **muda estado do aparelho**): por que a trava é feature de compilação, os 3 fluxos capturados (set-param/save/upload-ir) um por vez com verificação no display, watchlist e critérios de saída | ⏳ aguardando pedaleira + owner — trava ✅ testada (15 testes, mutation-provada) |
+| `H2_REPORT.md` | Relatório do gate H2 (template): veredito por fluxo, divergência classificada em protocolo/comportamento, pistas para o H3 | 📝 template |
+| `DECISIONS.md` | ADR-lite com as decisões estruturais do gp100-core: ADR-1..5 (endian/nibble, erros, transporte, trait, `WRITE_VERIFIED` = feature `write-verified` + `WireKind`) + ADR-6 (FSM `Session`, dispatch do IN ambíguo, save fire-and-forget) + ADR-7 (gp100-ui fora do workspace gnu) + ADR-8 (toolchains portáveis p/ o Dependabot; lockfile raiz fora do escopo dele) | ✅ atual |
 | `skills_audit_2026-09-29.md` | Auditoria das skills: regras que eram prática implícita, agora escritas (5 achados em core-dev/docs-sync/spec-baseline) | ✅ atual |
 | `INDEX.md` | Este índice | ✅ manter atualizado |
 

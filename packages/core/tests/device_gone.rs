@@ -14,7 +14,7 @@
 
 use gp100_core::session::Session;
 use gp100_core::transport::mock::{MockDevice, MockFault};
-use gp100_core::transport::{DeviceTransport, TransportError};
+use gp100_core::transport::{DeviceTransport, TransportError, WireKind};
 use gp100_core::ProtocolError;
 use std::time::{Duration, Instant};
 
@@ -28,7 +28,7 @@ fn mock_cai_depois_de_n_transmissoes() {
     dev.open().expect("open enquanto o device está presente");
 
     let err = dev
-        .send_raw(b"nao-e-sysex")
+        .send_raw(b"nao-e-sysex", WireKind::Write)
         .expect_err("o 1º send já encontra o device ausente");
     assert!(
         matches!(err, TransportError::DeviceGone { .. }),

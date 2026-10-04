@@ -30,7 +30,7 @@
 use std::collections::HashMap;
 use std::time::Duration;
 
-use super::{DeviceTransport, TransportError};
+use super::{DeviceTransport, TransportError, WireKind};
 use crate::golden::decode_envelope;
 use crate::golden::GoldenFile;
 use crate::model::Dictionary;
@@ -576,7 +576,10 @@ impl DeviceTransport for MockDevice {
         Ok(())
     }
 
-    fn send_raw(&mut self, data: &[u8]) -> Result<(), TransportError> {
+    /// O mock **sempre** aceita escrita (ADR-5): a trava é do transporte
+    /// REAL, e o mock é o test double dos replays de knob/save/IR — uma
+    /// trava aqui apagaria justamente os ensumos que provam o codec.
+    fn send_raw(&mut self, data: &[u8], _kind: WireKind) -> Result<(), TransportError> {
         if !self.opened {
             return Err(TransportError::Closed);
         }
@@ -747,12 +750,15 @@ mod tests {
             .expect("select §13.10 montado pelo golden");
 
         // transação 1: device vivo (o select entra e o pp muda)
-        dev.send_raw(&select).expect("1º send com o device vivo");
+        dev.send_raw(&select, WireKind::Read)
+            .expect("1º send com o device vivo");
         assert_eq!(dev.transactions(), 1);
         assert_eq!(dev.state().current_pp, 3);
 
         // transação 2: o device SUMIU no meio da sessão
-        let err = dev.send_raw(&select).expect_err("2º send: device caiu");
+        let err = dev
+            .send_raw(&select, WireKind::Read)
+            .expect_err("2º send: device caiu");
         assert!(
             matches!(err, TransportError::DeviceGone { .. }),
             "esperado DeviceGone, veio {err:?}"
@@ -778,7 +784,7 @@ mod tests {
             .with_fault(MockFault::DieAfter(0));
         dev.open().expect("open com o device ainda presente");
         let err = dev
-            .send_raw(b"nao-e-sysex")
+            .send_raw(b"nao-e-sysex", WireKind::Write)
             .expect_err("morre antes do parse");
         assert!(
             matches!(err, TransportError::DeviceGone { .. }),
