@@ -51,8 +51,8 @@ use std::time::{Duration, Instant};
 
 use midir::{MidiInput, MidiInputConnection, MidiOutput, MidiOutputConnection};
 
-use super::{DeviceTransport, TransportError};
-use crate::SYSEX_EOX;
+use super::{DeviceTransport, TransportError, WireKind};
+use crate::{SYSEX_EOX, SYSEX_HEADER};
 
 /// Substring do nome de porta que identifica a pedaleira (fw "GP-100 MIDI";
 /// WinMM não dá VID/PID — BLOCKERS #7). Comparação em minúsculas.
@@ -60,6 +60,32 @@ const PORT_MATCH: &str = "gp-100";
 
 /// Fila de RX compartilhada com o callback (o midir exige `Send + 'static`).
 type RxQueue = Arc<Mutex<VecDeque<Vec<u8>>>>;
+
+/// **`WRITE_VERIFIED` (ADR-5) — compilada, não configurada.** O gate H2
+/// fecha a verificação dos 3 fluxos em campo; até lá, escrita é
+/// IMPOSSÍVEL num device real: não existe flag, env, arquivo ou ordem de
+/// argumentos que destrave. Ligar é um ato visível no comando de build
+/// (`--features real-device,write-verified`) e no `--help` do binário.
+///
+/// Mock **sempre** permite escrita (ADR-5): caso contrário os replays das
+/// fixtures (knob/save/IR) não existiriam — e a trava tem que ser do
+/// transporte real, senão vira trava de teste.
+pub const WRITE_VERIFIED: bool = cfg!(feature = "write-verified");
+
+/// Endereço 4B do frame, para a mensagem de recusa.
+///
+/// Envelope §13.1: `F0 21 25 7F | 47 50 2D 64 | FUNC | ADDR(4B) | DATA… | F7`.
+/// O cabeçalho tem 8 bytes, então o FUNC é o byte 8 e o endereço começa no
+/// 9 — foi exatamente o deslocamento errado que o teste
+/// `a_recusa_diz_o_endereco_do_frame_barrado` pegou (a recusa dizia
+/// `502d6412`, que é o "GP-d" do cabeçalho, não o endereço do knob).
+fn addr_do_frame(data: &[u8]) -> String {
+    let ini = SYSEX_HEADER.len() + 1; // depois do FUNC
+    match data.get(ini..ini + 4) {
+        Some(a) => a.iter().map(|b| format!("{b:02x}")).collect(),
+        None => "(frame curto demais para ter endereco)".into(),
+    }
+}
 
 /// O transporte real (H1). Ciclo de vida é do CHAMADOR (ADR-4): `open()` →
 /// uso → `close()`; `open()` no mesmo objeto reconecta.
@@ -177,7 +203,24 @@ impl DeviceTransport for RealDevice {
     }
 
     /// Envia UM frame SysEx completo (`midiOutLongMsg` no WinMM).
-    fn send_raw(&mut self, data: &[u8]) -> Result<(), TransportError> {
+    ///
+    /// **A trava de escrita (ADR-5) acontece AQUI, antes do driver.** O
+    /// byte mutante não chega a `midiOutLongMsg`: um gate que só avisasse
+    /// depois do envio não seria um gate.
+    ///
+    /// A recusa é por COMPILAÇÃO (`write-verified`), não por runtime: sem
+    /// a feature, `WRITE_VERIFIED` é `false` para sempre, e não há
+    /// variável de ambiente, flag ou arquivo que vire a trava por engano.
+    /// O binário de campo do H2 é compilado com ela explicitamente:
+    ///
+    ///     cargo build --release -p gp100-cli \
+    ///         --features real-device,write-verified
+    fn send_raw(&mut self, data: &[u8], kind: WireKind) -> Result<(), TransportError> {
+        if kind == WireKind::Write && !WRITE_VERIFIED {
+            return Err(TransportError::WriteBlocked {
+                op: addr_do_frame(data),
+            });
+        }
         let Some(conn) = self.out.as_mut() else {
             return Err(TransportError::Closed);
         };

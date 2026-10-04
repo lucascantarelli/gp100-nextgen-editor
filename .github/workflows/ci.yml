@@ -463,6 +463,15 @@ jobs:
       - name: testes
         if: matrix.project == 'cli'
         run: cargo test -p gp100-cli --features real-device
+      # O gate de escrita (H2/ADR-5) é uma FEATURE de compilação: nada garante
+      # que ela ainda compile depois de mexer na Session ou no transporte, e
+      # um binário de campo quebrado só se descobre com a pedaleira na mão.
+      # Por isso o CLI é testado nos DOIS modos. `escrita_verificada_segue_a_
+      # feature` só existe com a feature ligada — é o que prova que a trava
+      # segue a build e não um default silencioso.
+      - name: testes (build de escrita — feature write-verified)
+        if: matrix.project == 'cli'
+        run: cargo test -p gp100-cli --features real-device,write-verified
       - name: testes
         if: matrix.project != 'cli'
         run: cargo test -p ${{ matrix.project == 'ui-rust' && 'gp100-ui' || 'gp100-core' }}
@@ -1400,15 +1409,27 @@ jobs:
           mkdir -p "$STAGE"
           cp target/release/gp100-cli.exe "$STAGE/"
           cp docs/H1_CHECKLIST.md docs/H1_REPORT.md scripts/h1_field.sh "$STAGE/"
+          cp docs/H2_CHECKLIST.md docs/H2_REPORT.md "$STAGE/"
           cat > "$STAGE/LEIA-ME.txt" <<MD
           GP-100 NextGen Editor — CLI de campo ${TAG}
 
-          Uso do gate H1: docs/H1_CHECKLIST.md (roteiro) + h1_field.sh (runbook).
+          Gate H1 (LEITURA): docs/H1_CHECKLIST.md (roteiro) + h1_field.sh (runbook).
           Relatorio da sessao: docs/H1_REPORT.md.
 
+          Gate H2 (ESCRITA): docs/H2_CHECKLIST.md + docs/H2_REPORT.md.
+          O binario DESTE zip e o do H1: a escrita real esta BLOQUEADA e nao ha
+          flag, variavel de ambiente ou argumento que a abra. Para o gate H2
+          recompile com a feature write-verified:
+              cargo build --release -p gp100-cli --features real-device,write-verified
+
           Politica de hardware: leitura real exige --real --i-know-what-im-doing
-          (build com feature real-device). ESCRITA permanece bloqueada ate o
-          gate H2 (WRITE_VERIFIED).
+          (build com feature real-device). A escrita e uma TERCEIRA camada, no
+          transporte (ADR-5), e so depois do gate H2 passar.
+
+          O subcomando de upload de IR existe nos dois builds:
+              upload-ir <slot> <arquivo>   blob de User IR (§13.7)
+          Neste binario ele so imprime os frames (--dry-run implicito na
+          ausencia da feature); no build do H2 ele envia.
           MD
           zip -q -r "$STAGE.zip" "$STAGE" 2>/dev/null || 7z a -tzip -bso0 "$STAGE.zip" "$STAGE"
           sha256sum "$STAGE.zip" > "$STAGE.zip.sha256"

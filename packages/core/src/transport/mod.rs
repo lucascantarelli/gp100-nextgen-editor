@@ -29,6 +29,48 @@ pub use mock::{MockDevice, MockFault, MockState};
 
 use std::time::Duration;
 
+/// O QUE O FRAME FAZ NO DEVICE — a classificacao que a politica de escrita consome.
+///
+/// **POR QUE ISTO É PARÂMETRO E NÃO DEDUÇÃO.** A primeira versão deste
+/// gate tentou classificar pelo byte FUNC (a tabela do §13.2 diz `0x11` =
+/// READ REQUEST, `0x12` = WRITE) e isso está **errado**: o bloco de
+/// páginas `13 01 00 02` (abrir) e `13 01 00 04` (avançar PG) são
+/// *leituras* que o device responde com uma página de 196B, e ambas viajam
+/// com FUNC `0x12`. Um gate por FUNC recusaria o `boot()` inteiro — que é o
+/// caminho de LEITURA do H1 — e o resultado seria um gate que barra a
+/// leitura, que é o oposto do que se quer.
+///
+/// Por isso a classificação é **declarada por quem conhece a semântica**
+/// (a [`Session`](crate::Session), via o codec/golden) e não inferida pelo
+/// transporte: a trait continua sendo a fronteira de BYTES CRUOS
+/// (ADR-4), e a semântica fica do lado do codec, como ADR-4 exige.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum WireKind {
+    /// Pedido cujo efeito é o device responder com dados.
+    ///
+    /// Inclui os dois formatos de leitura que existem no fio: `FUNC 0x11`
+    /// sem payload (tabelas de IR, nomes, setlist) **e** `FUNC 0x12` com
+    /// payload que abre/avança página (§13.10 — "req pg0..7 → pág1..8").
+    Read,
+    /// Frame que **muta** o estado do device.
+    ///
+    /// Os 3 fluxos do gate H2 (§13.11 knob, §13.12 save, §13.7 upload de
+    /// IR) e o keepalive de boot `12/00020001` (§13.12: "keepalive/ping no
+    /// boot", OUT sem resposta). Nada com `Write` passa num device real
+    /// sem a feature `write-verified` (ADR-5).
+    Write,
+}
+
+impl WireKind {
+    /// Nome humano da operação, para a mensagem de recusa.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            WireKind::Read => "leitura",
+            WireKind::Write => "escrita",
+        }
+    }
+}
+
 /// Erro de TRANSPORTE (ADR-4): distinto do [`crate::ProtocolError`] por
 /// decisão de ADR-2 — falha de I/O/ciclo de vida não polui o erro de
 /// protocolo. `Clone` + `Debug` para acompanhar o `ProtocolError` na
@@ -74,6 +116,23 @@ pub enum TransportError {
         /// Janela aplicada, em milissegundos (diagnóstico).
         timeout_ms: u64,
     },
+
+    /// Escrita recusada pela política de hardware (ADR-5): o frame é
+    /// mutante e este transporte não tem `WRITE_VERIFIED`.
+    ///
+    /// **ERRO TIPADO, e não string.** A recusa é a ÚNICA prova de que a
+    /// política funciona: se fosse um `SendFailed` genérico, um operador
+    /// veria "falha no envio" e não saberia que o motivo foi a trava. E o
+    /// runbook de campo (H2) precisa distinguir "a trava me protegeu" de
+    /// "o driver recusou" — são decisões opostas.
+    #[error(
+        "escrita bloqueada (ADR-5/WRITE_VERIFIED): {op} precisa de um binário \
+         compilado com --features real-device,write-verified"
+    )]
+    WriteBlocked {
+        /// Endereço do frame recusado (addr 4B em hex), para diagnóstico.
+        op: String,
+    },
 }
 
 /// A fronteira com o device (ADR-4): **bytes crus, síncrono e bloqueante**.
@@ -105,12 +164,25 @@ pub trait DeviceTransport {
     /// [`TransportError::Closed`] se já estiver fechado.
     fn close(&mut self) -> Result<(), TransportError>;
 
-    /// Transmite o envelope SysEx completo.
+    /// Transmite o envelope SysEx completo, **classificado** pelo que ele
+    /// faz no device.
+    ///
+    /// `kind` não é decoração: é o que a política de escrita do ADR-5
+    /// consome. Um [`WireKind::Write`] num device real sem a feature
+    /// `write-verified` é recusado **antes de tocar no driver** — o byte
+    /// não sai da máquina.
+    ///
+    /// Por que o parâmetro é obrigatório e não tem `default`: com um
+    /// `default`, o próximo `send_raw(&frame)` de um fluxo de escrita
+    /// novo compila e manda bytes de mutação sem passar pela trava. O
+    /// compilador é a trava secundária; a primária é o `WireKind::Write`
+    /// no código.
     ///
     /// # Erros
-    /// [`TransportError::Closed`] (não aberto) ou
-    /// [`TransportError::SendFailed`] (driver/SO recusou).
-    fn send_raw(&mut self, data: &[u8]) -> Result<(), TransportError>;
+    /// [`TransportError::Closed`] (não aberto),
+    /// [`TransportError::SendFailed`] (driver/SO recusou) ou
+    /// [`TransportError::WriteBlocked`] (escrita sem `write-verified`).
+    fn send_raw(&mut self, data: &[u8], kind: WireKind) -> Result<(), TransportError>;
 
     /// Espera UMA mensagem de entrada até `timeout` e a devolve crua.
     ///
@@ -130,8 +202,8 @@ impl<T: DeviceTransport + ?Sized> DeviceTransport for Box<T> {
     fn close(&mut self) -> Result<(), TransportError> {
         (**self).close()
     }
-    fn send_raw(&mut self, data: &[u8]) -> Result<(), TransportError> {
-        (**self).send_raw(data)
+    fn send_raw(&mut self, data: &[u8], kind: WireKind) -> Result<(), TransportError> {
+        (**self).send_raw(data, kind)
     }
     fn recv_raw(&mut self, timeout: Duration) -> Result<Vec<u8>, TransportError> {
         (**self).recv_raw(timeout)
@@ -147,8 +219,8 @@ impl<T: DeviceTransport + ?Sized> DeviceTransport for &mut T {
     fn close(&mut self) -> Result<(), TransportError> {
         (**self).close()
     }
-    fn send_raw(&mut self, data: &[u8]) -> Result<(), TransportError> {
-        (**self).send_raw(data)
+    fn send_raw(&mut self, data: &[u8], kind: WireKind) -> Result<(), TransportError> {
+        (**self).send_raw(data, kind)
     }
     fn recv_raw(&mut self, timeout: Duration) -> Result<Vec<u8>, TransportError> {
         (**self).recv_raw(timeout)

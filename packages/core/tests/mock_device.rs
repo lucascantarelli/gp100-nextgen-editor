@@ -7,7 +7,7 @@ use std::time::Duration;
 
 use gp100_core::codec::{ir_begin, ir_chunk, meta_block, op_payload, set_param, set_param_parse};
 use gp100_core::golden::{decode_envelope, GoldenFile};
-use gp100_core::transport::{DeviceTransport, MockDevice, TransportError};
+use gp100_core::transport::{DeviceTransport, MockDevice, TransportError, WireKind};
 
 const T: Duration = Duration::from_millis(3000); // ADR-3
 
@@ -58,7 +58,7 @@ fn read_tabela_irs_75b_com_crc_de_fabrica() {
         .expect("t4")
         .build_request(&[0x00])
         .expect("req de leitura");
-    m.send_raw(&req).expect("envia READ");
+    m.send_raw(&req, WireKind::Write).expect("envia READ");
     let msg = m.recv_raw(T).expect("tabela chega");
     let (func, addr, payload) = decode_envelope(&msg).expect("envelope");
     assert_eq!((func, addr), (0x12, [0x12, 0x00, 0x10, 0x02]));
@@ -87,7 +87,7 @@ fn scan_de_presets_responde_com_pp_do_estado() {
         .expect("t9")
         .build_request(&[0x00, 0x2A])
         .expect("req select");
-    m.send_raw(&req).expect("select");
+    m.send_raw(&req, WireKind::Write).expect("select");
     assert_eq!(m.state().current_pp, 0x002A, "estado muda com o select");
     let msg = m.recv_raw(T).expect("meta6 do select");
     let (_, addr, p) = decode_envelope(&msg).expect("envelope");
@@ -112,7 +112,7 @@ fn scan_de_presets_responde_com_pp_do_estado() {
         .expect("t7 (0 vars = congelado)")
         .build_request(&[])
         .expect("req t7");
-    m.send_raw(&req).expect("abre");
+    m.send_raw(&req, WireKind::Write).expect("abre");
     let msg = m.recv_raw(T).expect("página 0 da abertura");
     let (_, addr, p) = decode_envelope(&msg).expect("envelope");
     assert_eq!(
@@ -130,7 +130,7 @@ fn scan_de_presets_responde_com_pp_do_estado() {
         .expect("t13")
         .build_request(&[])
         .expect("req t13");
-    m.send_raw(&req).expect("scan");
+    m.send_raw(&req, WireKind::Write).expect("scan");
     let msg = m.recv_raw(T).expect("página scan");
     let (_, _, p) = decode_envelope(&msg).expect("envelope");
     assert_eq!(p.len(), 196, "página de scan 196B (shape do mock)");
@@ -141,7 +141,7 @@ fn scan_de_presets_responde_com_pp_do_estado() {
         .expect("t8 (3 vars)")
         .build_request(&[0x00, 0x00, 0x01])
         .expect("req t8");
-    m.send_raw(&req).expect("lê página");
+    m.send_raw(&req, WireKind::Write).expect("lê página");
     let msg = m.recv_raw(T).expect("página 196B");
     let (_, _, p) = decode_envelope(&msg).expect("envelope");
     assert_eq!(p.len(), 196);
@@ -153,7 +153,7 @@ fn scan_de_presets_responde_com_pp_do_estado() {
 fn set_param_e_fire_and_forget_sem_readback() {
     let mut m = open_mock();
     let sysex = set_param(3, 0x0700_006e, 0, 15.0).expect("knob Bog RedM @ 15.0");
-    m.send_raw(&sysex).expect("write aceito");
+    m.send_raw(&sysex, WireKind::Write).expect("write aceito");
     // NENHUMA resposta (drena rápido e não vem nada)
     assert!(matches!(
         m.recv_raw(Duration::from_millis(20)),
@@ -182,7 +182,8 @@ fn save_e_fire_and_forget_sem_nenhum_in() {
             v.push(gp100_core::SYSEX_EOX);
             v
         };
-        m.send_raw(&msg).expect("write de meta aceito");
+        m.send_raw(&msg, WireKind::Write)
+            .expect("write de meta aceito");
     }
     // ops: op0 ×2 → op1 ×2 (ciclo da S4, §13.12 re-derivado)
     for op in [0u8, 0, 1, 1] {
@@ -194,7 +195,7 @@ fn save_e_fire_and_forget_sem_nenhum_in() {
             v.push(gp100_core::SYSEX_EOX);
             v
         };
-        m.send_raw(&msg).expect("op aceita");
+        m.send_raw(&msg, WireKind::Write).expect("op aceita");
     }
     assert_eq!(m.state().current_name, "It's GP100", "meta atualiza nome");
     assert_eq!(m.state().current_pp_type, 4);
@@ -213,7 +214,7 @@ fn upload_ir_2_slots_com_ack_por_chunk_e_final_duplicado() {
     let mut m = open_mock();
     let blob = vec![0x5Au8; 15 * 295]; // 295 chunks únicos × 15B
     for slot in [0u8, 1] {
-        m.send_raw(&ir_begin(slot).expect("begin"))
+        m.send_raw(&ir_begin(slot).expect("begin"), WireKind::Write)
             .expect("begin aceito");
         assert!(
             matches!(
@@ -235,7 +236,7 @@ fn upload_ir_2_slots_com_ack_por_chunk_e_final_duplicado() {
         for (i, chunk) in chunks.iter().enumerate() {
             let idx = idx_of(i);
             let sysex = ir_chunk(slot, idx, chunk).expect("chunk");
-            m.send_raw(&sysex).expect("chunk aceito");
+            m.send_raw(&sysex, WireKind::Write).expect("chunk aceito");
             let ack = m.recv_raw(T).expect("ACK por chunk (sem timeout)");
             let (_, addr, p) = decode_envelope(&ack).expect("envelope");
             assert_eq!(addr, [0x12, 0x00, 0x10, 0x02]);
@@ -248,7 +249,8 @@ fn upload_ir_2_slots_com_ack_por_chunk_e_final_duplicado() {
         // 1 ACK extra (a captura tem 296 sends/ACKs por slot).
         let last: &[u8] = &chunks[chunks.len() - 1];
         let sysex = ir_chunk(slot, 0x226, last).expect("marcador");
-        m.send_raw(&sysex).expect("marcador aceito");
+        m.send_raw(&sysex, WireKind::Write)
+            .expect("marcador aceito");
         let ack = m.recv_raw(T).expect("ACK do marcador");
         let (_, _, p) = decode_envelope(&ack).expect("envelope");
         assert_eq!(p, &[slot, 0x02, 0x26, 0x01]);
@@ -263,9 +265,10 @@ fn upload_ir_2_slots_com_ack_por_chunk_e_final_duplicado() {
 #[test]
 fn push_intercalado_no_meio_do_upload_chega_fora_de_ordem() {
     let mut m = open_mock();
-    m.send_raw(&ir_begin(1).expect("begin")).expect("ok");
+    m.send_raw(&ir_begin(1).expect("begin"), WireKind::Write)
+        .expect("ok");
     let chunk = [0x11u8; 15];
-    m.send_raw(&ir_chunk(1, 0, &chunk).expect("chunk"))
+    m.send_raw(&ir_chunk(1, 0, &chunk).expect("chunk"), WireKind::Write)
         .expect("ok");
 
     // o device empurra algo (ex.: usuário mexeu na pedal) ENTRE o chunk
@@ -304,7 +307,7 @@ fn frame_sem_template_e_recusado_d5() {
         v
     };
     assert!(matches!(
-        m.send_raw(&bogus),
+        m.send_raw(&bogus, WireKind::Write),
         Err(TransportError::SendFailed { .. })
     ));
     assert_eq!(m.state().rejected, 1);
@@ -341,13 +344,13 @@ fn dialogo_completo_da_sessao_sintetica_sem_timeouts() {
     for i in 0..198u16 {
         let pp_be = i.to_be_bytes();
         let sel = sel_tpl.build_request(&pp_be).expect("select");
-        m.send_raw(&sel).expect("select");
+        m.send_raw(&sel, WireKind::Write).expect("select");
         // o select responde o meta6 com o pp (pareamento D1 do replay S1)
         let msg = m.recv_raw(T).expect("meta6 do select");
         let (_, _, mp) = decode_envelope(&msg).expect("envelope");
         assert_eq!(&mp[..2], &pp_be, "meta6 ecoa o pp do select");
         let scan = scan_tpl.build_request(&[]).expect("scan");
-        m.send_raw(&scan).expect("scan");
+        m.send_raw(&scan, WireKind::Write).expect("scan");
         let msg = m.recv_raw(T).expect("página do scan");
         let (_, _, p) = decode_envelope(&msg).expect("envelope");
         assert_eq!(p.len(), 196, "página 196B no pp {i}");
@@ -355,8 +358,11 @@ fn dialogo_completo_da_sessao_sintetica_sem_timeouts() {
     }
 
     // set_param
-    m.send_raw(&set_param(1, 0x0300_0001, 0, 42.0).expect("knob"))
-        .expect("set");
+    m.send_raw(
+        &set_param(1, 0x0300_0001, 0, 42.0).expect("knob"),
+        WireKind::Write,
+    )
+    .expect("set");
     // save
     for (addr, payload) in meta_block(0x0007, 6, "Blink OD").expect("meta") {
         let mut v = Vec::from(gp100_core::SYSEX_HEADER);
@@ -364,20 +370,31 @@ fn dialogo_completo_da_sessao_sintetica_sem_timeouts() {
         v.extend_from_slice(&addr);
         v.extend_from_slice(&payload);
         v.push(gp100_core::SYSEX_EOX);
-        m.send_raw(&v).expect("meta");
+        m.send_raw(&v, WireKind::Write).expect("meta");
     } // IR slot 0: 1 chunk + o ÚLTIMO repetido 1× (2 sends no total — o
       // marcador de fim é a duplicação em si, §13.7 corrigido)
-    m.send_raw(&ir_begin(0).expect("begin")).expect("begin");
-    m.send_raw(&ir_chunk(0, 0, &[0x22u8; 15]).expect("chunk"))
-        .expect("chunk");
+    m.send_raw(&ir_begin(0).expect("begin"), WireKind::Write)
+        .expect("begin");
+    m.send_raw(
+        &ir_chunk(0, 0, &[0x22u8; 15]).expect("chunk"),
+        WireKind::Write,
+    )
+    .expect("chunk");
     m.recv_raw(T).expect("ACK");
-    m.send_raw(&ir_chunk(0, 0, &[0x22u8; 15]).expect("último dup"))
-        .expect("dup");
+    m.send_raw(
+        &ir_chunk(0, 0, &[0x22u8; 15]).expect("último dup"),
+        WireKind::Write,
+    )
+    .expect("dup");
     m.recv_raw(T).expect("ACK dup");
     // IR slot 1
-    m.send_raw(&ir_begin(1).expect("begin")).expect("begin");
-    m.send_raw(&ir_chunk(1, 0, &[0x33u8; 15]).expect("chunk"))
-        .expect("chunk");
+    m.send_raw(&ir_begin(1).expect("begin"), WireKind::Write)
+        .expect("begin");
+    m.send_raw(
+        &ir_chunk(1, 0, &[0x33u8; 15]).expect("chunk"),
+        WireKind::Write,
+    )
+    .expect("chunk");
     m.recv_raw(T).expect("ACK");
 
     // fim: nada pendente (D3 — mock não emite burst de fim de sessão)

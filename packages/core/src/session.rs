@@ -24,7 +24,7 @@
 //!   do backlog via [`Session::pending_pushes`], nunca listener concorrente).
 
 use crate::golden::GoldenFile;
-use crate::transport::{DeviceTransport, TransportError};
+use crate::transport::{DeviceTransport, TransportError, WireKind};
 use crate::ProtocolError;
 use std::time::Duration;
 
@@ -240,6 +240,7 @@ impl<T: DeviceTransport> Session<T> {
                     &[0x13, 0x01, 0x00, 0x00],
                     &pp_be,
                     &[0x13, 0x01, 0x00, 0x01],
+                    WireKind::Read,
                 )?;
                 tx += 1;
                 beat!();
@@ -250,6 +251,7 @@ impl<T: DeviceTransport> Session<T> {
                 &[0x13, 0x01, 0x00, 0x00],
                 &pp_be,
                 &[0x13, 0x01, 0x00, 0x01],
+                WireKind::Read,
             )?;
             tx += 1;
             beat!();
@@ -259,6 +261,7 @@ impl<T: DeviceTransport> Session<T> {
                 &[0x13, 0x01, 0x00, 0x02],
                 &pp_be,
                 &[0x13, 0x01, 0x00, 0x03],
+                WireKind::Read,
             )?;
             tx += 1;
             beat!();
@@ -272,6 +275,7 @@ impl<T: DeviceTransport> Session<T> {
                     &[0x13, 0x01, 0x00, 0x02],
                     &pp_be,
                     &[0x13, 0x01, 0x00, 0x03],
+                    WireKind::Read,
                 )?;
                 tx += 1;
                 beat!();
@@ -286,6 +290,7 @@ impl<T: DeviceTransport> Session<T> {
                         &[0x13, 0x01, 0x00, 0x04],
                         &vars,
                         &[0x13, 0x01, 0x00, 0x03],
+                        WireKind::Read,
                     )?;
                 } else {
                     self.tx_req_in(
@@ -294,6 +299,7 @@ impl<T: DeviceTransport> Session<T> {
                         &[0x13, 0x01, 0x00, 0x04],
                         &vars,
                         &[0x13, 0x01, 0x00, 0x05],
+                        WireKind::Read,
                     )?;
                 }
                 tx += 1;
@@ -311,6 +317,7 @@ impl<T: DeviceTransport> Session<T> {
             &[0x13, 0x02, 0x00, 0x00],
             &[],
             &[0x13, 0x02, 0x00, 0x01],
+            WireKind::Read,
         )?;
         tx += 1;
         beat!();
@@ -320,6 +327,7 @@ impl<T: DeviceTransport> Session<T> {
             &[0x13, 0x02, 0x00, 0x02],
             &[],
             &[0x13, 0x02, 0x00, 0x03],
+            WireKind::Read,
         )?;
         tx += 1;
         beat!();
@@ -333,6 +341,7 @@ impl<T: DeviceTransport> Session<T> {
                     &[0x13, 0x02, 0x00, 0x04],
                     &vars,
                     &[0x13, 0x02, 0x00, 0x03],
+                    WireKind::Read,
                 )?;
             } else {
                 self.tx_req_in(
@@ -341,6 +350,7 @@ impl<T: DeviceTransport> Session<T> {
                     &[0x13, 0x02, 0x00, 0x04],
                     &vars,
                     &[0x13, 0x02, 0x00, 0x05],
+                    WireKind::Read,
                 )?;
             }
             tx += 1;
@@ -361,20 +371,38 @@ impl<T: DeviceTransport> Session<T> {
         // o template é mixed 2 vars + const 0000 (o golden completa a cauda).
         for bank in 0u8..3 {
             for idx in 0u8..16 {
-                self.send_build(golden, 0x11, &[0x11, 0x00, 0x00, 0x08], &[bank, idx])?;
+                self.send_build(
+                    golden,
+                    0x11,
+                    &[0x11, 0x00, 0x00, 0x08],
+                    &[bank, idx],
+                    WireKind::Read,
+                )?;
                 tx += 1;
                 beat!();
             }
         }
         for idx in 0u8..13 {
-            self.send_build(golden, 0x11, &[0x11, 0x00, 0x00, 0x08], &[3, idx])?;
+            self.send_build(
+                golden,
+                0x11,
+                &[0x11, 0x00, 0x00, 0x08],
+                &[3, idx],
+                WireKind::Read,
+            )?;
             tx += 1;
             beat!();
         }
         stage = BootStage::Keepalive;
         // T4: keepalive ×2 (D4) — contam como transação para o progresso.
         for _ in 0..2 {
-            self.send_build(golden, 0x12, &[0x00, 0x02, 0x00, 0x01], &[])?;
+            self.send_build(
+                golden,
+                0x12,
+                &[0x00, 0x02, 0x00, 0x01],
+                &[],
+                WireKind::Write,
+            )?;
             tx += 1;
             beat!();
         }
@@ -400,6 +428,7 @@ impl<T: DeviceTransport> Session<T> {
             &[0x13, 0x01, 0x00, 0x00],
             &pp_be,
             &[0x13, 0x01, 0x00, 0x01],
+            WireKind::Read,
         )?;
         self.current_pp = pp;
         Ok(())
@@ -424,7 +453,14 @@ impl<T: DeviceTransport> Session<T> {
         } else {
             &[0x13, 0x01, 0x00, 0x05]
         };
-        let payload = self.tx_req_in(golden, 0x12, &[0x13, 0x01, 0x00, 0x04], &vars, in_addr)?;
+        let payload = self.tx_req_in(
+            golden,
+            0x12,
+            &[0x13, 0x01, 0x00, 0x04],
+            &vars,
+            in_addr,
+            WireKind::Read,
+        )?;
         Ok(StatePage { raw: payload })
     }
 
@@ -446,7 +482,9 @@ impl<T: DeviceTransport> Session<T> {
         value: f32,
     ) -> Result<(), ProtocolError> {
         let sysex = crate::codec::set_param(chain_slot, code, ctrl, value)?;
-        self.transport.send_raw(&sysex).map_err(tx_err)
+        self.transport
+            .send_raw(&sysex, WireKind::Write)
+            .map_err(tx_err)
     }
 
     /// Save (§13.12 RE-DERIVADO — D3): envia `codec::meta_block(pp, pp_type,
@@ -470,7 +508,9 @@ impl<T: DeviceTransport> Session<T> {
             ));
         }
         for s in &sysexes {
-            self.transport.send_raw(s).map_err(tx_err)?;
+            self.transport
+                .send_raw(s, WireKind::Write)
+                .map_err(tx_err)?;
         }
         Ok(())
     }
@@ -494,7 +534,7 @@ impl<T: DeviceTransport> Session<T> {
             });
         }
         self.transport
-            .send_raw(&crate::codec::ir_begin(ir_slot)?)
+            .send_raw(&crate::codec::ir_begin(ir_slot)?, WireKind::Write)
             .map_err(tx_err)?;
         let chunks = blob.as_chunks::<15>().0;
         let mut acks = 0usize;
@@ -503,7 +543,9 @@ impl<T: DeviceTransport> Session<T> {
             // aparece no índice (razão provável dos gaps)
             let idx = ((i / 128) as u16) * 256 + (i % 128) as u16;
             let sysex = crate::codec::ir_chunk(ir_slot, idx, chunk)?;
-            self.transport.send_raw(&sysex).map_err(tx_err)?;
+            self.transport
+                .send_raw(&sysex, WireKind::Write)
+                .map_err(tx_err)?;
             // D1: ACK [slot][idx BE][01] no endpoint 12/12001002, com
             // filtro D7 (pushes de outros endpoints vão para o backlog)
             let payload = self.wait_for(0x12, &[0x12, 0x00, 0x10, 0x02])?;
@@ -526,7 +568,9 @@ impl<T: DeviceTransport> Session<T> {
         let last: &[u8] = &chunks[chunks.len() - 1];
         let last_idx = ((chunks.len() - 1) / 128) as u16 * 256 + ((chunks.len() - 1) % 128) as u16;
         let sysex = crate::codec::ir_chunk(ir_slot, last_idx, last)?;
-        self.transport.send_raw(&sysex).map_err(tx_err)?;
+        self.transport
+            .send_raw(&sysex, WireKind::Write)
+            .map_err(tx_err)?;
         let payload = self.wait_for(0x12, &[0x12, 0x00, 0x10, 0x02])?;
         let expect = crate::codec::ir_chunk_ack_payload(ir_slot, last_idx);
         if payload.as_slice() != expect {
@@ -591,7 +635,7 @@ impl<T: DeviceTransport> Session<T> {
         addr: &[u8; 4],
         vars: &[u8],
     ) -> Result<Vec<u8>, ProtocolError> {
-        self.tx_req_in(golden, func_out, addr, vars, addr)
+        self.tx_req_in(golden, func_out, addr, vars, addr, WireKind::Read)
     }
 
     /// Igual a [`Session::tx_req`], com endpoint de RESPOSTA explícito —
@@ -607,9 +651,10 @@ impl<T: DeviceTransport> Session<T> {
         addr: &[u8; 4],
         vars: &[u8],
         in_addr: &[u8; 4],
+        kind: WireKind,
     ) -> Result<Vec<u8>, ProtocolError> {
         let req = golden.build_request(func_out, addr, vars)?;
-        self.transport.send_raw(&req).map_err(tx_err)?;
+        self.transport.send_raw(&req, kind).map_err(tx_err)?;
         self.wait_for(0x12, in_addr)
     }
 
@@ -620,9 +665,10 @@ impl<T: DeviceTransport> Session<T> {
         func: u8,
         addr: &[u8; 4],
         vars: &[u8],
+        kind: WireKind,
     ) -> Result<(), ProtocolError> {
         let req = golden.build_request(func, addr, vars)?;
-        self.transport.send_raw(&req).map_err(tx_err)
+        self.transport.send_raw(&req, kind).map_err(tx_err)
     }
 
     /// Espera uma mensagem no endpoint `(func, addr)` e devolve o PAYLOAD

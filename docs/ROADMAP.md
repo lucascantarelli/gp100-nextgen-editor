@@ -361,8 +361,16 @@
 > **Pré-requisito de software do H1 FECHADO (29/09):** `RealDevice` implementado
 > (`transport/real.rs`, midir/WinMM, feature `real-device` default OFF) e o CLI
 > de campo compila com `--features real-device` — `--real` abre o device com
-> dupla confirmação; escrita segue bloqueada (H2/WRITE_VERIFIED). Falta só a
+> dupla confirmação; escrita segue bloqueada (H2/`write-verified`). Falta só a
 > pedaleira + owner (roteiro: `docs/H1_CHECKLIST.md`; kit: `scripts/h1_field.sh`).
+>
+> ⚠️ **04/10 — a escrita deixou de ser um "flip".** O PR do H2 trocou a ideia de
+> "ligar `WRITE_VERIFIED`" por uma **feature de compilação** `write-verified`
+> (ADR-5 rev.), com a classificação `WireKind` declarada pela `Session`. Efeito
+> colateral real: o keepalive de boot é `Write`, logo o **B5 do H1 (boot completo)
+> passou a exigir a feature do H2** — o B5 era dado como opcional dentro de uma
+> sessão declarada "LER é seguro". Decisão (pular o keepalive no B5, ou promover
+> o B5 para o H2) é do owner, com a pedaleira na mão.
 
 > ⚠️ **Paralelismo:** a **FASE M1 (Editor UI) pode começar em paralelo** — ela
 > roda contra o MOCK (política de hardware, ADR-4/ADR-5). O modo real da UI/CLI
@@ -381,10 +389,19 @@
 
 ### H2. Escrita real dos 3 fluxos capturados
 - **Responsável:** owner no hardware (confirmação no display) + `protocol-validate` · Depende: H1 · **Estimativa:** 1–2h
+- **Status:** 🚧 **mecanismo entregue** (PR do H2: `WireKind` + trava por
+  feature de compilação `write-verified` + `upload-ir` no CLI + 15 testes de
+  trava); ⏳ **falta a sessão de campo**, que só o owner pode rodar.
 - **O quê:** `set-param` (knob), `save`, `upload-ir` no device real, um por vez,
   com read-back/verificação display (como na S4).
-- **DoD:** 3 fluxos verificados em campo → flip `WRITE_VERIFIED=true` no transporte
-  real (já sancionado pelo BLOCKERS item 11).
+- **DoD:** 3 fluxos verificados em campo → o `write-verified` é ligado no
+  binário de campo (já sancionado pelo BLOCKERS item 11).
+- **Operacional passo-a-passo:** `docs/H2_CHECKLIST.md` + relatório em
+  `docs/H2_REPORT.md`. **Atenção ao B5:** o keepalive de boot é `Write`, então o
+  boot completo passou a exigir a feature do H2 (ver ADR-5, rev. 04/10).
+- **Decisão pendente do owner:** se o `write-verified` vira o **padrão** do
+  binário de campo. Virar padrão é mudança de política (o padrão atual mantém o
+  H1 seguro por construção) e merece ADR, não um flip silencioso.
 
 ### H3. Congelamento pós-hardware
 - **Responsável:** skill `spec-baseline` + `capture-analyze` · Depende: H2 · **Estimativa:** 1h

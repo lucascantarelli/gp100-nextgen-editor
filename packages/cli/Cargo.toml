@@ -19,6 +19,10 @@ default = []
 # real segue bloqueada até H2/WRITE_VERIFIED). Build:
 #   cargo build --release -p gp100-cli --features real-device
 real-device = ["gp100-core/real-device"]
+# Binário de CAMPO do H2: ESCREVER de verdade. É a feature do ADR-5 e ela
+# espelha a do core (que já depende de `real-device`). Build:
+#   cargo build --release -p gp100-cli --features real-device,write-verified
+write-verified = ["gp100-core/write-verified"]
 
 [dev-dependencies]
 serde_json.workspace = true

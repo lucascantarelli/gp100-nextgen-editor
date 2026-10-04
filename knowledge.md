@@ -921,3 +921,51 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
 - **O painel vive no screenshot do BOARD**: como o TunerPanel fica dentro da
   região `Pedalboard`, qualquer mudança nele regenera as baselines `board-*`
   (e possivelmente `lib-*`/`erro-boot-*` pela altura) nas duas plataformas.
+
+---
+
+## Trava de escrita real — `write-verified` (04/10 — issue #22, gate H2)
+
+- **A trava é da BUILD, não de runtime.** `write-verified` é feature de
+  compilação (default OFF, sem `?` ⇒ implica `real-device`) e o
+  `WRITE_VERIFIED` é `cfg!(feature = "write-verified")` no `real.rs`. Consequência
+  que vale a pena internalizar: **não existe flag, env var nem argumento que
+  abra a escrita** num binário que não foi compilado com ela. Isso é o que
+  distingue "trava de verdade" de "trava que alguém esqueceu de ligar" — e é
+  também o que torna o mecanismo testável sem hardware (o `RealDevice` recusa
+  ANTES de tocar no driver).
+- **`WireKind` NÃO pode ser deduzido do byte FUNC.** A ideia "FUNC `0x12` = escrita"
+  é **errada** e silenciosamente quebrada: `0x12` é usado tanto para escrita
+  quanto para a leitura de página do §13.10, e um gate por FUNC recusaria o
+  próprio caminho de leitura do H1. Por isso a classificação é **declarada** pela
+  `Session` (que é quem conhece a semântica), não inferida.
+- **Parâmetro obrigatório, sem `default`.** `send_raw(&mut self, data, kind)` com
+  `Option<WireKind>` ou `impl Default` seria aceito pelo compilador e falharia só
+  em campo. Sem default, esquecer de classificar é **erro de build** — o
+  compilador é a trava secundária, e a classificação declarada por quem conhece
+  o fluxo é o que impede o engano. Os testes provam por mutação: keepalive
+  mutado para `Read` derruba 3 testes; knob e `ir_begin` mutados para `Read`
+  derrubam 1 cada.
+- **O keepalive de boot É escrita.** `12/00020001` (T4, §13.12) é um frame OUT
+  que não pede resposta ⇒ `WireKind::Write`. Efeito colateral registrado: o
+  **B5 do H1 (boot completo) passou a exigir a feature do H2**. O `H1_CHECKLIST`
+  §3 oferecia o B5 como opcional dentro de uma sessão declarada "LER é seguro";
+  isso não é mais verdade. Decisão pendente do owner (pular o keepalive no B5 ou
+  promover o B5 para o H2).
+- **`addr_do_frame`: o header SysEx tem 8 bytes.** O cálculo é `ini =
+  SYSEX_HEADER.len() + 1` (= 9). A primeira versão usou `get(5..9)` e retornava
+  `502d6412` — que é literalmente `"GP-d"`, o final do header `F0 21 25 7F 47
+  50 2D 64`. Erro que **ninguém veria** sem device: o `StatePage` é opaco e o
+  endereço errado só apareceria em campo como divergência de estado falsa.
+- **Como testar a trava sem hardware**: `MockDevice` IGNORA o `kind` (ADR-5: mock
+  sempre permite, senão os replays das fixtures não existiriam) e a trava mora
+  SÓ no `RealDevice`. Para exercitar a FSM inteira com a trava fechada, um
+  wrapper `Gate<T: DeviceTransport>` no próprio teste injeta o erro — é ele que
+  faz `boot()` falhar **no keepalive** e não no `scan` (`o_bloqueio_do_boot_e_no
+  _keepalive_e_nao_no_scan`), que é o que fixa onde a trava age.
+- **Feature de compilação ⇒ CI nos dois modos.** Nada garante que
+  `write-verified` continua compilando depois de mexer na `Session`; o job de
+  teste do CLI roda `cargo test -p gp100-cli --features real-device` **e**
+  `--features real-device,write-verified`. O teste
+  `escrita_verificada_segue_a_feature` (`#[cfg]`) só existe com a feature
+  ligada — é ele que impede um `default` silencioso.

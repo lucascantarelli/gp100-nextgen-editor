@@ -7,7 +7,7 @@ use std::time::Duration;
 
 use gp100_core::golden::decode_envelope;
 use gp100_core::session::Session;
-use gp100_core::transport::{DeviceTransport, TransportError};
+use gp100_core::transport::{DeviceTransport, TransportError, WireKind};
 
 mod common;
 use common::{fixture_rows, fixture_tuple};
@@ -70,7 +70,7 @@ impl DeviceTransport for ReplayTransport {
         Ok(())
     }
 
-    fn send_raw(&mut self, data: &[u8]) -> Result<(), TransportError> {
+    fn send_raw(&mut self, data: &[u8], _kind: WireKind) -> Result<(), TransportError> {
         let (func, addr, payload) =
             decode_envelope(data).map_err(|e| TransportError::SendFailed { why: e.to_string() })?;
         let got_payload: String = payload.iter().map(|b| format!("{b:02x}")).collect();
