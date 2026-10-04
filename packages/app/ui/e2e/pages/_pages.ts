@@ -161,12 +161,52 @@ export class LibraryPage {
     return this.page.getByRole("listbox", { name: /Presets de fábrica/ });
   }
 
+  /** A busca da biblioteca (#26): o texto vai para o BANCO, com debounce. */
   search(): Locator {
-    return this.page.getByRole("textbox", { name: /Buscar preset/ });
+    return this.page.getByRole("textbox", { name: /Buscar na biblioteca de presets/ });
   }
 
+  /** Filtro de estilo (o caminho exato; a caixa de texto também aceita) */
+  styleFilter(): Locator {
+    return this.page.getByRole("combobox", { name: /Filtrar a biblioteca por estilo/ });
+  }
+
+  /** Botão de limpar a busca (o ✕ que só existe com texto na caixa) */
+  clearSearch(): Locator {
+    return this.page.getByRole("button", { name: "Limpar busca" });
+  }
+
+  /** Botões de arquivo: o backup da biblioteca em JSON. */
+  exportButton(): Locator {
+    return this.page.getByRole("button", { name: /Exportar a biblioteca/ });
+  }
+
+  importButton(): Locator {
+    return this.page.getByRole("button", { name: /Importar uma biblioteca/ }).first();
+  }
+
+  /**
+   * Preenche a busca e ESPERA a lista do banco responder. O `fill` sozinho
+   * voltaria antes do debounce (180ms) e o `expect` seguinte leria a lista
+   * antiga — que é exatamente o estado intermediário que a UI corrige.
+   */
   async searchFor(q: string): Promise<void> {
     await this.search().fill(q);
+    // O hook tem debounce de 180ms. Duas leituras seguidas podem cair na MESMA
+    // janela e "estabilizar" num valor velho — por isso o tempo mínimo antes
+    // de começar a olhar, e DUAS confirmações iguais (não uma).
+    await this.page.waitForTimeout(260);
+    let anterior = -1;
+    let iguais = 0;
+    const limite = Date.now() + 8000;
+    while (Date.now() < limite) {
+      const n = await this.options().count();
+      iguais = n === anterior ? iguais + 1 : 0;
+      anterior = n;
+      if (iguais >= 2) return;
+      await this.page.waitForTimeout(60);
+    }
+    throw new Error(`a lista da biblioteca nao estabilizou para "${q}"`);
   }
 
   options(): Locator {

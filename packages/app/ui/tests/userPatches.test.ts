@@ -1,18 +1,20 @@
 /**
  * `userPatches` — patches de USUÁRIO (patches salvos pelo dono).
  *
- * O contrato testado aqui é o que sustenta a aba User Patch da biblioteca:
- *   - a lista sobrevive à sessão (localStorage) e não quebra com lixo no storage;
+ * Depois da #26 este arquivo é a FRONTEIRA entre o retrato (o que o palco
+ * desenha) e o registro do banco (o que o SQLite guarda). O contrato testado
+ * aqui é o que sustenta a aba User Patch:
  *   - o patch é um RETRATO: mexer no pedalboard depois de salvar NÃO altera o
  *     que foi guardado (clone profundo dos slots e dos knobs);
  *   - abrir um patch devolve um BoardView no MESMO formato do device (o Stage
- *     não distingue banco de fábrica de banco de usuário).
+ *     não distingue banco de fábrica de banco de usuário);
+ *   - registro ↔ retrato é um round-trip: o que o dono salva é o que volta.
  */
-import { beforeEach, describe, expect, it } from "vitest";
-import { boardOfUserPatch, loadUserPatches, snapshotOf, storeUserPatches } from "../src/userPatches";
-import type { UserPatch } from "../src/userPatches";
+import { describe, expect, it } from "vitest";
+import { boardOfUserPatch, patchDeRegistro, registroDePatch, snapshotOf } from "../src/userPatches";
 import { ARCHETYPE_OF } from "../src/ipc/types";
 import type { BoardSlot, BoardView } from "../src/ipc/types";
+import type { LibraryRecord } from "../src/ipc/library";
 
 const slot = (n: number): BoardSlot => ({
   slot: n,
@@ -32,36 +34,11 @@ const slot = (n: number): BoardSlot => ({
 const board = (): BoardView => ({
   pp: 24,
   name: "Mist",
-  ppType: 0,
+  ppType: 4,
   ppTypeName: "Rock",
   slots: [slot(0), slot(1)],
   bank: "factory",
   ppLabel: "P25",
-});
-
-const BOARD_KEY = "gp100.userpatch.v1";
-
-beforeEach(() => {
-  localStorage.clear();
-});
-
-describe("userPatches — armazenamento local", () => {
-  it("começa vazio e sobrevive à sessão (round-trip)", () => {
-    expect(loadUserPatches()).toEqual([]);
-    const saved: UserPatch[] = [snapshotOf(board(), "Meu som", 0)];
-    storeUserPatches(saved);
-    expect(loadUserPatches()).toEqual(saved);
-  });
-
-  it("storage indisponível/lixo nunca derruba a biblioteca", () => {
-    localStorage.setItem(BOARD_KEY, "{ não é json");
-    expect(loadUserPatches()).toEqual([]);
-    // objeto solto (não é lista) e entradas sem slots são descartadas
-    localStorage.setItem(BOARD_KEY, JSON.stringify({ nao: "lista" }));
-    expect(loadUserPatches()).toEqual([]);
-    localStorage.setItem(BOARD_KEY, JSON.stringify([{ id: "u1", name: "sem slots" }]));
-    expect(loadUserPatches()).toEqual([]);
-  });
 });
 
 describe("userPatches — snapshot é um retrato", () => {
@@ -77,9 +54,10 @@ describe("userPatches — snapshot é um retrato", () => {
     expect(saved.slots[0].knobs[1].options).toEqual(["off", "on"]);
   });
 
-  it("o patch guarda de onde veio (o rótulo do patch de fábrica)", () => {
+  it("o patch guarda o estilo de onde saiu e a DATA em que foi salvo", () => {
     const saved = snapshotOf(board(), "Meu som", 0);
-    expect(saved.fromLabel).toBe("P25");
+    expect(saved.ppType).toBe(4);
+    expect(saved.ppTypeName).toBe("Rock");
     expect(saved.savedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
   });
 
@@ -96,7 +74,7 @@ describe("userPatches — abrir no palco", () => {
     const b = boardOfUserPatch(saved, 0);
     expect(b.bank).toBe("user");
     expect(b.ppLabel).toBe("U01");
-    // pp = −1: patch local não tem cursor de fábrica (◀ ▶ seguem a coluna real)
+    // pp = −1: patch de usuário não tem cursor de fábrica (◀ ▶ seguem a coluna real)
     expect(b.pp).toBe(-1);
     expect(b.name).toBe("Meu som");
     expect(b.slots).toEqual(saved.slots);
@@ -112,5 +90,31 @@ describe("userPatches — abrir no palco", () => {
     const b = boardOfUserPatch(saved, 0);
     b.slots[0].knobs[0].value = "0";
     expect(saved.slots[0].knobs[0].value).toBe("50");
+  });
+});
+
+describe("userPatches — a fronteira com o banco (#26)", () => {
+  it("gravar serializa a cadeia e marcar que ela veio junto", () => {
+    const rec = registroDePatch(snapshotOf(board(), "Meu som", 0));
+    expect(rec.bank).toBe("user");
+    // patch de usuário não tem pp de fábrica: o cursor do palco é o U##
+    expect(rec.pp).toBeNull();
+    expect(rec.hasPayload).toBe(true);
+    expect(typeof rec.payload).toBe("string");
+    expect(JSON.parse(rec.payload!)).toHaveLength(2);
+  });
+
+  it("round-trip: o que o dono salva volta idêntico ao abrir", () => {
+    const salvo = snapshotOf(board(), "Meu som", 0);
+    const volta = patchDeRegistro(registroDePatch(salvo));
+    expect(volta).toEqual(salvo);
+  });
+
+  it("payload ilegível devolve null — a UI decide, não um throw no palco", () => {
+    // É o caso de registro escrito por outra versão do app ou editado à mão.
+    const base: LibraryRecord = { ...registroDePatch(snapshotOf(board(), "x", 0)), payload: "{isto nao eh json" };
+    expect(patchDeRegistro(base)).toBeNull();
+    expect(patchDeRegistro({ ...base, payload: null })).toBeNull();
+    expect(patchDeRegistro({ ...base, payload: '{"a":1}' })).toBeNull();
   });
 });

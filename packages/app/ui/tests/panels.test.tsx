@@ -31,6 +31,9 @@ import { onDevicePush } from "../src/ipc/device";
 import { PUSH_LOG_MAX } from "../src/ipc/push";
 import { DRUM_BEATS, DRUM_GENRES } from "../src/artifacts/drumData";
 import { MSG } from "../src/i18n/messages";
+import { useLibrary } from "../src/hooks/useLibrary";
+import { librarySave, resetaFallback } from "../src/ipc/library";
+import * as ipcLibrary from "../src/ipc/library";
 
 // O `usePushLog` assina `device://push` pelo MESMO registrador que o App usa.
 // Sem este mock, `onDevicePush` e a funcao real e nao ha como injetar um hex —
@@ -289,76 +292,232 @@ describe("DrumPanel — os ramos que o App montado nunca pegava", () => {
   });
 });
 
-describe("LibraryPanel — busca e estado vazio", () => {
-  const patch = (id: string, name: string) => ({
-    id,
-    name,
-    createdAt: 0,
-    chain: [],
-  } as never);
+describe("LibraryPanel — a biblioteca no banco (#26)", () => {
+  /**
+   * O painel recebe o `useLibrary` por prop, então o teste monta o hook junto
+   * com ele: um `lib` de mentira deixaria a busca, o debounce e os números
+   * sem cobertura — que é justamente o que este painel passou a fazer.
+   */
+  let lib!: ReturnType<typeof useLibrary>;
 
-  function abre(props: Partial<React.ComponentProps<typeof LibraryPanel>> = {}) {
-    return mount(
-      <LibraryPanel
+  beforeEach(() => {
+    // o fallback é estado de MÓDULO: sem isto, o patch salvo num teste
+    // continuaria no banco em memória do seguinte e o "vazio" mentiria
+    resetaFallback();
+    localStorage.clear();
+  });
+
+  function Painel(props: Partial<React.ComponentProps<typeof LibraryPanel>> = {}) {
+    return (
+      <PainelProbe
         currentPp={1}
-        bank="factory"
-        userPatches={[]}
+        bankDoPalco="factory"
         currentUserId={null}
-        onSelect={() => {}}
+        onOpenFactory={() => {}}
         onOpenUser={() => {}}
         onSave={() => {}}
         onDelete={() => {}}
         {...props}
-      />,
+      />
     );
   }
 
-  it("renderiza a busca com o rótulo acessível da i18n", () => {
-    const { host, unmount } = abre();
-    const busca = host.querySelector<HTMLInputElement>(`[aria-label="${MSG.searchAria}"]`);
-    expect(busca, "a busca tem nome acessível").toBeTruthy();
-    expect(busca!.placeholder).toBe(MSG.searchPlaceholder);
+  function PainelProbe(props: Omit<React.ComponentProps<typeof LibraryPanel>, "lib">) {
+    lib = useLibrary(props.bankDoPalco);
+    return <LibraryPanel {...props} lib={lib} />;
+  }
+
+  /** Deixa o debounce (180ms) do hook expirar antes de olhar a lista. */
+  async function assenta() {
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 260));
+    });
+  }
+
+  async function abre(props: Partial<React.ComponentProps<typeof LibraryPanel>> = {}) {
+    const m = mount(<Painel {...props} />);
+    await assenta();
+    return m;
+  }
+
+  it("a busca é do banco: o texto digitado CHEGA ao SQLite", async () => {
+    // A prova de que a lista é do banco e não do artefato: filtrar aqui
+    // mostraria "It's GP100" para qualquer texto. No banco, o nome tem que
+    // casar — e o resultado tem que ser o do banco, não o do `FACTORY_PRESETS`.
+    const { host, unmount } = await abre();
+    const busca = host.querySelector<HTMLInputElement>(`[aria-label="${MSG.libSearchAria}"]`)!;
+    expect(busca.placeholder).toBe(MSG.libSearchPlaceholder);
+    setNative(busca, "blink");
+    await assenta();
+    const opcoes = Array.from(host.querySelectorAll('[role="option"]'));
+    expect(opcoes).toHaveLength(1);
+    expect(opcoes[0].textContent).toContain("Blink OD");
     unmount();
   });
 
-  it("estado vazio só aparece quando a busca não encontra nada", () => {
-    const { host, unmount } = abre();
-    setNative(host.querySelector<HTMLInputElement>(`[aria-label="${MSG.searchAria}"]`)!, "zzzzz");
-    expect(host.textContent).toContain(MSG.searchEmpty("zzzzz"));
+  it("estado vazio só aparece quando a busca não encontra nada", async () => {
+    const { host, unmount } = await abre();
+    setNative(host.querySelector<HTMLInputElement>(`[aria-label="${MSG.libSearchAria}"]`)!, "zzzzz");
+    await assenta();
+    expect(host.textContent).toContain(MSG.libEmptySearch("zzzzz"));
     unmount();
   });
 
-  it("limpar a busca volta o painel ao estado cheio", () => {
-    const { host, unmount } = abre();
-    const busca = host.querySelector<HTMLInputElement>(`[aria-label="${MSG.searchAria}"]`)!;
+  it("limpar a busca volta o painel ao estado cheio", async () => {
+    const { host, unmount } = await abre();
+    const busca = host.querySelector<HTMLInputElement>(`[aria-label="${MSG.libSearchAria}"]`)!;
     setNative(busca, "zzzzz");
-    expect(host.textContent).toContain(MSG.searchEmpty("zzzzz"));
-    setNative(busca, "");
-    expect(host.textContent).not.toContain(MSG.searchEmpty("zzzzz"));
+    await assenta();
+    expect(host.textContent).toContain(MSG.libEmptySearch("zzzzz"));
+    // o ✕ é o caminho declarado (aria-label do i18n), e não um botão genérico
+    setNative(busca, "bl");
+    await assenta();
+    const x = host.querySelector<HTMLButtonElement>(`[aria-label="${MSG.libSearchClear}"]`)!;
+    act(() => x.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    await assenta();
+    expect(host.querySelectorAll('[role="option"]').length).toBe(99);
     unmount();
   });
 
-  it("abrir patch de usuário leva o patch E o índice (a ordem importa)", () => {
+  it("o filtro de estilo vai para o banco junto (não filtra a lista em memória)", async () => {
+    const { host, unmount } = await abre();
+    setNative(host.querySelector<HTMLSelectElement>(`[aria-label="${MSG.libFilterAria}"]`)!, "6");
+    await assenta();
+    const opcoes = Array.from(host.querySelectorAll('[role="option"]'));
+    expect(opcoes.length).toBeGreaterThan(0);
+    expect(opcoes.every((o) => o.textContent?.includes("Pop"))).toBe(true);
+    unmount();
+  });
+
+  it("abrir patch de usuário leva o id E o índice (a ordem importa)", async () => {
     // O `index` é a posição na lista, não o `id`: confundir os dois abre o
     // patch errado sem erro visível.
     const aberto: Array<[string, number]> = [];
-    const lista = [patch("a", "A"), patch("b", "B")];
-    const { host, unmount } = abre({
+    await librarySave({
+      id: "u1",
       bank: "user",
-      userPatches: lista,
-      onOpenUser: (p, i) => aberto.push([p.id, i]),
+      pp: null,
+      name: "A",
+      ppType: 4,
+      ppTypeName: "Rock",
+      savedAt: "2026-02-02T00:00:00Z",
+      hasPayload: true,
+      payload: "[]",
     });
-    const botoes = Array.from(host.querySelectorAll("button"));
-    const alvo = botoes.find((b) => b.textContent?.includes("B"));
+    await librarySave({
+      id: "u2",
+      bank: "user",
+      pp: null,
+      name: "B",
+      ppType: 4,
+      ppTypeName: "Rock",
+      savedAt: "2026-02-02T00:00:00Z",
+      hasPayload: true,
+      payload: "[]",
+    });
+    const { host, unmount } = await abre({
+      bankDoPalco: "user",
+      onOpenUser: (id, i) => aberto.push([id, i]),
+    });
+    const alvo = Array.from(host.querySelectorAll('[role="listitem"] button')).find((b) =>
+      b.textContent?.includes("B"),
+    );
     expect(alvo, "o patch B aparece na lista").toBeTruthy();
     act(() => alvo!.dispatchEvent(new MouseEvent("click", { bubbles: true })));
-    expect(aberto).toEqual([["b", 1]]);
+    expect(aberto).toEqual([["u2", 1]]);
     unmount();
   });
 
-  it("sem patches de usuário o painel não finge que há biblioteca", () => {
-    const { host, unmount } = abre({ bank: "user", userPatches: [] });
+  it("trocar de aba NAO mostra os registros do outro banco", async () => {
+    // O bug que este teste cobre: a busca do banco novo leva 180ms, e nesse
+    // intervalo a tela mostrava os 99 de fábrica com o rótulo do dono (U01…)
+    // — clicar num deles abria o patch errado sem erro nenhum.
+    // nasce NA aba de Fábrica: é a TRANSIçÃO que mostra os 99 (começar
+    // direto na aba do dono deixaria o bug passar: nunca haveria linhas velhas)
+    const { host, unmount } = await abre();
+    expect(host.querySelectorAll('[role="option"]').length).toBe(99);
+    const abaDono = Array.from(host.querySelectorAll('[role="tab"]')).find((t) =>
+      t.textContent?.includes("User Patch"),
+    )!;
+    act(() => abaDono.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    // NO INSTANTE da troca, antes do debounce: é aqui que os 99 velhos
+    // apareceriam rotulados de U01. Depois de esperar a resposta do banco a
+    // lista já estaria certa de qualquer jeito, e o bug passaria.
+    expect(host.querySelectorAll('[role="listitem"], [role="option"]').length).toBe(0);
+    await assenta();
+    expect(host.textContent).toContain(MSG.userPatchEmpty);
+    expect(host.textContent, "nenhum preset de fábrica sobrou na aba do dono").not.toContain("Blink OD");
+    unmount();
+  });
+
+  it("sem patches de usuário o painel não finge que há biblioteca", async () => {
+    const { host, unmount } = await abre({ bankDoPalco: "user" });
+    expect(host.textContent).toContain(MSG.userPatchEmpty);
     expect(host.querySelectorAll("button").length).toBeGreaterThan(0); // busca e abas
+    unmount();
+  });
+
+  it("o rodapé mostra os números que vieram do arquivo", async () => {
+    const { host, unmount } = await abre();
+    expect(host.textContent).toContain(MSG.libStats(99, 0, 0));
+    unmount();
+  });
+
+  it("importar um arquivo mostra a contabilidade do que foi gravado", async () => {
+    // Botão sem retorno é tiro no escuro: o dono precisa saber se gravou.
+    const { host, unmount } = await abre();
+    const arquivo = host.querySelector<HTMLInputElement>('input[type="file"]')!;
+    const envelope = JSON.stringify({
+      format: "gp100.library",
+      version: 1,
+      exportedAt: "2026-02-02T00:00:00Z",
+      sqlite: "teste",
+      schema: 0,
+      presets: [
+        {
+          id: "u9",
+          bank: "user",
+          pp: null,
+          name: "DO ARQUIVO",
+          ppType: 4,
+          ppTypeName: "Rock",
+          savedAt: "2026-02-02T00:00:00Z",
+          payload: "[]",
+        },
+      ],
+    });
+    const f = new File([envelope], "gp100.library.json", { type: "application/json" });
+    Object.defineProperty(arquivo, "files", { value: [f], configurable: true });
+    await act(async () => {
+      arquivo.dispatchEvent(new Event("change", { bubbles: true }));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(host.textContent).toContain(MSG.libImportDone(1, 0, 0));
+    unmount();
+  });
+
+  it("falha do arquivo vira banner COM retry (issue #20)", async () => {
+    // Um banco que não abre (permissão, HD externo) não pode virar lista
+    // vazia silenciosa: o dono precisa do texto E do caminho de volta.
+    // a lista REAL é capturada ANTES do spy: chamar a porta depois de espiá-la
+    // devolveria a própria rejeição
+    const listaReal = await ipcLibrary.librarySearch({});
+    const spy = vi.spyOn(ipcLibrary, "librarySearch").mockRejectedValue(new Error("arquivo"));
+    const { host, unmount } = await abre();
+    const alerta = host.querySelector('[role="alert"]')!;
+    expect(alerta.textContent).toContain(MSG.errLibrarySearch);
+    // o botão é o retry de verdade: destravando a porta, ele volta a ler
+    spy.mockResolvedValue(listaReal);
+    act(() => {
+      host.querySelector<HTMLButtonElement>('[role="alert"] button')!.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
+    });
+    await assenta();
+    expect(host.querySelector('[role="alert"]')).toBeNull();
+    expect(host.querySelectorAll('[role="option"]').length).toBe(99);
+    spy.mockRestore();
     unmount();
   });
 });

@@ -118,7 +118,7 @@ export const PT_BR = {
   userPatchEmpty: "Nenhum patch salvo ainda. Ajuste os pedais e salve o que quiser guardar.",
   userPatchRowTitle: (name: string, from: string) => `Abrir “${name}” (veio de ${from})`,
   userPatchDeleteAria: (name: string) => `Excluir o patch “${name}”`,
-  userPatchNote: "Prévia local: os patches ficam neste navegador. Salvar no device depende do canal USB.",
+  userPatchNote: "No arquivo da biblioteca (SQLite), não no navegador. Salvar no device depende do canal USB.",
   userPatchDefaultName: (n: number) => `Meu patch ${n + 1}`,
   userBankType: "User",
 
@@ -326,6 +326,35 @@ export const PT_BR = {
   errOpenPreset: "Não foi possível abrir o preset — tente novamente.",
   errSelectPreset: "O device não aceitou a troca de preset — a UI segue no preset atual.",
   errSetParam: "O device não aceitou o ajuste do knob — tente novamente.",
+
+  /* ── biblioteca (#26): arquivo local, nao device ── */
+  errLibrarySearch: "Não foi possível ler a biblioteca — tente novamente.",
+  errLibraryStats: "Não foi possível ler os números da biblioteca.",
+  errLibrarySave: "Não foi possível salvar o patch — o arquivo da biblioteca não respondeu.",
+  errLibraryDelete: "Não foi possível apagar o patch da biblioteca.",
+  errLibraryImport: "A biblioteca não aceitou o arquivo importado — nada foi gravado.",
+  errLibraryExport: "Não foi possível exportar a biblioteca.",
+
+  /* ── biblioteca: rótulos da UI ── */
+  libSearchPlaceholder: "Buscar por nome, nº ou estilo…",
+  libSearchAria: "Buscar na biblioteca de presets",
+  libSearchClear: "Limpar busca",
+  libFilterAll: "Todos os estilos",
+  libFilterAria: "Filtrar a biblioteca por estilo",
+  libExport: "Exportar",
+  libExportAria: "Exportar a biblioteca para um arquivo",
+  libImport: "Importar",
+  libImportAria: "Importar uma biblioteca de um arquivo",
+  libEmpty: "Nenhum preset com esse filtro.",
+  libEmptySearch: (q: string) => `Nada encontrado para “${q}”.`,
+  libStats: (total: number, user: number, schema: number) =>
+    `${total} presets · ${user} meus · esquema v${schema}`,
+  libMigrated: (n: number) =>
+    `${n} patches seus foram movidos do armazenamento local para a biblioteca.`,
+  libImportDone: (inserted: number, replaced: number, skipped: number) =>
+    `Importado: ${inserted} novos, ${replaced} atualizados, ${skipped} já existiam.`,
+  libImportRejected: "O arquivo não é uma biblioteca deste editor — nada foi importado.",
+
   errRetry: "Tentar de novo",
   errRetryAria: "Tentar novamente a operação que falhou",
 } as const;

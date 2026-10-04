@@ -560,7 +560,16 @@ jobs:
         working-directory: packages/app/ui
         # `--update-snapshots=all` é o ÚNICO caminho de escrita no CI: o
         # default lá é comparar e FALHAR no que faltar.
-        run: pnpm exec playwright test visual.spec.ts ${{ inputs.update-snapshots == 'true' && '--update-snapshots=all' || '' }}
+        #
+        # `inputs['update-snapshots']` e NAO `inputs.update-snapshots`: o hífen
+        # quebra o acesso por propriedade na expressão (o GitHub lê
+        # `inputs.update`). E o input e do tipo BOOLEAN, então o flag e
+        # testado pela VERDADE (`&& ... || ''`), nunca por `== 'true'` — a
+        # comparação de um booleano com a string 'true' dá falso e a
+        # regeneração documentada rodava como comparação, que é o oposto do
+        # que se pede. Os dois erros juntos: o job falhava do mesmo jeito, com
+        # o artefato cheio de baseline velho.
+        run: pnpm exec playwright test visual.spec.ts ${{ inputs['update-snapshots'] && '--update-snapshots=all' || '' }}
       - name: baselines/diffs como artefato
         if: always()
         uses: actions/upload-artifact@v7

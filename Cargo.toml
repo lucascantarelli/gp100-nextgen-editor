@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["packages/core", "packages/cli"]
+members = ["packages/core", "packages/cli", "packages/library"]
 exclude = ["packages/app/api"]
 # O crate do Tauri (gp100-ui, em packages/app/api) fica FORA do workspace:
 # o Tauri 2 exige toolchain MSVC no Windows e o workspace é pinado em

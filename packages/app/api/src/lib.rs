@@ -17,8 +17,10 @@
 
 mod actor;
 mod commands;
+mod library_commands;
 
 use gp100_core::transport::mock::{MockDevice, MockFault};
+use tauri::Manager;
 
 /// Plano de falha do shell lido do ambiente — gancho de teste/e2e do #48.
 ///
@@ -51,6 +53,48 @@ fn parse_debug_fault(raw: &str) -> Option<MockFault> {
     n.trim().parse::<u32>().ok().map(MockFault::DieAfter)
 }
 
+/// Abre a biblioteca no diretorio de DADOS do app e semeia a fabrica na
+/// primeira execucao (ADR-9, decisao 4).
+///
+/// # Erros
+/// Propaga a falha do SQLite/disco. O chamador decide o que fazer — `run`
+/// degrada para uma biblioteca em memoria em vez de derrubar a janela.
+fn abrir_biblioteca(app: &tauri::App) -> Result<gp100_library::Library, String> {
+    let dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("caminho de dados do app: {e}"))?;
+    let caminho = dir.join("biblioteca.sqlite");
+    let lib = gp100_library::Library::open(&caminho).map_err(|e| e.to_string())?;
+
+    if !lib.tem_fabrica().map_err(|e| e.to_string())? {
+        match seed_de_fabrica(&lib) {
+            Ok(n) => eprintln!("biblioteca: {n} presets de fabrica semeados"),
+            Err(e) => eprintln!("seed de fabrica falhou: {e}"),
+        }
+    }
+    Ok(lib)
+}
+
+/// Semeia a fabrica a partir do `all.prst` EMBUTIDO no binario.
+///
+/// O arquivo e embutido em vez de procurado em disco: o caminho do dado muda a
+/// cada tag, e um `include_bytes!` fixo e o que o empacotamento (`tauri.conf`)
+/// transporta junto do executavel sem depender de instalador.
+///
+/// # Erros
+/// Falha do parse do `.prst`; quem chama registra e segue (a biblioteca
+/// funciona so com os presets do dono).
+fn seed_de_fabrica(lib: &gp100_library::Library) -> Result<usize, String> {
+    static ALL_PRST: &[u8] = include_bytes!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../../files/patches/all.prst"
+    ));
+    let agora = library_commands::agora_iso();
+    lib.seed_factory(ALL_PRST, &agora)
+        .map_err(|e| e.to_string())
+}
+
 /// Boot do app Tauri: registra estado + commands (invocado pelo `main`).
 ///
 /// # Erros
@@ -63,10 +107,12 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
         mock = mock.with_fault(fault);
     }
     let actor = actor::DeviceActor::spawn(mock);
-    let result = tauri::Builder::default()
-        .manage(commands::AppState {
-            actor: actor.clone(),
-        })
+
+    // `build` ANTES de `manage` porque o caminho do banco vem do proprio Tauri
+    // (`app_data_dir`), que so existe depois que o app existe. Com
+    // `Builder::run` (o caminho curto) nao dava para abrir o banco antes de
+    // registrar o estado que o contem.
+    let app = tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             commands::device_info,
             commands::device_board,
@@ -76,12 +122,41 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
             commands::device_boot,
             commands::list_user_irs,
             commands::pending_pushes,
+            library_commands::library_search,
+            library_commands::library_stats,
+            library_commands::library_save,
+            library_commands::library_delete,
+            library_commands::library_get,
+            library_commands::library_import,
+            library_commands::library_export,
         ])
-        .run(tauri::generate_context!());
+        .build(tauri::generate_context!())?;
+
+    // Biblioteca (#26): um arquivo .sqlite no diretorio de DADOS do app, semeado
+    // com os 99 presets de fabrica na primeira execucao. Falha aqui NAO derruba
+    // o app: sem biblioteca o editor so nao mostra a lista persistida — cair a
+    // janela porque o disco esta cheio seria trocar uma falha visivel por uma
+    // tela branca.
+    let library = match abrir_biblioteca(&app) {
+        Ok(b) => b,
+        Err(e) => {
+            eprintln!("biblioteca indisponivel, seguindo sem dela: {e}");
+            gp100_library::Library::open_in_memory()?
+        }
+    };
+    app.manage(commands::AppState {
+        actor: actor.clone(),
+        library: std::sync::Mutex::new(library),
+    });
+
+    // Laço de eventos do Tauri. `Builder::run` era o atalho que fazia isto e
+    // devolvia `Result`; aqui quem inicializa é `build`, e `App::run` não tem
+    // o que devolver — o `build` acima ja é o ponto que falha.
+    app.run(|_app, _event| {});
     // Ciclo de vida: o actor roda até o app fechar — shutdown explícito
     // (o handle é Clone; Drop em clone derrubaria o actor alheio).
     actor.shutdown();
-    result.map_err(Into::into)
+    Ok(())
 }
 
 #[cfg(test)]

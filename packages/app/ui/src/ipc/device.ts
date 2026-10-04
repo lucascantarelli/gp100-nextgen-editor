@@ -182,8 +182,18 @@ function withTimeout<T>(run: Promise<T>, op: string): Promise<T> {
  *
  * `policy` é parâmetro obrigatório e não tem default: é o que impede a
  * herança silenciosa. `IDEMPOTENTE` é o valor explícito para o caso comum.
+ *
+ * **Exportada para o `ipc/library.ts` (#26).** Quando a política virou tipo, a
+ * pergunta seguinte foi "e a porta que aparecer depois?". A resposta é esta: a
+ * execução é uma coisa só, e a decisão é de quem chama. A biblioteca escolhe
+ * `semRetry("...")` justamente porque I/O local não melhora com repetição — e
+ * sem este `export`, ela ficaria sem timeout nem backoff, que é pior.
  */
-async function runCommand<T>(op: string, policy: CommandPolicy, run: () => Promise<T>): Promise<T> {
+export async function runCommand<T>(
+  op: string,
+  policy: CommandPolicy,
+  run: () => Promise<T>,
+): Promise<T> {
   const attempts = policy.kind === "retry" ? Math.max(1, policy.attempts) : 1;
   let last: unknown;
   for (let attempt = 1; attempt <= attempts; attempt += 1) {

@@ -16,6 +16,7 @@ import type { Root } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../src/App";
 import { onDevicePush, deviceBoard, deviceInfo, deviceSelectPreset, deviceSetParam, onBootProgress, onDevicePush as onPush } from "../src/ipc/device";
+import { resetaFallback } from "../src/ipc/library";
 import { Knob } from "../src/components/Knob";
 import type { BoardKnob } from "../src/ipc/types";
 
@@ -33,6 +34,7 @@ vi.mock("@tauri-apps/api/event", () => ({
   }),
 }));
 import { FACTORY_PRESETS } from "../src/artifacts/presetData";
+import { MSG } from "../src/i18n/messages";
 import { PRESET_CHAINS } from "../src/artifacts/presetChains";
 
 // Mock PARCIAL: onDevicePush continua registrando no Set real do device.ts
@@ -48,6 +50,10 @@ beforeAll(() => {
   (globalThis as Record<string, unknown>).IS_REACT_ACT_ENVIRONMENT = true;
 });  beforeEach(() => {
     localStorage.clear();
+    // a biblioteca fora do webview e um Map de MODULO: sem isto, o patch que um
+    // teste salvou aparece no seguinte (antes os patches viviam no localStorage,
+    // que o clear acima apagava — a fonte mudou, o reset tem que acompanhar)
+    resetaFallback();
     vi.mocked(onDevicePush).mockClear();
     vi.mocked(deviceSetParam).mockClear();
   });
@@ -69,7 +75,7 @@ async function settle() {
 
 /** Espera MACROTASKS reais: o boot simulado corre em lotes via
  * setTimeout(0) — microtasks (settle) não bastam para o terminar. */
-async function waitFor(predicate: () => boolean, what: string, timeoutMs = 15_000) {
+async function waitFor(predicate: () => boolean, what: string, timeoutMs = 8_000) {
   const start = Date.now();
   while (!predicate() && Date.now() - start < timeoutMs) {
     await act(async () => {
@@ -176,7 +182,16 @@ describe("Faixas de boot e erro", () => {
 
   it("falha do board ao abrir preset: erro amigável (detalhe técnico só no console)", async () => {
     const { root, host } = mount();
-    await settle();
+    // as linhas do painel vem do BANCO (#26): a consulta e assincrona e tem
+    // debounce, entao `settle` (so microtasks) nao basta mais para elas
+    // aparecerem. `waitFor` e o helper que espera macrotask de verdade.
+    await waitFor(
+      () =>
+        Array.from(host.querySelectorAll('[role="option"]')).some((o) =>
+          o.textContent?.includes("Mist"),
+        ),
+      "linhas da biblioteca (Mist)",
+    );
 
     localStorage.setItem("gp100.debug.failDevice", "board");
     const mist = Array.from(host.querySelectorAll('[role="option"]')).find((o) =>
@@ -306,27 +321,38 @@ describe("Biblioteca — busca", () => {
     const options = () => host.querySelectorAll('[role="option"]').length;
 
     setInput(search!, "mist");
-    await settle();
-    expect(options()).toBe(1); // P25 Mist
+    await esperaBiblioteca(() => options() === 1, "so o P25 Mist");
+    expect(host.textContent).toContain("Mist");
 
+    // o numero que a COLUNA mostra (P99, 1-based) acha o ultimo preset: o
+    // nome dele e "Dreamy Aco", e o maior ppID do all.prst e 98
     setInput(search!, "99");
-    await settle();
-    expect(options()).toBe(1); // display 1-based: P99
+    await esperaBiblioteca(() => options() === 1, "so o P99");
     expect(host.textContent).toContain("Dreamy Aco");
 
     setInput(search!, "zzz-nada");
-    await settle();
-    expect(options()).toBe(0);
+    await esperaBiblioteca(() => options() === 0, "nada encontrado");
 
     setInput(search!, "");
-    await settle();
-    expect(options()).toBe(99);
+    await esperaBiblioteca(() => options() === 99, "a biblioteca inteira");
     teardown(root, host);
-  });
+  }, 40_000);
 });
 
 /* ── #11: a biblioteca COMANDA o pedalboard ── */
 /* ── #11/#19: passos que atravessam biblioteca ↔ palco (compartilhados) ── */
+/**
+ * A biblioteca tem debounce (180ms) e a leitura vai ao banco — `settle()`
+ * (só microtasks) não basta. Espera o tempo real e um predicate, que é o que
+ * os testes de biblioteca precisam para não depender de timing.
+ */
+async function esperaBiblioteca(pred: () => boolean, what: string) {
+  await act(async () => {
+    await new Promise((r) => setTimeout(r, 260));
+  });
+  await waitFor(pred, what);
+}
+
 const clickTab = async (host: HTMLElement, nome: string) => {
   act(() =>
     Array.from(host.querySelectorAll('[role="tab"]'))
@@ -340,11 +366,20 @@ const userTab = (host: HTMLElement) => clickTab(host, "User Patch");
 /** clica no 1º patch de usuário da lista (U01) */
 const openUserPatch = async (host: HTMLElement) => {
   await userTab(host);
+  await esperaBiblioteca(
+    () => host.querySelectorAll('[role="listitem"]').length > 0,
+    "a lista de patches do dono",
+  );
   act(() =>
     host.querySelectorAll('[role="listitem"]')[0].querySelector("button")!
       .dispatchEvent(new MouseEvent("click", { bubbles: true })),
   );
   await settle();
+  // abrir lê a cadeia no banco (library_get): esperar o palco repintar
+  await waitFor(
+    () => host.querySelector('[aria-label^="Pedalboard"] [role="status"]')?.textContent?.includes("U01") === true,
+    "o palco mostra o patch de usuario",
+  );
 };
 
 /** nomeia e salva o patch CORRENTE como patch de usuário */
@@ -359,7 +394,11 @@ const saveAsUserPatch = async (host: HTMLElement, name: string) => {
       .find((b) => b.textContent === "Salvar")!
       .dispatchEvent(new MouseEvent("click", { bubbles: true })),
   );
-  await settle();
+  // gravar é I/O no arquivo da biblioteca: a linha só existe depois do banco
+  await esperaBiblioteca(
+    () => host.querySelectorAll('[role="listitem"]').length > 0,
+    `o patch "${name}" gravado`,
+  );
 };
 
 /** abre um preset pelo número EXIBIDO (P06 = ppID 5, como no app oficial) */
@@ -371,11 +410,12 @@ const openPatch = async (host: HTMLElement, no: string) => {
       .dispatchEvent(new MouseEvent("click", { bubbles: true })),
   );
   await settle();
-  const search = host.querySelector<HTMLInputElement>(
-    'input[aria-label="Buscar preset por nome, número ou estilo"]',
-  )!;
+  const search = host.querySelector<HTMLInputElement>(`[aria-label="${MSG.libSearchAria}"]`)!;
   setInput(search, no);
-  await settle();
+  await esperaBiblioteca(
+    () => host.querySelectorAll('[role="option"]').length > 0,
+    `o preset ${no} na lista`,
+  );
   act(() =>
     host.querySelectorAll('[role="option"]')[0].dispatchEvent(new MouseEvent("click", { bubbles: true })),
   );
@@ -447,7 +487,7 @@ describe("Biblioteca — o patch aberto é o que o pedalboard mostra", () => {
       Array.from(host.querySelectorAll("strong")).find((s) => /^P\d{2}/.test(s.textContent ?? ""))?.textContent,
     ).toBe(`P01 ${FACTORY_PRESETS[0].name}`);
     teardown(root, host);
-  });
+  }, 40_000);
 
   it("o patch salvo é um RETRATO: mexer no pedal depois não altera o guardado", async () => {
     const { root, host } = mount();
@@ -480,7 +520,7 @@ describe("Biblioteca — o patch aberto é o que o pedalboard mostra", () => {
     await openUserPatch(host);
     expect(stageValue(), "o retrato devolve o valor do momento do save").toBe(saved);
     teardown(root, host);
-  });
+  }, 40_000);
 });
 
 describe("Settings — as 6 abas", () => {
@@ -915,7 +955,7 @@ describe("Palco — o pedal REAL do PRE (U-3: pedais reais na cadeia inteira)", 
       "COMP",
     );
     teardown(root, host);
-  });
+  }, 40_000);
 
   it("footswitch alterna LOCAL (LED verde → vermelho), sem comando de toggle no protocolo", async () => {
     const { root, host } = mount();

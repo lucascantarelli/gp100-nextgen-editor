@@ -72,6 +72,49 @@ def classify(ref: str, base_ref: str, event: str) -> str:
     return "dev"
 
 
+# Os caminhos que sao "código Rust" vêm do WORKSPACE, não de uma lista escrita
+# à mão. A lista manual morava em `ci_plan.py` e em `validate_workflows.py`
+# (o debt que a #82 §4 apontou): um crate novo entrava no `Cargo.toml` e o job
+# de Rust simplesmente não disparava para ele — o pior tipo de bug de CI, o
+# que não dá erro, só não roda. Aqui a fonte é o próprio workspace.
+#
+# `packages/app/ui` NÃO é crate Rust, mas o `tauri.conf.json` e o front fazem
+# parte do build do shell e mudam juntos; ele entra na lista de Paths para o
+# escopo `rust` continuar disparando onde já disparava (compatibilidade).
+_CRATES_CACHE: list[str] | None = None
+
+
+def crates_rust() -> list[str]:
+    """Diretórios com código Rust, lidos dos membros do workspace."""
+    global _CRATES_CACHE
+    if _CRATES_CACHE is None:
+        manifesto = os.path.join(os.path.dirname(__file__), "..", "Cargo.toml")
+        membros: list[str] = []
+        try:
+            with open(manifesto, encoding="utf-8") as fh:
+                texto = fh.read()
+            bloco = re.search(r"members\s*=\s*\[(.*?)\]", texto, re.S)
+            if bloco:
+                membros = re.findall(r'"([^"]+)"', bloco.group(1))
+        except OSError:
+            membros = []
+        # inclui o crate excluido da raiz (o shell do Tauri) e o front
+        extra = ["packages/app/api", "packages/app/ui"]
+        for e in extra:
+            if e not in membros:
+                membros.append(e)
+        _CRATES_CACHE = membros
+    return _CRATES_CACHE
+
+
+def scope_rust_regex() -> str:
+    """Expressão dos caminhos Rust, derivada do workspace (nunca manual)."""
+    return "|".join(f"{re.escape(m)}/" for m in crates_rust())
+
+
+CRATES_RUST = scope_rust_regex()
+
+
 def scopes(changed: str) -> dict[str, bool]:
     is_all = changed == "ALL"
     # re.M é obrigatório: CHANGED é multi-linha; sem ele o ^ só casa no
@@ -81,7 +124,7 @@ def scopes(changed: str) -> dict[str, bool]:
         return is_all or re.search(pat, changed, re.I | re.M) is not None
 
     return {
-        "rust": has(r"^(Cargo\.toml$|Cargo\.lock$|rust-toolchain\.toml$|packages/core/|packages/cli/|packages/app/api/|packages/app/ui/)"),
+        "rust": has(r"^(Cargo\.toml$|Cargo\.lock$|rust-toolchain\.toml$|%s)" % CRATES_RUST),
         "front": has(r"^packages/app/ui/"),
         # `scripts/` entrou no escopo da especificacao em #21. A razao e um
         # gate que nao disparava: `analysis/tests/test_h1_compare.py` testa
