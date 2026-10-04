@@ -9,7 +9,7 @@ exclude = ["packages/app/api"]
 # (job ui-rust no runner Windows com MSVC). Ver ADR-7 (DECISIONS.md).
 
 [workspace.package]
-version = "0.2.0-rc.2"
+version = "0.2.0-rc.3"
 edition = "2021"
 license = "MIT"
 
