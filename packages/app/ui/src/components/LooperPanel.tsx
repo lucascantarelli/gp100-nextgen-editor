@@ -48,7 +48,7 @@ export interface LooperSettings {
   pre: boolean; // true = PRE (90 s) · false = POST (45 s, com efeitos)
 }
 
-const KEY = "gp100.looper.v1";
+export const KEY = "gp100.looper.v1";
 export const LOOP_SECONDS_PRE = 90;
 export const LOOP_SECONDS_POST = 45;
 

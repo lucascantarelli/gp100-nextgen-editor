@@ -51,6 +51,11 @@ GATES: list[tuple[str, list[str], str]] = [
         "todo export de src/ tem consumidor fora do arquivo",
     ),
     (
+        "check_module_size",
+        [sys.executable, "scripts/check_module_size.py"],
+        "orcamento de tamanho do front (App.tsx < 300; docs/ARCHITECTURE.md §4)",
+    ),
+    (
         "h1_compare",
         [sys.executable, "scripts/h1_compare.py", "--self-check"],
         "a referencia do gate H1 tem as formas que a secao 13 manda",

@@ -21,6 +21,7 @@
 | **Escrever no device real (gate H2)** | `docs/H2_CHECKLIST.md` (3 fluxos, um por vez) + `docs/H2_REPORT.md` (relatório) — build com `--features real-device,write-verified` |
 | **Implementar o protocolo (gp100-core)** | `docs/protocol_golden.json` (especificação executável) + `docs/PROTOCOL.md` §13 (narrativa) |
 | **Decidir arquitetura/estrutura no core (M0)** | `docs/DECISIONS.md` (ADR-1..8 aceitos) |
+| **Saber onde o código novo do front vai morar** | `docs/ARCHITECTURE.md` (mapa de módulos + o que **não** entra em cada camada + orçamento de tamanho) |
 | **Escrever/revisar código Rust (M0)** | `.agents/skills/rust-practices/SKILL.md` (gates fmt/clippy/test + estilo de docs) |
 | **Modificar o protocolo / analisar nova captura** | `.agents/skills/capture-analyze/SKILL.md` → decoders → `build_golden.py` → `validate_golden.py` |
 | **Compilar o proxy / nova captura em campo** | `.agents/skills/proxy-build/SKILL.md` + `.agents/skills/new-session/SKILL.md` |
@@ -65,6 +66,7 @@
 | `UI_TEST_PLAN.md` | **Fonte dos roteiros e2e** (declarada no `playwright.config.ts`): R1–R6 + drum/looper, matriz de viewports, política de baselines | ✅ atual · ⚠️ seção de CI cita o pipeline pré-#68 (#75) |
 | `MANUAL_COVERAGE.md` | Matriz de cobertura do manual oficial V1.8 → requisitos implementados (X1..Xn), com o gate que prova cada um | ✅ atual · ⚠️ seção de CI cita o pipeline pré-#68 (#75) |
 | `UI_DESIGN.md` | Design system da UI: paleta palco Valeton (âmbar/preto/vermelho/lavanda com rácios WCAG medidos), escala de Fibonacci, tipografia, motion, identidade "pedalboard ao vivo", checklist de review | ✅ atual (M1.0) |
+| `ARCHITECTURE.md` | **Estrutura do front** (#82): mapa de módulos (`ipc`/`hooks`/`components`/`design`/…), o que **não** entra em cada camada, árvore de decisão para código novo e o orçamento de tamanho cobrado pelo gate `check_module_size.py` | ✅ atual (#82) |
 | `H1_CHECKLIST.md` | Checklist operacional do gate H1 (primeiro contato real, só leitura): pré-requisitos, procedimento de campo, níveis de comparação (framing × estado × estrutural), log de divergência, fluxo R3 | ⏳ aguardando pedaleira + owner — RealDevice ✅, kit de campo ✅ e Fase C automatizada (`h1_compare.py`) |
 | `H1_REPORT.md` | Relatório do gate H1 (template): execução por etapa, log de divergência, fluxo R3 e PLANO DE BACKUP fixo decidido antes de ligar | 📝 template |
 | `H2_CHECKLIST.md` | Checklist operacional do gate H2 (escrita real — **muda estado do aparelho**): por que a trava é feature de compilação, os 3 fluxos capturados (set-param/save/upload-ir) um por vez com verificação no display, watchlist e critérios de saída | ⏳ aguardando pedaleira + owner — trava ✅ testada (15 testes, mutation-provada) |
