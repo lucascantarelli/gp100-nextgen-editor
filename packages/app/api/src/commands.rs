@@ -24,6 +24,12 @@ use crate::actor::DeviceActor;
 pub struct AppState {
     /// Actor do device (M1: mock — política ADR-4/ADR-5).
     pub actor: DeviceActor,
+    /// Biblioteca persistente (#26). É um arquivo local, não tem device: por
+    /// isso não passa pelo actor — o actor serializa tráfego de fio, e a
+    /// biblioteca é leitura/escrita de disco. O `Mutex` aqui é só oBorrow que o
+    /// Tauri exige para um estado compartilhado entre commands; a política do
+    /// armazenamento (versão, seed, busca) está no `gp100-library`.
+    pub library: std::sync::Mutex<gp100_library::Library>,
 }
 
 /// DTO de `device_info` — MESMOS campos/semântica de `ui/src/ipc/types.ts`

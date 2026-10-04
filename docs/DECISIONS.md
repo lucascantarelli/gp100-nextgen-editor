@@ -455,3 +455,70 @@ host que a CI já contorna com `RUSTUP_TOOLCHAIN` por perna.
 | M1.0/A-4 (gp100-ui, spike) | 7 |
 | Dependabot (src-tauri + npm + actions) | 7, 8 |
 | H1–H3 (gate de hardware) | 3, 5 |
+| M2 (#24/#25/#26) | 9 |
+
+---
+
+## ADR-9 — A persistência do app mora num crate próprio do workspace gnu, não no crate do Tauri
+
+> **Status:** ✅ aceito (M2/#26) · **Vincula:** #26 (biblioteca), #24 (IR lab),
+> #25 (SnapTone) · **Herdou:** ADR-7 (a divisão gnu/MSVC)
+
+**Contexto.** A #26 pede a biblioteca (fábrica + usuário) em SQLite, com
+migrações versionadas, busca e import/export. A pergunta que precede o código é
+**onde esse banco vive**, porque #24 (laboratório de IRs) e #25 (gestor
+SnapTone/NAM) precisam exatamente do mesmo armazenamento — se a #26 escolher um
+substrate, as três herdam.
+
+Duas respostas eram possíveis: `rusqlite` dentro do crate do Tauri
+(`packages/app/api`, que já é dono do `AppState`) ou um crate novo. A escolha não
+é estética; o ADR-7 já tinha produzido a evidência que decide.
+
+**A evidência que decide.** O `gp100-ui` está FORA do workspace gnu de propósito
+(ADR-7: o Tauri 2 exige MSVC no Windows) e por isso os testes dele rodam num
+único job, `Testes · Rust (cargo test · ui-rust)`, preso ao runner Windows. E,
+medido nesta máquina: o crate do Tauri **não compila local** — o Git Bash do
+Windows expõe `/usr/bin/link.exe` (o `link` do coreutils), que sombreia o
+`link.exe` do MSVC e mata o link de qualquer crate de build script. A
+consequência é direta: **persistência escrita dentro do crate MSVC é
+persistência que não se consegue verificar na máquina de desenvolvimento** — só
+na CI, e só em uma plataforma.
+
+Isso importa mais do que parece. A #26 pede migrações e import/export: exatamente
+as partes que quebram de forma dependente da plataforma. O `sqlite3_libversion()` diverge
+entre o SQLite embutido e o do sistema, e um `ALTER TABLE` aceito numa versão
+pode ser recusado noutra.
+
+**Decisão.**
+1. A persistência é um crate novo, `packages/library` (`gp100-library`),
+   **membro do workspace raiz** (gnu). Sem dependência de Tauri: ele não sabe
+   que existe uma janela.
+2. Ele usa `rusqlite` com a feature `bundled` (SQLite embutido, sem dependência
+   de biblioteca do sistema) — o mesmo SQLite em toda máquina, o que torna o
+   comportamento das migrações reproduzível.
+3. O `gp100-ui` vira **só a casca**: commands `library_*` finos que delegam ao
+   crate. Nenhuma regra de armazenamento mora no shell.
+4. Os 99 presets de fábrica entram no banco na **primeira execução** (seed do
+   `all.prst`), e o seed reutiliza o parser do `gp100-core` — não há segunda
+   implementação do formato `.prst` no projeto.
+5. A versão do esquema vive em `PRAGMA user_version`. O número é lido do
+   próprio arquivo, nunca de uma constante no código.
+
+**Alternativas rejeitadas.**
+- *SQLite no front (sql.js/WASM).* Teria footprint de WASM, banco inteiro em
+  memória e a busca passaria a rodar na UI. Descartado.
+- *Manter `localStorage` versionado.* Trocar de esquema viraria código, não
+  migração — que é justamente o que a issue pede.
+
+**Consequências.**
+- (+) As migrações, a busca e o import/export são testados no job `Testes · Rust`
+  do workspace, **nas três plataformas** da matriz — localmente também.
+- (+) #24 e #25 passam a ter um armazenamento com migração de verdade, sem
+  repetir a decisão de substrate.
+- (−) `packages/app/api` passa a depender de um crate que vive em OUTRO
+  workspace. Cargo resolve por path, mas isso precisa de CI para provar.
+- (−) O escopo do job `rust` no `ci_plan.py` precisa de `packages/library/` na
+  expressão — o mesmo debt de escopo que a #82 §4 apontou.
+- (−) `rusqlite` com `bundled` compila o SQLite a partir do fonte: primeiro
+  build mais lento e exige um compilador C (minGW no Windows-gnu, cc nos
+  containers Linux).

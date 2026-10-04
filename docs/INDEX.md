@@ -20,8 +20,9 @@
 | **Levar o gp100-core à pedaleira (gate H1)** | `docs/H1_CHECKLIST.md` (checklist) + `docs/H1_REPORT.md` (relatório/plano de backup) + `scripts/h1_field.sh` (runbook: rehearsal/field/refresh-reference) + `scripts/h1_compare.py` (juiz da Fase C: classifica a sessão nos 3 níveis e imprime a tabela do §5) |
 | **Escrever no device real (gate H2)** | `docs/H2_CHECKLIST.md` (3 fluxos, um por vez) + `docs/H2_REPORT.md` (relatório) — build com `--features real-device,write-verified` |
 | **Implementar o protocolo (gp100-core)** | `docs/protocol_golden.json` (especificação executável) + `docs/PROTOCOL.md` §13 (narrativa) |
-| **Decidir arquitetura/estrutura no core (M0)** | `docs/DECISIONS.md` (ADR-1..8 aceitos) |
+| **Decidir arquitetura/estrutura no core (M0)** | `docs/DECISIONS.md` (ADR-1..9 aceitos) |
 | **Saber onde o código novo do front vai morar** | `docs/ARCHITECTURE.md` (mapa de módulos + o que **não** entra em cada camada + orçamento de tamanho) |
+| **Saber onde a persistencia do app mora (M2)** | `docs/DECISIONS.md` ADR-9 (crate `gp100-library` no workspace gnu, nao no crate MSVC do Tauri) |
 | **Escrever/revisar código Rust (M0)** | `.agents/skills/rust-practices/SKILL.md` (gates fmt/clippy/test + estilo de docs) |
 | **Modificar o protocolo / analisar nova captura** | `.agents/skills/capture-analyze/SKILL.md` → decoders → `build_golden.py` → `validate_golden.py` |
 | **Compilar o proxy / nova captura em campo** | `.agents/skills/proxy-build/SKILL.md` + `.agents/skills/new-session/SKILL.md` |
@@ -71,7 +72,8 @@
 | `H1_REPORT.md` | Relatório do gate H1 (template): execução por etapa, log de divergência, fluxo R3 e PLANO DE BACKUP fixo decidido antes de ligar | 📝 template |
 | `H2_CHECKLIST.md` | Checklist operacional do gate H2 (escrita real — **muda estado do aparelho**): por que a trava é feature de compilação, os 3 fluxos capturados (set-param/save/upload-ir) um por vez com verificação no display, watchlist e critérios de saída | ⏳ aguardando pedaleira + owner — trava ✅ testada (15 testes, mutation-provada) |
 | `H2_REPORT.md` | Relatório do gate H2 (template): veredito por fluxo, divergência classificada em protocolo/comportamento, pistas para o H3 | 📝 template |
-| `DECISIONS.md` | ADR-lite com as decisões estruturais do gp100-core: ADR-1..5 (endian/nibble, erros, transporte, trait, `WRITE_VERIFIED` = feature `write-verified` + `WireKind`) + ADR-6 (FSM `Session`, dispatch do IN ambíguo, save fire-and-forget) + ADR-7 (gp100-ui fora do workspace gnu) + ADR-8 (toolchains portáveis p/ o Dependabot; lockfile raiz fora do escopo dele) | ✅ atual |
+| `DECISIONS.md` | ADR-lite com as decisões estruturais do gp100-core: ADR-1..5 (endian/nibble, erros, transporte, trait, `WRITE_VERIFIED` = feature `write-verified` + `WireKind`) + ADR-6 (FSM `Session`, dispatch do IN ambíguo, save fire-and-forget) + ADR-7 (gp100-ui fora do workspace gnu) + ADR-8 (toolchains portáveis p/ o Dependabot; lockfile raiz fora do escopo dele) + ADR-9 (a persistência fica num crate do workspace gnu, não no crate MSVC do Tauri) | ✅ atual |
+| `packages/library/` | **Biblioteca persistente** (#26, ADR-9): SQLite com migracoes versionadas (`PRAGMA user_version`), busca por nome/nº/estilo, import/export JSON versionado e seed dos 99 presets de fabrica do `all.prst`. Crate do workspace gnu, sem Tauri | ✅ novo (#26) |
 | `skills_audit_2026-09-29.md` | Auditoria das skills: regras que eram prática implícita, agora escritas (5 achados em core-dev/docs-sync/spec-baseline) | ✅ atual |
 | `INDEX.md` | Este índice | ✅ manter atualizado |
 
@@ -171,7 +173,7 @@ O Tauri não gera pacote Arch: a unidade de distribuição **é** a receita vers
 ### Entregue até 03/10
 | Fase/área | Estado |
 |---|---|
-| **P0–P5** (preparação) | ✅ 100% · ADR-1..8 em `DECISIONS.md` |
+| **P0–P5** (preparação) | ✅ 100% · ADR-1..9 em `DECISIONS.md` |
 | **M0** (gp100-core) | ✅ 100% (M0.1–M0.8) — round-trip `.prst` byte-idêntico, replay das 4 fixtures |
 | **M1** (Editor UI) | ✅ M1.0–M1.3 + V-8 (#20) + i18n (#30) — palco real, afinador, biblioteca, looper, i18n pt/en/es/zh |
 | **ACHADOS** | ✅ A-1..A-5 |

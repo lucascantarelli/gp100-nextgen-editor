@@ -24,6 +24,10 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 gp100-core = { path = "../../core" }
+# A CASCA da biblioteca (ADR-9): o `gp100-library` mora no workspace raiz
+# (gnu, testado nas 3 plataformas) e este crate so delega. Nenhuma regra de
+# armazenamento mora aqui — e por isso o `rusqlite` nao entra no MSVC.
+gp100-library = { path = "../../library" }
 tauri = { version = "2", features = [] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
