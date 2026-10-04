@@ -99,6 +99,46 @@ export const COMMAND_TIMEOUT_MS = 8_000;
 /** Timeout do command (classe própria: o teste distingue de erro do device). */
 export class CommandTimeoutError extends Error {}
 
+/**
+ * POLÍTICA DE EXECUÇÃO — declarada por chamada, nunca herdada (#82).
+ *
+ * Antes, `withRetry` tinha o nº de tentativas fixo no corpo: toda chamada nova
+ * nascia com retry sem ninguém decidir isso, e a ÚNICA exceção (o boot) era a
+ * ausência de uma função — um detalhe que se perde na leitura. Um chamador
+ * não conseguia saber se a chamada repetia sem abrir a implementação.
+ *
+ * Agora a política é um PARÂMETRO OBRIGATÓRIO: o compilador cobra a decisão em
+ * toda chamada nova. E `once` exige `reason`, porque "não repetir" sem motivo
+ * escrito é exatamente o comentário que o próximo author apaga sem pensar.
+ */
+type CommandPolicy =
+  /** Repete até `attempts` vezes com backoff. Só para operation IDEMPOTENTE. */
+  | { readonly kind: "retry"; readonly attempts: number }
+  /** Uma tentativa só. `reason` é obrigatório e aparece no log de debug. */
+  | { readonly kind: "once"; readonly reason: string };
+
+/**
+ * Política padrão do projeto: repetir é seguro para tudo que é idempotente
+ * (leitura, selecionar o mesmo preset, gravar o mesmo parâmetro no mesmo
+ * slot). O que NÃO é idempotente declara `once` com o motivo.
+ */
+export const IDEMPOTENTE: CommandPolicy = { kind: "retry", attempts: COMMAND_ATTEMPTS };
+
+/**
+ * Constrói a política de "uma tentativa só". Existe como função — e não como
+ * objeto literal solto — para que o `reason` seja obrigatório no ponto da
+ * chamada, onde a decisão acontece.
+ */
+export function semRetry(reason: string): CommandPolicy {
+  if (!reason.trim()) throw new Error("semRetry exige um motivo: a exceção precisa ser justificada");
+  return { kind: "once", reason };
+}
+
+/** Descrição da política, para log de debug e para o relatório de gates. */
+export function descrevePolitica(p: CommandPolicy): string {
+  return p.kind === "retry" ? `retry x${p.attempts}` : `once (${p.reason})`;
+}
+
 function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
@@ -137,15 +177,21 @@ function withTimeout<T>(run: Promise<T>, op: string): Promise<T> {
   });
 }
 
-/** Executa o command com timeout por tentativa e retry com backoff. */
-async function withRetry<T>(op: string, run: () => Promise<T>): Promise<T> {
+/**
+ * Executa o command conforme a política DECLARADA na chamada.
+ *
+ * `policy` é parâmetro obrigatório e não tem default: é o que impede a
+ * herança silenciosa. `IDEMPOTENTE` é o valor explícito para o caso comum.
+ */
+async function runCommand<T>(op: string, policy: CommandPolicy, run: () => Promise<T>): Promise<T> {
+  const attempts = policy.kind === "retry" ? Math.max(1, policy.attempts) : 1;
   let last: unknown;
-  for (let attempt = 1; attempt <= COMMAND_ATTEMPTS; attempt += 1) {
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
     try {
       return await withTimeout(run(), op);
     } catch (e) {
       last = e;
-      if (attempt < COMMAND_ATTEMPTS) await sleep(retryDelayMs(attempt));
+      if (attempt < attempts) await sleep(retryDelayMs(attempt));
     }
   }
   throw last;
@@ -175,9 +221,9 @@ function localMockInfo(): DeviceInfo {
 export async function deviceInfo(): Promise<DeviceInfo> {
   if (inTauri()) {
     const { invoke } = await import("@tauri-apps/api/core");
-    return withRetry("info", () => invoke<DeviceInfo>("device_info"));
+    return runCommand("info", IDEMPOTENTE, () => invoke<DeviceInfo>("device_info"));
   }
-  return withRetry("info", async () => {
+  return runCommand("info", IDEMPOTENTE, async () => {
     debugFail("info");
     return localMockInfo();
   });
@@ -191,9 +237,14 @@ export async function deviceInfo(): Promise<DeviceInfo> {
 export async function deviceBoot(): Promise<BootReport> {
   if (inTauri()) {
     const { invoke } = await import("@tauri-apps/api/core");
-    // SEM retry (política da issue #20): boot é longo e não-idempotente em
-    // custo; falha → erro visível com ⟳.
-    return invoke<BootReport>("device_boot");
+    return runCommand(
+      "boot",
+      semRetry(
+        "boot sao 2297 transacoes: repetir mascararia o device morto. " +
+          "A recuperacao e o re-scan explicito do usuario (issue #20).",
+      ),
+      () => invoke<BootReport>("device_boot"),
+    );
   }
   debugFail("boot");
   // "boot-mid": o device cai no MEIO do boot — progresso real aparece e só
@@ -357,10 +408,12 @@ function localMockLibrary(): PresetLibrary {
 export async function deviceBoard(pp?: number): Promise<BoardView> {
   if (inTauri()) {
     const { invoke } = await import("@tauri-apps/api/core");
-    return withRetry("board", () => invoke<BoardView>("device_board", { pp: pp ?? null }));
+    return runCommand("board", IDEMPOTENTE, () =>
+      invoke<BoardView>("device_board", { pp: pp ?? null }),
+    );
     // NOTE: quando o backend real responder, os knobs vêm do dicionário.
   }
-  return withRetry("board", async () => {
+  return runCommand("board", IDEMPOTENTE, async () => {
     debugFail("board");
     return localMockBoard(pp);
   });
@@ -370,23 +423,25 @@ export async function deviceBoard(pp?: number): Promise<BoardView> {
 export async function devicePresetLibrary(): Promise<PresetLibrary> {
   if (inTauri()) {
     const { invoke } = await import("@tauri-apps/api/core");
-    return withRetry("library", () => invoke<PresetLibrary>("device_preset_library"));
+    return runCommand("library", IDEMPOTENTE, () =>
+      invoke<PresetLibrary>("device_preset_library"),
+    );
   }
   // A biblioteca vem de ARTEFATO local (nunca do fio) — sem gancho de falha;
   // timeout/retry valem por uniformidade da porta única.
-  return withRetry("library", async () => localMockLibrary());
+  return runCommand("library", IDEMPOTENTE, async () => localMockLibrary());
 }
 
 /** `device_select_preset` — select real no device (fallback troca local). */
 export async function deviceSelectPreset(pp: number): Promise<void> {
   if (inTauri()) {
     const { invoke } = await import("@tauri-apps/api/core");
-    await withRetry("select", () => invoke("device_select_preset", { pp }));
+    await runCommand("select", IDEMPOTENTE, () => invoke("device_select_preset", { pp }));
     return;
   }
   // fallback: sem estado global local além do corrente informado.
   // Retentável: reenviar o MESMO pp não acumula efeito (o select é destino).
-  await withRetry("select", async () => {
+  await runCommand("select", IDEMPOTENTE, async () => {
     debugFail("select");
   });
 }
@@ -400,12 +455,16 @@ export async function deviceSetParam(
 ): Promise<void> {
   if (inTauri()) {
     const { invoke } = await import("@tauri-apps/api/core");
-    await withRetry("set_param", () => invoke("device_set_param", { slot, code, ctrl, value }));
+    await runCommand(
+      "set_param",
+      IDEMPOTENTE,
+      () => invoke("device_set_param", { slot, code, ctrl, value }),
+    );
     return;
   }
   // Retentável: set de knob é fire-and-forget (D4) e reaplicar o MESMO valor
   // é idempotente no device.
-  await withRetry("set_param", async () => {
+  await runCommand("set_param", IDEMPOTENTE, async () => {
     debugFail("set_param");
   });
 }
