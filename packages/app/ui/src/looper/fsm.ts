@@ -113,7 +113,10 @@ export function tick(state: LooperState, maxSecs: number): LooperState {
  * `pronto`/`vazia` só valem com o transporte parado: rodando, o modo manda.
  */
 export function chaveDoModo(state: LooperState): ChaveModo {
-  if (state.mode !== "idle" && state.mode !== "stop") return state.mode;
+  // Só `idle` cai para o rótulo de fita. `stop` tem rótulo PRÓPRIO ("STOP"):
+  // é o que diz ao usuário que a máquina parou com a fita dentro — STOP e
+  // PRONTO não são a mesma informação.
+  if (state.mode !== "idle") return state.mode;
   return state.hasTape ? "ready" : "empty";
 }
 

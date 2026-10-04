@@ -168,9 +168,14 @@ describe("looper: o que o painel mostra", () => {
     expect(rodando(com({ mode: "idle" }))).toBe(false);
   });
 
-  it("o rótulo de parado distingue fita de vazio", () => {
+  it("só `idle` cai para o rótulo de fita; `stop` tem rótulo próprio", () => {
+    // Este teste afirmou o CONTRÁRIO uma vez, e o e2e pegou: o painel
+    // mostrava "PRONTO" depois de ■ STOP. STOP e PRONTO não são a mesma
+    // informação — um diz que a máquina parou, o outro que há fita guardada.
     expect(chaveDoModo(com({ mode: "idle", hasTape: false }))).toBe("empty");
-    expect(chaveDoModo(com({ mode: "stop", hasTape: true }))).toBe("ready");
+    expect(chaveDoModo(com({ mode: "idle", hasTape: true }))).toBe("ready");
+    expect(chaveDoModo(com({ mode: "stop", hasTape: true })), "STOP tem rotulo proprio").toBe("stop");
+    expect(chaveDoModo(com({ mode: "stop", hasTape: false }))).toBe("stop");
   });
 
   it("rodando, o MODO manda sobre o rótulo de fita", () => {
