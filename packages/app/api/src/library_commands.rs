@@ -66,7 +66,10 @@ pub fn library_search(
 pub fn library_stats(state: State<'_, AppState>) -> Result<LibraryStats, String> {
     let lib = state.library.lock().map_err(|e| e.to_string())?;
     let total = lib.count().map_err(|e| e.to_string())?;
-    let factory = lib.factory_presets().map(|v| v.len()).map_err(|e| e.to_string())?;
+    let factory = lib
+        .factory_presets()
+        .map(|v| v.len())
+        .map_err(|e| e.to_string())?;
     Ok(LibraryStats {
         total,
         factory: factory as i64,

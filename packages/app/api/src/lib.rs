@@ -91,7 +91,8 @@ fn seed_de_fabrica(lib: &gp100_library::Library) -> Result<usize, String> {
         "/../../../files/patches/all.prst"
     ));
     let agora = library_commands::agora_iso();
-    lib.seed_factory(ALL_PRST, &agora).map_err(|e| e.to_string())
+    lib.seed_factory(ALL_PRST, &agora)
+        .map_err(|e| e.to_string())
 }
 
 /// Boot do app Tauri: registra estado + commands (invocado pelo `main`).
