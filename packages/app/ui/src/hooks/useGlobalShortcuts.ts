@@ -14,7 +14,7 @@
  */
 import { useEffect, useRef } from "react";
 
-export type ShortcutKind = "space" | "letter" | "escape";
+type ShortcutKind = "space" | "letter" | "escape";
 
 /** campos onde o usuário digita — atalhos de transporte ficam inativos */
 const TEXT_ENTRY = [
@@ -64,7 +64,7 @@ export function shouldHandleShortcut(e: KeyboardEvent, kind: ShortcutKind): bool
   return !isTextEntryTarget(e.target); // letter (R)
 }
 
-export interface GlobalShortcutHandlers {
+interface GlobalShortcutHandlers {
   onDrumToggle: () => void; // Espaço
   onLooperRec: () => void; // R
   onEscape: () => void; // Esc (painel do topo)

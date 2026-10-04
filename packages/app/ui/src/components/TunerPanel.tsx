@@ -36,7 +36,7 @@ import { MSG } from "../i18n/messages";
 import { ANALYSIS_WINDOW, REF_PITCH_DEFAULT, REF_PITCH_MAX, REF_PITCH_MIN, TunerEngine } from "../tuner/pitch";
 import type { TunerReading } from "../tuner/pitch";
 
-export type TunerMode = "bypass" | "thru" | "mute";
+type TunerMode = "bypass" | "thru" | "mute";
 
 export interface TunerSettings {
   on: boolean;

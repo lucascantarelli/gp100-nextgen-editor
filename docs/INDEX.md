@@ -96,7 +96,7 @@ Instaladores, firmware V2.1, manual, driver, DebugView, screenshots,
 |---|---|---|
 | `ci_plan.py` | Fonte de verdade da regra branch → escopos → matriz/stágios | `Validação · plano e escopo` |
 | `validate_workflows.py` | Sintaxe + contratos do pipeline + trigger (proíbe branch de trabalho no `push`) | `Lint · contratos do pipeline` |
-| `check_bundle.py` | Schema do Tauri, ícones (16/32/48/256 + integridade PNG), `.deb`/PKGBUILD/`.desktop`, `targets` vs job de dist | ⚠️ **NÃO LIGADO** (#71) |
+| `check_bundle.py` | Schema do Tauri, ícones (16/32/48/256 + integridade PNG), `.deb`/PKGBUILD/`.desktop`, `targets` vs job de dist, tarball de fonte | `Lint · contratos do pipeline` (#71) |
 | `check_base_images.py` | Toda `FROM`/`COPY --from=` resolve o default de `ARG` e sonda o registro antes do build | `Infra · imagens de container` |
 | `simulate_release.py` | Executa os blocos rc/promote do PRÓPRIO ci.yml num sandbox git | `Lint · contratos do pipeline` |
 | `check_commits.py` | Conventional commits (`--no-merges`) | `Lint · mensagens de commit` |
@@ -105,6 +105,7 @@ Instaladores, firmware V2.1, manual, driver, DebugView, screenshots,
 | `gates.py` | **Roda todos os gates de script de uma vez**, na ordem do CI (`--list` mostra a lista) | local (`python3 scripts/gates.py`) |
 | `make_sdist.py` | Tarball de fonte com o `ui/dist` embutido — insumo do PKGBUILD | `Distribuição · tarball de fonte` |
 | `sync_version.py` | Os 5 manifests de versão em sincronia (`--check` é o gate) | `Lint · contratos do pipeline` |
+| `check_deadcode.py` | Todo `export` de `src/` tem consumidor fora do arquivo — cobertura 100% não prova que o contrato é consumível (#78) | `Lint · UI` |
 | `add_cargo_path.ps1` / `h1_field.sh` | Fix do PATH do cargo (HKLM) · runbook do gate H1 | local / campo |
 
 ### Raiz do repo — governança
@@ -176,7 +177,7 @@ O Tauri não gera pacote Arch: a unidade de distribuição **é** a receita vers
 ### Contagem de testes
 | Suíte | Comando | Contagem |
 |---|---|---|
-| Unit do front | `pnpm exec vitest run` | **178** em 15 arquivos |
+| Unit do front | `pnpm exec vitest run` | **189** em 15 arquivos |
 | Cobertura do front | `pnpm run test:coverage` | **91,68%** stmts · **86,65%** branch · **91,66%** fns · **93,57%** lines (gate 85) |
 | E2E (Playwright) | `pnpm exec playwright test` | **78** roteiros · **96** baselines versionados |
 | Rust (core+cli) | `cargo test --workspace` | **15** suítes de integração/doc-test |

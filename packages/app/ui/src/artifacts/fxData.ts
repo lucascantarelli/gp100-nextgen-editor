@@ -5,14 +5,14 @@
  * (mesmos nomes/ranges/defaults da pedaleira de fábrica).
  */
 
-export interface FxKnobData {
+interface FxKnobData {
   name: string;
   pos: number;
   default: string | null;
   min: number | null;
   max: number | null;
 }
-export interface FxSwitchData {
+interface FxSwitchData {
   name: string;
   pos: number;
   options: string[];

@@ -22,7 +22,7 @@ export interface DeviceInfo {
 }
 
 /** Etapas do script de boot — literais do backend (BootProgressDto). */
-export type BootStage =
+type BootStage =
   | "tables"
   | "scan"
   | "probe"
@@ -115,7 +115,7 @@ export interface BoardView {
 }
 
 /** Entrada da biblioteca de presets (flight case). */
-export interface PresetEntry {
+interface PresetEntry {
   pp: number;
   name: string;
   ppTypeName: string;
