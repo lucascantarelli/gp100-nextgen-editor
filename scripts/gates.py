@@ -51,6 +51,11 @@ GATES: list[tuple[str, list[str], str]] = [
         "todo export de src/ tem consumidor fora do arquivo",
     ),
     (
+        "h1_compare",
+        [sys.executable, "scripts/h1_compare.py", "--self-check"],
+        "a referencia do gate H1 tem as formas que a secao 13 manda",
+    ),
+    (
         "pytest",
         ["uv", "run", "pytest", "-q"],
         "trava da especificacao (provas A-E do golden)",

@@ -399,7 +399,8 @@ impl MockDevice {
                 //     com o meta6 do select (mis-pairing inofensivo até
                 //     aqui: o boot só tinha rodado no transporte de replay);
                 //   páginas → by-len 196/32 pelo in_addr do template, com
-                //     eco do pp/PG do REQUEST (evidência S1 rows 93–107);
+                //     eco do pp do REQUEST e o número da página RESPONDIDA
+                //     (= PG+1, §13.10 — evidência S1 rows 93–107);
                 //   PG 8 → 4B em `1301/1302 0005` (t11/t16, pp no var0).
                 (0x12, [0x13, ..]) => {
                     let tpl = &golden.templates()[tpl_idx];
@@ -500,14 +501,40 @@ impl MockDevice {
                             Some(page)
                         } else {
                             // Páginas (t8/t15, by-len): eco do request onde
-                            // evidente (var0 2B = pp; var1 1B = PG) e exemplo
-                            // da resposta para o resto — shape sempre correto
-                            // (zeros onde não observado; by-len casa por forma).
+                            // evidente e exemplo da resposta para o resto —
+                            // shape sempre correto (by-len casa por forma).
+                            //
+                            // O layout do segmento `by_len["196"]` é
+                            // `[var 2B = pp][const 1B = 00][var 18B = corpo]…`,
+                            // e o NÚMERO DA PÁGINA é o byte 0 desse var de 18B
+                            // — é o `d[3]` do §13.10, que substituiu o
+                            // "contador de versão" do §13.3.
+                            //
+                            // O número é `PG + 1`, NÃO `PG`: o §13.10 diz
+                            // "req pg0..7 → pág1..8" (e a PG 8 responde o
+                            // header de 4B com d[3]=9). Ecoar o PG do request
+                            // fazia TODAS as 8 páginas responderem 0.
+                            //
+                            // O estrago disso era invisível e caro: o
+                            // `StatePage` é opaco (ninguém lia esse byte), o
+                            // dump prints OK, e a referência de
+                            // `analysis/h1_reference/` — que é a SAÍDA do
+                            // mock — ficava com drift. Como o H1 compara o
+                            // device real contra essa referência, cada
+                            // sessão de campo acusaria 8 "divergências de
+                            // estado" por dump que não são de estado — e
+                            // elas seriam coladas no H1_REPORT como afirmações
+                            // sobre a pedaleira.
                             build_with_fill(tpl, desired, |i, count| {
                                 if i == 0 && count == 2 {
                                     echo_pp.clone()
-                                } else if is_page && i == 1 && count == 1 {
-                                    vec![requested_pg.unwrap_or(0)]
+                                } else if is_page && i == 1 && count >= 1 {
+                                    let mut corpo = example_var(tpl, desired, i, count);
+                                    // o exemplo congelado é a evidência do
+                                    // corpo; só d[3] (offset 3 do payload) é
+                                    // reescrito com a página desta resposta.
+                                    corpo[0] = requested_pg.unwrap_or(0).wrapping_add(1);
+                                    corpo
                                 } else {
                                     example_var(tpl, desired, i, count)
                                 }
@@ -764,6 +791,44 @@ mod tests {
             "DeviceGone precede o shape: {err:?}"
         );
         assert_eq!(dev.transactions(), 1);
+    }
+
+    /// §13.10: o byte `d[3]` da página é o NÚMERO DA PÁGINA, e a resposta ao
+    /// request da PG é a página `PG + 1` ("req pg0..7 → pág1..8").
+    ///
+    /// Este teste existe porque o ecoar `PG` passava despercebido: o
+    /// `StatePage` é opaco (ninguém lê esse byte), então o mock respondia
+    /// 0 nas 8 páginas e nada quebrava — só a referência do H1 saía de
+    /// sincronia, e o estrago só apareceria em campo, como 8 "divergências
+    /// de estado" falsas por dump.
+    #[test]
+    fn pagina_responde_o_numero_da_pagina_mais_um() {
+        for (pedida, esperada) in [(0u8, 1u8), (1, 2), (7, 8)] {
+            let mut dev = MockDevice::new().expect("mock montado");
+            dev.open().expect("open");
+            let mut sess = crate::session::Session::new(&mut dev);
+            sess.select_preset(0).expect("select §13.10");
+            let pagina = sess.state_page(pedida).expect("página");
+            assert_eq!(
+                pagina.raw[3], esperada,
+                "req PG={pedida} deve responder a página {esperada} (§13.10), \
+                 veio {}",
+                pagina.raw[3]
+            );
+        }
+    }
+
+    /// A PG 8 não é página: é o header de 4B em `13010005` (§13.10). E o
+    /// byte existe — se o `+1` do teste anterior vazasse para cá, este
+    /// acusaria.
+    #[test]
+    fn pagina_8_e_o_header_de_4_bytes() {
+        let mut dev = MockDevice::new().expect("mock montado");
+        dev.open().expect("open");
+        let mut sess = crate::session::Session::new(&mut dev);
+        sess.select_preset(0).expect("select §13.10");
+        let pagina = sess.state_page(8).expect("PG 8");
+        assert_eq!(pagina.raw.len(), 4, "PG 8 responde 4B (§13.10)");
     }
 
     /// O dicionário embedado carrega (185 algs) e reconhece um effectCode

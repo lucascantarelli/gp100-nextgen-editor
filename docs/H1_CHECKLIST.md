@@ -2,14 +2,21 @@
 
 > **Status:** ⏳ aguardando o transporte real (software da Fase M0 pronto: M0.7 ✅ e M0.8 ✅) · **Última revisão:** 2026-09-29 · **Responsáveis:** owner no hardware + skill `capture-analyze` para divergências
 >
-> **Kit de campo PRONTO (29/09):** build release do CLI · referências do mock em
-> `analysis/h1_reference/` · runbook `scripts/h1_field.sh rehearsal|field` (ensaio
-> executado, 0 divergências de framing) · relatório `docs/H1_REPORT.md` com o
-> **plano de backup fixo** (§7) — decidido ANTES de ligar a pedaleira.
+> **Kit de campo PRONTO (29/09, Fase C automatizada em #21):** build release do
+> CLI · referências do mock em `analysis/h1_reference/` · runbook
+> `scripts/h1_field.sh rehearsal|field` · **juiz da Fase C
+> `scripts/h1_compare.py`** (classifica a sessão nos 3 níveis do §4 e imprime a
+> tabela do §5) · relatório `docs/H1_REPORT.md` com o **plano de backup fixo** (§7)
+> — decidido ANTES de ligar a pedaleira.
 > **Fontes:** `docs/ROADMAP.md` (issue H1, regra R3), `docs/VISION.md` §7 (brick-proof), `docs/BLOCKERS.md` §4, ADR-3/ADR-4/ADR-6 (`docs/DECISIONS.md`), `docs/PROTOCOL.md` §13, `knowledge.md` (armadilhas de captura).
 > **Regra deste gate:** **LER é seguro; ESCREVER é H2.** Nenhum byte de escrita sai
 > nesta sessão (`set-param`/`save`/`upload-ir` proibidos MESMO com dry-run) e
 > firmware update continua fora de escopo (política V2+).
+>
+> ⚠️ **O que o H1 NÃO fecha sozinho:** os itens de aceite "leitura real idêntica
+> ao mock" e "divergências → fluxo R3" dependem de **alguém rodar a sessão de
+> campo**. Este documento + o kit é o que torna essa sessão barata e sem
+> improviso; o veredito em si só existe depois que ela rodar.
 
 ---
 
@@ -42,8 +49,11 @@ fluxo R3"*.
 - [ ] GP-100 na USB **direta** do PC (sem hub), firmware V2.1, driver instalado
 - [ ] **Suite oficial FECHADO** — todas as instâncias (uma instância residual mata
       a nossa conexão; occupancy de MIDI — armadilha de captura do knowledge)
-- [ ] Ensaio prévio do MESMO fluxo contra o **MOCK** na mesma build (comportamento
-      de referência conhecido; saída do mock salva p/ diff)
+- [ ] Ensaio prévio do MESMO fluxo contra o **MOCK** na mesma build — não é
+      aquecimento, é **gate**: no ensaio o juiz trata divergência de conteúdo
+      como **DRIFT** entre o mock e a referência e sai com código 3. Um ensaio
+      que não dá 0 significa que a referência está velha (ou o mock regrediu) —
+      e isso se descobre **aqui**, não com a pedaleira na mão
 - [ ] Anotar o que o **DISPLAY** da pedaleira mostra (nome do preset atual, slots
       de IR com conteúdo) — em campo, o display é a verdade de estado
 
@@ -57,8 +67,13 @@ fluxo R3"*.
 **Fase B — leitura incremental** (cada passo SÓ avança se o anterior não deu
 `InvalidShape`/`Timeout`; timeout = repetir 1× antes de classificar — sem retry
 automático, D6)
-- [ ] **B1 `info`** — pp corrente, nome, tipo, nº de presets. Conferir com o DISPLAY
-      (mock ≠ real aqui é ESPERADO se o device foi editado — nível 2, ver §4)
+- [ ] **B1 `info`** — **ATENÇÃO: no device real o `info` NÃO emite tráfego de fio.**
+      Ele só identifica o transporte; o estado vem das leituras B2/B3. O
+      `b1_info.jsonl` de campo sai **vazio por construção** e o juiz marca o
+      passo como `SEM EVIDENCIA` — que é um terceiro estado, NÃO um "passou".
+      O que fazer: anotar no display (pp corrente, nome, tipo) e comparar com o
+      que B3 trouxer. Se alguém prometer validar o pp por `info --real`, a
+      promessa é falsa por construção do CLI.
 - [ ] **B2 `list-user-irs`** — tabela dos 20 slots (nomes; CRC de vazio = ppIRCRC).
       Slots 0/1 têm IRs reais no device (upload da S2) → conteúdo divergente do
       `all.prst` é ESPERADO (nível 2)
@@ -71,11 +86,14 @@ automático, D6)
       conjunto/ordem divergentes = achado R3, não "bug do CLI"
 - [ ] Encerrar o log e SÓ ENTÃO desconectar (flush do arquivo)
 
-**Fase C — comparação (no PC, logo após a sessão)**
+**Fase C — comparação (no PC, logo após a sessão) — AUTOMATIZADA em #21**
+- [ ] `h1_field.sh field` já chamou o juiz e imprimiu o veredito; se a sessão foi
+      feita passo a passo, reprocesse sem re-ler o device:
+      `python3 scripts/h1_compare.py analysis/h1_field_<tag> --markdown`
 - [ ] Rodar os decoders na `sessionH1.jsonl` (mesmos scripts das capturas do Suite)
-- [ ] Comparar o FRAMING de cada log vs `analysis/h1_reference/` (runbook:
-      `scripts/h1_field.sh` — nível 1; conteúdo divergente = nível 2, esperado)
-- [ ] Classificar cada divergência nos níveis do §4 e lançar na tabela do §5
+- [ ] Conferir a **tabela do §5** que o juiz imprimiu (nível 1/3 = R3; nível 2 =
+      estado, documentar). O juiz separa os três; a conferência humana é sobre o
+      *conteúdo* das linhas de nível 2, não sobre recontar diffs.
 - [ ] Preencher `docs/H1_REPORT.md` e arquivar (§7; plano de backup no §7 dele)
 
 **PROIBIDO nesta sessão:** qualquer escrita (mesmo dry-run — é H2), update de
@@ -87,7 +105,22 @@ firmware, e "testinhas" fora do roteiro. Curiosidade custa pedaleira.
 |---|---|---|---|
 | **1. FRAMING** | func/addr de cada IN, na ordem; casa com template do golden (`match_response`, igual ao mock) | golden (Baseline v1.0) | **FALHA DE PROTOCOLO → R3 (§6)** |
 | **2. CONTEÚDO de estado** | pp/nome/tipo corrente, nomes de IR, CRCs de slots ocupados | DISPLAY + histórico (S2 subiu IRs; S4 gravou preset no device) | ESPERADO — documentar no relatório |
-| **3. ESTRUTURAL** | formas/tamanhos: meta6 6B, páginas 196/32B, fim 4B, ACK 4B | golden §13 | **FALHA → R3 (§6)** |
+| **3. ESTRUTURAL** | formas/tamanhos: meta6 6B, páginas 196/32B, fim 4B, ACK 4B | **§13 (a tabela `FORMAS_13`), NÃO o mock** | **FALHA → R3 (§6)** |
+
+**POR QUE O NÍVEL 3 NÃO COMPARA CONTRA O MOCK.** Se os três níveis usassem
+`analysis/h1_reference/` como fonte única, o gate passaria junto com o mock: um
+`MockDevice` que passasse a responder página de 197B geraria uma referência de
+197B, e o "divergente" em campo viraria "idêntico ao mock". O nível 3 é conferido
+contra a tabela `FORMAS_13` do juiz — o §13, não o código que o implementa — e o
+`--self-check` roda essa conferência no próprio conjunto de referência, ligado na
+CI. É o gate que impede mock e §13 de saírem de sincronia em silêncio.
+
+**A REFERÊNCIA É ARTEFATO DERIVADO.** `analysis/h1_reference/` é a *saída* do
+`MockDevice`, não um golden de captura. Quando o mock muda de semântica, a
+referência fica velha — e o `rehearsal` acusa isso como **DRIFT** (nível 2 com
+outro significado), nunca como "estado do device". Regenerar:
+`./scripts/h1_field.sh refresh-reference [--forcar]`. O `--forcar` só é aceito
+para drift de **conteúdo**; drift de **forma** recusa e manda para o R3.
 
 Desempate "protocolo × estado": repetir a MESMA leitura 2× — protocolo é
 determinístico (diverge igual nas duas), estado não muda entre leituras.
@@ -124,6 +157,11 @@ determinístico (diverge igual nas duas), estado não muda entre leituras.
 - [ ] `docs/H1_REPORT.md` arquivado + linha no `knowledge.md` (estado vivo)
 - [ ] ROADMAP: H1 ✅ com data (ou itens R3 abertos como issues)
 - [ ] `sessionH1.jsonl` preservado (matéria-prima para o H3/golden v1.1)
+
+**Códigos de saída do juiz** (`scripts/h1_compare.py`, e o `h1_field.sh` os
+propaga): `0` níveis 1/3 limpos · `1` divergência de **forma/framing** (fluxo R3)
+· `2` erro de uso · `3` **drift de conteúdo no ensaio** (`refresh-reference
+--forcar`). Um `field` que sai 1 tem de ser parado, não contornado.
 
 ## 8. Watchlist específica do H1 (coisas que ESPERAMOS encontrar)
 
