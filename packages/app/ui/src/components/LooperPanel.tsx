@@ -25,6 +25,21 @@
 import { useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { MSG } from "../i18n/messages";
+import {
+  chaveDoModo,
+  classeDosRolos,
+  fracaoGravada,
+  inicial,
+  limpar as limparFita,
+  play as tocarPlay,
+  rec as gravarRec,
+  rew as rebobinarRew,
+  rodando as rodandoFsm,
+  stop as pararStop,
+  tick as tickFsm,
+  tomDoModo,
+} from "../looper/fsm";
+import type { LooperState } from "../looper/fsm";
 
 export interface LooperSettings {
   recVol: number;
@@ -47,7 +62,7 @@ export function loadLooper(): LooperSettings {
   return { recVol: 80, playVol: 80, pVol: 80, pre: true };
 }
 
-type Mode = "idle" | "rec" | "play" | "dub" | "stop";
+// `LooperMode` e a FSM de `looper/fsm.ts` — o painel nao redeclara o estado.
 
 /* ── geometria do deck (unidades do viewBox 560×170) ────────────────────
    Proporção 3,3:1 DE PROPÓSITO. A versão anterior era 2,7:1 e o painel
@@ -283,57 +298,29 @@ export function LooperPanel({
   /** VU da navbar: true quando o loop está tocando/gravando (há "som") */
   onPlayingChange?: (playing: boolean) => void;
 }) {
-  const [mode, setMode] = useState<Mode>("idle");
+  // O estado de transporte é UM valor só, e todas as transições vêm da FSM
+  // pura: antes eram cinco `useState` que precisavam concordar entre si, e o
+  // `tick` mutava dois deles dentro do updater do terceiro.
+  const [estado, definir] = useState<LooperState>(inicial);
+  const { mode, hasTape, secs, confirmClear } = estado;
+  const definirEstado = (proximo: LooperState) => definir(proximo);
 
   // VU reativo da navbar: qualquer transporte que produza som anima as barras
   useEffect(() => {
-    onPlayingChange?.(mode === "rec" || mode === "play" || mode === "dub");
-  }, [mode, onPlayingChange]);
-  const [hasTape, setHasTape] = useState(false);
-  const [secs, setSecs] = useState(0);
-  const [confirmClear, setConfirmClear] = useState(false);
-  const timer = useRef<number | null>(null);
+    onPlayingChange?.(rodandoFsm(estado));
+  }, [estado, onPlayingChange]);
 
   const maxSecs = settings.pre ? LOOP_SECONDS_PRE : LOOP_SECONDS_POST;
-  const running = mode === "rec" || mode === "play" || mode === "dub";
+  const running = rodandoFsm(estado);
   const set = (patch: Partial<LooperSettings>) => onChange({ ...settings, ...patch });
 
   useEffect(() => {
-    if (!running) {
-      if (timer.current != null) window.clearInterval(timer.current);
-      timer.current = null;
-      return;
-    }
-    timer.current = window.setInterval(() => {
-      setSecs((s) => {
-        if (mode === "rec" && !hasTape) {
-          if (s + 1 >= maxSecs) {
-            setHasTape(true);
-            setMode("play");
-            return 0;
-          }
-          return s + 1;
-        }
-        return (s + 1) % maxSecs;
-      });
-    }, 1000);
-    return () => {
-      if (timer.current != null) window.clearInterval(timer.current);
-      timer.current = null;
-    };
-  }, [running, mode, hasTape, maxSecs]);
+    if (!running) return;
+    const id = window.setInterval(() => definirEstado(tickFsm(estado, maxSecs)), 1000);
+    return () => window.clearInterval(id);
+  }, [running, estado, maxSecs]);
 
-  const onRec = () => {
-    setConfirmClear(false);
-    if (mode === "rec") {
-      setHasTape(true);
-      setMode("play");
-    } else if (mode === "play" || mode === "dub") {
-      setMode("dub");
-    } else {
-      setMode("rec");
-    }
-  };
+  const onRec = () => definirEstado(gravarRec(estado));
   // Atalho global R (App): dispara o MESMO onRec do botão ● (rec→play→dub).
   // ref mantém o handler sempre atual sem re-registrar o efeito.
   const onRecRef = useRef(onRec);
@@ -344,25 +331,13 @@ export function LooperPanel({
     if (recRequest > 0) onRecRef.current();
   }, [recRequest]);
 
-  const onPlay = () => {
-    if (!hasTape) return;
-    setMode(mode === "play" ? "stop" : "play");
-  };
-  const onStop = () => setMode("stop");
-  const onRew = () => setSecs(0);
-  const onClear = () => {
-    if (!confirmClear) {
-      setConfirmClear(true);
-      return;
-    }
-    setConfirmClear(false);
-    setHasTape(false);
-    setMode("idle");
-    setSecs(0);
-  };
+  const onPlay = () => definirEstado(tocarPlay(estado));
+  const onStop = () => definirEstado(pararStop(estado));
+  const onRew = () => definirEstado(rebobinarRew(estado));
+  const onClear = () => definirEstado(limparFita(estado));
 
-  const modeLabel =
-    mode === "rec" ? MSG.looperMode.rec : mode === "play" ? MSG.looperMode.play : mode === "dub" ? MSG.looperMode.dub : mode === "stop" ? MSG.looperMode.stop : hasTape ? MSG.looperMode.ready : MSG.looperMode.empty;
+  const chave = chaveDoModo(estado);
+  const modeLabel = chave === "ready" ? MSG.looperMode.ready : chave === "empty" ? MSG.looperMode.empty : MSG.looperMode[chave];
   const mm = String(Math.floor(secs / 60)).padStart(2, "0");
   const ss = String(secs % 60).padStart(2, "0");
 
@@ -370,12 +345,11 @@ export function LooperPanel({
      contador. `filled` é o quanto a fita JÁ SAÍU do supply — no repouso a
      máquina está enfiada (supply cheio, take-up vazio) e a cada segundo
      de gravação os dois rolos trocam de lugar. */
-  const filled = Math.min(1, secs / maxSecs);
+  const filled = fracaoGravada(estado, maxSecs);
   const supplyPack = packOf(1 - filled);
   const takeupPack = packOf(filled);
-  const spinClass = running ? "reel-spin" : "";
-  const fastClass = mode === "rec" || mode === "dub" ? " reel-fast" : "";
-  const tone = mode === "rec" || mode === "dub" ? "rec" : mode === "play" ? "play" : "";
+  const classeRolos = classeDosRolos(estado);
+  const tone = tomDoModo(estado);
 
   /* caminho da fita: sai do fundo do supply, desce aos cabeçotes, atravessa
      e sobe para o take-up. Os pontos de partida são os MESMOS raios dos
@@ -501,10 +475,10 @@ export function LooperPanel({
           {/* flywheel do capstan: aro fino por trás, dá espessura ao pino */}
           <circle cx="281" cy={TAPE_Y} r="19" fill="none" stroke="#3a3054" strokeWidth="3" />
 
-          <g className={`lp-reel--supply ${spinClass}${fastClass}`}>
+          <g className={`lp-reel--supply ${classeRolos}`}>
             <Reel cx={SUPPLY_CX} packR={supplyPack} />
           </g>
-          <g className={`lp-reel--takeup ${spinClass}${fastClass}`}>
+          <g className={`lp-reel--takeup ${classeRolos}`}>
             <Reel cx={TAKEUP_CX} packR={takeupPack} />
           </g>
         </svg>
