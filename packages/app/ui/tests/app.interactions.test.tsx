@@ -182,7 +182,16 @@ describe("Faixas de boot e erro", () => {
 
   it("falha do board ao abrir preset: erro amigável (detalhe técnico só no console)", async () => {
     const { root, host } = mount();
-    await settle();
+    // as linhas do painel vem do BANCO (#26): a consulta e assincrona e tem
+    // debounce, entao `settle` (so microtasks) nao basta mais para elas
+    // aparecerem. `waitFor` e o helper que espera macrotask de verdade.
+    await waitFor(
+      () =>
+        Array.from(host.querySelectorAll('[role="option"]')).some((o) =>
+          o.textContent?.includes("Mist"),
+        ),
+      "linhas da biblioteca (Mist)",
+    );
 
     localStorage.setItem("gp100.debug.failDevice", "board");
     const mist = Array.from(host.querySelectorAll('[role="option"]')).find((o) =>

@@ -191,9 +191,22 @@ export function useLibrary(bancoInicial: Banco = "factory"): Library {
     setRows([]);
   }, [bancoVisivel]);
 
-  // A busca acompanha a consulta, com debounce no TEXTO (o estilo é um clique
-  // e não precisa de espera).
+  // A busca acompanha a consulta. O debounce existe para a DIGITAÇÃO (uma
+  // requisição por tecla, cada uma atravessando o IPC) — não para a primeira
+  // carga, nem para a troca de aba ou de estilo, que sao cliques.
+  //
+  // A distinção é visível: com debounce na primeira busca, o painel abre
+  // VAZIO por 180 ms a cada boot, e o dono vê uma biblioteca que ainda não
+  // chegou. Sem isto, os testes que leem a lista depois de um microtask
+  // perdiam a corrida com o timer.
+  const primeiroRef = useRef(true);
   useEffect(() => {
+    const primeiro = primeiroRef.current;
+    primeiroRef.current = false;
+    if (primeiro) {
+      void busca(consulta.current);
+      return;
+    }
     const t = setTimeout(() => void busca(consulta.current), DEBOUNCE_MS);
     return () => clearTimeout(t);
     // A consulta vive num ref (por que), então as dependências são os

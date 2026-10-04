@@ -299,13 +299,39 @@ async function monta(): Promise<void> {
       </StrictMode>,
     );
   });
-  // deixa o debounce da busca inicial expirar
+  // o debounce so vale para a DIGITACAO; a primeira carga e um clique (ver o
+  // teste abaixo), entao 260ms aqui e folga, nao requisito
   await act(async () => {
     await new Promise((r) => setTimeout(r, 260));
   });
 }
 
 describe("useLibrary (fora do shell; a migração e o invoke ficam em library.shell.test.tsx)", () => {
+  it("a PRIMEIRA carga não espera debounce: o painel não abre vazio", async () => {
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    let root!: Root;
+    await act(async () => {
+      root = createRoot(host);
+      root.render(
+        <StrictMode>
+          <Probe />
+        </StrictMode>,
+      );
+    });
+    // NENHUM timer foi disparado: se a primeira busca tivesse debounce, as
+    // linhas continuariam vazias aqui — e o dono veria uma biblioteca que nao
+    // chegou, a cada boot. A CI pegou isso como flake em dois testes.
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(lib!.rows, "linhas no primeiro tick").toHaveLength(99);
+    await act(async () => {
+      root.unmount();
+    });
+    host.remove();
+  });
+
   it("lista a fábrica no mount e traz os números", async () => {
     await monta();
     expect(lib!.rows).toHaveLength(99);
