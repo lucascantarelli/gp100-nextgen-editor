@@ -6,7 +6,7 @@
 
 [package]
 name = "gp100-ui"
-version = "0.2.0-rc.1"
+version = "0.2.0-rc.2"
 edition = "2021"
 description = "Backend desktop (Tauri 2) do GP-100 NextGen Editor — commands de device sobre o gp100-core."
 publish = false
