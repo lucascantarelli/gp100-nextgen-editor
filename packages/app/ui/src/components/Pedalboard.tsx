@@ -7,7 +7,8 @@
  */
 import { useMemo, useRef, useState } from "react";
 import type { BoardView, BoardSlot } from "../ipc/types";
-import { Pedal, pedalDims } from "./Pedal";
+import { Pedal } from "./Pedal";
+import { pedalDims } from "../design/geometry";
 import { MSG } from "../i18n/messages";
 
 interface Props {
