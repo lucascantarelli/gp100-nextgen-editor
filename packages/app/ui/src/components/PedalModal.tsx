@@ -19,7 +19,8 @@ import type { CSSProperties } from "react";
 import type { BoardSlot } from "../ipc/types";
 import { algorithmsOf, filterAlgorithms } from "../effects";
 import type { FxAlgorithm } from "../artifacts/fxData";
-import { Pedal, pedalDims } from "./Pedal";
+import { Pedal } from "./Pedal";
+import { pedalDims } from "../design/geometry";
 import { MSG } from "../i18n/messages";
 
 /** Fator do modal: knob 64 → 80px (faixa 72–80 do §3.2). */
