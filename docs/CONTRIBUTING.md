@@ -108,17 +108,20 @@ Só a área que você tocou — o CI filtra o resto por caminhos.
 | **Baselines visuais** (mudou layout/paleta) | `pnpm exec playwright test visual.spec.ts --update-snapshots` → inspecione os diffs → commite os PNGs |
 | **Rust core/cli** (raiz) | `cargo fmt --check` · `cargo clippy --workspace --all-targets -- -D warnings` · `cargo test` |
 | **Shell Tauri** (`packages/app/api`) | gates do front (`ui/dist` alimenta o binário) + `cargo clippy/test -p gp100-ui` |
-| **Spec** (`analysis/`, golden) | `uv run pytest` (10/10 — trava da especificação) |
+| **Spec** (`analysis/`, `scripts/`, golden) | `uv run pytest` (trava da especificação) |
 | **Gates de script** (pipeline, empacotamento, versão, spec, release) | **`python3 scripts/gates.py`** — roda todos de uma vez, na ordem do CI |
 
 - **`gates.py` é o atalho para "os gates de script"**: `validate_workflows`,
-  `check_bundle`, `sync_version`, `pytest`, `check_base_images` e
-  `simulate_release`. Rode `python3 scripts/gates.py --list` para ver a lista,
-  ou passe nomes para rodar só alguns:
+  `check_bundle`, `sync_version`, `check_deadcode`, `h1_compare`, `pytest`,
+  `check_base_images` e `simulate_release`. Rode `python3 scripts/gates.py --list`
+  para ver a lista, ou passe nomes para rodar só alguns:
   `python3 scripts/gates.py check_bundle validate_workflows`.
   Todas as dependências (`pyyaml`, `jsonschema`) estão no `pyproject.toml`, então
   `uv sync --all-groups` basta — nada de instalar pacote na linha de comando
   (#80).
+- **`scripts/` está no escopo do `spec`** (`scripts/ci_plan.py`): o pytest testa
+  scripts de gate, e mexer só no script deixaria o job de spec como `skipped` —
+  os testes ficariam verdes sem rodarem contra a mudança (#21).
 - **Piso de versão das actions** — o GitHub descontinuou o runtime Node 20
   (set/2025): o runner força Node 24 e emite aviso em **toda** run. O contrato é
   um **piso de major por action** em `PISO_VERSAO_ACTION`

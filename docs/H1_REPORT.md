@@ -17,13 +17,20 @@
 
 ## 2. Execução (por etapa; repetição ×1 antes de classificar Timeout)
 
+**Cole o veredito do juiz aqui** (`python3 scripts/h1_compare.py <dir> --markdown`).
+As colunas de nível 1/3 abaixo sao as do juiz — não as recalcule na mão: se o
+número divergir, o log mudou depois da comparação.
+
 | Etapa | Rodou? | Framing (nível 1) | Estrutura (nível 3) | Observação |
 |---|---|---|---|---|
-| B1 `info` | | | | pp/nome conferidos com o display? |
+| B1 `info` | | `sem-evidencia` | — | **não emite tráfego de fio**; pp/nome conferidos com o display? |
 | B2 `list-user-irs` | | | | 20 slots? eco da página? |
 | B3 `dump-preset` pp corrente | | | | meta6/páginas 196B/fim 4B? |
 | B4 dumps ×3 (meio/fim) | | | | |
 | B5 boot completo (opcional) | | | | inventário do device anotado |
+
+Código de saída do juiz: `____` (0 = limpo · 1 = forma/framing → R3 · 3 = drift de
+conteúdo, que em CAMPO é estado esperado).
 
 ## 3. Resultado consolidado
 
@@ -31,7 +38,11 @@
 - [ ] **H1 com divergências de nível 2 (estado)** — protocolo OK; documentar §4
 - [ ] **H1 BLOQUEADO por divergência de nível 1/3** — fluxo R3 executado (§5)
 
-## 4. Log de divergência (1 linha por ocorrência — copiar do §5 do checklist)
+## 4. Log de divergência (1 linha por ocorrência — colar a tabela que o juiz imprimiu)
+
+> O juiz já separa nível 1/3 (`bloqueia-H1`, ação "fluxo R3") de nível 2
+> (`estado`, ação "documentar"). Cole a tabela inteira; a coluna "Ação" já vem
+> certaina, e um passo `sem-evidencia` **não** pode ser marcado como passou.
 
 | # | Passo | Endpoint (func/addr) | Nível | Esperado (golden/mock) | Obtido (hex curto) | Hipótese | Severidade | Ação |
 |---|---|---|---|---|---|---|---|---|
