@@ -56,6 +56,15 @@ analysis/manual_v18.txt
 analysis/h1_rehearsal_*/
 analysis/h1_field_*/
 
+# Kit de campo H2 (#22): mesma regra do H1. O que PRESERVA a evidência da
+# escrita e a sessao em analysis/h2/<nome>/ (que o .gitattributes marca
+# `-text`, porque e a unica prova de que o preset do dono foi gravado — o fio
+# nao tem read-back, D3/D4). Ensaio e saida descartavel; a referencia que
+# ancora a tabela de formas do juiz (analysis/h2_reference/) fica versionada.
+analysis/h2_rehearsal_*/
+analysis/h2_scratch*/
+analysis/h2_scratch_test/
+
 # ── Front (packages/app/ui/, M1.0+) ──
 packages/app/ui/node_modules/
 packages/app/ui/dist/

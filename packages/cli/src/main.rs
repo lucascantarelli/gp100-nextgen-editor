@@ -573,8 +573,8 @@ fn run<T: DeviceTransport>(
                     code,
                     ctrl,
                     value,
-                } => run_set_param(*slot, *code, *ctrl, *value),
-                Command::Save { pp, pp_type, name } => run_save(*pp, *pp_type, name),
+                } => run_set_param(session, *slot, *code, *ctrl, *value, args),
+                Command::Save { pp, pp_type, name } => run_save(session, *pp, *pp_type, name, args),
                 Command::UploadIr { slot, path } => run_upload_ir(session, *slot, path, args),
                 _ => unreachable!("o match externo já filtrou estes comandos"),
             }
@@ -582,10 +582,25 @@ fn run<T: DeviceTransport>(
     }
 }
 
-/// `set-param --dry-run`: imprime o frame §13.11 completo e o payload
-/// decodificado de volta (prova de ida e volta do codec, como no
-/// `set_param_matches_all_fixture_writes`).
-fn run_set_param(slot: u8, code: u32, ctrl: u8, value: f32) -> i32 {
+/// `set-param`: imprime o frame §13.11 e o payload decodificado de volta
+/// (prova de ida e volta do codec, como no `set_param_matches_all_fixture_writes`).
+///
+/// **O `--dry-run` e o que segura o F1 do H2 (#22).** Sem ele, este
+/// subcomando ENVIARIA um frame mutante a um preset que o dono escolheu —
+/// e a trava de verdade continua sendo a do transporte (ADR-5), que ja foi
+/// conferida antes de chegar aqui.
+///
+/// Sem read-back: o `set_param` e fire-and-forget e a captura nao tem
+/// resposta (D4). Por isso a última linha manda olhar o DISPLAY, e nao
+/// promete confirmacao que o fio nao pode dar.
+fn run_set_param<T: DeviceTransport>(
+    session: &mut Session<T>,
+    slot: u8,
+    code: u32,
+    ctrl: u8,
+    value: f32,
+    args: &Args,
+) -> i32 {
     // A validação de slot (1..=9) é da CODEC (§13.11) — o shape não é
     // revalidado aqui (R1: uma fonte de verdade só).
     let frame = match gp100_core::codec::set_param(slot, code, ctrl, value) {
@@ -593,7 +608,8 @@ fn run_set_param(slot: u8, code: u32, ctrl: u8, value: f32) -> i32 {
         Err(e) => return fail(&e),
     };
     let hex: String = frame.iter().map(|b| format!("{b:02x}")).collect();
-    println!("dry-run set-param (§13.11): {} bytes", frame.len());
+    let rotulo = if args.dry_run { "dry-run " } else { "" };
+    println!("{rotulo}set-param (§13.11): {} bytes", frame.len());
     println!("  {hex}");
     match gp100_core::codec::set_param_parse(&frame[13..33]) {
         Ok((c, ctrl2, v)) => {
@@ -601,18 +617,44 @@ fn run_set_param(slot: u8, code: u32, ctrl: u8, value: f32) -> i32 {
         }
         Err(e) => return fail(&e),
     }
-    println!("  (nada enviado — dry-run)");
+    if args.dry_run {
+        println!("  (nada enviado — dry-run)");
+        return 0;
+    }
+    if let Err(e) = session.set_param(slot, code, ctrl, value) {
+        return fail(&e);
+    }
+    println!("  ENVIADO ao device (1 frame OUT, ZERO IN — D4, sem read-back).");
+    println!("  CONFIRME NO DISPLAY: o valor {value} tem que aparecer no knob.");
     0
 }
 
 /// `save --dry-run`: imprime os 9 frames do §13.12 re-derivado (5 meta + ops
 /// da S4: op0 ×2 → op1 ×2). ZERO IN esperado (D3: fire-and-forget).
-fn run_save(pp: u16, pp_type: u16, name: &str) -> i32 {
+/// `save`: imprime os 9 frames do §13.12 re-derivado (5 meta + ops da S4:
+/// op0 ×2 → op1 ×2) e, sem `--dry-run`, ENVIA.
+///
+/// **Este é o fluxo que PERSISTE** (regra 3.2 do H2_CHECKLIST: só para
+/// preset descartável). O save grava o estado ao vivo do preset (§13.12,
+/// confirmado na S4), então ele persiste o que o `set-param` acabou de
+/// mexer — "salvar para testar" grava o que você mexeu.
+///
+/// ZERO IN esperado (D3: fire-and-forget). A última linha manda olhar o
+/// display DEPOIS de sair e voltar do preset, porque o que se prova aqui é
+/// persistência, e não só cache.
+fn run_save<T: DeviceTransport>(
+    session: &mut Session<T>,
+    pp: u16,
+    pp_type: u16,
+    name: &str,
+    args: &Args,
+) -> i32 {
     let block = match gp100_core::codec::meta_block(pp, pp_type, name) {
         Ok(b) => b,
         Err(e) => return fail(&e),
     };
-    println!("dry-run save (§13.12): 9 frames (5 meta + 4 ops); ZERO IN esperado (D3)");
+    let rotulo = if args.dry_run { "dry-run " } else { "" };
+    println!("{rotulo}save (§13.12): 9 frames (5 meta + 4 ops); ZERO IN esperado (D3)");
     // Os frames vêm de codec::write_frame — o PONTO ÚNICO de montagem de
     // envelope (ADR-6: o binário não monta SysEx; imprime o que a lib faz).
     for (addr, payload) in &block {
@@ -629,7 +671,16 @@ fn run_save(pp: u16, pp_type: u16, name: &str) -> i32 {
         let hex: String = m.iter().map(|b| format!("{b:02x}")).collect();
         println!("  op   00020000 (op={op}, {}B): {hex}", m.len());
     }
-    println!("  (nada enviado — dry-run)");
+    if args.dry_run {
+        println!("  (nada enviado — dry-run)");
+        return 0;
+    }
+    if let Err(e) = session.save_preset(pp, pp_type, name) {
+        return fail(&e);
+    }
+    println!("  ENVIADO ao device (9 frames OUT, ZERO IN — D3, sem resposta).");
+    println!("  CONFIRME NO DISPLAY: o nome '{name}' tem que aparecer, e continuar");
+    println!("  depois de sair do preset e voltar — isso que prova PERSISTENCIA.");
     0
 }
 
@@ -716,9 +767,144 @@ fn run_upload_ir<T: DeviceTransport>(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::cell::{Cell, RefCell};
+    use std::rc::Rc;
 
     fn args(list: &[&str]) -> Vec<String> {
         list.iter().map(|s| s.to_string()).collect()
+    }
+
+    /// Transporte que CONTA os frames de escrita e delega no `MockDevice`.
+    ///
+    /// Ele existe porque o teste anterior (que so olhava o codigo de saida)
+    /// passava com o defeito de volta: o `set-param` devolvia 0 sem ter
+    /// mandado nada, e um `assert_eq!(codigo, 0)` nao ve diferenca entre
+    /// "enviou" e "imprimiu e esqueceu". Aqui a contagem e a prova — e o
+    /// mesmo espelho que o `--log` faz em campo.
+    ///
+    /// A contagem mora num `Rc<Cell>` porque o campo `transport` da
+    /// `Session` e privado: o teste precisa ler o que saiu sem fazer o core
+    /// expor o transporte so por causa de um teste.
+    struct Contador {
+        inner: MockDevice,
+        writes: Rc<Cell<usize>>,
+        ultimos: Rc<RefCell<Vec<Vec<u8>>>>,
+    }
+
+    /// O que o `Contador` entrega ao teste: a contagem de writes e a lista
+    /// de frames que sairam.
+    type Celulas = (Rc<Cell<usize>>, Rc<RefCell<Vec<Vec<u8>>>>);
+
+    impl Contador {
+        fn new() -> (Self, Celulas) {
+            let mut inner = MockDevice::new().expect("mock");
+            inner.open().expect("mock.open");
+            let writes = Rc::new(Cell::new(0));
+            let ultimos = Rc::new(RefCell::new(Vec::new()));
+            (
+                Self {
+                    inner,
+                    writes: Rc::clone(&writes),
+                    ultimos: Rc::clone(&ultimos),
+                },
+                (writes, ultimos),
+            )
+        }
+    }
+
+    impl DeviceTransport for Contador {
+        fn open(&mut self) -> Result<(), TransportError> {
+            self.inner.open()
+        }
+        fn close(&mut self) -> Result<(), TransportError> {
+            self.inner.close()
+        }
+        fn send_raw(&mut self, data: &[u8], kind: WireKind) -> Result<(), TransportError> {
+            if kind == WireKind::Write {
+                self.writes.set(self.writes.get() + 1);
+                self.ultimos.borrow_mut().push(data.to_vec());
+            }
+            self.inner.send_raw(data, kind)
+        }
+        fn recv_raw(&mut self, timeout: std::time::Duration) -> Result<Vec<u8>, TransportError> {
+            self.inner.recv_raw(timeout)
+        }
+    }
+
+    fn nao_dry_run() -> Args {
+        Args {
+            command: Command::Info,
+            dry_run: false,
+            log: None,
+            real: false,
+        }
+    }
+
+    /// O BUG que o gate H2 (#22) estava esperando: `set-param` e `save`
+    /// imprimiam o frame e diziam "(nada enviado — dry-run)" MESMO sem o
+    /// `--dry-run`, porque nenhum dos dois chamava a `Session`. No ensaio
+    /// contra o mock passava despercebido (o `--log` ficava vazio e o juiz
+    /// via "sem evidencia"), e em campo o operador teria acreditado que
+    /// gravou.
+    ///
+    /// A prova e a CONTAGEM de writes no transporte: 1 para o set-param,
+    /// 9 para o save (5 do meta + 4 ops, D3).
+    #[test]
+    fn set_param_sem_dry_run_manda_o_frame_ao_transporte() {
+        let (t, (writes, ultimos)) = Contador::new();
+        let mut s = Session::new(t);
+        let codigo = run_set_param(&mut s, 1, 0x0700_006e, 0, 99.5, &nao_dry_run());
+        assert_eq!(codigo, 0, "set-param de campo nao pode falhar");
+        assert_eq!(
+            writes.get(),
+            1,
+            "o §13.11 e UM frame de escrita; sem isto o knob nao girou"
+        );
+        // E o frame exato que a §13.11 manda, byte a byte.
+        assert_eq!(
+            ultimos.borrow()[0],
+            gp100_core::codec::set_param(1, 0x0700_006e, 0, 99.5).unwrap()
+        );
+    }
+
+    /// O `save` e a escrita que PERSISTE (regra 3.2 do H2_CHECKLIST). Um
+    /// `save` que so imprime e o pior defeito possivel neste gate: o
+    /// operador le "enviado" no terminal, acredita, e o preset nunca foi
+    /// gravado — e nao ha como desfazer a suposicao.
+    #[test]
+    fn save_sem_dry_run_manda_os_9_frames() {
+        let (t, (writes, _ultimos)) = Contador::new();
+        let mut s = Session::new(t);
+        let codigo = run_save(&mut s, 0, 4, "H2 TESTE", &nao_dry_run());
+        assert_eq!(codigo, 0, "save de campo nao pode falhar");
+        assert_eq!(
+            writes.get(),
+            9,
+            "o §13.12 re-derivado e 5 writes de meta + 4 ops (D3)"
+        );
+    }
+
+    /// O `--dry-run` continua sendo o que NAO envia: os dois subcomandos
+    /// impressos antes do conserto e a trava de conveniencia do ADR-5 nao
+    /// podem ter sumido junto com o defeito.
+    #[test]
+    fn dry_run_continua_imprimindo_sem_mandar() {
+        let dry = Args {
+            command: Command::Info,
+            dry_run: true,
+            log: None,
+            real: false,
+        };
+        let (t, (writes, _ultimos)) = Contador::new();
+        let mut s = Session::new(t);
+        assert_eq!(run_set_param(&mut s, 1, 0x0700_006e, 0, 99.5, &dry), 0);
+        assert_eq!(
+            writes.get(),
+            0,
+            "dry-run nao pode mandar nada — e o que segura o F1 de campo"
+        );
+        assert_eq!(run_save(&mut s, 0, 4, "H2 TESTE", &dry), 0);
+        assert_eq!(writes.get(), 0, "save em dry-run nao grava nada");
     }
 
     /// Camada 1 da política: `--real` sem `--i-know-what-im-doing` é recusado
