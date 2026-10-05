@@ -1,4 +1,15 @@
-# gp100-cli — operação por linha de comando (bin Rust)
+# gp100-cli — operação por linha de comando (bin Rust) · **CONGELADO**
+
+> **Não é mais o produto.** O produto é o app (`packages/app/`), e hoje ele
+> expõe um **superset** do que este binário expõe (incluindo o SnapTone, que
+> o CLI nunca teve). Decisão do owner em 05/10: manter, mas congelar.
+>
+> **Capability nova NÃO entra aqui** — vai para o `app/api` ou não existe.
+> Correção de bug entra, divergência permanente não. O binário continua
+> compilando, testando e no gate: é o executável com que o core é exercitado
+> nos gates H1–H3, e `--log`/`--dry-run` são o insumo do juiz de campo.
+> O porquê da decisão está no cabeçalho de
+> [`src/main.rs`](src/main.rs) e em `docs/REAL_DEVICE_GAP.md` §6.
 
 Binário de operação/demonstração sobre o [gp100-core](../core). Fala com o
 **MockDevice** por default (ADR-4/ADR-5): nenhum byte vai ao hardware. O modo

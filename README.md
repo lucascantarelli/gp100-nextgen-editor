@@ -52,8 +52,9 @@ boot/scan de presets (S1), upload de IRs mono+estéreo (S2), edição de knobs p
 │   │   │                      #   codec, transport (mock/real), session
 │   │   ├── README.md          # arquitetura do core + exemplos que rodam
 │   │   └── tests/             # contratos caixa-preta (fixtures P4, replay)
-│   ├── cli/                   # gp100-cli (bin Rust): info/list-user-irs/… via
-│   │                          #   mock + --log no schema P4 (insumo do gate H1)
+│   ├── cli/                   # gp100-cli (bin Rust) — CONGELADO (05/10):
+│   │                          #   capability nova vai para app/api; continua no
+│   │                          #   gate como insumo dos gates H1–H3 (--log P4)
 │   └── app/                   # aplicativo desktop (Tauri 2 + React)
 │       ├── ui/                # front React/TS: vite, vitest, tokens, ipc/
 │       ├── api/               # backend do shell (crate gp100-ui): commands,
@@ -297,10 +298,15 @@ em §13.12 — não são dívidas.)
 **Primeiro hands-on (10 min):**
 ```bash
 cargo build --workspace
-cargo run -p gp100-cli -- info
+cargo run -p gp100-cli -- info          # bin CONGELADO (ver packages/cli/README.md)
 cargo run -p gp100-cli -- dump-preset 0x0007
 cargo test --workspace
 ```
+
+> Os comandos acima são o caminho mais curto para ver o core respondendo, e
+> por isso continuam aqui — mas o `gp100-cli` está **congelado** desde 05/10: o
+> produto é o app, e nenhuma capacidade nova entra no CLI. O utilitário segue
+> compilando e no gate porque é ele que os gates H1–H3 exercitam.
 
 **Regras da casa:**
 - **Preserve o round-trip**: qualquer preset aberto→salvo sem mudanças deve gerar

@@ -154,6 +154,29 @@ mesmo código. Uma sessão de teste no aparelho é a única forma de medi-los:
    `H1_CHECKLIST` §B5 já sinalizou isso como R3 em aberto: *"Device real com pps
    fora de `0..198` → boot() com inventário default diverge"*. O método já
    existe; ninguém o chama.
+
+   > **DECISÃO PENDENTE — owner, 05/10: "marcar como pendente no doc".**
+   >
+   > Não se assume `0..198` nem se implementa a descoberta agora. O que está
+   > escrito aqui é o que a sessão de campo precisa **medir**, porque a resposta
+   > muda o comportamento do boot de três maneiras distintas:
+   >
+   > | O que o aparelho responder | O que o `boot()` faz depois | Consequência |
+   > |---|---|---|
+   > | pps **dentro** de `0..198` | igual ao de hoje | nada — o default acerta e o passo 5 é *documentação*, não código |
+   > | pps **acima** de `198` | o scan **não alcança** os que faltam | o app abre num patch que o aparelho não tem, e a biblioteca mostra 199 itens que não são do aparelho |
+   > | pps **fora dos dois lados** | idem, e o cursor de pp fica errado | o pior caso: o aparelho tem mais patches e nenhum caminho para eles |
+   >
+   > **Como medir (passo 7, no aparelho).** O `.jsonl` do painel de diagnóstico
+   > já traz a resposta sem código novo: no boot, um pp além do último que
+   > responder é um pp que o aparelho tem. Se a sequência `0..198` for
+   > completa e o pp 199 não responder, o default acerta.
+   >
+   > **O que fazer quando a resposta aparecer.** Se houver pps acima de `198`,
+   > a correção é chamar `set_inventory` com o que o boot descobriu — mas essa
+   > é escrita de código, e código esperando número medido é exatamente o
+   > que o ADR-10 (trava de faixa) existe para evitar: regra de parede com
+   > número inventado.
 4. **Escrita vai exigir o destravamento.** Com `--features real-device` **sem**
    `write-verified` (decisão do owner em 05/10/2026: leitura primeiro), as quatro
    escritas do app — knob, select, IR, SnapTone — são **recusadas com erro

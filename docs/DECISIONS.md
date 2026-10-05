@@ -606,3 +606,60 @@ firmware aceitaria.
   faixa inventada.
 - (−) `--dry-run` do CLI passou a recusar valor fora da faixa. É
   intencional: um frame que o firmware rejeitaria não é inspecionável.
+
+---
+
+## ADR-11 — O `gp100-cli` fica congelado para capacidades novas (decisão do owner, 05/10)
+
+**Status:** aceito · owner, 05/10/2026 · pergunta respondida por
+`docs/REAL_DEVICE_GAP.md` §6
+
+**Contexto.** O `gp100-core` tem 12 capacidades. O `gp100-cli` e o app expuseram
+subconjuntos **diferentes** desse mesmo core: o CLI tinha `save`,
+`dump-preset` e o log de fio, e o app não; o app tinha SnapTone e o CLI não.
+Por muito tempo o motivo técnico para o CLI existir foi concreto — ele era a
+única cobertura de CoreMIDI do transporte USB-MIDI, porque o crate do Tauri do
+app só era compilado no Windows.
+
+**O que resolveu o impasse.** Três commits, nesta ordem:
+1. `save`/`dump-preset` e o logger/dry-run foram para o **core** e para o
+   `app/api` (passos 4 e 4b do gap);
+2. ganharam **tela** — painel de diagnóstico de campo, no app (passo 4c);
+3. o `ui-rust` entrou na **matriz macOS** da CI, e o caminho do aparelho real
+   do app passou a ser compilado para CoreMIDI (passo 6b).
+
+Depois disso o app é um **superset estrito** do CLI: expõe as 9 capacidades do
+CLI **mais** o SnapTone. E as duas capacidades que continuam vermelhas para o
+app (`0x47` e `set_inventory`) são falta de protocolo e falta de decisão de
+campo — nenhuma se resolve trazendo o CLI para dentro do app.
+
+**Decisão.** *Manter, mas congelar.* Capacidade nova **não entra** no
+`gp100-cli`; vai para o `app/api` (command + porta em `ui/src/ipc/`) ou não
+existe. Correção de bug entra, divergência permanente não.
+
+**Alternativas rejeitadas.**
+- *Arquivar o crate agora.* Tira a ferramenta de quem prefere um executável
+  sem abrir a UI — e a sessão de campo ainda não aconteceu para medir se
+  alguém precisa dela. Arquivar antes da medição é decidir com o número que
+  a decisão promete esperar.
+- *Deixar sem registro e decidir depois.* Um crate sem política escrita recebe
+  capacidade nova por omissão: a próxima feature "cabe aqui" e ninguém
+  contesta o rato. A regra precisa estar no arquivo de quem vai mexer, não numa issue.
+- *Cortar o job `Distribuição · CLI de campo`.* Continua: ele é o artefato que
+  os gates H1–H3 exercitam, e congelar não é aposentar.
+
+**Consequências.**
+- (+) O produto tem um dono só. "Onde essa capacidade entra?" deixa de ter
+  duas respostas válidas.
+- (+) O CLI continua sendo o **executável dos gates**: `--log` no schema P4 e
+  `--dry-run` são o insumo do juiz de campo, e ele roda em 3 SOs.
+- (−) Uma capability que só faça sentido fora da UI (script de campo
+  headless, CI) vai exigir uma conversa de novo. Aceito: são raros e o custo
+  de manter dois produtos não é.
+- (−) A regra é social. Ela é escrita no cabeçalho de
+  `packages/cli/src/main.rs` e no `packages/cli/README.md` — os dois lugares
+  que quem for mexer nele primeiro vai ler.
+
+**Revisão.** Quando a sessão de campo (#17) sair assinada pelo aparelho, a
+pergunta "o CLI ainda serve a alguém que não o app?" ganha resposta **medida** —
+e essa resposta, e não este ADR, decide o futuro do crate.

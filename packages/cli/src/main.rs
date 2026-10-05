@@ -23,6 +23,30 @@
 //! pequena e estável: 5 subcomandos e 4 flags; manter o binário enxuto na
 //! toolchain gnu). Se a superfície crescer, reabrir a decisão com ADR-lite.
 //!
+//! ── CONGELADO PARA NOVAS CAPACIDADES (decisão do owner, 05/10) ────────────
+//! O produto é o **app**. Esta é hoje a decisão do owner: "manter, mas
+//! congelar". O que ela significa, sem ambiguidade:
+//!
+//!   - **Capability nova NÃO entra aqui.** Vai para o `app/api` (command +
+//!     porta em `ui/src/ipc/`) ou não existe.
+//!   - **O binário continua compilando, testando e no gate.** Ele não está
+//!     moribundo: é o executável com que o core é exercitado nos gates H1–H3,
+//!     e `--log`/`--dry-run` continuam sendo o insumo do juiz de campo.
+//!   - **Correção de bug aqui é bem-vinda; capacidade nova, não.** Se o CLI
+//!     divergir do app, a correção entra — divergir para sempre, não.
+//!
+//! **POR QUE (e por que a decisão pode ser revista).** O CLI era o dono de
+//! parte das capacidades do core; o app tinha um subconjunto DIFERENTE. Os
+//! passos 4/4b/4c do `docs/REAL_DEVICE_GAP.md` §6 fecharam isso, e o passo 6b
+//! tirou o último motivo técnico para ele existir (era a única cobertura de
+//! CoreMIDI do transporte — o `RealDevice` do app agora é compilado para
+//! macOS na CI). Hoje o app é um **superset estrito**: o core tem 12
+//! capacidades, o CLI expõe 9, o app expõe essas 9 mais o SnapTone.
+//!
+//! Revisão: quando a sessão de campo (#17) sair assinada pelo aparelho, a
+//! pergunta "o CLI ainda serve a alguém que não o app?" tem resposta medida —
+//! e essa resposta, e não este arquivo, decide o futuro do crate.
+//!
 //! **Rodar:** `cargo run -p gp100-cli -- info` (gates em
 //! `.agents/skills/rust-practices/SKILL.md`).
 
