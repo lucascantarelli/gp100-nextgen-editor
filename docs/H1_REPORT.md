@@ -92,3 +92,63 @@ conteúdo, que em CAMPO é estado esperado).
 **Critério de abortar a sessão inteira:** 2 etapas consecutivas com divergência
 de nível 1/3, ou qualquer sintoma anômalo do device (travamento, reboot, display
 incoerente) → desligar, preservar evidência, R3.
+
+---
+
+## 6. SESSÃO REAL EXECUTADA — 05/10/2026 (hardware ligado)
+
+> **O que muda nesta seção:** o relatório acima era template. Esta é a
+> **execução de verdade** contra um GP-100 ligado, e ela **não fecha a #21
+> sozinha** — falta a conferência do display (§1.2) e o B5 opcional.
+
+| | Valor |
+|---|---|
+| Data/hora | 2026-10-05 11:43 BRT |
+| Binário | `gp100-cli.exe` compilado com `--features real-device` (H1) |
+| Sessão | `analysis/h1_field_20261005_114300` |
+| Frames de fio | **120** (20+20 no B2; 20 em cada um dos 3 dumps) |
+| Relógio | `t` de 0.3 ms a 99.4 ms (o `--log` grava relógio desde o #23) |
+| Suite oficial | fechado (só `ValetonUsbAudioCpl.exe`, que não ocupa MIDI) |
+
+### Veredito do juiz
+
+```
+H1 com niveis 1 e 3 limpos em todos os passos com evidencia.
+4 divergencia(s) de CONTENDO (nivel 2) e 1 passo(s) sem evidencia.
+```
+
+| Passo | Veredito | O que significa |
+|---|---|---|
+| B1 `info` | **SEM EVIDÊNCIA** | esperado por construção: `info --real` não emite tráfego de fio |
+| B2 `list-user-irs` | **ESTADO** (nível 2) | framing e forma iguais; os bytes são o estado do aparelho |
+| B3 `dump-preset 0x0000` | **ESTADO** (nível 2) | idem |
+| B4 `dump-preset 0x0031` | **ESTADO** (nível 2) | idem |
+| B4 `dump-preset 0x0062` | **ESTADO** (nível 2) | idem |
+
+**Nenhuma divergência de nível 1 (framing) ou nível 3 (forma).** As 9 páginas
+do `dump-preset` vieram com as formas do §13: `meta6` 6B, páginas 196B ×8,
+a última 32B e o fim 4B. É a leitura real idêntica ao mock no que o protocolo
+afirma — o resto é conteúdo de estado, que **é esperado** por desenho (o
+aparelho não é o `all.prst`).
+
+### O que o aparelho revelou (nível 2, para documentar)
+
+- **Slots 0 e 1 têm IRs reais:** `test_ir_mono` e `test_ir_stereo` — é o
+  upload da S2, e o §2 do checklist previa exatamente isso.
+- **Slots 2–19 vazios.** Relevante para o H2: a #22 precisa de um slot vazio.
+
+### Um achado operacional
+
+A **primeira** tentativa de `list-user-irs` deu `timeout de 3000 ms`. A
+segunda, sem mudar nada, respondeu. É o D6 do checklist (timeout se repete 1×
+antes de classificar) e o runbook já faz esse retry sozinho — mas vale
+registrar: **a primeira leitura depois de conectar o cabo é fácil de
+confundir com falha de protocolo**, e o operador sem o retry teria aberto o
+fluxo R3 à toa.
+
+### O que ainda falta para fechar a #21
+
+- [ ] Ler o **display** e comparar com o §1.2 (pp corrente, nome, tipo)
+- [ ] Conferir o **B5** (boot completo) — opcional, e exige a feature do H2
+      porque o keepalive `00020001` é escrita (ADR-5 rev. 04/10)
+- [ ] Assinar o §1.1 (firma de quem estava com a pedaleira na mão)

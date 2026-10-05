@@ -24,6 +24,10 @@ docs/protocol_golden.json -text
 files/patches/*.prst -text
 # Classe 3 — evidência de campo (capturas; ir_slot*.bin já coberto por *.bin):
 analysis/captures/*.jsonl -text
+# A sessao do gate H1 (issue #21) e evidencia de CAMPO e fica versionada:
+# e a materia-prima do golden v1.1 no H3 (#23) e a unica prova de que a
+# leitura real obedceu o §13. O padrao acima e de um nivel so.
+analysis/captures/sessionH1/*.jsonl -text
 # Classe 4 — fixtures de replay (comparação byte-a-byte no M0.6):
 analysis/fixtures/*.jsonl -text
 # Classe 5 — kit de campo do gate H1: referências do mock (framing é a prova)
