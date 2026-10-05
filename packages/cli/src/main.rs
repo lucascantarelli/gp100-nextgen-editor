@@ -850,7 +850,6 @@ mod tests {
     /// A prova e a CONTAGEM de writes no transporte: 1 para o set-param,
     /// 9 para o save (5 do meta + 4 ops, D3).
     #[test]
-    #[cfg(not(feature = "write-verified"))]
     fn set_param_sem_dry_run_manda_o_frame_ao_transporte() {
         let (t, (writes, ultimos)) = Contador::new();
         let mut s = Session::new(t);
@@ -873,7 +872,6 @@ mod tests {
     /// operador le "enviado" no terminal, acredita, e o preset nunca foi
     /// gravado — e nao ha como desfazer a suposicao.
     #[test]
-    #[cfg(not(feature = "write-verified"))]
     fn save_sem_dry_run_manda_os_9_frames() {
         let (t, (writes, _ultimos)) = Contador::new();
         let mut s = Session::new(t);
@@ -890,7 +888,6 @@ mod tests {
     /// impressos antes do conserto e a trava de conveniencia do ADR-5 nao
     /// podem ter sumido junto com o defeito.
     #[test]
-    #[cfg(not(feature = "write-verified"))]
     fn dry_run_continua_imprimindo_sem_mandar() {
         let dry = Args {
             command: Command::Info,
