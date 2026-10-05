@@ -61,9 +61,14 @@ GATES: list[tuple[str, list[str], str]] = [
         "a referencia do gate H1 tem as formas que a secao 13 manda",
     ),
     (
+        "baseline",
+        [sys.executable, "analysis/baseline.py", "--check"],
+        "a baseline do golden tem versao, hash E motivo (R2/R3)",
+    ),
+    (
         "pytest",
         ["uv", "run", "pytest", "-q"],
-        "trava da especificacao (provas A-E do golden)",
+        "trava da especificacao (provas A-E do golden + suite do H3)",
     ),
     (
         "check_base_images",

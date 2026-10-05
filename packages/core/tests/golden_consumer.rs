@@ -16,12 +16,18 @@ const ADDR_TABLE: [u8; 4] = [0x12, 0x00, 0x10, 0x02]; // IRs/resync/ACK
 const ADDR_SELECT: [u8; 4] = [0x13, 0x01, 0x00, 0x00]; // select de preset
 const ADDR_KEEPALIVE: [u8; 4] = [0x00, 0x02, 0x00, 0x01]; // ping
 
-/// O golden embutido carrega com 40 templates (contrato) — a carga AGORA
+/// O golden embutido carrega com 39 templates (contrato) — a carga AGORA
 /// valida coerência de lados por tipo e parse dos endpoints (hex 1B/4B).
+///
+/// 39 e nao 40 desde a baseline v1.1 (#23): o `push 13000000` saiu porque o
+/// unico padrao dele era um `const` de 242 bytes derivado de uma captura
+/// truncada. A resposta real a esse endereco nunca foi capturada por inteiro
+/// (o proxy corta em 256 bytes), entao o golden v1.0 afirmava um payload que
+/// o aparelho nunca emitiu. Ver PROTOCOL.md §13.14.
 #[test]
-fn embedded_golden_loads_40_templates() {
+fn embedded_golden_loads_39_templates() {
     let g = GoldenFile::embedded().expect("golden válido (validação de carga passou)");
-    assert_eq!(g.templates().len(), 40, "40 templates (baseline v1.0)");
+    assert_eq!(g.templates().len(), 39, "39 templates (baseline v1.1)");
     let (mut w, mut p, mut r) = (0, 0, 0);
     for t in g.templates() {
         match t.template_type.as_str() {
@@ -31,10 +37,10 @@ fn embedded_golden_loads_40_templates() {
             other => panic!("tipo inesperado: {other}"),
         }
     }
-    assert_eq!((w, p, r), (22, 10, 8));
+    assert_eq!((w, p, r), (22, 9, 8));
 }
 
-/// PROPRIEDADE FUNDAMENTAL para os 40 templates: exemplo (payload) → extract
+/// PROPRIEDADE FUNDAMENTAL para os 39 templates: exemplo (payload) → extract
 /// → build == exemplo (byte a byte), via a API TIPADA (build pelo GoldenFile
 /// com desambiguação — que NÃO pode quebrar a reconstrução dos duplicados).
 #[test]
@@ -110,7 +116,7 @@ fn build_and_extract_are_exact_inverses_for_all_templates() {
             other => panic!("tipo inesperado: {other}"),
         }
     }
-    assert_eq!((checked_req, checked_write, checked_push), (8, 22, 10));
+    assert_eq!((checked_req, checked_write, checked_push), (8, 22, 9));
 }
 
 /// ACHADO estrutural virando CONTRATO: 3 endpoints OUT têm DOIS templates
@@ -165,21 +171,30 @@ fn duplicate_out_endpoints_disambiguate_by_var_count() {
     assert_eq!(sysex.last(), Some(&0xF7));
 }
 
-/// Despacho por by-len no IN (endereço compartilhado por 3 formatos):
-/// resync 4B `[01][02][idx][01]`, tabela 75B (push) e ACK 4B do req (§13.7).
+/// Despacho por by-len no IN (endereço `12001002` compartilhado por 2 formatos
+/// REAIS): tabela de tipos 75B (push) e ACK 4B de chunk de IR (req, §13.7).
+///
+/// **O que mudou na baseline v1.1 (#23).** Este teste antes citava um terceiro
+/// formato no mesmo endereço — o resync de save `[01][02][idx][01]` (§13.12) —
+/// e afirmava que ele despachava para um `push`. Esse formato vinha de um
+/// template cujo único material eram 32 frames FABRICADOS: o trim antigo
+/// (`find("f7")`) cortava dentro de linhas de captura corrompidas (256 bytes
+/// preenchidos com `ff`, sem `F7` final) e produzia um payload de 4 bytes com
+/// cara de ACK. As 592 instancias REAIS de 4 bytes em `12001002` são os ACKs do
+/// upload de IR (§13.7), não o resync do save.
+///
+/// Ou seja: **o resync de save nunca foi capturado.** O que o teste passa a
+/// verificar e o que existe. O resync volta quando a captura voltar
+/// (PROTOCOL.md §13.14), não quando este arquivo mudar.
 #[test]
 fn response_dispatch_on_shared_endpoints() {
     let g = GoldenFile::embedded().expect("golden válido");
     let cands = g.for_response(0x12, &ADDR_TABLE);
-    assert!(cands.len() >= 2, "push (by-len) + req (ACK) no endereço");
-
-    // resync de save (§13.12): [01][02][idx][01]
-    let resync: &[u8] = &[0x01, 0x02, 0x08, 0x01];
-    let (t_resync, vars) = g
-        .match_response(0x12, &ADDR_TABLE, resync)
-        .expect("resync 4B despacha");
-    assert_eq!(t_resync.template_type, "push");
-    assert_eq!(vars, vec![&resync[2..3]], "var do resync = idx");
+    assert_eq!(
+        cands.len(),
+        2,
+        "12001002 tem exatamente 2 formatos observados: push 75B + req ACK 4B"
+    );
 
     // tabela de tipos 75B (exemplo real do push)
     let push = cands

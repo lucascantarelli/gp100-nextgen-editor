@@ -969,3 +969,48 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
   `--features real-device,write-verified`. O teste
   `escrita_verificada_segue_a_feature` (`#[cfg]`) só existe com a feature
   ligada — é ele que impede um `default` silencioso.
+
+---
+
+## Baseline v1.1 — o `find("f7")` fabricava bytes (#23, 04/10)
+
+- **O terminador SysEx é o `F7` FINAL, e `hx.find("f7")` acha o primeiro.**
+  Nomes de preset em ASCII quase sempre têm o par de nibbles `f7` no meio:
+  "World" = `576f726c64` tem `f7` em `6f72`; `o` seguido de `p`–`z` é o caso
+  comum. O `build_golden.trim()` cortava aí. **16 frames completos** das 4
+  capturas saíram truncados, e "Acoustic" virou 5 bytes de 11.
+- **O estrago maior era silencioso.** As capturas têm **100 linhas sem `F7`
+  final** (o proxy morreu no flush; buffers de 256 bytes preenchidos com `ff`).
+  Cortar no `find` produzia um payload de 14 bytes
+  (`010e000000000000000000000000`) que é **exatamente a forma de um registro de
+  usuário** — então `validate_golden` dava `77/77` sobre dados fabricados, e
+  essa prova entrava nas fixtures e nos replays do Rust. **63 das 77 mensagens
+  da prova de save eram inventadas.**
+- **A armadilha do rfind.** "Consertar" para `rfind("f7")` é PIOR: sobre uma
+  linha cortada ele acha um `f7` no meio do buffer `ff` e fabrica um frame de
+  196 bytes que nunca existiu — o golden passa a descrever um aparelho que não
+  é este. **Linha sem `F7` final não é frame.** Regra em `analysis/wirelog.py`.
+- **Um gate que só verifica "o arquivo não mudou" não pega fabricação.** O
+  golden v1.0 estava congelado (hash literal no teste) e mesmo assim carregava
+  template sem evidência. Congelamento impede deriva; não impede mentira.
+  Por isso a baseline virou `analysis/baseline.json` (versão, hash, motivo,
+  histórico) e o `bump` **recusa** escrever sem `--motivo`.
+- **Numero de teste que decreased não é regressão.** A prova D foi de 77 para
+  14 porque 63 mediam bytes inventados. A tentação é "consertar o número" —
+  seria reintroduzir a fabricação. O número honesto é menor.
+- **Indice posicional num arquivo que pode encolher é teste que se mente.**
+  `templates()[31]` continuaria compilando e testando o template errado depois
+  que um sumiu. Procurar por **endpoint** (`func_out`/`addr_out`), nunca por
+  posição.
+- **Sessão do H3 não é só leitura.** A sessão que fecha o gap do resync do save
+  usa `save`, então precisa da feature `write-verified` do #22 e do runbook do
+  H2 inteiro. "H3 é o gate de congelamento, logo é seguro" é falso.
+- **Armadilha do CJK (5ª vez nesta série).** Ao escrever português, o modelo
+  injeta CJK/cirílico quase sempre em **docstrings e comentários longos**: já
+  ja saiu em palavras como "classificacao" e "inalterado", escritas em
+  cirilico/chines. A varredura (filtrando
+  `0x0400–0x04FF`, `0x3000–0x9FFF`, `0xAC00–0xD7AF`) pegou todos, mas só
+  porque ela roda **antes** do commit, não depois.
+- **`sys.stdout` do Python nativo é cp1252.** `print` de um `→` ou `—` estoura
+  com `UnicodeEncodeError` e derruba o script no meio. Usar
+  `sys.stdout.reconfigure(encoding="utf-8", errors="replace")` no heredoc.

@@ -8,6 +8,7 @@ use std::time::Duration;
 use gp100_core::codec::{ir_begin, ir_chunk, meta_block, op_payload, set_param, set_param_parse};
 use gp100_core::golden::{decode_envelope, GoldenFile};
 use gp100_core::transport::{DeviceTransport, MockDevice, TransportError, WireKind};
+use gp100_core::ProtocolError;
 
 const T: Duration = Duration::from_millis(3000); // ADR-3
 
@@ -20,13 +21,29 @@ fn open_mock() -> MockDevice {
 /// Numa sessão real o boot começa com o device FALANDO (pushes não
 /// solicitados). O mock os entrega via `queue_push_template` (exemplo
 /// congelado do golden) e `recv_raw` os entrega FIFO (D1) — sem timeout.
+///
+/// **O dump de boot (`13000000`) NÃO esta na lista desde a baseline v1.1
+/// (#23).** O golden tinha um template para ele cujo único exemplo era um
+/// `const` de 242 bytes derivado de uma captura truncada — o proxy corta em
+/// 256 bytes e nunca viu o resto. O mock, que sintetiza o push pelo exemplo
+/// congelado, estava portanto reproduzindo bytes que o aparelho nunca emitiu.
+///
+/// Aqui a ausencia e o dado: `queue_push_template` devolve
+/// `InvalidShape{template push no golden}` para `13000000`, e o mock NÃO
+/// inventa resposta. A linha volta quando a captura chegar (PROTOCOL.md
+/// §13.14) — nao antes.
 #[test]
 fn boot_prologo_de_pushes_sem_timeout() {
     let mut m = open_mock();
+    // O dump de boot nao tem template confiavel: o mock precisa recusar.
+    let recusa = m.queue_push_template(0x12, [0x13, 0x00, 0x00, 0x00], None);
+    assert!(
+        matches!(recusa, Err(ProtocolError::InvalidShape { .. })),
+        "mock nao pode fabricar a resposta de 13000000 (gap de captura, #23)"
+    );
+
     m.queue_push_template(0x12, [0x12, 0x00, 0x00, 0x01], None)
         .expect("push status (t21)");
-    m.queue_push_template(0x12, [0x13, 0x00, 0x00, 0x00], None)
-        .expect("push dump de boot (t1)");
     m.queue_push_template(0x12, [0x13, 0x01, 0x00, 0x01], None)
         .expect("push meta6 (t5)");
     m.queue_push_template(0x12, [0x12, 0x00, 0x10, 0x02], Some(75))
@@ -34,7 +51,7 @@ fn boot_prologo_de_pushes_sem_timeout() {
     m.queue_push_template(0x12, [0x12, 0x00, 0x10, 0x12], None)
         .expect("push setlist 44B (t17)");
 
-    for _ in 0..5 {
+    for _ in 0..4 {
         let msg = m.recv_raw(T).expect("push chega sem timeout");
         let (_, _, payload) = decode_envelope(&msg).expect("envelope válido");
         assert!(!payload.is_empty());

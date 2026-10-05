@@ -39,14 +39,29 @@ _spec.loader.exec_module(BG)
 CAPS = {f"S{i}": os.path.join(HERE, "captures", f"session{i}.jsonl") for i in (1, 2, 3, 4)}
 FIXTURES = os.path.join(HERE, "fixtures")
 GOLDEN = os.path.join(HERE, os.pardir, "docs", "protocol_golden.json")
-GOLDEN_BASELINE_SHA = "0426d6a8843c57d16ab917170ed5f50eb95026281f1f460f4c2520aaeefef859"
+# O hash da baseline NÃO mora aqui como literal (#23): vem de
+# `analysis/baseline.json`, que é o registro com versão, data, motivo e
+# histórico. Um literal aqui obrigava a colar o hash novo em DOIS lugares
+# (aqui e no teste) e nenhum dos dois exigia justificativa.
+with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                       "baseline.json"), encoding="utf-8") as _fh:
+    GOLDEN_BASELINE_SHA = json.load(_fh)["hash"]
 KNOB_MAP = os.path.join(HERE, "knob_map.json")
 
 # Alvos de paridade (DoD P4 — números provados pelo validate_golden.py / ROADMAP)
 EXPECT_BOOT_OUT = 2299   # prova C
 EXPECT_KNOBS_S3 = 89     # prova B (S3)
 EXPECT_KNOBS_S1 = 3      # prova B (S1, §13.4)
-EXPECT_SAVE = 77         # prova D
+# Prova D: era 77. **63 dessas mensagens eram fabricaradas** (#23).
+# O lado OUT (9 frames do S4 + 5 do S2, derivados do .prst) continua byte-a-byte
+# e e o que o alvo mede. O lado IN (resync 11000008 x31, resync 12001002 x32,
+# status 12000001) veio de linhas de captura CORROPIDAS: o proxy morreu no flush
+# e deixou 100 linhas de 256 bytes preenchidas com ff, sem F7 final. O trim
+# antigo (`find("f7")`) cortava DENTRO do buffer e fabricava um payload de 14
+# bytes com cara de registro de usuário — que passava na regra e entrava na
+# fixture. Nao lowering do alvo: o alvo antigo media dados que nao existem.
+# O que falta esta em PROTOCOL.md §13.14 e no runbook de campo.
+EXPECT_SAVE = 14         # prova D: só o lado OUT, que é o que foi capturado
 EXPECT_IR = 1186         # prova E = 2 BEGIN + 592 chunks + 592 ACKs
 
 
@@ -237,7 +252,8 @@ def main():
         "_meta": {
             "title": "Fixtures de replay do protocolo GP-100 (ROADMAP P4)",
             "generated_by": "analysis/make_fixtures.py",
-            "method": "loaders de build_golden.py (repair de aspa, trim no 1o F7, body()); "
+            "method": "loaders de build_golden.py (repair de aspa, trim ate o F7 FINAL via "
+                      "analysis/wirelog.py, body()); "
                       "janelas = provas de validate_golden.py",
             "format": "JSONL compacto, 1 mensagem por linha na ordem do log; "
                       "campos: s (sessao), t (ms desde o inicio do arquivo), "
@@ -255,7 +271,7 @@ def main():
         "ok": not bad,
     }
     mpath = os.path.join(FIXTURES, "manifest.json")
-    with open(mpath, "w", encoding="utf8") as fh:
+    with open(mpath, "w", encoding="utf8", newline="\n") as fh:
         json.dump(manifest, fh, ensure_ascii=False, indent=2)
     print(f"\n  manifest: {os.path.relpath(mpath, os.path.join(HERE, '..'))}")
     if bad:

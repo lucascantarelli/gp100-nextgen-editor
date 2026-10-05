@@ -2,11 +2,11 @@
   "_meta": {
     "title": "Fixtures de replay do protocolo GP-100 (ROADMAP P4)",
     "generated_by": "analysis/make_fixtures.py",
-    "method": "loaders de build_golden.py (repair de aspa, trim no 1o F7, body()); janelas = provas de validate_golden.py",
+    "method": "loaders de build_golden.py (repair de aspa, trim ate o F7 FINAL via analysis/wirelog.py, body()); janelas = provas de validate_golden.py",
     "format": "JSONL compacto, 1 mensagem por linha na ordem do log; campos: s (sessao), t (ms desde o inicio do arquivo), dir (out/in), func (11/12), addr (8 hex), data (payload hex)",
     "semi_hdr": "mensagens truncadas pelo ring buffer do proxy (SEM-HDR) sao excluidas e contadas por fase",
-    "golden_sha256": "0426d6a8843c57d16ab917170ed5f50eb95026281f1f460f4c2520aaeefef859",
-    "golden_baseline": "0426d6a8843c57d16ab917170ed5f50eb95026281f1f460f4c2520aaeefef859",
+    "golden_sha256": "87540db32422beda4bcabd10a2a73b74753fd5421afa712ccbe21ed1d842f2b0",
+    "golden_baseline": "87540db32422beda4bcabd10a2a73b74753fd5421afa712ccbe21ed1d842f2b0",
     "reference": "docs/PROTOCOL.md §13.1-13.12; docs/ROADMAP.md P4; docs/protocol_golden.json",
     "note": "se o golden mudar (fluxo R2/R3), REGENERAR as fixtures"
   },
@@ -15,10 +15,10 @@
       "session": "S1",
       "window": "t <= 30s",
       "out": 2299,
-      "in": 2298,
-      "semi_hdr_skipped": 10,
+      "in": 2301,
+      "semi_hdr_skipped": 6,
       "file": "boot.jsonl",
-      "events": 4597
+      "events": 4600
     },
     "knobs": {
       "s3_writes": 89,
@@ -28,13 +28,13 @@
     },
     "save": {
       "s4_out": 9,
-      "s4_resync_in_11000008": 31,
-      "s4_status_in_12000001": 1,
+      "s4_resync_in_11000008": 0,
+      "s4_status_in_12000001": 0,
       "s2_out": 5,
-      "s2_resync_in_12001002": 32,
+      "s2_resync_in_12001002": 0,
       "excluded_other": 0,
       "file": "save.jsonl",
-      "events": 78
+      "events": 14
     },
     "ir": {
       "slots": [
@@ -73,8 +73,8 @@
       3
     ],
     "save_proof": [
-      77,
-      77
+      14,
+      14
     ],
     "ir_total": [
       1186,
@@ -85,8 +85,8 @@
       2
     ],
     "golden_sha256": [
-      "0426d6a8843c57d16ab917170ed5f50eb95026281f1f460f4c2520aaeefef859",
-      "0426d6a8843c57d16ab917170ed5f50eb95026281f1f460f4c2520aaeefef859"
+      "87540db32422beda4bcabd10a2a73b74753fd5421afa712ccbe21ed1d842f2b0",
+      "87540db32422beda4bcabd10a2a73b74753fd5421afa712ccbe21ed1d842f2b0"
     ],
     "knob_map_edits": [
       89,

@@ -8,6 +8,7 @@ passa por aqui. Critérios = "verde" definidos na skill .agents/skills/protocol-
 """
 import importlib.util
 import io
+import json
 import os
 import re
 import sys
@@ -86,21 +87,61 @@ def test_golden_boot_100():
     assert nums["C"].group(1) == nums["C"].group(2) == "2299", "boot gen != 2299/2299"
 
 def test_golden_save_100():
+    """Prova D: o save.
+
+    Era 77/77. **63 dessas 77 mensagens eram fabricaradas** (#23): o lado IN
+    (resync `11000008` x31, resync `12001002` x32, status `12000001`) veio de
+    linhas de captura corrompidas — o proxy morreu no flush e deixou 100
+    linhas de 256 bytes preenchidas com `ff`, sem `F7` final. O trim antigo
+    (`find("f7")`) cortava DENTRO do buffer e produzia um payload de 14 bytes
+    com cara de registro de usuário, que passava na regra e entrava na fixture.
+
+    Entao o alvo e 14: o lado OUT (9 frames do S4 + 5 do S2, derivados do
+    `.prst`), que e byte-a-byte e continua provado. O lado IN e um GAP de
+    captura — `docs/PROTOCOL.md` §13.14 e o runbook de campo. Este numero NAO
+    volta a 77 por ajuste de codigo: volta com captura nova (R2).
+    """
     _, nums = _load_golden_summary()
-    assert nums["D"].group(1) == nums["D"].group(2) == "77", "save gen != 77/77"
+    assert nums["D"].group(1) == nums["D"].group(2) == "14", (
+        "save gen != 14/14 — o lado OUT do save (9 do S4 + 5 do S2) e o que "
+        "foi capturado; o lado IN virou gap em #23 e so volta com captura nova"
+    )
 
 def test_golden_ir_100():
     _, nums = _load_golden_summary()
     assert nums["E"].group(1) == nums["E"].group(2) == "1186", "IR gen != 1186/1186"
 
 def test_golden_baseline_hash_unchanged():
-    """P1: baseline congelada — golden não pode mudar sem spec-baseline."""
-    import hashlib
-    golden = os.path.join(ROOT, "docs", "protocol_golden.json")
-    h = hashlib.sha256(open(golden, "rb").read()).hexdigest()
-    assert h == "0426d6a8843c57d16ab917170ed5f50eb95026281f1f460f4c2520aaeefef859", (
-        "protocol_golden.json mudou sem bump de baseline (regra R2/R3)!\n"
-        "Fluxo: captura -> build_golden -> validate 100% -> novo hash no §13.")
+    """P1: baseline congelada — golden nao pode mudar sem spec-baseline.
+
+    O hash NAO mora mais aqui como literal (#23): mora em
+    `analysis/baseline.json`, que alem do hash carrega versao, data, motivo e
+    historico. Um literal aqui verificava que o arquivo nao mudou, mas nao
+    que alguem explicou POR QUE — e era so colar o hash novo para passar.
+    """
+    code, out = run_module("baseline.py", "--check")
+    assert code == 0, (
+        f"baseline reprovada (regra R2/R3):\n{out}")
+
+
+def test_baseline_tem_motivo_em_cada_versao():
+    """O registro que a #23 criou nao pode virar um hash com historia vazia.
+
+    Nao e teste de `baseline.py --check` (esse roda acima): e o teste de que
+    o ARQUIVO tem conteudo. Um `--check` que so valida o hash passaria com
+    um historico de motivacoes em branco.
+    """
+    reg = os.path.join(ROOT, "analysis", "baseline.json")
+    data = json.load(open(reg, encoding="utf-8"))
+    assert data.get("versao"), "registro sem versao"
+    assert data.get("motivo", "").strip(), "versao atual sem motivo"
+    assert data.get("data", "").strip(), "versao atual sem data"
+    hist = data.get("historico") or []
+    assert hist, "historico vazio: a primeira baseline precisa entrar nele"
+    for h in hist:
+        assert h.get("motivo", "").strip(), f"historico {h.get('versao')} sem motivo"
+        assert h.get("data", "").strip(), f"historico {h.get('versao')} sem data"
+        assert len(str(h.get("hash", ""))) == 64, f"historico {h.get('versao')} sem hash"
 
 # ---------------------------------------------------------------- fixtures (P4)
 def test_fixtures_parity():

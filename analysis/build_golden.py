@@ -18,15 +18,38 @@ fluxos observados) — pronto para virar fixtures do gp100-core.
 import json, os, sys, glob
 from collections import OrderedDict, defaultdict
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import wirelog
+
 HDR = "f021257f47502d64"
 CAPTURES = sorted(glob.glob(os.path.join("analysis", "captures", "session*.jsonl")))
 OUT = os.path.join("docs", "protocol_golden.json")
 PAIR_TIMEOUT_MS = 3000
 GAP_MS = 30000
 
+# Contador de linhas cortadas (sem F7 final) por sessao. O golden precisa
+# DIZER que as descarta — antes elas eram engolidas em silencio.
+TRUNCADOS = [0]
+CORTADOS_POR_SESSAO = {}
+
 def trim(hx):
-    i = hx.find("f7")
-    return hx[: i + 2] if i >= 0 else hx
+    """Valida o terminador SysEx (F7 final). `None` = linha cortada.
+
+    Antes isto era `hx[:hx.find("f7")+2]` — o PRIMEIRO par de nibbles "f7" —
+    que trunca frames completos cujo payload contem o par ("World" =
+    `576f726c64` tem "f7" em `6f72"; um byte de DADO `f7` tambem). **16 frames
+    completos** das 4 capturas eram atingidos, e o nome "Acoustic" virava 5
+    bytes de 11.
+
+    A segunda metade do bug e maior: as capturas tem **100 linhas sem F7
+    final** (o proxy morreu no flush; todas param no prefixo de 242 bytes).
+    Adivinhar o fim delas com `rfind` produz frames de 196 bytes que nunca
+    existiram no fio — o golden passaria a descrever um aparelho que nao e
+    este. Entao: sem F7 final, `None`. Cortado se conta e segue (R1).
+
+    A regra mora em `analysis/wirelog.py` (fonte unica — #23); aqui delegamos.
+    """
+    return wirelog.trim(hx)
 
 def repair(line):
     s = line.rstrip()
@@ -51,7 +74,13 @@ def load(path):
             continue
         hx = e.get("hex", "")
         if e.get("dir") in ("out_long", "in_long") and hx:
-            e["hex"] = trim(hx)
+            # Linha cortada nao entra: entrar com ela inflaria as contagens
+            # de todo template cujo payload ela "combina" por acidente.
+            cut = trim(hx)
+            if cut is None:
+                TRUNCADOS[0] += 1
+                continue
+            e["hex"] = cut
             evs.append(e)
     return evs
 
@@ -173,15 +202,20 @@ def main():
     sess_stats = OrderedDict()
     for cap in CAPTURES:
         name = os.path.basename(cap)
+        TRUNCADOS[0] = 0
         evs = load(cap)
         txs = []
         for seg in segment(evs):
             txs.extend(pair_transactions(seg))
         for t in txs:
             t["session"] = name.replace("session", "S").replace(".jsonl", "")
-        sess_stats[name] = {"events": len(evs), "transactions": len(txs)}
+        cortados = TRUNCADOS[0]
+        CORTADOS_POR_SESSAO[name] = cortados
+        sess_stats[name] = {"events": len(evs), "transactions": len(txs),
+                            "linhas_cortadas_descartadas": cortados}
         all_txs.extend(txs)
-        print(f"{name}: {len(evs)} evs -> {len(txs)} transações")
+        sufixo = f"  ({cortados} linhas cortadas DESCARTADAS)" if cortados else ""
+        print(f"{name}: {len(evs)} evs -> {len(txs)} transações{sufixo}")
 
     # ---- agrupa em templates ----
     templates = OrderedDict()
@@ -279,11 +313,23 @@ def main():
                                  "var": "bytes que variam (valor/campo)",
                                  "mixed": "const + var"},
             "sources": sess_stats,
+            "excluded": {
+                "linhas_cortadas": (
+                    "linhas de log sem F7 final NAO sao frames: o proxy morreu "
+                    "no flush. Descartadas em vez de reconstruidas por rfind, "
+                    "que fabricaria payloads que nunca existiram no fio (R1). "
+                    f"Total nas 4 capturas: {sum(CORTADOS_POR_SESSAO.values())}"
+                ),
+            },
             "reference": "docs/PROTOCOL.md §13.1–13.12",
         },
         "transactions": out_tx,
     }
-    with open(OUT, "w", encoding="utf8") as fh:
+    # newline="\n": sem isso o Python no Windows escreve CRLF e o golden versionado
+    # passa a ter 2165 linhas com \r — diff gigante e ruido em toda revis��o.
+    # O .gitattributes resolve no commit, mas o arquivo em disco ja chega
+    # sujo para quem roda o script e abre o diff.
+    with open(OUT, "w", encoding="utf8", newline="\n") as fh:
         json.dump(doc, fh, ensure_ascii=False, indent=2)
     print(f"\n{OUT}: {len(out_tx)} templates")
     for e in out_tx:

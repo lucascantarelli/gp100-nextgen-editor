@@ -404,9 +404,22 @@
   H1 seguro por construção) e merece ADR, não um flip silencioso.
 
 ### H3. Congelamento pós-hardware
-- **Responsável:** skill `spec-baseline` + `capture-analyze` · Depende: H2 · **Estimativa:** 1h
-- **O quê:** nova captura com o gp100-core no fio → golden v1.1 se houver ajuste.
-- **DoD:** baseline atualizada + validate 100%.
+- **Responsável:** skill `spec-baseline` + `capture-analyze` · Depende: H1 (e H2 para a sessão de save) · **Estimativa:** 1–2h
+- **Status:** 🚧 **maquinaria entregue + baseline v1.1 feita** (#23); ⏳ falta
+  a sessão de campo que fecha os gaps G7–G9 e bumpa para v1.2.
+- **O que a #23 encontrou:** o `build_golden` cortava frames no primeiro par
+  de nibbles `f7` em vez do `F7` final, o que (a) truncou 16 frames completos
+  e (b) **fabricou 63 das 77 mensagens da prova de save** e o template inteiro
+  de `13000000`, a partir de 100 linhas de captura corrompidas. A v1.1 remove
+  o que não tem evidência; a conta está em `docs/PROTOCOL.md` §13.14.
+- **O que a #23 entregou:** `analysis/wirelog.py` (normalizador Suite + P4 — o
+  DoD literal era impossível antes: o build_golden carregava **0 eventos** de um
+  log do core), `t` (relógio) no `--log` do CLI, `analysis/validate_core_capture.py`
+  (juiz frame a frame), `analysis/baseline.py` + `baseline.json` (versão, hash,
+  motivo e histórico — o hash vivia como literal em teste e ninguém exigia
+  justificativa), `docs/H3_CHECKLIST.md` + `H3_REPORT.md`.
+- **DoD:** `validate_golden` 100% + baseline v1.2 com motivo escrito + gaps
+  G7–G9 fechados ou re-declarados como abertos.
 
 ---
 

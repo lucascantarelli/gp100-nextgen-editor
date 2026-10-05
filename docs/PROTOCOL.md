@@ -680,3 +680,58 @@ pedaleira que o slot de destino recebeu o preset com os valores editados
 da sessão 3 (AMP Gain ~99) — ou seja, o save persiste o **ESTADO AO VIVO**
 (writes 10xx0002 acumulados), não uma cópia do preset original, e o fluxo
 acima é o caminho real de commit. Item 11 do BLOCKERS: FECHADO.
+
+---
+
+### 13.14 Baseline v1.1 — o que o golden NÃO sabe (e por que)
+
+> Escrito em 04/10 (#23, gate H3). A baseline é `docs/protocol_golden.json`;
+> a versão, o hash, o motivo e o histórico vivem em **`analysis/baseline.json`**
+> (`uv run python analysis/baseline.py show`). Até a v1.0 o hash era um literal
+> dentro de um teste, sem versão e sem motivo: colar o hash novo passava.
+
+**O achado.** O `build_golden.py` cortava cada frame no **primeiro** par de
+nibbles `f7` (`hx.find("f7")`) em vez do `F7` **final** do SysEx. Nomes de preset
+em ASCII quase sempre têm esse par no meio — "World" = `576f726c64` contém `f7`
+em `6f72`, e `o` seguido de `p`–`z` é o caso comum. **16 frames completos** das
+4 capturas eram truncados assim, e o nome "Acoustic" virava 5 bytes de 11.
+
+**O erro maior.** As capturas têm **100 linhas sem `F7` final**: o proxy morreu
+no flush e deixou buffers de 256 bytes preenchidos com `ff`. Reconstruir o fim
+delas com `rfind("f7")` produz frames de 196 bytes que **nunca existiram no
+fio**. A regra agora é o contrário: **linha sem `F7` final não é frame** — é
+saída truncada, e o certo é contá-la e seguir (R1: protocolo adivinhado não
+entra). O golden declara os descartes em `_meta.excluded`.
+
+**O que a v1.0 afirmava sem evidência (e a v1.1 não afirma mais):**
+
+| Endereço | O que a v1.0 dizia | Por que caiu |
+|---|---|---|
+| `13000000` | `push` com `const` de 242 bytes | É o **prefixo** de uma linha cortada (o proxy corta em 256 bytes). O único template dele vinha de dado corrompido, então o template **saiu** (40 → 39 templates). |
+| `12001002` resync | `push` com `by_len` {4B, 75B}, 192 instâncias | As 32 instâncias de 4 bytes eram **fabricadas**. As 592 instâncias REAIS de 4 bytes são os ACKs do upload de IR (§13.7) e estão no template `req`. |
+| `11000008` resync | 290 push | 290 = 244 frames completos + 46 dos fabricarados. Contagem correta: **244**. |
+
+**Consequência no save (§13.12).** A prova D era `77/77`. **63 dessas 77
+mensagens eram fabricaradas** — o `find("f7")` cortava dentro do buffer `ff` e
+o `body()` devolvia `010e000000000000000000000000`, 14 bytes que são exatamente
+a forma de um registro de usuário, e passava na regra. Hoje a prova D é **14/14**:
+o lado **OUT** (9 frames do S4 + 5 do S2, derivados do `.prst`), que é
+byte-a-byte e continua provado. O lado **IN** (resync `11000008`, resync
+`12001002`, status `12000001`) é **gap de captura**.
+
+> **Isto não volta por ajuste de código.** Volta com captura nova (R2/R3). O
+> `docs/H3_CHECKLIST.md` tem o roteiro, e o `--log` do `gp100-cli` agora grava
+> `t` (ms desde a abertura) justamente para que essa captura possa entrar no
+> pipeline: sem relógio não há segmentação por fase nem casamento OUT→IN.
+
+**Os três gaps que a sessão de campo fecha:**
+
+1. **Resposta completa ao `13000000`** — o dump de boot. É o maior frame do
+   protocolo e nunca foi capturado inteiro.
+2. **Resync do save** — os ACKs e o status pós-save, que a v1.0 "provou" com
+   bytes inventados.
+3. **Regeneração da baseline a partir do gp100-core** — o DoD literal do H3, que
+   antes era impossível: o `build_golden` carregava **0 eventos** de um log do
+   core (só aceitava `out_long`/`in_long` + `hex`). `analysis/wirelog.py`
+   normaliza os dois formatos, e `analysis/validate_core_capture.py` julga a
+   sessão frame a frame.

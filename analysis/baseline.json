@@ -1,0 +1,16 @@
+{
+  "versao": "1.1",
+  "hash": "87540db32422beda4bcabd10a2a73b74753fd5421afa712ccbe21ed1d842f2b0",
+  "data": "2026-10-04",
+  "issue": "#23",
+  "motivo": "Corrige o terminador SysEx do build_golden e para de fabricar frames a partir de linhas cortadas. Duas coisas, ambas medidas nas 4 capturas. (1) O trim cortava no PRIMEIRO par de nibbles 'f7' em vez do F7 FINAL: 'World' = 576f726c64 contem 'f7' em 6f72, e um byte de DADO f7 tambem, entao 16 frames COMPLETOS eram truncados e o nome 'Acoustic' virava 5 bytes de 11. (2) As capturas tem 100 linhas sem F7 final (o proxy morreu no flush; todas param no prefixo de 242 bytes). Reconstruir o fim delas com rfind produz frames de 196 bytes que nunca existiram no fio. Agora linha sem F7 final e contada e descartada, e o golden passa a declarar isso em _meta.excluded. Efeito: 40 -> 39 templates; o 'push 13000000' SAI porque o unico padrao dele era um const de 242 bytes derivado de captura cortada — a resposta real a esse endereco nunca foi capturada por inteiro (gap registrado no PROTOCOL.md §13.14); e as contagens de 'push 11000008' caem de 290 para 244, que e o numero de frames COMPLETOS medido. (3) O gerador escrevia o golden com CRLF no Windows: 2165 linhas com \r no arquivo versionado. build_golden e make_fixtures agora escrevem com newline='\n', porque o .gitattributes resolve no commit mas nao limpa o arquivo em disco de quem roda o script.",
+  "historico": [
+    {
+      "versao": "1.0",
+      "hash": "0426d6a8843c57d16ab917170ed5f50eb95026281f1f460f4c2520aaeefef859",
+      "data": "2026-09-29",
+      "issue": "#17",
+      "motivo": "Baseline congelada a partir das capturas S1-S4 do Suite (sniffer/proxy), com os 40 templates request->resposta e validate_golden em 100%. ate esta versao o hash vivia como literal dentro de analysis/tests/test_protocol.py, sem numero de versao e sem motivo - foi a #23 que transformou isso em registro."
+    }
+  ]
+}
