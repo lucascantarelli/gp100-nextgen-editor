@@ -183,7 +183,7 @@ pub fn device_preset_library(
 }
 
 /// `device_select_preset` — select REAL via FSM (§13.10): write `13010000`
-/// + meta6; o mock troca o pp corrente (o board/LED recarregam depois).
+/// e meta6; o mock troca o pp corrente (o board/LED recarregam depois).
 #[tauri::command]
 pub fn device_select_preset(state: State<'_, AppState>, pp: u16) -> Result<(), String> {
     state.actor.select_preset(pp)
@@ -355,9 +355,7 @@ pub struct PreviewFrame {
 /// String de erro do core (valor fora da faixa, nome nao-ASCII, slot
 /// invalido). **Nenhum byte sai**: a funcao nao tem como enviar.
 #[tauri::command]
-pub fn device_preview(
-    op: PreviewOp,
-) -> Result<Vec<PreviewFrame>, String> {
+pub fn device_preview(op: PreviewOp) -> Result<Vec<PreviewFrame>, String> {
     match op {
         PreviewOp::SetParam {
             slot,
@@ -365,8 +363,8 @@ pub fn device_preview(
             ctrl,
             value,
         } => {
-            let f = gp100_core::codec::set_param(slot, code, ctrl, value)
-                .map_err(|e| e.to_string())?;
+            let f =
+                gp100_core::codec::set_param(slot, code, ctrl, value).map_err(|e| e.to_string())?;
             Ok(vec![PreviewFrame {
                 label: format!("12/10{slot:02x}0002"),
                 hex: f.iter().map(|b| format!("{b:02x}")).collect(),
@@ -383,7 +381,10 @@ pub fn device_preview(
                 .map(|f| PreviewFrame {
                     label: format!(
                         "12/{}",
-                        f.addr.iter().map(|b| format!("{b:02x}")).collect::<String>()
+                        f.addr
+                            .iter()
+                            .map(|b| format!("{b:02x}"))
+                            .collect::<String>()
                     ),
                     hex: f.sysex.iter().map(|b| format!("{b:02x}")).collect(),
                 })
@@ -433,6 +434,7 @@ pub fn pending_pushes(state: State<'_, AppState>) -> Result<Vec<String>, String>
 mod tests {
     use super::*;
     use gp100_core::transport::mock::MockDevice;
+    use gp100_core::transport::DeviceTransport;
 
     /// O DTO do command é derivado do snapshot REAL do actor (nunca de
     /// valores inventados): mesmo estado que o CLI `info` imprime — R1 nos DTOs.

@@ -53,6 +53,12 @@ fn hex(data: &[u8]) -> String {
 /// crate, que ja estende `DeviceTransport`, entao o `RealDevice` entra pela
 /// mesma fila do actor sem que nenhum tipo concrete precise conhecer o
 /// outro.
+///
+/// Este alias é o que a `abrir_backend` de `lib.rs` **anota** nos dois
+/// builds (`let mock: actor::AppDevice = …`), e não é decoração: é ele que
+/// faz o `spawn` ser o mesmo código nos dois caminhos. Sem a anotação, o
+/// build padrão não teria consumidor nenhum do alias e o clippy acusaria
+/// código morto onde o desenho está certo.
 #[cfg(not(feature = "real-device"))]
 pub type AppDevice = MockDevice;
 
@@ -83,6 +89,12 @@ pub enum Backend {
     Mock,
     /// `RealDevice` (feature `real-device`) — o aparelho **não tem estado
     /// local**: o que ele mostra na tela, a app precisa ler do fio.
+    ///
+    /// Mesmo caso do [`AppDevice`]: só a `abrir_backend` de `real-device`
+    /// constrói esta variante, e o `match` do `as_str` não conta como
+    /// construção — então o build padrão acusaria "nunca construído" para
+    /// algo que tem construtor.
+    #[cfg_attr(not(feature = "real-device"), allow(dead_code))]
     Real,
 }
 
@@ -323,8 +335,8 @@ enum Request {
         blob: Vec<u8>,
         reply: mpsc::Sender<Result<IrUploadReport, String>>,
     },
-    /// Salva o preset no aparelho (§13.12) — 9 frames de escrita (5 do meta
-    /// + 4 ops, D3). Este era o ÚNICO jeito de persistir uma mudança: o
+    /// Salva o preset no aparelho (§13.12) — 9 frames de escrita: 5 do meta
+    /// e 4 ops (D3). Este era o ÚNICO jeito de persistir uma mudança: o
     /// `set-param` é fire-and-forget e morre com a sessão. O `gp100-cli`
     /// tinha `save` e o app não tinha command nenhum — a primeira
     /// funcionalidade do CLI trazida para dentro do app.
@@ -383,7 +395,9 @@ fn device_snapshot<T: DeviceBackend>(
         backend: backend.as_str(),
         preset_count: local.as_ref().map_or(0, |m| m.preset_count),
         current_pp: local.as_ref().map_or(current_pp, |m| m.current_pp),
-        current_name: local.as_ref().map_or_else(String::new, |m| m.current_name.clone()),
+        current_name: local
+            .as_ref()
+            .map_or_else(String::new, |m| m.current_name.clone()),
         current_pp_type: local.as_ref().map_or(0, |m| m.current_pp_type),
         ir_slots_with_crc: local
             .as_ref()
@@ -596,7 +610,7 @@ impl DeviceActor {
                         }
                     },
                     Request::LogSession { path, reply } => {
-                        let Some(mut s) = session.take() else {
+                        let Some(s) = session.take() else {
                             let _ = reply.send(Err("session do actor ausente".into()));
                             continue;
                         };
@@ -606,7 +620,7 @@ impl DeviceActor {
                         let _ = reply.send(r.map(|()| true));
                     }
                     Request::LogStop { reply } => {
-                        let Some(mut s) = session.take() else {
+                        let Some(s) = session.take() else {
                             let _ = reply.send(Err("session do actor ausente".into()));
                             continue;
                         };
@@ -849,7 +863,8 @@ impl DeviceActor {
                 reply: tx,
             })
             .map_err(|_| "actor de device não está mais rodando".to_string())?;
-        rx.recv().map_err(|_| "actor morreu no LogSession".to_string())?
+        rx.recv()
+            .map_err(|_| "actor morreu no LogSession".to_string())?
     }
 
     /// Desliga o log de fio (a sessao segue; so o log para).
@@ -861,7 +876,8 @@ impl DeviceActor {
         self.tx
             .send(Request::LogStop { reply: tx })
             .map_err(|_| "actor de device não está mais rodando".to_string())?;
-        rx.recv().map_err(|_| "actor morreu no LogStop".to_string())?
+        rx.recv()
+            .map_err(|_| "actor morreu no LogStop".to_string())?
     }
 
     /// Envia Shutdown e agrega a thread (idempotente).
@@ -975,10 +991,7 @@ mod tests {
 
     #[test]
     fn um_backend_que_nao_e_mock_entra_na_mesma_fila() {
-        let actor = DeviceActor::spawn(
-            AparelhoFake { sent: Vec::new() },
-            Backend::Real,
-        );
+        let actor = DeviceActor::spawn(AparelhoFake { sent: Vec::new() }, Backend::Real);
         let st = actor.info().expect("info de um backend sem estado local");
         assert_eq!(st.backend, "real", "o backend vem DECLARADO, nao deduzido");
         assert_eq!(st.current_name, "", "sem estado local = vazio, nao nome");
@@ -988,8 +1001,13 @@ mod tests {
         // O knob dentro da faixa (15.0) sai; fora (99.5) e recusado ANTES do
         // `send_raw` — a trava da #110 e de conteudo, e vale no caminho
         // real tambem.
-        actor.set_param(3, 0x0700_006e, 0, 15.0).expect("dentro da faixa");
-        assert!(actor.set_param(3, 0x0700_006e, 0, 99.5).is_err(), "acima do teto");
+        actor
+            .set_param(3, 0x0700_006e, 0, 15.0)
+            .expect("dentro da faixa");
+        assert!(
+            actor.set_param(3, 0x0700_006e, 0, 99.5).is_err(),
+            "acima do teto"
+        );
         actor.shutdown();
     }
 

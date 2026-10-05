@@ -144,11 +144,21 @@ fn abrir_backend() -> Result<abrir_backend::Escolha, Box<dyn std::error::Error>>
         let _ = debug_fault_from_env();
     }
 
+    // O mock é montado TIPADO e só depois convertido para `AppDevice`. A ordem
+    // importa: `with_fault` é método do `MockDevice` concreto, e se o
+    // `spawn` recebesse direto um `AppDevice` o build de campo (onde o
+    // alias é `Box<dyn DeviceBackend + Send>`) não teria onde armar a falha
+    // — e o `mut` ficaria sem uso, que o clippy também pune.
+    //
+    // A conversão aqui é o que dá sentido ao alias nos DOIS builds: o `spawn`
+    // é literalmente o mesmo código, e o `MockDevice` também serve de
+    // fallback quando o `RealDevice` não abre no aparelho.
     let mut mock = MockDevice::new()?;
     if let Some(fault) = debug_fault_from_env() {
         eprintln!("GP100_DEBUG_FAULT armado: {fault:?} (backend mock)");
         mock = mock.with_fault(fault);
     }
+    let mock: actor::AppDevice = mock;
     Ok(abrir_backend::Escolha {
         actor: actor::DeviceActor::spawn(mock, actor::Backend::Mock),
     })
