@@ -103,7 +103,7 @@ do_rehearsal() {
     echo
 
     # F1 — set-param (§13.11): 1 frame OUT, ZERO IN (D4).
-    "$MOCK_CLI" --log "$out/f1_setparam.jsonl" set-param 1 0x0700006e 0 99.5 \
+    "$MOCK_CLI" --log "$out/f1_setparam.jsonl" set-param 3 0x0700006e 0 99.5 \
         > "$out/f1_setparam.txt" 2>&1
     tail -2 "$out/f1_setparam.txt"
     pausa "F1 rodado contra o MOCK." "Em campo, o display tem que mostrar 99.5 no knob."
@@ -148,7 +148,7 @@ do_refresh_reference() {
     binario_campo
     [ -d "$REF" ] || mkdir -p "$REF"
     echo "════ REFERÊNCIA — regenerando $REF a partir do MOCK"
-    "$MOCK_CLI" --log "$REF/f1_setparam.jsonl" set-param 1 0x0700006e 0 99.5 >/dev/null 2>&1
+    "$MOCK_CLI" --log "$REF/f1_setparam.jsonl" set-param 3 0x0700006e 0 99.5 >/dev/null 2>&1
     "$MOCK_CLI" --log "$REF/f2_save.jsonl" save 0x0000 4 "H2 TESTE" >/dev/null 2>&1
     blob_de_ensaio 75 "$REF/ir_blob.bin"
     "$MOCK_CLI" --log "$REF/f3_upload.jsonl" upload-ir 0 "$REF/ir_blob.bin" >/dev/null 2>&1
@@ -203,8 +203,16 @@ AVISO
     echo "Sessão em $out"
 
     # F1 — set-param. Regra 3.2: preset descartável, knob com valor visível.
+    #
+    # `slot 3` = AMP na cadeia (1=PRE … 9=RVB) e `0x0700006e` = Bog RedM: os
+    # dois têm que ser o MESMO pedal. A primeira versão deste runbook mandava
+    # `set-param 1 0x0700006e` — o código do AMP no slot do PRE, que é o
+    # C-Wah. O fio aceitaria (o codec só recusa slot fora de 1..=9) e o knob
+    # errado viraria, e o operador veria um preset que "não ficou como mandei"
+    # sem nenhuma pista do motivo. O par correto está no §3 do checklist:
+    # AMP Gain, o mesmo knob que a S3 mexeu.
     "$cli" --real --i-know-what-im-doing --log "$out/f1_setparam.jsonl" \
-        set-param 1 0x0700006e 0 99.5 > "$out/f1_setparam.txt" 2>&1
+        set-param 3 0x0700006e 0 99.5 > "$out/f1_setparam.txt" 2>&1
     cat "$out/f1_setparam.txt"
     pausa "F1 ENVIADO ao aparelho." "Olhe o DISPLAY: o valor do knob mudou para 99.5?
   Anote o veredito: mudou · não mudou · device reagiu estranho.
