@@ -4,7 +4,7 @@
 > fonte de verdade de cada assunto. Mantenha-o atualizado a cada novo documento
 > ou mudança de status — é o contrato de navegação entre agentes e humanos.
 
-**Última revisão:** 2026-10-03 (**auditoria completa pós-#70** — M0/M1 entregues · CI consolidada em 1 workflow de 25 jobs (#68) · empacotamento Win/macOS/Linux/Arch entregue (#27/#28/#29) · gestão por issues ativa; **trabalho aberto vive em ISSUES do GitHub** (milestone **v1.0.0**; epics #13–#18, filhas #19–#30, auditoria #71–#83). Estado atual e números: **§6**.)
+**Última revisão:** 2026-10-05 (**gate H em campo** — o H2 passou nos 3 fluxos de escrita contra o GP-100 V2.1 real (#22, PR #108) e o H3 congelou a baseline (#23, PR #96); a épica #18 fica só com a #21 aberta. M2 entregue (#24/#25/#26), auditoria 03/10 fechada (#71–#83). **Trabalho aberto vive em ISSUES do GitHub** (milestone **v1.0.0**; abertas: #110, #21 e as épicas #17/#18/#16/#15). Estado atual e números: **§6** — todos remedidos nesta data, não herdados.)
 
 ---
 
@@ -166,40 +166,65 @@ O Tauri não gera pacote Arch: a unidade de distribuição **é** a receita vers
 
 ---
 
-## 6. Estado atual (números são a fonte única — 03/10)
+## 6. Estado atual (números são a fonte única — **05/10**)
 
 > Regra do `docs-sync`: **contador que aparece em mais de um documento é dívida**.
 > Este bloco é a fonte; qualquer outro lugar aponta para cá em vez de repetir
 > o número (item novo da skill `docs-sync`, issue #81).
+>
+> **Todos os números abaixo foram MEDIDOS em 05/10/2026**, com o comando da
+> própria linha. Nenhum foi herdado de uma revisão anterior — a revisão de 03/10
+> trazia 189 testes de front onde havia 399, e 10 de spec onde havia 81. Se um
+> número divergir do que você vê, ele é que está errado: remeça e corrija aqui.
 
-### Entregue até 03/10
+### Entregue até 05/10
 | Fase/área | Estado |
 |---|---|
-| **P0–P5** (preparação) | ✅ 100% · ADR-1..9 em `DECISIONS.md` |
-| **M0** (gp100-core) | ✅ 100% (M0.1–M0.8) — round-trip `.prst` byte-idêntico, replay das 4 fixtures |
-| **M1** (Editor UI) | ✅ M1.0–M1.3 + V-8 (#20) + i18n (#30) — palco real, afinador, biblioteca, looper, i18n pt/en/es/zh |
+| **P0–P5** (preparação) | ✅ ADR-1..9 em `DECISIONS.md` |
+| **M0** (gp100-core) | ✅ M0.1–M0.8 — round-trip `.prst` byte-idêntico, replay das 4 fixtures |
+| **M1** (Editor UI) | ✅ M1.0–M1.3 + V-8 (#20) + i18n pt/en/es/zh (#30) |
+| **M2** (#24/#25/#26) | ✅ IR lab, SnapTone/NAM e biblioteca SQLite |
 | **ACHADOS** | ✅ A-1..A-5 |
-| **CI** (#68) | ✅ **1 workflow, 25 jobs** — 5 legados apagados, jobs por TIPO (`Tipo · o que é`), sem prefixo numérico |
-| **Empacotamento** (#27/#28/#29) | ✅ `tauri.conf.json` com 5 targets · 16 ícones + `.ico`/`.icns` derivados · README do `.deb` · PKGBUILD + `.desktop` |
-| **H** (gate de hardware) | ⏳ bloqueado por hardware — #21/#22/#23 |
+| **CI** (#68) | ✅ **1 workflow, 26 jobs** (o `gh pr checks` mostra mais porque os jobs de matriz se desdobram) |
+| **Empacotamento** (#27/#28/#29) | ✅ 5 targets Tauri (`nsis`/`msi`/`dmg`/`deb`/`appimage`) · 18 arquivos de ícone (16 PNG + `.ico` + `.icns`) |
+| **Auditoria 03/10** (#71–#83) | ✅ as 13 issues fechadas |
+| **H** (gate de hardware) | 🟡 **H2 ✅ e H3 ✅ fechados em campo** · **#21 aberta** (falta display §1.2 + assinatura §1.1) |
 
-### Contagem de testes
+### Contagem de testes (medido 05/10)
 | Suíte | Comando | Contagem |
 |---|---|---|
-| Unit do front | `pnpm exec vitest run` | **189** em 15 arquivos |
-| Cobertura do front | `pnpm run test:coverage` | **91,68%** stmts · **86,65%** branch · **91,66%** fns · **93,57%** lines (gate 85) |
-| E2E (Playwright) | `pnpm exec playwright test` | **78** roteiros · **96** baselines versionados |
-| Rust (core+cli) | `cargo test --workspace` | **15** suítes de integração/doc-test |
-| Spec (pytest) | `uv run pytest` | **10** (provas A–E do golden + paridade de fixtures + knob_map + baseline) |
+| Unit do front | `pnpm exec vitest run` | **399** em **28** arquivos (398 passando) |
+| Cobertura do front | `pnpm run test:coverage` | ⚠️ **sem número — ver a nota abaixo** |
+| E2E (Playwright) | `pnpm exec playwright test --list` | **78** testes em **7** arquivos · **96** baselines |
+| Rust (core + cli) | `cargo test --workspace` | **218** testes em **27** suítes |
+| Spec (pytest) | `.venv/Scripts/python.exe -m pytest` | **81** |
+| Gates locais | `python scripts/gates.py` | **12** |
+
+> ⚠️ **A cobertura não tem número aqui de propósito.** Em 05/10 a suíte tem uma
+> falha intermitente de `testTimeout` que **troca de arquivo a cada rodada**
+> (`i18n.test.tsx` numa, `shortcuts.test.tsx` na outra) e derruba a rodada de
+> coverage antes de ela imprimir a tabela. É a **#79 de volta**, e o motivo está
+> a um número de distância: o `maxWorkers: 4` do `vite.config.ts` foi
+> dimensionado para uma suíte de **15** arquivos, e hoje ela tem **28**. Escrever
+> um percentual de cobertura hoje seria medir uma suíte que não termina.
 
 ### Trabalho aberto (milestone `v1.0.0`)
 | # | Título | Bloqueio |
 |---|---|---|
-| [#26](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/26) | M2-LIB: biblioteca versionada (SQLite) + busca avançada | — |
-| [#24](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/24) · [#25](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/25) | M2-IR (laboratório de IR) · M2-NAM (SnapTone/NAM) | — |
-| [#21](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/21)–[#23](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/23) | Gate H: H1 leitura · H2 escrita · H3 congelamento | ⛔ requer pedaleira |
-| [#71](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/71)–[#83](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/83) | **Auditoria 03/10** — índice em #83 | #71/#72/#73 são P0 |
+| [#21](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/21) | H1: primeiro contato real — **a sessão já foi executada** (arquivada em `analysis/captures/sessionH1/` no [PR #109](https://github.com/lucascantarelli/gp100-nextgen-editor/pull/109), que ainda não está no `develop` — o caminho resolve depois daquele merge); falta a leitura do display §1.2, o B5 opcional e a assinatura do §1.1 | 🟡 parcial |
+| [#110](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/110) | `set_param_payload` aceita valor fora da faixa e trava o firmware do GP-100 | — |
+| [#15](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/15) | EPIC M2 — o que restou depois de #24/#25/#26 | — |
+| [#16](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/16) | EPIC M3 — diferenciais (live mode, cloud, tone match) | — |
+| [#17](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/17) | EPIC Release v1.0.0 multiplataforma | — |
+| [#18](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/18) | EPIC Gate H — **só a #21 resta** | depende da #21 |
+
+> Fechadas desde a revisão de 03/10: **#13**, **#14** (épicas de UI), **#19**,
+> **#20**, **#24**, **#25**, **#26**, **#27**, **#28**, **#29**, **#30**,
+> **#22**, **#23** e as **13 da auditoria** (#71–#83).
 
 ### Datas dos marcos
-`01/10` Issues+#20 · `02/10` #45 (baselines win32) · `02/10` **#68 CI consolidada** ·
-`03/10` **#27/#28/#29 empacotamento** · `03/10` **auditoria completa** (13 issues)
+`01/10` Issues + #20 · `02/10` #45 baselines win32 · `02/10` **#68 CI consolidada** ·
+`03/10` #27/#28/#29 empacotamento · `03/10` **auditoria completa** ·
+`05/10` **#23 H3 congelado** (PR #96) · `05/10` **#21 sessão H1 real** (PR #109) ·
+`05/10` **#22 H2 em campo — os 3 fluxos de escrita verdes** (PR #108), com o achado
+que virou a #110

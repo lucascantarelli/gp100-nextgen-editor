@@ -4,7 +4,7 @@
     "addr": "10 [slot 1..9] 00 02",
     "func": "0x12",
     "payload": "nibble-expandido 20B -> 10B reais",
-    "layout": "[effectCode BE 4B][ctrl u8][00][float32 LE valor físico]",
+    "layout": "[effectCode u32 LE 4B][ctrl u8][00][float32 LE valor físico]",
     "ack": "nenhum IN 10xx0002 observado"
   },
   "slots": {
