@@ -99,7 +99,12 @@ pub struct UserIrTable {
 }
 
 /// Relatório do upload de IR (§13.7).
-#[derive(Debug, Clone)]
+///
+/// `Serialize` pelo mesmo motivo do [`SnapToneUploadReport`]: este relatório é
+/// o que volta pela ponte IPC e o crate do Tauri não compila no host — o
+/// contrato verificado aqui é verificado nas três plataformas da matriz.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct IrUploadReport {
     /// Slot de destino (0..=19).
     pub slot: u8,
@@ -108,6 +113,10 @@ pub struct IrUploadReport {
     /// ACKs validados por chunk (D1; marcador de fim = duplicação do
     /// último chunk idx 0x226 — payload é a cauda REAL do blob, §13.7).
     pub acks: usize,
+    /// Bytes do `.ir` que foram para o fio — o que a tela mostra ao lado do
+    /// número de chunks, porque "296 chunks" sozinho não diz se entrou um
+    /// arquivo de 4 KB ou de 400 KB.
+    pub bytes: usize,
 }
 
 /// Settle mínimo entre duas operações de SnapTone, em ms (PROTOCOL §4,
@@ -553,6 +562,18 @@ impl<T: DeviceTransport> Session<T> {
                 got: format!("{ir_slot}"),
             });
         }
+        // O blob vazio é um `.ir` de 0 bytes escolhido pelo dono. `0` é
+        // múltiplo de 15 (passaria na checagem de baixo), mas deixa a lista
+        // de chunks VAZIA — e o marcador de fim indexa `chunks[len - 1]`,
+        // que com lista vazia dá panic por underflow, não erro. O panic
+        // morre do lado do Tauri sem mensagem: a tela precisa de um erro que
+        // ela saiba traduzir.
+        if blob.is_empty() {
+            return Err(ProtocolError::InvalidShape {
+                expected: "blob com ao menos 1 chunk (15B)".into(),
+                got: "0 bytes".into(),
+            });
+        }
         if !blob.len().is_multiple_of(15) {
             return Err(ProtocolError::InvalidShape {
                 expected: "blob múltiplo de 15B (strict, rev.2)".into(),
@@ -614,6 +635,7 @@ impl<T: DeviceTransport> Session<T> {
             slot: ir_slot,
             chunks: chunks.len(),
             acks,
+            bytes: blob.len(),
         })
     }
 
