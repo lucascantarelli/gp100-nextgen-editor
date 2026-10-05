@@ -180,8 +180,12 @@ juiz confere:
 
 O que o fio **não** pode provar — porque os dois primeiros são fire-and-forget
 e o §13 não tem read-back — é o efeito no aparelho. Por isso o juiz **imprime
-o valor que o display DEVERIA mostrar** (`99.5`, o nome `'H2 TESTE'`, o slot
-`0`): a verificação do §2.5 vira uma comparação, e não um "pareceu que".
+o valor que o display DEVERIA mostrar** (`15.0`, o nome `'H2 TESTE'`, o slot
+`0`) — e `15.0` **não** é um número redondo: é o valor que a Suite realmente
+enviou para esse par de knob na captura `analysis/fixtures/knobs.jsonl`. O
+runbook usava `99.5`, que estava acima do teto real e derrubou o firmware do
+GP-100 num assert `para <= GetParaMaxVal(` — ver
+[H2_REPORT.md](H2_REPORT.md) §3.1 e §4. A verificação do §2.5 vira uma comparação, e não um "pareceu que".
 
 ```bash
 python3 scripts/h2_compare.py <dir-da-sessao>            # Fase C

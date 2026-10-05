@@ -103,10 +103,22 @@ do_rehearsal() {
     echo
 
     # F1 — set-param (§13.11): 1 frame OUT, ZERO IN (D4).
-    "$MOCK_CLI" --log "$out/f1_setparam.jsonl" set-param 3 0x0700006e 0 99.5 \
+    #
+    # VALOR = 15.0, e nao um numero redondo inventado. Em 05/10/2026 o F1 de
+    # campo mandou 99.5 e o GP-100 TRAVOU: o firmware caiu no assert
+    # `para <= GetParaMaxVal(` em `Drivers/audio/audio.c:1828`, mostrou a tela
+    # de assertion e parou de responder a TODA transacao (timeout em 12/12001002
+    # e 12/13010001) ate um power-cycle fisico. Com 15.0 o aparelho continua
+    # respondendo normalmente logo depois do frame.
+    #
+    # 15.0 nao e arbitrario: e o valor do MESMO par (slot 3 / 0x0700006e,
+    # ctrl 0) na captura real da Suite (analysis/fixtures/knobs.jsonl). As 6
+    # amostras desse par vao de 15.0 a 99.0 — e 99.5 ja estava ACIMA do teto
+    # observado. `decode_knobs.py` reproduz essa faixa.
+    "$MOCK_CLI" --log "$out/f1_setparam.jsonl" set-param 3 0x0700006e 0 15.0 \
         > "$out/f1_setparam.txt" 2>&1
     tail -2 "$out/f1_setparam.txt"
-    pausa "F1 rodado contra o MOCK." "Em campo, o display tem que mostrar 99.5 no knob."
+    pausa "F1 rodado contra o MOCK." "Em campo, o display tem que mostrar 15.0 no knob."
 
     # F2 — save (§13.12): 9 frames OUT, ZERO IN (D3).
     "$MOCK_CLI" --log "$out/f2_save.jsonl" save 0x0000 4 "H2 TESTE" \
@@ -148,7 +160,7 @@ do_refresh_reference() {
     binario_campo
     [ -d "$REF" ] || mkdir -p "$REF"
     echo "════ REFERÊNCIA — regenerando $REF a partir do MOCK"
-    "$MOCK_CLI" --log "$REF/f1_setparam.jsonl" set-param 3 0x0700006e 0 99.5 >/dev/null 2>&1
+    "$MOCK_CLI" --log "$REF/f1_setparam.jsonl" set-param 3 0x0700006e 0 15.0 >/dev/null 2>&1
     "$MOCK_CLI" --log "$REF/f2_save.jsonl" save 0x0000 4 "H2 TESTE" >/dev/null 2>&1
     blob_de_ensaio 75 "$REF/ir_blob.bin"
     "$MOCK_CLI" --log "$REF/f3_upload.jsonl" upload-ir 0 "$REF/ir_blob.bin" >/dev/null 2>&1
@@ -211,12 +223,20 @@ AVISO
     # errado viraria, e o operador veria um preset que "não ficou como mandei"
     # sem nenhuma pista do motivo. O par correto está no §3 do checklist:
     # AMP Gain, o mesmo knob que a S3 mexeu.
+    #
+    # VALOR = 15.0 (ver o comentario do F1 no `ensaio`, acima): 99.5 travou o
+    # firmware do GP-100 num assert `para <= GetParaMaxVal(` e so um power-cycle
+    # fisico trazia o aparelho de volta. O preset 0x0000 ficou byte-a-byte igual
+    # ao estado anterior (ver `decode_dump_diff.py`), ou seja, o device nao
+    # chegou nem a comecar a gravar. O valor tem de vir da captura real.
     "$cli" --real --i-know-what-im-doing --log "$out/f1_setparam.jsonl" \
-        set-param 3 0x0700006e 0 99.5 > "$out/f1_setparam.txt" 2>&1
+        set-param 3 0x0700006e 0 15.0 > "$out/f1_setparam.txt" 2>&1
     cat "$out/f1_setparam.txt"
-    pausa "F1 ENVIADO ao aparelho." "Olhe o DISPLAY: o valor do knob mudou para 99.5?
+    pausa "F1 ENVIADO ao aparelho." "Olhe o DISPLAY: o valor do knob mudou para 15.0?
   Anote o veredito: mudou · não mudou · device reagiu estranho.
-  (O fio NÃO tem read-back deste fluxo — D4. O display é a prova.)"
+  (O fio NÃO tem read-back deste fluxo — D4. O display é a prova.)
+  ATENÇÃO: se o aparelho travar (timeout em 12/12001002), ele precisou de um
+  valor fora da faixa e o power-cycle vai ser necessário. Diga na hora."
 
     # F2 — save. 9 frames, zero resposta.
     "$cli" --real --i-know-what-im-doing --log "$out/f2_save.jsonl" \
