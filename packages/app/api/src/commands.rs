@@ -299,6 +299,125 @@ pub fn device_dump_preset(
     state.actor.dump_preset(pp)
 }
 
+/// `device_log_session` — **liga o log de fio da sessao** (schema P4).
+///
+/// E o MESMO formato que o `--log` do `gp100-cli` grava e que
+/// `scripts/h1_compare.py` / `scripts/h2_compare.py` leem. Liga e desliga
+/// **sem reiniciar o device**: o `LoggingTransport` é um decorador
+/// transparente que fica no caminho desde o inicio da sessao.
+///
+/// Fecha o ciclo de campo pelo app: o operador faz a sessao no editor,
+/// exporta o `.jsonl` e roda o juiz — sem depender do binario de campo.
+///
+/// # Erros
+/// String com o erro do SO se o arquivo nao puder ser criado.
+#[tauri::command]
+pub fn device_log_session(state: State<'_, AppState>, path: String) -> Result<bool, String> {
+    state.actor.log_session(&path)
+}
+
+/// `device_log_stop` — desliga o log de fio (a sessao segue; so o log para).
+///
+/// # Erros
+/// String de erro se o actor morreu.
+#[tauri::command]
+pub fn device_log_stop(state: State<'_, AppState>) -> Result<bool, String> {
+    state.actor.log_stop()
+}
+
+/// Um frame que o aparelho **receberia**, sem receber.
+///
+/// O hex e o mesmo que sairia pelo `send_raw` — inclusive o CRC recalculado
+/// do save §13.12 e o payload nibble-expandido do set-param §13.11.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PreviewFrame {
+    /// `func` + addr do frame (ex.: `12/10030002`), para o operador saber o
+    /// que esta olhando sem contar bytes.
+    pub label: String,
+    /// O SysEx completo em hex.
+    pub hex: String,
+}
+
+/// `device_preview` — **o que o aparelho receberia, sem receber**.
+///
+/// Substitui o `--dry-run` do `gp100-cli`. Vive no BACKEND porque o front nao
+/// pode montar SysEx (a regra da porta unica: `ui/src/ipc` nunca importa o
+/// core) — e porque a trava de valor da #110 precisa valer no preview tanto
+/// quanto no envio: um dry-run que aceita o `99.5` e mostra "OK" seria o
+/// pior dos dois mundos.
+///
+/// Cobre o set-param (1 frame, §13.11) e o save (9 frames, §13.12). O
+/// upload de IR e de SnapTone NAO tem preview: sao 295 chunks e 143 blocos
+/// de payload opaco — "pre-visualizar" isso nao informa nada.
+///
+/// # Erros
+/// String de erro do core (valor fora da faixa, nome nao-ASCII, slot
+/// invalido). **Nenhum byte sai**: a funcao nao tem como enviar.
+#[tauri::command]
+pub fn device_preview(
+    op: PreviewOp,
+) -> Result<Vec<PreviewFrame>, String> {
+    match op {
+        PreviewOp::SetParam {
+            slot,
+            code,
+            ctrl,
+            value,
+        } => {
+            let f = gp100_core::codec::set_param(slot, code, ctrl, value)
+                .map_err(|e| e.to_string())?;
+            Ok(vec![PreviewFrame {
+                label: format!("12/10{slot:02x}0002"),
+                hex: f.iter().map(|b| format!("{b:02x}")).collect(),
+            }])
+        }
+        PreviewOp::Save { pp, pp_type, name } => {
+            // `save_frames` e a MESMA funcao que o `save_preset` consome: o
+            // preview e o envio nao podem divergir, porque nao ha duas
+            // implementacoes da montagem do §13.12.
+            let frames =
+                gp100_core::session::save_frames(pp, pp_type, &name).map_err(|e| e.to_string())?;
+            Ok(frames
+                .into_iter()
+                .map(|f| PreviewFrame {
+                    label: format!(
+                        "12/{}",
+                        f.addr.iter().map(|b| format!("{b:02x}")).collect::<String>()
+                    ),
+                    hex: f.sysex.iter().map(|b| format!("{b:02x}")).collect(),
+                })
+                .collect())
+        }
+    }
+}
+
+/// A operacao que o `device_preview` sabe descrever.
+#[derive(Debug, Clone, serde::Deserialize)]
+#[serde(tag = "op", rename_all = "camelCase")]
+pub enum PreviewOp {
+    /// Um knob da cadeia (1 frame, §13.11).
+    SetParam {
+        /// Posição na cadeia, 1..=9.
+        slot: u8,
+        /// `effectCode` u32 do dicionário.
+        code: u32,
+        /// Índice do controle.
+        ctrl: u8,
+        /// Valor físico desejado.
+        value: f32,
+    },
+    /// A gravação do preset (9 frames, §13.12).
+    Save {
+        /// pp de destino.
+        pp: u16,
+        /// ppType.
+        pp_type: u16,
+        /// Nome ASCII do preset.
+        name: String,
+    },
+}
+
 /// `pending_pushes` — backlog D7 drenado do DEVICE (inbox do mock, FIFO
 /// global) como hex cru (F0…F7) para o log da UI. Consumidor alternativo
 /// ao evento `device://push` (poll explícito do front).

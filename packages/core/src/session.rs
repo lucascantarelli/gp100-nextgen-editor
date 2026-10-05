@@ -174,6 +174,52 @@ pub struct Session<T: DeviceTransport> {
     backlog: Vec<Vec<u8>>,
 }
 
+/// Um frame de escrita do `save` (§13.12) com o seu endereco — a forma que
+/// o `--dry-run` do CLI e o `device_preview` do app mostram ao operador.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SaveFrame {
+    /// Endereço 4B do frame (o mesmo que vai no `ADDR` do envelope).
+    pub addr: [u8; 4],
+    /// O SysEx completo, como sairia pelo `send_raw`.
+    pub sysex: Vec<u8>,
+}
+
+/// Os 9 frames do `save` (§13.12), **sem enviar nada**.
+///
+/// **POR QUE ISTO EXISTE SEPARADO DE [`Session::save_preset`].** O dry-run do
+/// CLI e o `device_preview` do app precisam exatamente dos mesmos bytes que
+/// seriam enviados — e a tentacao é reimplementar a montagem no consumidor,
+/// que é como um dry-run passa a mentir (mostra um frame e o aparelho recebe
+/// outro). Aqui a montagem tem **uma fonte só** e o `save_preset` consome
+/// esta mesma função, então preview e envio não podem divergir por construção.
+///
+/// Ordem (D3, ciclo de ops da S4): 5 writes do meta (§13.12) e então
+/// op0, op0, op1, op1 — o fim dos writes é o commit, e **ZERO IN** é
+/// esperado.
+///
+/// # Erros
+/// [`ProtocolError::InvalidShape`] se o nome não for ASCII imprimível.
+pub fn save_frames(pp: u16, pp_type: u16, name: &str) -> Result<Vec<SaveFrame>, ProtocolError> {
+    // write_frame = ponto ÚNICO de montagem de envelope de write (§13.1);
+    // 5 writes do meta (§13.12) + ciclo de ops da S4 (D3): op0 com o
+    // meta, op0 de novo, op1 ×2 — fim dos writes = commit, ZERO IN esperado
+    let mut out: Vec<SaveFrame> = Vec::with_capacity(9);
+    for (addr, payload) in crate::codec::meta_block(pp, pp_type, name)? {
+        out.push(SaveFrame {
+            addr,
+            sysex: crate::codec::write_frame(&addr, &payload),
+        });
+    }
+    for op in [0u8, 0, 1, 1] {
+        let addr = [0x00, 0x02, 0x00, 0x00];
+        out.push(SaveFrame {
+            addr,
+            sysex: crate::codec::write_frame(&addr, &crate::codec::op_payload(op)),
+        });
+    }
+    Ok(out)
+}
+
 impl<T: DeviceTransport> Session<T> {
     /// Constrói a FSM sobre o transporte. NÃO abre o transporte (ciclo de
     /// vida é do chamador — ADR-4/ADR-6). O golden vem de
@@ -546,22 +592,9 @@ impl<T: DeviceTransport> Session<T> {
     /// BLOCKERS 11); "salvou?" em H2 = display/`list_user_irs`, NUNCA
     /// interpretar burst 11xx tardio como confirmação.
     pub fn save_preset(&mut self, pp: u16, pp_type: u16, name: &str) -> Result<(), ProtocolError> {
-        // write_frame = ponto ÚNICO de montagem de envelope de write (§13.1);
-        // 5 writes do meta (§13.12) + ciclo de ops da S4 (D3): op0 com o
-        // meta, op0 de novo, op1 ×2 — fim dos writes = commit, ZERO IN esperado
-        let mut sysexes: Vec<Vec<u8>> = Vec::new();
-        for (addr, payload) in crate::codec::meta_block(pp, pp_type, name)? {
-            sysexes.push(crate::codec::write_frame(&addr, &payload));
-        }
-        for op in [0u8, 0, 1, 1] {
-            sysexes.push(crate::codec::write_frame(
-                &[0x00, 0x02, 0x00, 0x00],
-                &crate::codec::op_payload(op),
-            ));
-        }
-        for s in &sysexes {
+        for s in save_frames(pp, pp_type, name)? {
             self.transport
-                .send_raw(s, WireKind::Write)
+                .send_raw(&s.sysex, WireKind::Write)
                 .map_err(tx_err)?;
         }
         Ok(())

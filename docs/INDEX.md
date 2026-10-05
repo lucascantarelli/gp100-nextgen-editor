@@ -87,6 +87,7 @@
 | **Golden/validação** | `build_golden.py`, `validate_golden.py` | gera e prova a especificação executável (5 provas) |
 | **Fixtures replay (P4)** | `make_fixtures.py` + `fixtures/` | fatia as 4 capturas por fase (boot/knobs/save/ir) p/ replay do M0.6; paridade no `manifest.json` |
 | **Mapa de knobs** | `knob_map.json`, `validate_knob_map.py`, `dump_edit_writes.py`, `map_params_wire.py` | envelope semântico do knob (§13.11) |
+| **Log de fio (P4)** | `packages/core/src/wire_log.rs` | o `--log` como decorador de transporte: uma unica implementacao do schema P4, usada pelo `--log` do CLI e pela sessao do app (`device_log_session`), que e o que os juiz `h1_compare.py`/`h2_compare.py` leem |
 | **Faixas do knob** (#110, ADR-10) | `param_ranges.py` + `param_ranges.json` (gate `param_ranges`) | 639 regras do dicionário + as 92 amostras reais que as corroboram, com sha256 das duas fontes; a trava que impede o assert `para <= GetParaMaxVal` (`analysis/param_ranges.py show`) |
 | **Capturas** | `captures/session1–4.jsonl`, `ir_slot*.bin` | matéria-prima bruta (append-only!) |
 | **Decoders** | `decode_wire.py`, `check_session2.py`, `extract_ir_upload.py`, `derive_save_ops.py`, `recon_session3.py`, `ctx_dump.py`, `tail_dump.py`, `flow_dump.py`, `scan_addr.py`, `probe_session4.py`, `map_state_pages.py`, `scan_prst.py`, `decode_capture.py` | análise dirigida das capturas |

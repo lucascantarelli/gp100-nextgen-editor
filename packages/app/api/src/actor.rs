@@ -33,6 +33,7 @@ use gp100_core::session::{
 };
 use gp100_core::transport::mock::MockDevice;
 use gp100_core::transport::DeviceTransport;
+use gp100_core::wire_log::LoggingTransport;
 
 /// Estado snapshot do mock (alias curto; o tipo vive no core).
 type MockState = gp100_core::transport::mock::MockState;
@@ -123,6 +124,20 @@ impl DeviceBackend for MockDevice {
 
     fn drain_inbox(&mut self) -> Vec<Vec<u8>> {
         MockDevice::drain_inbox(self)
+    }
+}
+
+/// O `LoggingTransport` (do core) continua sendo um backend: o log e um
+/// **decorador transparente**, entao o `DeviceBackend` atravessa por ele
+/// sem mudar nada. E o que permite ligar o log no MEIO da sessao, sem
+/// reiniciar o device nem reconstruir a fila.
+impl<T: DeviceBackend> DeviceBackend for LoggingTransport<T> {
+    fn local_state(&self) -> Option<MockState> {
+        self.inner.local_state()
+    }
+
+    fn drain_inbox(&mut self) -> Vec<Vec<u8>> {
+        self.inner.drain_inbox()
     }
 }
 
@@ -325,6 +340,20 @@ enum Request {
         pp: u16,
         reply: mpsc::Sender<Result<DumpReport, String>>,
     },
+    /// Liga (ou religa) o log de fio da sessao no schema P4 -- o MESMO que
+    /// o `--log` do CLI grava e que `h1_compare.py`/`h2_compare.py` leem.
+    ///
+    /// E o que fecha o ciclo de campo pelo app: o operador abre a sessao no
+    /// editor, faz o que precisa, exporta o `.jsonl` e roda o juiz. Sem
+    /// isto, a unica forma de capturar o fio era pelo binario de campo.
+    LogSession {
+        path: String,
+        reply: mpsc::Sender<Result<bool, String>>,
+    },
+    /// Desliga o log de fio (a sessao segue; so o log para).
+    LogStop {
+        reply: mpsc::Sender<Result<bool, String>>,
+    },
     /// Encerra a thread do actor (drop do `DeviceActor`).
     Shutdown,
 }
@@ -390,12 +419,17 @@ impl DeviceActor {
     pub fn spawn<T: DeviceBackend + 'static>(device: T, backend: Backend) -> Self {
         let (tx, rx) = mpsc::channel::<Request>();
         let handle = std::thread::spawn(move || {
-            let mut device = device;
-            if let Err(e) = device.open() {
+            // O transporte entra embrulhado no LoggingTransport desde o
+            // inicio: e um decorador transparente (byte entra, byte sai,
+            // `kind` intacto), entao o log pode ser LIGADO no meio da sessao
+            // sem que o app precise reiniciar o device nem reconstruir a
+            // fila. O `drain_inbox` do backend mora por tras do wrapper.
+            let mut logged = LoggingTransport::new(device);
+            if let Err(e) = logged.open() {
                 eprintln!("[device] open do backend {backend:?} falhou: {e}");
                 return;
             }
-            let mut session = Some(Session::new(device));
+            let mut session = Some(Session::new(logged));
             while let Ok(req) = rx.recv() {
                 match req {
                     Request::Info { reply } => {
@@ -561,6 +595,26 @@ impl DeviceActor {
                             let _ = reply.send(Err("session do actor ausente".into()));
                         }
                     },
+                    Request::LogSession { path, reply } => {
+                        let Some(mut s) = session.take() else {
+                            let _ = reply.send(Err("session do actor ausente".into()));
+                            continue;
+                        };
+                        let mut t = s.into_transport();
+                        let r = t.enable_log(std::path::Path::new(&path));
+                        session = Some(Session::new(t));
+                        let _ = reply.send(r.map(|()| true));
+                    }
+                    Request::LogStop { reply } => {
+                        let Some(mut s) = session.take() else {
+                            let _ = reply.send(Err("session do actor ausente".into()));
+                            continue;
+                        };
+                        let mut t = s.into_transport();
+                        t.logger = None;
+                        session = Some(Session::new(t));
+                        let _ = reply.send(Ok(true));
+                    }
                     Request::Shutdown => break,
                 }
             }
@@ -777,6 +831,37 @@ impl DeviceActor {
             .send(Request::Dump { pp, reply: tx })
             .map_err(|_| "actor de device não está mais rodando".to_string())?;
         rx.recv().map_err(|_| "actor morreu no Dump".to_string())?
+    }
+
+    /// **Liga o log de fio da sessao** (schema P4) — o MESMO formato que o
+    /// `--log` do CLI e que os juiz (`h1_compare.py`/`h2_compare.py`) leem.
+    ///
+    /// E o que fecha o ciclo de campo pelo app: sessao no editor, exporta o
+    /// `.jsonl`, roda o juiz. Liga e desliga **sem reiniciar o device**.
+    ///
+    /// # Erros
+    /// String com o erro do SO se o arquivo nao puder ser criado.
+    pub fn log_session(&self, path: &str) -> Result<bool, String> {
+        let (tx, rx) = mpsc::channel();
+        self.tx
+            .send(Request::LogSession {
+                path: path.to_string(),
+                reply: tx,
+            })
+            .map_err(|_| "actor de device não está mais rodando".to_string())?;
+        rx.recv().map_err(|_| "actor morreu no LogSession".to_string())?
+    }
+
+    /// Desliga o log de fio (a sessao segue; so o log para).
+    ///
+    /// # Erros
+    /// String de erro se a thread do actor morreu.
+    pub fn log_stop(&self) -> Result<bool, String> {
+        let (tx, rx) = mpsc::channel();
+        self.tx
+            .send(Request::LogStop { reply: tx })
+            .map_err(|_| "actor de device não está mais rodando".to_string())?;
+        rx.recv().map_err(|_| "actor morreu no LogStop".to_string())?
     }
 
     /// Envia Shutdown e agrega a thread (idempotente).

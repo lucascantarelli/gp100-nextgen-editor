@@ -174,7 +174,8 @@ deles precisa do aparelho para ser provado.
 | 1 | `DeviceActor` genérico sobre `Box<dyn DeviceTransport>` + seleção mock/real | `packages/app/api/src/{actor,lib}.rs` | os testes do actor passam **sem** mudar (o mock vira o caso padrão); `--features real-device` compila | não |
 | 2 | `DeviceInfo` com **fonte real** (e campos que não têm fonte, declarados) | `commands.rs` | `DeviceInfo` sai do `BootReport`/tabela/meta6, não do `MockState` | não |
 | 3 | Botões de escrita cientes da política (`write-verified` → desabilitado + aviso) | front + commands | e2e do botão desabilitado no build de leitura | não |
-| 4 | `save_preset` e `dump_preset` como commands (os 2 que faltam) | `actor.rs` + `commands.rs` | vetor de bytes igual ao do CLI | não |
+| 4 | `save_preset` e `dump_preset` como commands — **✅ feito** (o que o CLI tinha e o app nao) | `actor.rs` + `commands.rs` | vetor de bytes igual ao do CLI | não |
+| 4b | **wire logger (schema P4) + dry-run no app** — **✅ feito**: `packages/core/src/wire_log.rs` (uma implementacao, CLI e app) + `device_log_session`/`device_preview`. O ciclo de campo agora fecha pelo app: sessao no editor → `.jsonl` → juiz | `wire_log.rs` + `commands.rs` | o `.jsonl` que o app grava passa no mesmo juiz que o do CLI | **sim** (para o veredito) |
 | 5 | `set_inventory` ligado ao que o boot descobre (ou fixado em campo com justificativa) | `session.rs` + `lib.rs` | o total de transações do report muda conforme o inventário | **sim** |
 | 6 | Build de campo **leitura** (`--features real-device`, sem `write-verified`) | `scripts/` | CI compila o crate do Tauri com a feature (WinMM no job `ui-rust`; ALSA no container do webview) | não |
 | 6b | `ui-rust` na matriz **macOS** — fecha o buraco do CoreMIDI | `scripts/ci_plan.py` | o backend do app com `real-device` compila para CoreMIDI | não |

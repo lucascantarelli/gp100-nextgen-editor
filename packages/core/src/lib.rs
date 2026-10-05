@@ -152,6 +152,10 @@ pub mod codec;
 /// Faixas de valor por knob/chave, e a recusa antes do fio (#110, ADR-10).
 pub mod param_range;
 
+/// Log de fio no schema P4, como decorador de transporte (`--log` do CLI
+/// e a sessao do app).
+pub mod wire_log;
+
 /// snap_tone — framing do upload de SnapTone (GP-50 de família: CRC-8/0x07 +
 /// bloco de 19B, §2/§3/§5 do PROTOCOL.md).
 pub mod snap_tone;

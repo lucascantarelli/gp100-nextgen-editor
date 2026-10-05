@@ -26,13 +26,15 @@
 //! **Rodar:** `cargo run -p gp100-cli -- info` (gates em
 //! `.agents/skills/rust-practices/SKILL.md`).
 
-use std::io::Write as _;
 use std::path::PathBuf;
-use std::time::Duration;
 
 use gp100_core::session::Session;
 use gp100_core::transport::mock::{MockDevice, MockState};
-use gp100_core::transport::{DeviceTransport, TransportError, WireKind};
+// O logger de fio e o MESMO do app: duas implementacoes do mesmo schema
+// P4 divergem em silencio, e quem consome a captura (h1_compare.py /
+// h2_compare.py) nao distingue as duas.
+use gp100_core::transport::DeviceTransport;
+use gp100_core::wire_log::LoggingTransport;
 
 /// Código de saída para violação de uso/política de hardware.
 ///
@@ -319,84 +321,6 @@ fn parse_u32(s: &str) -> Result<u32, String> {
 // `t` e ms desde a abertura do log, com 1 casa decimal, igual ao
 // `make_fixtures.py`, para que as duas capturas vivam na mesma escala.
 
-/// Logger de fio no schema P4.
-struct WireLogger {
-    file: std::fs::File,
-    /// Instante de abertura (relógio monotônico) — origem do `t`.
-    t0: std::time::Instant,
-}
-
-impl WireLogger {
-    /// Cria/trunca o arquivo de log e zera o relógio.
-    fn create(path: &std::path::Path) -> Result<Self, String> {
-        Ok(Self {
-            file: std::fs::File::create(path).map_err(|e| e.to_string())?,
-            t0: std::time::Instant::now(),
-        })
-    }
-
-    /// ms desde a abertura, com 1 casa decimal (escala do `make_fixtures.py`).
-    fn t_ms(&self) -> f64 {
-        (self.t0.elapsed().as_secs_f64() * 1000.0 * 10.0).round() / 10.0
-    }
-
-    /// Registra um frame completo (envelope SysEx cru). Frame sem envelope
-    /// NUNCA derruba a sessão (truncamento SEM-HDR é dado conhecido do
-    /// proxy) — avisa no stderr e segue.
-    fn record(&mut self, dir: &str, frame: &[u8]) {
-        let (func, addr, payload) = match gp100_core::golden::decode_envelope(frame) {
-            Ok(v) => v,
-            Err(e) => {
-                eprintln!("[!] frame sem envelope ({e}); não gravado no log");
-                return;
-            }
-        };
-        let data: String = payload.iter().map(|b| format!("{b:02x}")).collect();
-        let addr_hex: String = addr.iter().map(|b| format!("{b:02x}")).collect();
-        let t = self.t_ms();
-        let line = format!(
-            "{{\"s\":\"H3\",\"t\":{t},\"dir\":\"{dir}\",\"func\":\"{func:02x}\",\"addr\":\"{addr_hex}\",\"data\":\"{data}\"}}"
-        );
-        if let Err(e) = writeln!(self.file, "{line}") {
-            eprintln!("[!] falha ao gravar log: {e}");
-        }
-    }
-}
-
-/// Transporte transparente que registra cada frame OUT/IN no logger — o log
-/// vê exatamente o que o "fio" vê, sem tocar na Session (D8: consumidor
-/// único continua sendo a Session; o logger não lê nem filtra nada).
-struct LoggingTransport<T: DeviceTransport> {
-    inner: T,
-    logger: Option<WireLogger>,
-}
-
-impl<T: DeviceTransport> DeviceTransport for LoggingTransport<T> {
-    fn open(&mut self) -> Result<(), TransportError> {
-        self.inner.open()
-    }
-    fn close(&mut self) -> Result<(), TransportError> {
-        self.inner.close()
-    }
-    /// Transparente em TUDO, inclusive na POLICY: repassa o `kind` para o
-    /// transporte interno. Se o wrapper decidisse o `kind`, ele seria uma
-    /// segunda fonte de politica de escrita — e a trava do ADR-5 valeria
-    /// só para quem não passa por aqui (D8: o logger nao filtra nada).
-    fn send_raw(&mut self, data: &[u8], kind: WireKind) -> Result<(), TransportError> {
-        if let Some(l) = self.logger.as_mut() {
-            l.record("out", data);
-        }
-        self.inner.send_raw(data, kind)
-    }
-    fn recv_raw(&mut self, timeout: Duration) -> Result<Vec<u8>, TransportError> {
-        let msg = self.inner.recv_raw(timeout)?;
-        if let Some(l) = self.logger.as_mut() {
-            l.record("in", &msg);
-        }
-        Ok(msg)
-    }
-}
-
 // ═══════════════════════════════════════════════════════════════ execução
 
 fn main() {
@@ -465,7 +389,9 @@ fn main() {
     // Passo 3 — logger envolve o transporte (o log vê o que o "fio" vê,
     // idêntico no mock e no real); Session sobre o transporte (D1–D8).
     transport.logger = match &args.log {
-        Some(path) => match WireLogger::create(path) {
+        // O rotulo `H3` e o das capturas de origem: o log do CLI alimenta
+        // o mesmo pipeline de spec que elas.
+        Some(path) => match gp100_core::wire_log::WireLogger::with_session(path, "H3") {
             Ok(l) => Some(l),
             Err(e) => {
                 eprintln!("[!] --log {path:?}: {e}");
@@ -767,6 +693,7 @@ fn run_upload_ir<T: DeviceTransport>(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use gp100_core::transport::{TransportError, WireKind};
     use std::cell::{Cell, RefCell};
     use std::rc::Rc;
 
@@ -1146,7 +1073,7 @@ mod tests {
         let dir = std::env::temp_dir().join("gp100_cli_test_log");
         std::fs::create_dir_all(&dir).expect("tmp dir");
         let path = dir.join("t.jsonl");
-        let mut log = WireLogger::create(&path).expect("arquivo");
+        let mut log = gp100_core::wire_log::WireLogger::with_session(&path, "H3").expect("arquivo");
         // Vetor real da fixture knobs: slot 3, Bog RedM @ 15.0.
         let frame = gp100_core::codec::set_param(3, 0x0700_006e, 0, 15.0).expect("vetor");
         log.record("out", &frame);
@@ -1172,7 +1099,7 @@ mod tests {
         let dir = std::env::temp_dir().join("gp100_cli_test_log_t");
         std::fs::create_dir_all(&dir).expect("tmp dir");
         let path = dir.join("t.jsonl");
-        let mut log = WireLogger::create(&path).expect("arquivo");
+        let mut log = gp100_core::wire_log::WireLogger::with_session(&path, "H3").expect("arquivo");
         let frame = gp100_core::codec::set_param(3, 0x0700_006e, 0, 15.0).expect("vetor");
         log.record("out", &frame);
         std::thread::sleep(std::time::Duration::from_millis(25));
