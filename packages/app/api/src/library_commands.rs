@@ -160,6 +160,99 @@ pub fn library_export(state: State<'_, AppState>) -> Result<String, String> {
     lib.export_json(&agora).map_err(|e| e.to_string())
 }
 
+/// O histórico de versões de um patch (issue #113), do mais novo ao mais antigo.
+///
+/// Sem a cadeia: o painel lista números e datas, e o payload de cada versão
+/// custa o JSON de uma cadeia inteira. Quem precisa da cadeia pede a versão
+/// sozinha ([`library_version`]) ou o diff ([`library_diff`]).
+///
+/// # Erros
+/// String de erro se o banco falhar.
+#[tauri::command]
+pub fn library_versions(
+    state: State<'_, AppState>,
+    preset_id: String,
+) -> Result<Vec<gp100_library::VersionRow>, String> {
+    let lib = state.library.lock().map_err(|e| e.to_string())?;
+    lib.versoes(&preset_id).map_err(|e| e.to_string())
+}
+
+/// Lê uma versão COMPLETA (com a cadeia) pelo id da versão.
+///
+/// # Erros
+/// String de erro se o banco falhar.
+#[tauri::command]
+pub fn library_version(
+    state: State<'_, AppState>,
+    id: i64,
+) -> Result<Option<gp100_library::Version>, String> {
+    let lib = state.library.lock().map_err(|e| e.to_string())?;
+    lib.versao(id).map_err(|e| e.to_string())
+}
+
+/// O diff no nível do knob entre duas versões.
+///
+/// O diff é do `gp100-library` e não desta casca: ele lê a cadeia serializada e
+/// não toca no banco nem no device. Aqui só se busca o payload das duas versões
+/// e se delega — nenhuma regra de comparação mora no shell.
+///
+/// # Erros
+/// String de erro se uma versão não existir ou a cadeia não for legível.
+#[tauri::command]
+pub fn library_diff(
+    state: State<'_, AppState>,
+    before: i64,
+    after: i64,
+) -> Result<gp100_library::ChainDiff, String> {
+    let lib = state.library.lock().map_err(|e| e.to_string())?;
+    let a = lib
+        .versao(before)
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| format!("a versao {before} nao existe"))?;
+    let b = lib
+        .versao(after)
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| format!("a versao {after} nao existe"))?;
+    let antes = a.payload.unwrap_or_else(|| "[]".to_string());
+    let depois = b.payload.unwrap_or_else(|| "[]".to_string());
+    gp100_library::diff_cadeias(&antes, &depois).map_err(|e| e.to_string())
+}
+
+/// Restauração TOTAL: o patch volta a ser o que a versão `id` era.
+///
+/// **Cria uma versão nova** — o presente não some. Devolve a versão criada, que
+/// é o que a UI usa para dizer "agora o patch é a versão N".
+///
+/// # Erros
+/// String de erro se a versão não existir ou a gravação falhar.
+#[tauri::command]
+pub fn library_restore_version(
+    state: State<'_, AppState>,
+    id: i64,
+) -> Result<gp100_library::Version, String> {
+    let lib = state.library.lock().map_err(|e| e.to_string())?;
+    lib.restaura_versao(id, &agora_iso())
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| format!("a versao {id} nao existe"))
+}
+
+/// Restauração PONTUAL: só o knob `(slot, pos)` volta ao valor da versão `id`.
+///
+/// # Erros
+/// String de erro se a versão/patch não existirem ou a cadeia não for legível.
+#[tauri::command]
+pub fn library_restore_knob(
+    state: State<'_, AppState>,
+    id: i64,
+    slot: u32,
+    pos: u32,
+) -> Result<gp100_library::Version, String> {
+    let lib = state.library.lock().map_err(|e| e.to_string())?;
+    lib.restaura_knob(id, slot, pos, &agora_iso())
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| format!("a versao {id} nao existe"))
+}
+
 /// ISO-8601 (UTC, segundos) do agora, sem dependência de `chrono`.
 ///
 /// O envelope de export carrega o instante como metadado, e um metadado com
