@@ -5,7 +5,7 @@
 > de ambiente, configuração, revisão de spec ou extração de dados. Cada item é uma
 > issue com dependências e critério de aceite (Definition of Done) testável.
 >
-> **Status:** ✅ atual · **Última revisão:** 2026-10-03 · Mapa da doc: `docs/INDEX.md`
+> **Status:** ✅ atual · **Última revisão:** 2026-10-05 · Mapa da doc: `docs/INDEX.md`
 > (estado atual e números dos testes: **`docs/INDEX.md` §6**)
 >
 > **Princípio do não-retrocesso:** nenhum passo de implementação pode depender de
@@ -22,28 +22,37 @@
 > projeto; **todo trabalho aberto é uma issue** com epic, labels e milestone.
 > Milestone único da primeira entrega: **v1.0.0**.
 
-### Epics abertos (milestone v1.0.0)
+### Epics (milestone v1.0.0) — estado real
 
-| Epic | Escopo | Filhas |
-|---|---|---|
-| [#13](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/13) | **FASE U** — UI por etapas (casca → pedais) | [#19](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/19) |
-| [#14](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/14) | **FASE V** — UI/UX enterprise e modernização visual | #8 · #9 · #10 · #11 · #12 · #20 · #30 |
-| [#15](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/15) | **M2** — IR lab, SnapTone, biblioteca e empacotamento | #24 · #25 · #26 · #17 |
-| [#16](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/16) | **M3** — Diferenciais (live mode, cloud, tone match) | (panorama) |
-| [#17](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/17) | **Release v1.0.0** — binários, `.deb` e Arch | #27 · #28 · #29 |
-| [#18](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/18) | **Gate H** — validação em hardware real | #21 · #22 · #23 |
+> **Atualizado em 05/10/2026.** A tabela abaixo reflete o estado REAL das issues
+> (conferido com `gh issue list`), e não o estado em que elas estavam quando este
+> documento foi escrito. As épicas **#13** e **#14** estão **fechadas**.
 
-### Issues filhas (por área)
+| Epic | Escopo | Filhas | Estado |
+|---|---|---|---|
+| [#15](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/15) | **M2** — IR lab, SnapTone, biblioteca e empacotamento | #24 ✅ · #25 ✅ · #26 ✅ · #17 | **aberta** (resto do escopo) |
+| [#16](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/16) | **M3** — Diferenciais (live mode, cloud, tone match) | (panorama) | **aberta** |
+| [#17](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/17) | **Release v1.0.0** — binários, `.deb` e Arch | #27 ✅ · #28 ✅ · #29 ✅ | **aberta** |
+| [#18](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/18) | **Gate H** — validação em hardware real | #21 🟡 · #22 ✅ · #23 ✅ | **aberta — só a #21 resta** |
 
-| # | Título | Área |
-|---|---|---|
-| [#19](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/19) | U-3: renderizar os 9 pedais no board | ui |
-| [#8](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/8)–[#12](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/12) | Modernização da UI (tuner, design system, topbar, biblioteca, looper) | ui/design |
-| [#20](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/20) | V-8: edge cases de IPC nível 2 | ui |
-| [#30](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/30) | i18n do editor (pt-BR/en/es/zh) | ui |
-| [#24](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/24)–[#26](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/26) | IR lab · SnapTone/NAM · biblioteca SQLite | core/ui |
-| [#27](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/27)–[#29](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/29) | Release multiplataforma (Win/macOS · `.deb` · Arch) | release |
-| [#21](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/21)–[#23](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/23) | Gate H: H1 leitura · H2 escrita · H3 congelamento | re |
+Fora das épicas: a **#110** (validação de faixa no `set_param_payload`, aberta pelo
+achado do H2 em campo).
+
+### Issues filhas — todas fechadas
+
+> Toda a tabela abaixo está **entregue**. Mantida como histórico do escopo;
+> para o que está aberto, ver a tabela de epics acima e o `docs/INDEX.md` §6.
+
+| # | Título | Área | Estado |
+|---|---|---|---|
+| [#19](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/19) | U-3: renderizar os 9 pedais no board | ui | ✅ |
+| [#8](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/8)–[#12](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/12) | Modernização da UI (tuner, design system, topbar, biblioteca, looper) | ui/design | ✅ |
+| [#20](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/20) | V-8: edge cases de IPC nível 2 | ui | ✅ |
+| [#30](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/30) | i18n do editor (pt-BR/en/es/zh) | ui | ✅ |
+| [#24](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/24)–[#26](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/26) | IR lab · SnapTone/NAM · biblioteca SQLite | core/ui | ✅ |
+| [#27](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/27)–[#29](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/29) | Release multiplataforma (Win/macOS · `.deb` · Arch) | release | ✅ |
+| [#22](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/22) · [#23](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/23) | Gate H: H2 escrita em campo · H3 congelamento | re | ✅ |
+| [#21](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/21) | Gate H: H1 leitura — sessão feita, falta o display §1.2 e a assinatura | re | 🟡 |
 
 ### Labels
 

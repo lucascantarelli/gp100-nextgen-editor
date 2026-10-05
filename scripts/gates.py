@@ -61,6 +61,11 @@ GATES: list[tuple[str, list[str], str]] = [
         "a referencia do gate H1 tem as formas que a secao 13 manda",
     ),
     (
+        "byte_order",
+        [sys.executable, "analysis/check_byte_order.py"],
+        "o effectCode e u32 LE no fio real — se alguem escrever BE, os decoders mentem",
+    ),
+    (
         "h2_compare",
         [sys.executable, "scripts/h2_compare.py", "--self-check"],
         "a transcricao do gate H2 bate com a referencia de escrita (#22)",

@@ -40,7 +40,7 @@ python3 scripts/h2_compare.py analysis/h2/<sessão> --markdown
 | Commit do repo no binário | `ef3a1a3` (branch `feat/22-h2-kit`) |
 | sha256 do `gp100-cli.exe` | `cab0d23c0ebd7169…` |
 | Comando de build | `cargo build --release -p gp100-cli --features real-device,write-verified` |
-| H1 anterior | [`analysis/captures/sessionH1/`](../analysis/captures/sessionH1/) (05/10/2026) |
+| H1 anterior | [`analysis/captures/sessionH1/`](../analysis/captures/sessionH1/) (05/10/2026, entrada pelo PR #109) |
 | Device (firmware/display) | GP-100 **V2.1** (o assert do firmware é dessa versão) · pp 0 |
 | Slot de IR escolhido | **2** · **estava vazio?** sim (`(vazio)`) |
 | Preset alvo do `save` | `0x0000` · **é descartável?** sim — o owner autorizou a sobrescrita na sessão |

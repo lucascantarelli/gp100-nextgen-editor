@@ -6,7 +6,7 @@ com analysis/parameters.json (nomes/ranges de controls[pos]) e com os
 .prst (match do preset por módulo→alg). Emite analysis/knob_map.json.
 
 Layout do payload real (10 bytes):
-  [0..3] effectCode BE  (= nibble<<24 | index, igual ao .prst)
+  [0..3] effectCode u32 LE  (= nibble<<24 | index, igual ao .prst)
   [4]    índice do controle (pos do parameters.json)
   [5]    00 (constante nas 89 amostras)
   [6..9] float32 LE do valor (unidade física = min/max do dicionário)
@@ -158,7 +158,7 @@ def main():
     out = {"source": "session3", "wire_write": {
         "addr": "10 [slot 1..9] 00 02", "func": "0x12",
         "payload": "nibble-expandido 20B -> 10B reais",
-        "layout": "[effectCode BE 4B][ctrl u8][00][float32 LE valor físico]",
+        "layout": "[effectCode u32 LE 4B][ctrl u8][00][float32 LE valor físico]",
         "ack": "nenhum IN 10xx0002 observado",
     }, "slots": SLOTS, "edits": edits,
        "validation_errors": errs}

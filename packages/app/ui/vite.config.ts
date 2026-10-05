@@ -16,15 +16,19 @@ export default defineConfig({
     /* 15s: sob instrumentação de coverage o mount do App (99 presets +
      * boot simulado em lotes) passa de 5s — piso para o gate não piscar. */
     testTimeout: 15_000,
-    /* TETO DE WORKERS (#79): sem isto o vitest abre um worker por ARQUIVO (15
-     * para 15 arquivos) e cada um paga ~9s de spawn + ambiente jsdom. Com 8
-     * cores e 15 ambientes disputando, os testes que montam o App estouram o
-     * `testTimeout` de 15s — e é esse o "gate vermelho intermitente": a falha
-     * é CONTENTÃO, não o código. 4 é o paralelismo dos runners do CI
+    /* TETO DE WORKERS (#79): sem isto o vitest abre um worker por ARQUIVO e
+     * cada um paga ~9s de spawn + ambiente jsdom. Quando este teto foi
+     * escrito a suíte tinha 15 arquivos; em 05/10/2026 ela tem 28, e o
+     * sintoma original VOLTOU: a rodada de `test:coverage` cai com UM
+     * `testTimeout` que troca de arquivo a cada execução (i18n.test.tsx numa,
+     * shortcuts.test.tsx na outra) — se a falha fosse real, ela ficaria
+     * parada no mesmo lugar. 4 é o paralelismo dos runners do CI
      * (ubuntu-24.04, 4 cores), então local e CI passam a ter a mesma carga.
      *
      * Subir este número economiza tempo até o ponto em que a suíte fica
-     * imprevisível; aqui a economia é ESTABILIDADE. */
+     * imprevisível; aqui a economia é ESTABILIDADE. **Se você está lendo isto
+     * por causa de um `testTimeout` intermitente, a resposta não é subir o
+     * `testTimeout`** — é remedir: a suíte cresceu de novo. */
     maxWorkers: 4,
     /*
      * GATE DE COVERAGE (V-7): `pnpm test:coverage` falha se as linhas/funções
