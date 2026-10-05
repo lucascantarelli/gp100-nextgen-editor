@@ -92,6 +92,25 @@ const MIGRATIONS: &[Migration] = &[
             );
         "#,
     },
+    Migration {
+        version: 4,
+        sql: r#"
+            -- O PREVIEW do tom: o `nam_output_wav.wav` que o Valeton Suite
+            -- renderiza ao lado do `.clo` (strings em `exe_strings.txt`:
+            -- "nam_output_clo.wav"). É o ÁUDIO que aquele modelo produz, e é o
+            -- que o A/B do gestor toca — o app não reimplementa o motor NAM
+            -- (`BLOCKERS.md`), então o audio vem do Suite.
+            --
+            -- Entra como ALTER e não no CREATE da v3 porque a v3 já rodou na
+            -- máquina de alguém: recriar a tabela para ganhar uma coluna
+            -- apaga os modelos de quem já tinha importado.
+            --
+            -- NULL é o caso NORMAL de um tom sem preview: o dono pode ter o
+            -- `.clo` e não o WAV (o Suite so exporta o audio se pedirem), e
+            -- nesse caso o botão de tocar fica desabilitado COM o motivo.
+            ALTER TABLE snap_tone_model ADD COLUMN preview BLOB;
+        "#,
+    },
 ];
 
 /// Versão mais recente que este build conhece.

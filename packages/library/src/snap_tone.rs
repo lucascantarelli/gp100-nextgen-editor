@@ -79,6 +79,14 @@ pub struct Tone {
     pub row: ToneRow,
     /// Os bytes do `.clo`.
     pub model: Vec<u8>,
+    /// O `nam_output_wav.wav` que o Suite renderiza ao lado do `.clo`, ou
+    /// `None` se o dono não o tiver.
+    ///
+    /// É o que o A/B toca. O app NÃO roda o modelo: o motor NAM mora no exe
+    /// da Valeton (`BLOCKERS.md`), então o áudio do modelo é um artefato que o
+    /// Suite produz — importar o `.clo` sem o WAV é normal, e o botão de
+    /// tocar fica desabilitado com o motivo escrito.
+    pub preview: Option<Vec<u8>>,
 }
 
 /// O quadro do gestor: os tons e o estado dos slots, numa leitura só.
@@ -115,6 +123,11 @@ impl Library {
     /// `id_derivado_do_conteudo_nao_sobrescreve_outro_arquivo` prova que os
     /// dois coexistem.
     ///
+    /// `preview` é o `nam_output_wav.wav` que o Suite renderiza ao lado do
+    /// `.clo` (o áudio do modelo — o app não roda NAM, ver [`Tone::preview`]);
+    /// `None` é um tom que ainda não tem áudio, e o A/B mostra isso em vez de
+    /// sumir.
+    ///
     /// `saved_at` é ISO-8601 e vem de quem chama — o crate não tem relógio.
     ///
     /// # Erros
@@ -125,6 +138,7 @@ impl Library {
         &self,
         name: &str,
         model: &[u8],
+        preview: Option<&[u8]>,
         saved_at: &str,
     ) -> Result<ToneRow, LibraryError> {
         if name.trim().is_empty() {
@@ -151,9 +165,9 @@ impl Library {
             rusqlite::params![id, name.trim(), model.len() as i64, crc as i64, saved_at],
         )?;
         tx.execute(
-            "INSERT INTO snap_tone_model (id, model) VALUES (?1, ?2)
-             ON CONFLICT(id) DO UPDATE SET model = excluded.model",
-            rusqlite::params![id, model],
+            "INSERT INTO snap_tone_model (id, model, preview) VALUES (?1, ?2, ?3)
+             ON CONFLICT(id) DO UPDATE SET model = excluded.model, preview = excluded.preview",
+            rusqlite::params![id, model, preview],
         )?;
         tx.commit()?;
         self.ton(&id)?
@@ -223,15 +237,51 @@ impl Library {
         Ok(Some(row.get(0)?))
     }
 
-    /// O tom COM o modelo, que é o que o upload e a tela de A/B pedem.
+    /// O tom COM o modelo e o preview, que é o que o upload e a tela de A/B pedem.
     pub fn ton_com_modelo(&self, id: &str) -> Result<Option<Tone>, LibraryError> {
         let Some(row) = self.ton(id)? else {
             return Ok(None);
         };
+        let (model, preview) = self.modelo_e_preview(id)?;
         Ok(Some(Tone {
             row,
-            model: self.modelo(id)?.unwrap_or_default(),
+            model,
+            preview,
         }))
+    }
+
+    /// Modelo e preview de um tom, na MESMA leitura.
+    ///
+    /// Duas leituras aqui dariam um par que nunca existiu: o dono pode ter
+    /// reimportado o `.clo` entre elas, e o A/B tocaria o áudio do modelo
+    /// antigo com o nome do novo — que é a pior forma de mentira, porque
+    /// parece uma comparação honesta.
+    fn modelo_e_preview(&self, id: &str) -> Result<(Vec<u8>, Option<Vec<u8>>), LibraryError> {
+        let mut stmt = self
+            .conn()
+            .prepare("SELECT model, preview FROM snap_tone_model WHERE id = ?1")?;
+        let mut rows = stmt.query([id])?;
+        let Some(row) = rows.next()? else {
+            return Ok((Vec::new(), None));
+        };
+        Ok((row.get(0)?, row.get(1)?))
+    }
+
+    /// Grava (ou troca) só o preview de um tom — o dono tem o `.clo` agora e
+    ///.exporta o WAV do Suite depois. O modelo NÃO é tocado, então reimportar
+    /// o `.nam` depois não apaga o áudio que ele já tinha.
+    ///
+    /// # Erros
+    /// [`LibraryError::Tone`] se o tom não existir.
+    pub fn grava_preview(&self, id: &str, preview: Option<&[u8]>) -> Result<(), LibraryError> {
+        let n = self.conn().execute(
+            "UPDATE snap_tone_model SET preview = ?2 WHERE id = ?1",
+            rusqlite::params![id, preview],
+        )?;
+        if n == 0 {
+            return Err(LibraryError::Tone(format!("tom {id} inexistente")));
+        }
+        Ok(())
     }
 
     /// Renomeia. `false` = não existia.

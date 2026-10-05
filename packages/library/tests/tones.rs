@@ -1,6 +1,6 @@
 //! Contrato do armazenamento dos tons de SnapTone/NAM (issue #25).
 //!
-//! O que estes testesProtectem, em ordem de importance: o **conteúdo** que
+//! O que estes testes protegem, em ordem de importance: o **conteúdo** que
 //! entra é o que sai (CRC + bytes), o **slot** é de um tom só (é o recurso do
 //! device, `SnapTone1..5`), e **reimportar** o mesmo arquivo não duplica nada
 //! (o dono reorganiza a pasta e reimporta).
@@ -20,7 +20,7 @@ use gp100_library::{Library, LibraryError};
 fn o_contrato_ipc_dos_tons_e_camelcase() {
     let lib = Library::open_in_memory().expect("banco");
     let linha = lib
-        .import_tone("Marshall", &modelo(3, 1), agora())
+        .import_tone("Marshall", &modelo(3, 1), None, agora())
         .expect("importa");
 
     let linha_json = serde_json::to_value(&linha).expect("serializável");
@@ -31,7 +31,10 @@ fn o_contrato_ipc_dos_tons_e_camelcase() {
     // nome. Ler o modelo é `tone_get`.
     assert!(linha_json.get("model").is_none());
 
-    let tom = lib.ton_com_modelo(&linha.id).expect("lê").expect("existe");
+    let tom = lib
+        .ton_com_modelo(linha.id.as_str())
+        .expect("lê")
+        .expect("existe");
     let tom_json = serde_json::to_value(&tom).expect("serializável");
     // `flatten`: os campos do tom sobem para o objeto, sem `row` no meio.
     assert_eq!(tom_json["name"], "Marshall");
@@ -50,8 +53,11 @@ fn o_contrato_ipc_dos_tons_e_camelcase() {
 #[test]
 fn o_quadro_traz_lista_e_slots_juntos() {
     let lib = Library::open_in_memory().expect("banco");
-    let a = lib.import_tone("A", &modelo(10, 1), agora()).expect("A");
-    lib.import_tone("B", &modelo(10, 2), agora()).expect("B");
+    let a = lib
+        .import_tone("A", &modelo(10, 1), None, agora())
+        .expect("A");
+    lib.import_tone("B", &modelo(10, 2), None, agora())
+        .expect("B");
     lib.atribuir_slot(&a.id, Some(2)).expect("slot");
 
     let quadro = lib.tone_board().expect("quadro");
@@ -127,7 +133,7 @@ fn o_que_entra_e_o_que_sai() {
     let lib = Library::open_in_memory().expect("banco");
     let bytes = modelo(2700, 3);
     let linha = lib
-        .import_tone("Marshall 4x12", &bytes, agora())
+        .import_tone("Marshall 4x12", &bytes, None, agora())
         .expect("importa");
 
     assert_eq!(linha.name, "Marshall 4x12");
@@ -153,9 +159,11 @@ fn o_que_entra_e_o_que_sai() {
 fn reimportar_o_mesmo_arquivo_atualiza_e_nao_duplica() {
     let lib = Library::open_in_memory().expect("banco");
     let bytes = modelo(100, 9);
-    let primeiro = lib.import_tone("Tone A", &bytes, agora()).expect("1a");
+    let primeiro = lib
+        .import_tone("Tone A", &bytes, None, agora())
+        .expect("1a");
     let segundo = lib
-        .import_tone("Tone A renomeado", &bytes, "2026-10-05T12:00:00Z")
+        .import_tone("Tone A renomeado", &bytes, None, "2026-10-05T12:00:00Z")
         .expect("2a");
 
     assert_eq!(primeiro.id, segundo.id, "mesmo conteúdo = mesmo registro");
@@ -165,7 +173,7 @@ fn reimportar_o_mesmo_arquivo_atualiza_e_nao_duplica() {
     // tom no 2. (Se a regrava limpasse o slot, o dono perderia a atribuição
     // a cada reimportação e nem veria aviso.)
     lib.atribuir_slot(&primeiro.id, Some(2)).expect("atribui");
-    lib.import_tone("Tone A de novo", &bytes, agora())
+    lib.import_tone("Tone A de novo", &bytes, None, agora())
         .expect("3a");
     assert_eq!(lib.ton(&primeiro.id).unwrap().unwrap().slot, Some(2));
 }
@@ -198,7 +206,9 @@ fn id_derivado_do_conteudo_nao_sobrescreve_outro_arquivo() {
         )
         .expect("semeia o blob");
 
-    let linha = lib.import_tone("Meu", &bytes, agora()).expect("importa");
+    let linha = lib
+        .import_tone("Meu", &bytes, None, agora())
+        .expect("importa");
     assert_ne!(linha.id, id_cruzado, "o arquivo novo ganhou id livre");
     assert_eq!(linha.id, format!("{id_cruzado}-2"));
     // E o arquivo que já estava lá continua com os bytes dele.
@@ -212,10 +222,10 @@ fn id_derivado_do_conteudo_nao_sobrescreve_outro_arquivo() {
 fn um_slot_um_tom() {
     let lib = Library::open_in_memory().expect("banco");
     let a = lib
-        .import_tone("Vintage", &modelo(30, 1), agora())
+        .import_tone("Vintage", &modelo(30, 1), None, agora())
         .expect("A");
     let b = lib
-        .import_tone("Moderno", &modelo(30, 2), agora())
+        .import_tone("Moderno", &modelo(30, 2), None, agora())
         .expect("B");
 
     lib.atribuir_slot(&a.id, Some(3)).expect("A no 3");
@@ -248,13 +258,13 @@ fn slots_de_1_a_5_passam_e_o_resto_e_erro() {
     let lib = Library::open_in_memory().expect("banco");
     for i in 0..5u8 {
         let t = lib
-            .import_tone(&format!("Tone {i}"), &modelo(20, i), agora())
+            .import_tone(&format!("Tone {i}"), &modelo(20, i), None, agora())
             .expect("importa");
         lib.atribuir_slot(&t.id, Some(i + 1)).expect("slot válido");
     }
     for slot in [0u8, 6, 200] {
         let t = lib
-            .import_tone("Outro", &modelo(20, 77), agora())
+            .import_tone("Outro", &modelo(20, 77), None, agora())
             .expect("importa");
         assert!(
             matches!(
@@ -273,7 +283,9 @@ fn slots_de_1_a_5_passam_e_o_resto_e_erro() {
 fn o_tom_do_slot_traz_o_modelo() {
     let lib = Library::open_in_memory().expect("banco");
     let bytes = modelo(2700, 5);
-    let t = lib.import_tone("Amber", &bytes, agora()).expect("importa");
+    let t = lib
+        .import_tone("Amber", &bytes, None, agora())
+        .expect("importa");
     lib.atribuir_slot(&t.id, Some(5)).expect("slot 5");
 
     let pelo_slot = lib.ton_do_slot(5).expect("lê").expect("existe");
@@ -288,7 +300,7 @@ fn o_tom_do_slot_traz_o_modelo() {
 fn apagar_toma_o_blob_junto() {
     let lib = Library::open_in_memory().expect("banco");
     let t = lib
-        .import_tone("Temp", &modelo(80, 4), agora())
+        .import_tone("Temp", &modelo(80, 4), None, agora())
         .expect("importa");
     assert!(lib.apagar_tone(&t.id).expect("apaga"));
     assert!(!lib.apagar_tone(&t.id).expect("apagar 2x = false"));
@@ -304,13 +316,13 @@ fn apagar_toma_o_blob_junto() {
 fn a_ordem_e_por_slot_e_depois_nome() {
     let lib = Library::open_in_memory().expect("banco");
     let a = lib
-        .import_tone("Zeta", &modelo(20, 1), agora())
+        .import_tone("Zeta", &modelo(20, 1), None, agora())
         .expect("Zeta");
     let b = lib
-        .import_tone("Alfa", &modelo(20, 2), agora())
+        .import_tone("Alfa", &modelo(20, 2), None, agora())
         .expect("Alfa");
     let c = lib
-        .import_tone("Meio", &modelo(20, 3), agora())
+        .import_tone("Meio", &modelo(20, 3), None, agora())
         .expect("Meio");
     lib.atribuir_slot(&c.id, Some(1)).expect("Meio no 1");
     lib.atribuir_slot(&a.id, Some(4)).expect("Zeta no 4");
@@ -331,11 +343,11 @@ fn a_ordem_e_por_slot_e_depois_nome() {
 fn conteudo_invalido_e_recusado() {
     let lib = Library::open_in_memory().expect("banco");
     assert!(matches!(
-        lib.import_tone("  ", &modelo(10, 1), agora()),
+        lib.import_tone("  ", &modelo(10, 1), None, agora()),
         Err(LibraryError::Tone(_))
     ));
     assert!(matches!(
-        lib.import_tone("Vazio", &[], agora()),
+        lib.import_tone("Vazio", &[], None, agora()),
         Err(LibraryError::Tone(_))
     ));
     assert_eq!(lib.total_tons().unwrap(), 0, "nada foi gravado");
@@ -353,7 +365,7 @@ fn renomear_tone_inexistente_nao_cria_nada() {
         "nome vazio é erro"
     );
     let t = lib
-        .import_tone("Antigo", &modelo(10, 1), agora())
+        .import_tone("Antigo", &modelo(10, 1), None, agora())
         .expect("importa");
     assert!(lib.renomear_tone(&t.id, "  Novo  ").expect("renomeia"));
     assert_eq!(
@@ -361,6 +373,74 @@ fn renomear_tone_inexistente_nao_cria_nada() {
         "Novo",
         "o nome é aparado"
     );
+}
+
+/// O PREVIEW (o `nam_output_wav.wav` do Suite) entra, sai e é opcional.
+///
+/// O caso sem preview é o NORMAL — o dono tem o `.clo` e não pediu o áudio
+/// ao Suite. E o com preview é o que o A/B toca. O teste prova os dois lados
+/// porque o botão de tocar depende de distinguir "não tem" de "tem": tratá-los
+/// igual faria o player buscar um arquivo que não existe e mostrar um erro
+/// para um tom perfeitamente válido.
+#[test]
+fn o_preview_entra_sai_e_e_opcional() {
+    let lib = Library::open_in_memory().expect("banco");
+    let model = modelo(30, 1);
+    let wav = vec![0x52u8; 2048]; // cabeçalho RIFF + dados
+
+    // sem preview: o tom existe e o A/B sabe que não há áudio
+    let sem = lib
+        .import_tone("Sem audio", &model, None, agora())
+        .expect("importa");
+    let t = lib.ton_com_modelo(&sem.id).expect("lê").expect("existe");
+    assert_eq!(t.preview, None);
+    assert_eq!(t.model, model, "o modelo segue íntegro");
+
+    // com preview: volta byte a byte
+    let com = lib
+        .import_tone("Com audio", &model, Some(&wav), agora())
+        .expect("importa");
+    let t = lib.ton_com_modelo(&com.id).expect("lê").expect("existe");
+    assert_eq!(t.preview.as_deref(), Some(wav.as_slice()));
+    // E o JSON do A/B carrega o áudio sob o nome do fio (`preview`).
+    let json = serde_json::to_value(&t).expect("serializável");
+    assert!(
+        json["preview"].is_array(),
+        "o preview vai como array de bytes"
+    );
+
+    // o dono pode ter o `.clo` agora e exportar o WAV depois: grava_preview
+    // troca só o áudio, sem mexer no modelo
+    lib.grava_preview(&sem.id, Some(&wav)).expect("grava");
+    let t = lib.ton_com_modelo(&sem.id).expect("lê").expect("existe");
+    assert_eq!(t.preview.as_deref(), Some(wav.as_slice()));
+    assert_eq!(t.model, model, "gravar o preview não tocou no modelo");
+    // e um preview de 0 bytes é o ato de apagar o áudio, não guarda um arquivo mudo
+    lib.grava_preview(&sem.id, None).expect("limpa");
+    assert_eq!(lib.ton_com_modelo(&sem.id).unwrap().unwrap().preview, None);
+    // tom inexistente é erro, não um UPDATE mudo que devolve sucesso
+    assert!(matches!(
+        lib.grava_preview("tdeadbeef", Some(&wav)),
+        Err(LibraryError::Tone(_))
+    ));
+}
+
+/// O limite de `preview` é do DISCO do dono, não do aparelho: o SQLite é um
+/// arquivo e o dono tem espaço. O que o app não faz é carregar megabytes pela
+/// ponte IPC sem o dono pedir — e por isso a lista (`ToneRow`) não tem preview,
+/// só o tom lido por id.
+#[test]
+fn a_lista_nao_carrega_o_preview_e_o_tom_lido_carrega() {
+    let lib = Library::open_in_memory().expect("banco");
+    let wav = vec![7u8; 1000];
+    let linha = lib
+        .import_tone("Com audio", &modelo(30, 2), Some(&wav), agora())
+        .expect("importa");
+    let lista_json = serde_json::to_value(lib.tons().unwrap()).expect("serializável");
+    assert!(lista_json[0].get("preview").is_none(), "a lista é leve");
+    let tom_json = serde_json::to_value(lib.ton_com_modelo(linha.id.as_str()).unwrap().unwrap())
+        .expect("serializável");
+    assert_eq!(tom_json["preview"].as_array().map(|a| a.len()), Some(1000));
 }
 
 /// Atribuir slot a um tom que não existe é erro, não um `UPDATE` silencioso
