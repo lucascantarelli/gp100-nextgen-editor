@@ -98,6 +98,23 @@ pub struct UserIrTable {
     pub slots: Vec<(u8, String)>,
 }
 
+/// Bytes de payload por chunk no upload de IR (§13.7).
+///
+/// 30 nibbles na SysEx = **15 bytes reais** por chunk. O valor é público e
+/// único porque a biblioteca recusa na importação o `.ir` que não é múltiplo
+/// dele (strict, rev.2 do ADR-6) — um arquivo guardado que não pode ser
+/// enviado só adia o erro para o momento do upload, com o dono já no
+/// aparelho. Duas constantes numéricas em crates diferentes são um `mod 15`
+/// que aceita um e outro.
+pub const IR_CHUNK_BYTES: usize = 15;
+
+/// Quantidade de slots de User IR (`<ppIRInfo0..19>`, §13.12).
+///
+/// Quem define o slot é a POSIÇÃO da tag no `.prst` — e o slot **0 é
+/// válido**, ao contrário do SnapTone que começa em 1. A biblioteca valida
+/// contra este mesmo número.
+pub const IR_SLOTS: u8 = 20;
+
 /// Relatório do upload de IR (§13.7).
 ///
 /// `Serialize` pelo mesmo motivo do [`SnapToneUploadReport`]: este relatório é
@@ -556,7 +573,7 @@ impl<T: DeviceTransport> Session<T> {
     /// codec. `ir_slot` = 0..=19; `blob` tem de ser múltiplo de 15B (strict,
     /// rev.2: pedaço final é REJEITADO, não padado).
     pub fn upload_ir(&mut self, ir_slot: u8, blob: &[u8]) -> Result<IrUploadReport, ProtocolError> {
-        if ir_slot >= 20 {
+        if ir_slot >= IR_SLOTS {
             return Err(ProtocolError::InvalidShape {
                 expected: "ir_slot 0..=19".into(),
                 got: format!("{ir_slot}"),
@@ -574,7 +591,7 @@ impl<T: DeviceTransport> Session<T> {
                 got: "0 bytes".into(),
             });
         }
-        if !blob.len().is_multiple_of(15) {
+        if !blob.len().is_multiple_of(IR_CHUNK_BYTES) {
             return Err(ProtocolError::InvalidShape {
                 expected: "blob múltiplo de 15B (strict, rev.2)".into(),
                 got: format!("{} bytes", blob.len()),
@@ -583,7 +600,7 @@ impl<T: DeviceTransport> Session<T> {
         self.transport
             .send_raw(&crate::codec::ir_begin(ir_slot)?, WireKind::Write)
             .map_err(tx_err)?;
-        let chunks = blob.as_chunks::<15>().0;
+        let chunks = blob.as_chunks::<IR_CHUNK_BYTES>().0;
         let mut acks = 0usize;
         for (i, chunk) in chunks.iter().enumerate() {
             // idx em PÁGINAS de 128 (§13.7): base = página×256 — F7 nunca

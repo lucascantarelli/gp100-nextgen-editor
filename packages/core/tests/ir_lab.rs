@@ -182,10 +182,7 @@ fn os_vinte_slots_passam_e_o_vinte_e_um_e_recusado() {
 #[test]
 fn blob_de_zero_bytes_e_recusado_e_nao_entra_no_fio() {
     let mut r = Roteiro::ack_por_chunk(0, 1);
-    let e = r
-        .sessao()
-        .upload_ir(0, &[])
-        .expect_err("blob vazio");
+    let e = r.sessao().upload_ir(0, &[]).expect_err("blob vazio");
     assert!(
         matches!(e, ProtocolError::InvalidShape { .. }),
         "veio {e:?}"
@@ -305,10 +302,7 @@ fn ack_de_outro_slot_aborta_o_upload() {
 #[test]
 fn ack_ausente_e_timeout_com_o_endereco() {
     let mut r = Roteiro::com(vec![]);
-    let e = r
-        .sessao()
-        .upload_ir(1, &blob(CHUNK))
-        .expect_err("sem ACK");
+    let e = r.sessao().upload_ir(1, &blob(CHUNK)).expect_err("sem ACK");
     assert!(
         matches!(&e, ProtocolError::Timeout { addr, .. } if addr == "12/12001002"),
         "veio {e:?}"
