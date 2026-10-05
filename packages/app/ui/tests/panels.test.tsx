@@ -317,7 +317,7 @@ describe("LibraryPanel — a biblioteca no banco (#26)", () => {
         onOpenUser={() => {}}
         onSave={() => {}}
         onDelete={() => {}}
-        onOpenTones={() => {}}
+        onOpenContent={() => {}}
         {...props}
       />
     );

@@ -400,6 +400,64 @@ export const EN: DictPatch = {
   toneStats: (total: number, slots: number, used: number) =>
     `${total} tones · ${used} of ${slots} slots in use`,
 
+  /* ── IR lab (#24): the owner's `.ir` file and the device's 20 slots ── */
+  errIrRead: "Could not read the IRs — try again.",
+  errIrWrite: "Could not write the IR — the file did not respond.",
+  errIrImport: "The IR was not imported — nothing was saved.",
+  errIrSlot: "Could not assign the slot.",
+  errIrSend: "Sending to the device failed.",
+  errIrDevice: "Could not read the device's IR table.",
+
+  irBtnAria: "Open your content (SnapTone tones and the IR lab)",
+
+  /* The DOOR that opens both content screens. The option labels are the panel
+     TITLES (`toneTitle`/`irTitle`) on purpose: the owner reads the same name in
+     the menu and at the top of the panel it opened. */
+  contentMenuTitle: "Content",
+  contentMenuHint: "Files you keep in the app and send to the device.",
+  contentMenuClose: "Close",
+  irTitle: "IR lab",
+  irIntro:
+    "Import the .ir file exported by the pedal owner. The device has 20 User IR slots; what it holds right now is right below.",
+  irDeviceTitle: "What is on the device",
+  irDeviceHint:
+    "Read from the device itself (20 slots). A slot missing here may have been written from the hardware panel — that is why sending to a busy slot asks first.",
+  irDeviceAria: "User IR slots on the device",
+  irDeviceEmpty: "empty",
+  irDeviceSlotTitle: (slot: number, name: string) => `Slot ${slot}: ${name}`,
+  irDeviceHas: (name: string) => `on the device: ${name}`,
+  irReadDevice: "Re-read device",
+  irReadingDevice: "Reading…",
+  irNamePlaceholder: "IR name",
+  irNameAria: "Name of the imported IR",
+  irImport: "Import .ir",
+  irImportAria: "Import a .ir file from disk",
+  irEmpty: "No IR imported yet.",
+  irListAria: "Imported IRs",
+  irRowTitle: (name: string, kb: number) => `${name} — ${kb} KB`,
+  irSlotNone: "no slot",
+  irSlotLabel: (n: number) => `Slot ${n}`,
+  irSlotAria: (n: number) => `Slot ${n} on the device`,
+  irRenameAria: "Rename the IR",
+  irSend: "Send to device",
+  irSendAria: (name: string) => `Send “${name}” to the device slot`,
+  irSending: "Sending…",
+  irNotEnviable: "The device will not send this file: its size must be a multiple of 15 bytes.",
+  irOverwriteTitle: "That slot already holds an IR",
+  irOverwriteText: (name: string, slot: number) =>
+    `Slot ${slot} on the device holds “${name}”. Sending here replaces the recorded IR.`,
+  irOverwriteEmpty: "This device slot is empty.",
+  irDeleteAria: (name: string) => `Delete the IR “${name}” from the library`,
+  irDelete: "Delete",
+  irDeleteWarnTitle: "Deletes only here",
+  irDeleteWarnText:
+    "This deletes the IR from this editor's file. What is already recorded on the device stays there: erasing a device slot is a command that does not exist yet.",
+  irCancel: "Cancel",
+  irSent: (chunks: number, bytes: number) =>
+    `Sent: ${chunks} chunks of 15 bytes, ${bytes} bytes, one ACK per chunk.`,
+  irStats: (total: number, slots: number, used: number) =>
+    `${total} IRs · ${used} of ${slots} slots in use`,
+
   errRetry: "Try again",
   errRetryAria: "Retry the operation that failed",
 };

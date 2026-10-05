@@ -403,6 +403,64 @@ export const ES: DictPatch = {
   toneStats: (total: number, slots: number, usados: number) =>
     `${total} tonos · ${usados} de ${slots} slots en uso`,
 
+  /* ── laboratorio de IRs (#24): el `.ir` del dueño y los 20 slots del aparato ── */
+  errIrRead: "No se pudieron leer los IR — inténtalo de nuevo.",
+  errIrWrite: "No se pudo guardar el IR — el archivo no respondió.",
+  errIrImport: "El IR no se importó — no se guardó nada.",
+  errIrSlot: "No se pudo asignar el slot.",
+  errIrSend: "Falló el envío al aparato.",
+  errIrDevice: "No se pudo leer la tabla de IRs del aparato.",
+
+  irBtnAria: "Abrir tu contenido (tonos SnapTone y laboratorio de IRs)",
+
+  /* La PUERTA que abre las dos pantallas. Las opciones llevan los TÍTULOS de
+     las pantallas (`toneTitle`/`irTitle`) a propósito: el dueño lee el mismo
+     nombre en el menú y arriba del panel que abrió. */
+  contentMenuTitle: "Contenido",
+  contentMenuHint: "Archivos que guardas en la app y envías al aparato.",
+  contentMenuClose: "Cerrar",
+  irTitle: "Laboratorio de IRs",
+  irIntro:
+    "Importa el archivo .ir que exportó el dueño del pedal. El aparato tiene 20 slots de User IR; lo que tiene ahora está justo debajo.",
+  irDeviceTitle: "Lo que hay en el aparato",
+  irDeviceHint:
+    "Lectura del propio aparato (20 slots). Un slot que no aparece aquí puede haberse grabado desde el panel de hardware — por eso enviar a un slot ocupado pide confirmación.",
+  irDeviceAria: "Slots de User IR del aparato",
+  irDeviceEmpty: "vacío",
+  irDeviceSlotTitle: (slot: number, nombre: string) => `Slot ${slot}: ${nombre}`,
+  irDeviceHas: (nombre: string) => `en el aparato: ${nombre}`,
+  irReadDevice: "Releer el aparato",
+  irReadingDevice: "Leyendo…",
+  irNamePlaceholder: "Nombre del IR",
+  irNameAria: "Nombre del IR importado",
+  irImport: "Importar .ir",
+  irImportAria: "Importar un archivo .ir del disco",
+  irEmpty: "Ningún IR importado todavía.",
+  irListAria: "IRs importados",
+  irRowTitle: (nombre: string, kb: number) => `${nombre} — ${kb} KB`,
+  irSlotNone: "sin slot",
+  irSlotLabel: (n: number) => `Slot ${n}`,
+  irSlotAria: (n: number) => `Slot ${n} del aparato`,
+  irRenameAria: "Renombrar el IR",
+  irSend: "Enviar al aparato",
+  irSendAria: (nombre: string) => `Enviar “${nombre}” al slot del aparato`,
+  irSending: "Enviando…",
+  irNotEnviable: "El aparato no envía este archivo: el tamaño debe ser múltiplo de 15 bytes.",
+  irOverwriteTitle: "Ese slot ya tiene un IR",
+  irOverwriteText: (nombre: string, slot: number) =>
+    `El slot ${slot} del aparato tiene “${nombre}”. Enviar aquí reemplaza el IR grabado.`,
+  irOverwriteEmpty: "Este slot del aparato está vacío.",
+  irDeleteAria: (nombre: string) => `Borrar el IR “${nombre}” de la biblioteca`,
+  irDelete: "Borrar",
+  irDeleteWarnTitle: "Borra solo aquí",
+  irDeleteWarnText:
+    "Esto borra el IR del archivo de este editor. Lo que ya está grabado en el aparato sigue ahí: borrar el slot del aparato es un comando que todavía no existe.",
+  irCancel: "Cancelar",
+  irSent: (chunks: number, bytes: number) =>
+    `Enviado: ${chunks} bloques de 15 bytes, ${bytes} bytes, un ACK por bloque.`,
+  irStats: (total: number, slots: number, usados: number) =>
+    `${total} IRs · ${usados} de ${slots} slots en uso`,
+
   errRetry: "Reintentar",
   errRetryAria: "Reintentar la operación que falló",
 };
