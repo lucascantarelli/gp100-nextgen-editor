@@ -57,6 +57,41 @@ const MIGRATIONS: &[Migration] = &[
             CREATE INDEX preset_type ON preset(pp_type);
         "#,
     },
+    Migration {
+        version: 3,
+        sql: r#"
+            -- TONS de SnapTone/NAM (issue #25). O `.clo` importado é OPACO:
+            -- a conversão do `.nam` acontece no Suite e o motor NAM mora no
+            -- exe da Valeton, então aqui só há bytes e o CRC que prova que
+            -- eles não mudaram no caminho.
+            --
+            -- O CHECK de slot é a MESMA regra de `snap_tone.rs` e a mesma
+            -- constante do core (`SnapTone1..5` no firmware, §5) — o limite
+            -- 5 está escrito aqui porque `MIGRATIONS` é SQL estático, e o
+            -- teste `limite_do_slot_no_sql_bate_com_o_core` amarra os dois.
+            -- Se divergirem, o banco aceitaria 6 e a FSM recusaria: o dono
+            -- veria o erro na atribuição, tarde demais.
+            CREATE TABLE snap_tone (
+                id       TEXT    PRIMARY KEY,
+                name     TEXT    NOT NULL,
+                bytes    INTEGER NOT NULL,
+                crc32    INTEGER NOT NULL,
+                slot     INTEGER CHECK (slot IS NULL OR (slot BETWEEN 1 AND 5)),
+                saved_at TEXT    NOT NULL
+            );
+            -- Um slot, um tom: o índice parcial é o que impede dois registros
+            -- apontarem para o mesmo slot do device.
+            CREATE UNIQUE INDEX snap_tone_slot ON snap_tone(slot) WHERE slot IS NOT NULL;
+            CREATE INDEX snap_tone_name ON snap_tone(name);
+            -- O modelo (~2,7 KB) mora à parte: a lista do gestor não paga
+            -- 2,7 KB por linha para mostrar um nome. O CASCADE faz o blob
+            -- sumir junto com o tom.
+            CREATE TABLE snap_tone_model (
+                id    TEXT PRIMARY KEY REFERENCES snap_tone(id) ON DELETE CASCADE,
+                model BLOB NOT NULL
+            );
+        "#,
+    },
 ];
 
 /// Versão mais recente que este build conhece.
