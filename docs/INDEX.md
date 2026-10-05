@@ -4,7 +4,7 @@
 > fonte de verdade de cada assunto. Mantenha-o atualizado a cada novo documento
 > ou mudança de status — é o contrato de navegação entre agentes e humanos.
 
-**Última revisão:** 2026-10-05 (**gate H em campo** — o H2 passou nos 3 fluxos de escrita contra o GP-100 V2.1 real (#22, PR #108) e o H3 congelou a baseline (#23, PR #96); a épica #18 fica só com a #21 aberta. M2 entregue (#24/#25/#26), auditoria 03/10 fechada (#71–#83). **Trabalho aberto vive em ISSUES do GitHub** (milestone **v1.0.0**; abertas: #110, #21 e as épicas #17/#18/#16/#15). Estado atual e números: **§6** — todos remedidos nesta data, não herdados.)
+**Última revisão:** 2026-10-05 (**gate H em campo** — o H2 passou nos 3 fluxos de escrita contra o GP-100 V2.1 real (#22, PR #108) e o H3 congelou a baseline (#23, PR #96); **o gate H inteiro fechou em campo** (#21 H1 · #22 H2 · #23 H3). M2 entregue (#24/#25/#26), auditoria 03/10 fechada (#71–#83). **Trabalho aberto vive em ISSUES do GitHub** (milestone **v1.0.0**; abertas: #110 e as épicas #17/#16/#15). Estado atual e números: **§6** — todos remedidos nesta data, não herdados.)
 
 ---
 
@@ -188,7 +188,7 @@ O Tauri não gera pacote Arch: a unidade de distribuição **é** a receita vers
 | **CI** (#68) | ✅ **1 workflow, 26 jobs** (o `gh pr checks` mostra mais porque os jobs de matriz se desdobram) |
 | **Empacotamento** (#27/#28/#29) | ✅ 5 targets Tauri (`nsis`/`msi`/`dmg`/`deb`/`appimage`) · 18 arquivos de ícone (16 PNG + `.ico` + `.icns`) |
 | **Auditoria 03/10** (#71–#83) | ✅ as 13 issues fechadas |
-| **H** (gate de hardware) | 🟡 **H2 ✅ e H3 ✅ fechados em campo** · **#21 aberta** (falta display §1.2 + assinatura §1.1) |
+| **H** (gate de hardware) | ✅ **os 3 gates fechados em campo**: H1 (#21, PR #109) · H2 (#22, PR #108) · H3 (#23, PR #96) |
 
 ### Contagem de testes (medido 05/10)
 | Suíte | Comando | Contagem |
@@ -211,12 +211,12 @@ O Tauri não gera pacote Arch: a unidade de distribuição **é** a receita vers
 ### Trabalho aberto (milestone `v1.0.0`)
 | # | Título | Bloqueio |
 |---|---|---|
-| [#21](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/21) | H1: primeiro contato real — **a sessão já foi executada** (arquivada em `analysis/captures/sessionH1/` no [PR #109](https://github.com/lucascantarelli/gp100-nextgen-editor/pull/109), que ainda não está no `develop` — o caminho resolve depois daquele merge); falta a leitura do display §1.2, o B5 opcional e a assinatura do §1.1 | 🟡 parcial |
+| ~~[#21](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/21)~~ | H1: primeiro contato real — **FECHADA em 05/10**: sessão real executada e arquivada em `analysis/captures/sessionH1/` (PR #109); juiz: níveis 1 e 3 limpos, divergências só de nível 2 (conteúdo, esperado) | ✅ |
 | [#110](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/110) | `set_param_payload` aceita valor fora da faixa e trava o firmware do GP-100 | — |
 | [#15](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/15) | EPIC M2 — o que restou depois de #24/#25/#26 | — |
 | [#16](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/16) | EPIC M3 — diferenciais (live mode, cloud, tone match) | — |
 | [#17](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/17) | EPIC Release v1.0.0 multiplataforma | — |
-| [#18](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/18) | EPIC Gate H — **só a #21 resta** | depende da #21 |
+| ~~[#18](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/18)~~ | EPIC Gate H — **FECHADA**: #21 ✅ (H1 executado, PR #109) · #22 ✅ (H2 em campo, PR #108) · #23 ✅ (H3 congelado, PR #96) | ✅ |
 
 > Fechadas desde a revisão de 03/10: **#13**, **#14** (épicas de UI), **#19**,
 > **#20**, **#24**, **#25**, **#26**, **#27**, **#28**, **#29**, **#30**,

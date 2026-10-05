@@ -523,9 +523,10 @@ empurraria os outros botões para uma segunda linha (medido: rodapé 91px → 61
 
 **O aviso do CAB é visível e o envio pede confirmação.** O release note da
 Valeton (`analysis/release_note.txt`) diz que o SnapTone **desliga o CAB** do
-aparelho. O `release_note.txt` descrever o modo não é o mesmo que o aparelho
-fazer isso: por isso o modal mostra o aviso e o envio passa por um `confirm`
-antes do primeiro bloco — um stream de 143 blocos que derruba o sinal do
+aparelho — e o dono **confirmou em campo, com o pedal na mão, em 05/10/2026**:
+o SnapTone desliga o CAB. O que era inferência de documentação virou
+comportamento observado; o modal de aviso e o `confirm` antes do primeiro
+bloco continuam, porque um stream de 143 blocos que derruba o sinal do
 gabinete sem o dono pedir seria o app mentindo sobre o que faz.
 
 **O A/B toca o WAV do Suite, não o modelo.** O app não reimplementa o motor NAM
