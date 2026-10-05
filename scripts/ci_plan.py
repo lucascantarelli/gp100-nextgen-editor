@@ -139,9 +139,37 @@ def scopes(changed: str) -> dict[str, bool]:
 def matrices(sc: dict[str, bool]) -> tuple[str, str]:
     """Matrizes por projeto afetado.
 
-    `ui-rust` fica em Windows (hosted) + Linux (container ci-linux, no job
-    `Testes · e2e webview`); o macOS saiu porque compilar o shell Tauri lá
-    (~96s) não pegava classe de bug própria — o vitest 3-OS já cobre a UI.
+    `ui-rust` (o crate do Tauri) roda em Windows e macOS nesta matriz, e no
+    Linux DENTRO do container `ci-linux` (job `Testes · e2e webview`). A
+    entrada do macOS voltou em 05/10 e vale a pena registrar O PORQUE, porque
+    a decisão anterior era o oposto e igualmente bem pensada:
+
+      Saiu porque: compilar o shell do Tauri no macOS (~96s) não pegava
+      classe de bug própria — o vitest 3-OS já cobria a UI.
+
+      Voltou porque: a premissa "não tem nada específico de SO" deixou de
+      valer. `--features real-device` liga o `midir`, e no macOS ele fala
+      **CoreMIDI** — que só existe ali. Compilar no Windows prova o WinMM e
+      no container Linux prova o ALSA; nenhum dos dois diz se o
+      `RealDevice`/`impl DeviceBackend for RealDevice`/`abrir_backend`
+      fecham no CoreMIDI. Sem esta entrada, o caminho do aparelho real do
+      APP em macOS é código que só a máquina de quem tem a pedaleira
+      compila — e era esse o ÚNICO motivo técnico que sobrava para o
+      `gp100-cli` continuar existindo (`docs/REAL_DEVICE_GAP.md` §6, passo
+      6b).
+
+    **E POR QUE O LINUX NÃO ESTÁ NESTA MATRIX.** O `ubuntu-24.04` hosted não
+    tem as libs de sistema do Tauri (WebKitGTK + ALSA) — foi justamente por
+    isso que o projeto tem a imagem `ci-linux`. Uma entrada `ui-rust` em
+    `ubuntu-24.04` aqui não compilaria: ela passaria a exigir `apt-get` de
+    GTK em um job que hoje não instala nada. O Linux é coberto pelo
+    container, e é lá que o passo `real-device` roda (além do ALSA, prova o
+    ALSA + WebKitGTK juntos, combinação que o runner do macOS não reproduz).
+
+    Custo é o preço, não um argumento contra: o cache `ws-api` é
+    compartilhado entre jobs (o prefixo automático do rust-cache segue
+    separando por triple), então o custo é de um shell do Tauri a mais por
+    job, uma vez, e não por push.
     """
     rust: list[dict[str, str]] = []
     front: list[dict[str, str]] = []
@@ -151,7 +179,10 @@ def matrices(sc: dict[str, bool]) -> tuple[str, str]:
         for os_name in OSS:
             rust.append({"os": os_name, "project": "core", "workdir": "."})
             rust.append({"os": os_name, "project": "cli", "workdir": "."})
-        rust.append({"os": "windows-latest", "project": "ui-rust", "workdir": "packages/app/api"})
+        # o crate do Tauri: WinMM e CoreMIDI aqui, ALSA no container. Nao
+        # acrescentar `ubuntu-24.04` — ver a razao no docstring acima.
+        for os_name in ("windows-latest", "macos-15-intel"):
+            rust.append({"os": os_name, "project": "ui-rust", "workdir": "packages/app/api"})
     if sc["front"]:
         front = [{"os": o} for o in OSS]
     return _compact({"include": rust}), _compact({"include": front})

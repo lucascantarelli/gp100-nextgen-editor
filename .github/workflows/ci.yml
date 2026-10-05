@@ -361,8 +361,13 @@ jobs:
         # job normal usa o default (mock) e o job de release compila sem a
         # feature. O caminho do aparelho real do APP seria, literalmente, codigo
         # so compilado na maquina de quem tem a pedaleira.
-        # `real-device` liga o `midir`, que no Linux precisa do ALSA (passo
-        # acima) e no macOS so do CoreMIDI de sistema.
+        #
+        # `real-device` liga o `midir`, e ele e um backend DIFERENTE por SO:
+        # WinMM no Windows, ALSA no Linux (passo acima), CoreMIDI no macOS.
+        # Por isso a matriz do `ui-rust` tem os TRES OS (`scripts/ci_plan.py`:
+        # a entrada do macOS voltou em 05/10) — compilar em um so nao prova o
+        # outro, e o CoreMIDI sem cobertura era o unico motivo tecnico que
+        # sobrava para o `gp100-cli` existir.
         if: matrix.project == 'ui-rust'
         run: cargo clippy -p gp100-ui --features real-device --all-targets -- -D warnings
 
@@ -433,11 +438,10 @@ jobs:
         run: |
           cargo check -p ${{ matrix.project == 'ui-rust' && 'gp100-ui' || format('gp100-{0}', matrix.project) }} --all-targets
       - name: check (build de campo do app — feature real-device)
-        # Mesmo motivo do passo de clippy: e o unico lugar onde o backend do
-        # app e compilado COM o `RealDevice`. Compilar no Windows so nao prova
-        # o CoreMIDI nem o ALSA — por isso a matriz do `ui-rust` precisa
-        # crescer (ver `scripts/ci_plan.py::matrices`), e este passo e o que
-        # denuncia o buraco enquanto a matriz nao cresce.
+        # Mesmo motivo do passo de clippy: e o unico lugar ( alem do container
+        # Linux) onde o backend do app e compilado COM o `RealDevice`. A
+        # matriz do `ui-rust` cobre os TRES OS, entao o CoreMIDI do macOS
+        # entrou com o resto (`scripts/ci_plan.py::matrices`, 05/10).
         if: matrix.project == 'ui-rust'
         run: cargo check -p gp100-ui --features real-device,write-verified --all-targets
 
@@ -651,12 +655,11 @@ jobs:
       # `AppDevice` e o `impl DeviceBackend for RealDevice` do crate do Tauri
       # seriam código que SÓ a máquina de quem tem a pedaleira compila.
       #
-      # ⚠️ macOS continua sem cobertura do caminho real do app: o `ui-rust`
-      # saiu da matriz macOS por custo (nota em `scripts/ci_plan.py::matrices`)
-      # — decisão que era correta quando o build não tinha nada específico de
-      # SO, e que deixa de ser quando o `midir` puxa o CoreMIDI. O
-      # transporte real macOS continua coberto pelo `cli`, que é exatamente o
-      # motivo de o CLI ainda existir (ver `docs/REAL_DEVICE_GAP.md` §6).
+      # O macOS NÃO precisa deste container: o `ui-rust` da matriz roda lá
+      # desde 05/10 e cobre o CoreMIDI do mesmo jeito que este cobre o ALSA.
+      # Este passo continua porque prova o `real-device` no MESMO container
+      # que roda o e2e do webview (WebKitGTK + ALSA juntos), que é uma
+      # combinação que o runner do macOS não reproduz.
       - name: check do backend com aparelho real (ALSA — Linux)
         working-directory: packages/app/api
         run: cargo check -p gp100-ui --features real-device --all-targets

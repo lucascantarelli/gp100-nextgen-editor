@@ -61,18 +61,27 @@ real · 🔴 ausente do app.
 | Select de preset §13.10 | ✅ `select_preset` | ✅ | ✅ `device_select_preset` | 🟡 idem |
 | **Knob** §13.11 | ✅ `set_param` | ✅ `set-param` | ✅ `device_set_param` | 🟡 idem (+ trava de faixa, ADR-10) |
 | Tabela de 20 User IRs §13.12 | ✅ `list_user_irs` | ✅ `list-user-irs` | ✅ `list_user_irs` | 🟡 idem (H1 provou as 20 respostas) |
-| Dump de preset (meta6 + páginas) §13.9 | ✅ `state_page`/`scan_state` | ✅ `dump-preset` | 🔴 **não exposto** | 🔴 |
-| **Save de preset** §13.12 | ✅ `save_preset` | ✅ `save` | 🔴 **não exposto** | 🔴 |
+| Dump de preset (meta6 + páginas) §13.9 | ✅ `state_page`/`scan_state` | ✅ `dump-preset` | ✅ `device_dump_preset` (passo 4) | 🟡 idem |
+| **Save de preset** §13.12 | ✅ `save_preset` | ✅ `save` | ✅ `device_save_preset` (passo 4) | 🟡 idem |
 | Upload de User IR §13.7 | ✅ `upload_ir` | ✅ `upload-ir` | ✅ `ir_send` | 🟡 idem (H2 F3 verde em campo) |
 | Upload de SnapTone §5 | ✅ `upload_snap_tone` | 🔴 não exposto | ✅ `tone_send` | 🟡 idem |
+| Log de fio (schema P4) + prévia do envio | ✅ decorator | ✅ `--log` / `--dry-run` | ✅ `device_log_session` / `device_preview` (passo 4b) | 🟡 idem |
 | Pushes do device (D7) | ✅ `pending_pushes` | ✅ | ✅ `pending_pushes` | 🟡 idem |
 | Trocar o **efeito** do slot (`0x47`) | 🔴 sem formato validado | 🔴 | 🟡 prévia local | 🔴 (bloqueio do item `C2`, §5) |
 | Inventário de pps do scan | ✅ `set_inventory` | 🔴 não chama | 🔴 não chama | 🔴 (§4) |
 
-O que a coluna do meio mostra: **o core tem 11 capacidades, o CLI expõe 8, o app
-expõe 8 — e são conjuntos diferentes.** O app não tem `dump-preset` nem `save`;
-o CLI não tem SnapTone. Não é o app "atrasado" no mesmo caminho, são **dois
-subconjuntos diferentes do mesmo core**.
+**O que a coluna do meio mostra hoje (05/10): o app é um SUPERSETO ESTRITO do
+CLI.** O core tem 12 capacidades; o CLI expõe 9 e o app expõe essas 9 **mais o
+SnapTone**. Antes o app não tinha `dump-preset` nem `save`, e o CLI não tinha
+SnapTone — dois subconjuntos diferentes do mesmo core. Os passos 4, 4b e 4c
+(este último a camada de tela) fecharam a diferença: o que o CLI sabia fazer,
+o app agora faz na mão do operador, e o `gp100-cli` deixou de ser dono de
+qualquer capacidade que o app não tenha.
+
+As **duas** capacidades que continuam 🔴 para o app — trocar o efeito do slot
+(`0x47`) e o inventário de pps (`set_inventory`) — **não** são dívida do
+desacoplamento: uma é falta de protocolo e a outra é falta de decisão de campo.
+Nenhuma das duas se resolve trazendo o CLI para dentro do app.
 
 ## 3. O que já está pronto (e é mais do que parece)
 
@@ -108,13 +117,19 @@ Windows nao pega.
 |---|---|
 | Windows (WinMM) | job `lint-rust` / `build-rust`, entrada `ui-rust` |
 | Linux (ALSA) | job `test-e2e-webview`, no container `ci-linux` (que ja tinha ALSA) |
-| **macOS (CoreMIDI)** | **ninguem** — o `ui-rust` saiu da matriz macOS por custo |
+| macOS (CoreMIDI) | job `lint-rust-clippy` / `build-rust`, entrada `ui-rust` — **desde 05/10 (passo 6b)** |
 
-O transporte real do macOS continua coberto pelo `cli`, que roda em 3 SOs.
-**Esse e o motivo tecnico, e nao uma preferencia, para o CLI ainda existir:**
-ele e a unica cobertura de CoreMIDI do transporte USB-MIDI. Se o CLI sair antes
-de o `ui-rust` ganhar macOS, o `dmg` sai com um backend que ninguem nunca
-compilou para CoreMIDI.
+**O buraco do CoreMIDI fechou, e com ele o último motivo técnico do CLI.**
+Enquanto o `ui-rust` ficou só no Windows, o `gp100-cli` era a ÚNICA cobertura
+de CoreMIDI do transporte USB-MIDI — ele roda em 3 SOs, o app não. Esse era o
+motivo técnico (não uma preferência) para o CLI continuar existindo, e ele
+sumiu quando o `ui-rust` entrou na matriz macOS. Agora o `dmg` sai com um
+backend que a CI compila para CoreMIDI.
+
+O Linux continua fora da MATRIZ de propósito: o `ubuntu-24.04` hosted não tem
+as libs de sistema do Tauri (WebKitGTK + ALSA), que é o que a imagem
+`ci-linux` existe para resolver. O ALSA é coberto no container, junto com o
+e2e do webview.
 
 **Falta o miolo, não a peça.**
 
@@ -179,13 +194,13 @@ deles precisa do aparelho para ser provado.
 | 4c | **A camada de UI do diagnóstico** — **✅ feito**: `FieldDiagPanel.tsx` + `useFieldDiag` + `ipc/diag.ts`. As quatro capacidades dos passos 4/4b viraram tela (gravar, ler o dump, ligar/desligar o log, ver o que sairia), com o badge de backend e o aviso de escrita travada na tela. Sem isto a sessao de campo continuava dependendo do binario de terminal | `components/FieldDiagPanel.tsx` · `hooks/useFieldDiag.ts` · `ipc/diag.ts` | o operador de campo nao precisa abrir terminal para dirigir o aparelho | **sim** (para o veredito) |
 | 5 | `set_inventory` ligado ao que o boot descobre (ou fixado em campo com justificativa) | `session.rs` + `lib.rs` | o total de transações do report muda conforme o inventário | **sim** |
 | 6 | Build de campo **leitura** (`--features real-device`, sem `write-verified`) | `scripts/` | CI compila o crate do Tauri com a feature (WinMM no job `ui-rust`; ALSA no container do webview) | não |
-| 6b | `ui-rust` na matriz **macOS** — fecha o buraco do CoreMIDI | `scripts/ci_plan.py` | o backend do app com `real-device` compila para CoreMIDI | não |
+| 6b | `ui-rust` na matriz **macOS** — fecha o buraco do CoreMIDI — **✅ feito** (05/10): a matriz do `ui-rust` tem Windows + macOS, e o ALSA segue no container | `scripts/ci_plan.py::matrices` | o backend do app com `real-device` compila para CoreMIDI | não |
 | 7 | **Sessão de campo no aparelho**: boot, lista de IRs, dump, e a §4 medida | o painel de diagnóstico (passo 4c) + relatório | relatório com os 4 desvios de §4 preenchidos, com o `.jsonl` gerado **pelo app** | **sim** |
 | 8 | Release | #17 | o veredito da sessão de campo assinado | **sim** |
 
-Passos 1–4, 4b, 4c e 6 são software e podem ser feitos e provados agora. O passo 5
-é o primeiro que precisa de uma decisão do campo. **O passo 7 é o que a #17 exige,
-e a #17 não fecha antes dele.**
+Passos 1–4, 4b, 4c, 6 e 6b são software e foram feitos. Do caminho inteiro, só
+o passo 5 (uma decisão de campo) e o passo 7 (uma sessão com o aparelho) ficam
+de pé. **O passo 7 é o que a #17 exige, e a #17 não fecha antes dele.**
 
 **O passo 4c é o que muda o formato do passo 7.** A sessão de campo deixa de ser um
 roteiro de terminal e passa a ser um relatório de tela: o operador abre o editor,
@@ -201,9 +216,15 @@ verde, 13 gates, baseline do golden versionada, e o histórico do PR
 
 Falta, e é o que decide o go/no-go:
 - o binário distribuível **falar com o aparelho** (§1);
-- uma **sessão de campo** com o aparelho ligado, com veredito assinado;
+- uma **sessão de campo** com o aparelho ligado, com veredito assinado — e ela
+  agora acontece **dentro do app** pelo painel de diagnóstico (passo 4c), não
+  por roteiro de terminal;
 - o `ir_send`/`tone_send`/knob exercitados **de verdade** (o H2 provou o CLI, não
   o app).
+
+**O que NÃO falta mais:** a cobertura de compilação do caminho real está nos
+três SOs (WinMM, ALSA, CoreMIDI) e as capacidades que eram só do CLI ganharam
+tela. O que ainda segura a #17 é o aparelho, não o código.
 
 **Recomendação: manter a #17 aberta.** O build atual é honesto como *build de
 desenvolvimento* — ele fala com um mock que responde como o aparelho, e a UI não
