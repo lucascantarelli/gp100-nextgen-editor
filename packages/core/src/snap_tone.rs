@@ -71,7 +71,7 @@
 // conversao, e a saida e `/name.clo` + `nam_output_clo.wav`. O `.clo` e o
 // modelo CONVERTIDO, e ele que vai para o device: por isso este modulo trata
 // os bytes como opacos e so cuida do framing.
-use crate::codec::nibble_expand;
+use crate::codec::{nibble_collapse, nibble_expand};
 use crate::{ProtocolError, SYSEX_EOX};
 
 /// `command` do upload de SnapTone (§2).
@@ -190,6 +190,63 @@ pub fn read_slot() -> Result<Vec<u8>, ProtocolError> {
     Ok(b)
 }
 
+/// SysEx COMPLETO da requisição de leitura: mesmo framing do upload
+/// (`F0` + nibble-expand + `F7`).
+///
+/// Existe separada de [`read_slot`] porque as duas funções têm consumidores
+/// diferentes: `read_slot` devolve o BUF para quem monta a **transação** (e
+/// compara com um golden byte a byte), e isto devolve o **frame** para quem
+/// manda no fio. Devolver o BUF e deixar o chamador envelopar seria a mesma
+/// montagem de nibble duplicada em dois lugares.
+pub fn wire_read_request() -> Result<Vec<u8>, ProtocolError> {
+    let b = read_slot()?;
+    let mut out = Vec::with_capacity(2 + 2 * b.len());
+    out.push(0xF0);
+    out.extend(nibble_expand(&b));
+    out.push(SYSEX_EOX);
+    Ok(out)
+}
+
+/// A mensagem é do framing da FAMÍLIA (`F0` + nibbles + `F7`) e não do
+/// envelope do GP-100?
+///
+/// **Por que o discriminador é o primeiro byte depois do `F0`.** O envelope
+/// do GP-100 é `F0 21 25 7F 47 50 2D 64 …` — o segundo byte é `0x21`, que é
+/// MAIOR que um nibble. Na família, todo byte entre o `F0` e o `F7` é nibble
+/// (`<= 0x0F`), porque o BUF viaja expandido. Os dois formatos começam com o
+/// mesmo `0xF0` e **não podem se confundir**: nenhum nibble é `0x21`.
+pub fn eh_familia(msg: &[u8]) -> bool {
+    msg.len() >= 3
+        && msg[0] == 0xF0
+        && msg[msg.len() - 1] == SYSEX_EOX
+        && msg[1..msg.len() - 1].iter().all(|&b| b <= 0x0F)
+}
+
+/// Extrai e confere os 16 bytes do ACK a partir da mensagem recebida.
+///
+/// **O que está evidenciado:** o ACK do bloco tem 16 bytes (§2/§5).
+///
+/// **O que NÃO está evidenciado: o framing da RESPOSTA.** A família GP-50
+/// responde no mesmo framing em que recebe (`F0` + nibbles + `F7`), então o
+/// caminho primário aqui é o collapse do corpo — mas o caminho cru (16 bytes
+/// sem framing) também é aceito, porque é o que um device que responde fora
+/// do envelope de família entregaria. As DUAS formas são aceitas de propósito:
+/// aceitar só uma e errar significa um upload que funciona em campo e falha no
+/// mock, e o erro apareceria com o dono na frente da pedaleira.
+///
+/// Esta é a ÚNICA função a corrigir quando uma captura de campo existir (R1:
+/// proibido inferir campo novo sem golden — e o framing do ACK é campo novo).
+/// O resto do caminho é evidência.
+pub fn ack_body(msg: &[u8]) -> Result<Vec<u8>, ProtocolError> {
+    let corpo = if eh_familia(msg) {
+        nibble_collapse(&msg[1..msg.len() - 1])?
+    } else {
+        msg.to_vec()
+    };
+    check_ack(&corpo)?;
+    Ok(corpo)
+}
+
 /// Confere um ACK de bloco: 16 bytes fixos na família (§2).
 ///
 /// `idx` é o bloco esperado. O ACK de 16B **não** traz o payload — então o
@@ -292,6 +349,57 @@ mod tests {
         assert!(check_ack(&[0u8; ACK_LEN]).is_ok());
         assert!(matches!(
             check_ack(&[0u8; 15]),
+            Err(ProtocolError::InvalidShape { .. })
+        ));
+    }
+
+    /// Os DOIS caminhos de ACK devolvem os mesmos 16 bytes — o framing da
+    /// família (collapse) e o cru. Este teste existe porque aceitar só um
+    /// deles é um bug que só aparece com o device real na frente: o upload
+    /// passaria no mock e falharia em campo.
+    #[test]
+    fn ack_vem_nos_dois_formatos_e_os_dois_dao_16_bytes() {
+        let ack = [0xAAu8; ACK_LEN];
+        let familia = {
+            let mut m = vec![0xF0];
+            m.extend(nibble_expand(&ack));
+            m.push(SYSEX_EOX);
+            m
+        };
+        assert!(eh_familia(&familia), "o framing da família é reconhecido");
+        assert_eq!(ack_body(&familia).unwrap(), ack);
+        assert_eq!(ack_body(&ack).unwrap(), ack, "caminho cru");
+        // O envelope do GP-100 NÃO é do framing da família: o segundo byte é
+        // 0x21, maior que um nibble. Se este assert falhar, o discriminador
+        // dos dois formatos quebrou e o ACK do GP-100 entraria como SnapTone.
+        assert!(!eh_familia(&crate::SYSEX_HEADER));
+        // O caso que realmente discrimina: `F0` e `F7` com um byte que NÃO é
+        // nibble no meio. Sem esta linha a checagem dos nibbles poderia sumir
+        // e o teste continuaria verde, porque o cabeçalho do GP-100 não
+        // termina em `F7` — a checagem que protege é a do MEIO.
+        assert!(!eh_familia(&[0xF0, 0x21, 0xF7]));
+        assert!(eh_familia(&[0xF0, 0x0F, 0xF7]), "nibble no meio: família");
+    }
+
+    /// ACK de tamanho errado é erro em QUALQUER dos dois formatos — e o
+    /// caminho da família com número ímpar de nibbles também (o collapse
+    /// recusa antes do `check_ack`).
+    #[test]
+    fn ack_fora_de_16_bytes_e_erro_nos_dois_formatos() {
+        assert!(matches!(
+            ack_body(&[0u8; 15]),
+            Err(ProtocolError::InvalidShape { .. })
+        ));
+        // 15 bytes no framing da família = 30 nibbles, mas com o F0/F7
+        // comidos sobram 15 → ímpar → o collapse recusa (não trunca).
+        let familia_curta = {
+            let mut m = vec![0xF0];
+            m.extend(nibble_expand(&[0u8; 15]));
+            m.push(SYSEX_EOX);
+            m
+        };
+        assert!(matches!(
+            ack_body(&familia_curta),
             Err(ProtocolError::InvalidShape { .. })
         ));
     }
