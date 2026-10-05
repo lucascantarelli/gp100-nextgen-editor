@@ -30,6 +30,14 @@ analysis/fixtures/*.jsonl -text
 # e logs de sessão de campo (evidência append-only, fluxo R3):
 analysis/h1_reference/* -text
 analysis/h1_*/**/*.jsonl -text
+# Classe 6 — kit de campo do gate H2 (#22): a referência dos 3 fluxos de
+# escrita e o que ancora a tabela de invariantes do juiz, entao os bytes
+# importam tanto quanto no H1; e as sessões de campo (`analysis/h2/<sessão>/`)
+# são a ÚNICA evidência de que o preset do dono foi gravado — o fio não tem
+# read-back (D3/D4) e a prova é o log:
+analysis/h2_reference/* -text
+analysis/h2_*/* -text
+analysis/h2/**/*.jsonl -text
 #
 # NÃO entra aqui: produto editável/regenerável (docs *.md, scripts, knob_map,
 # parameters.json — identidade semântica, não byte).
