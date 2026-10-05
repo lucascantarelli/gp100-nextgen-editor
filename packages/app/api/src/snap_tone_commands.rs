@@ -52,9 +52,14 @@ pub fn tone_stats(state: State<'_, AppState>) -> Result<gp100_library::ToneBoard
     lib.tone_board().map_err(|e| e.to_string())
 }
 
-/// Importa um `.clo` (bytes já convertidos pelo Suite).
+/// Importa um `.clo` (bytes já convertidos pelo Suite) e, se o dono tiver,
+/// o `nam_output_wav.wav` que o Suite renderiza ao lado dele.
 ///
-/// `name` é o nome que o dono dá na tela e `model` são os bytes do arquivo.
+/// `preview` nulo é o caso normal: o dono tem o modelo e não pediu o áudio. É
+/// por isso que ele é um argumento à parte e não um campo obrigatório — e por
+/// isso que o botão de tocar no A/B fica desabilitado COM o motivo, em vez de
+/// sumir.
+///
 /// O `saved_at` é montado AQUI porque o shell é o que tem relógio — o crate de
 /// biblioteca não tem, pela mesma razão do `library_export`.
 ///
@@ -67,12 +72,39 @@ pub fn tone_import(
     state: State<'_, AppState>,
     name: String,
     model: Vec<u8>,
+    preview: Option<Vec<u8>>,
 ) -> Result<gp100_library::ToneRow, String> {
     let lib = state.library.lock().map_err(|e| e.to_string())?;
     let linha = lib
-        .import_tone(&name, &model, &crate::library_commands::agora_iso())
+        .import_tone(
+            &name,
+            &model,
+            preview.as_deref(),
+            &crate::library_commands::agora_iso(),
+        )
         .map_err(|e| e.to_string())?;
     Ok(linha)
+}
+
+/// Grava (ou apaga) só o áudio de preview de um tom — o dono tem o `.clo` e
+/// exporta o WAV do Suite depois.
+///
+/// Comando separado do import porque os dois arquivos têm vida própria: o
+/// `.clo` é o que vai para o aparelho, o WAV é só o A/B. Reescrever o modelo
+/// para trocar o áudio seria fazer o aparelho receber 2,7 KB por causa de uma
+/// gravação que não mudou.
+///
+/// # Erros
+/// String de erro se o tom não existir ou o banco falhar.
+#[tauri::command]
+pub fn tone_set_preview(
+    state: State<'_, AppState>,
+    id: String,
+    preview: Option<Vec<u8>>,
+) -> Result<(), String> {
+    let lib = state.library.lock().map_err(|e| e.to_string())?;
+    lib.grava_preview(&id, preview.as_deref())
+        .map_err(|e| e.to_string())
 }
 
 /// Lê UM tom com o modelo — o que a tela de A/B toca e o envio envia.

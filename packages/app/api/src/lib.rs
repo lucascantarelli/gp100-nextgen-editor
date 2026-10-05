@@ -133,6 +133,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
             snap_tone_commands::tone_board,
             snap_tone_commands::tone_stats,
             snap_tone_commands::tone_import,
+            snap_tone_commands::tone_set_preview,
             snap_tone_commands::tone_get,
             snap_tone_commands::tone_do_slot,
             snap_tone_commands::tone_rename,
