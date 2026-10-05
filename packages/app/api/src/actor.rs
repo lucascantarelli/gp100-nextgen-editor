@@ -28,7 +28,9 @@ use std::thread::JoinHandle;
 
 use gp100_core::model::Dictionary;
 use gp100_core::pedalboard::{board_view_for, embedded_document, preset_list, BoardView};
-use gp100_core::session::{BootProgress, BootReport, Session, SnapToneUploadReport};
+use gp100_core::session::{
+    BootProgress, BootReport, IrUploadReport, Session, SnapToneUploadReport,
+};
 use gp100_core::transport::mock::MockDevice;
 use gp100_core::transport::DeviceTransport;
 
@@ -112,6 +114,17 @@ enum Request {
         slot: u8,
         model: Vec<u8>,
         reply: mpsc::Sender<Result<SnapToneUploadReport, String>>,
+    },
+    /// Envia um IR de usuário ao device (§13.7): `ir_begin` + chunks de 15B
+    /// com ACK por chunk + o último chunk DUPLICADO (o marcador de fim).
+    ///
+    /// Fica na fila como todo tráfego de fio (D8): um IR de 300 KB são
+    /// 20.000 chunks, e misturar isso com um knob do dono seria a mesma
+    /// corrida que a fila existe para impedir.
+    UploadIr {
+        slot: u8,
+        blob: Vec<u8>,
+        reply: mpsc::Sender<Result<IrUploadReport, String>>,
     },
     /// Encerra a thread do actor (drop do `DeviceActor`).
     Shutdown,
@@ -290,6 +303,15 @@ impl DeviceActor {
                             let _ = reply.send(Err("session do actor ausente".into()));
                         }
                     },
+                    Request::UploadIr { slot, blob, reply } => match session.as_mut() {
+                        Some(s) => {
+                            let r = s.upload_ir(slot, &blob).map_err(|e| e.to_string());
+                            let _ = reply.send(r);
+                        }
+                        None => {
+                            let _ = reply.send(Err("session do actor ausente".into()));
+                        }
+                    },
                     Request::Shutdown => break,
                 }
             }
@@ -439,6 +461,32 @@ impl DeviceActor {
             .map_err(|_| "actor de device não está mais rodando".to_string())?;
         rx.recv()
             .map_err(|_| "actor morreu no upload de SnapTone".to_string())?
+    }
+
+    /// Envia um IR de usuário ao aparelho (§13.7): `ir_begin` + chunks de 15B
+    /// com ACK por chunk, o último duplicado como marcador de fim.
+    ///
+    /// **BLOQUEIA por muito tempo.** Um IR de 300 KB são ~20.000 chunks, e cada
+    /// um espera o próprio ACK (timeout ADR-3). É a transação mais longa do
+    /// app — o comando do Tauri roda fora da main thread (ADR-3), então a
+    /// janela continua desenhando enquanto isso.
+    ///
+    /// # Erros
+    /// [`ProtocolError`](gp100_core::ProtocolError) como string — `Timeout`
+    /// (D6) quando um ACK não chega na janela, `InvalidShape` (D5) quando o
+    /// blob não é múltiplo de 15B ou o slot está fora de 0..=19, e
+    /// `UnexpectedAck` quando o ACK não é o do chunk que foi enviado.
+    pub fn upload_ir(&self, slot: u8, blob: &[u8]) -> Result<IrUploadReport, String> {
+        let (tx, rx) = mpsc::channel();
+        self.tx
+            .send(Request::UploadIr {
+                slot,
+                blob: blob.to_vec(),
+                reply: tx,
+            })
+            .map_err(|_| "actor de device não está mais rodando".to_string())?;
+        rx.recv()
+            .map_err(|_| "actor morreu no upload de IR".to_string())?
     }
 
     /// Envia Shutdown e agrega a thread (idempotente).
