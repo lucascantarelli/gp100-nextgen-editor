@@ -151,28 +151,12 @@ impl Library {
                 report.skipped += 1;
                 continue;
             }
-            tx.execute(
-                "INSERT INTO preset (id, bank, pp, name, pp_type, pp_type_name, saved_at, payload)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
-                 ON CONFLICT(id) DO UPDATE SET
-                    bank = excluded.bank,
-                    pp = excluded.pp,
-                    name = excluded.name,
-                    pp_type = excluded.pp_type,
-                    pp_type_name = excluded.pp_type_name,
-                    saved_at = excluded.saved_at,
-                    payload = excluded.payload",
-                rusqlite::params![
-                    p.id,
-                    p.bank.as_str(),
-                    p.pp,
-                    p.name,
-                    p.pp_type,
-                    p.pp_type_name,
-                    p.saved_at,
-                    p.payload,
-                ],
-            )?;
+            // Pela mesma porta da gravacao normal: quem importa um backup de
+            // patch de usuario ganha uma VERSAO nova (o import e uma escrita, e
+            // o historico nao pode ter um buraco por causa do caminho por onde
+            // o dado entrou). Patch de fabrica passa sem versionar, como no
+            // `upsert`.
+            Library::grava_na_transacao(&tx, p)?;
             if existe > 0 {
                 report.replaced += 1;
             } else {

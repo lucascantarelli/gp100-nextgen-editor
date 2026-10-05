@@ -148,6 +148,60 @@ const MIGRATIONS: &[Migration] = &[
             );
         "#,
     },
+    Migration {
+        version: 6,
+        sql: r#"
+            -- HISTORICO de versao por patch (issue #113, M3-1).
+            --
+            -- **Por que uma tabela e nao uma coluna.** O `preset` guarda o
+            -- patch CORRENTE — regravar por cima e o que ele faz de melhor, e
+            -- era exatamente o problema: mexer num preset e perder o anterior
+            -- era o caminho normal. O historico precisa ser APPEND-ONLY, e uma
+            -- tabela propria e o que permite a imutabilidade ser uma regra do
+            -- banco (o trigger abaixo) em vez de uma promessa do Rust.
+            --
+            -- `seq` e 1-based e monotonico POR PATCH (nao global): e o numero
+            -- que a tela mostra ("versao 3 de 3") e a UNIQUE abaixo e o que
+            -- impede duas versoes disputarem o mesmo numero no mesmo patch —
+            -- sem ela, um insert concorrente faria a lista mostrar 1,2,2,3.
+            --
+            -- `payload BLOB` espelha a coluna do `preset` byte a byte (mesma
+            -- afinidade): o snapshot e o MESMO dado, guardado duas vezes de
+            -- proposito — o corrente e o congelado.
+            CREATE TABLE preset_version (
+                id        INTEGER PRIMARY KEY AUTOINCREMENT,
+                preset_id TEXT    NOT NULL REFERENCES preset(id) ON DELETE CASCADE,
+                seq       INTEGER NOT NULL,
+                saved_at  TEXT    NOT NULL,
+                name      TEXT    NOT NULL,
+                payload   BLOB,
+                UNIQUE (preset_id, seq)
+            );
+            CREATE INDEX preset_version_por_patch ON preset_version(preset_id, seq);
+
+            -- A imutabilidade, escrita no BANCO. Um `UPDATE` numa versao
+            -- apagaria a historia sem apagar a linha — o jeito mais silencioso
+            -- de um "desfazer" mentir. O trigger transforma isso em erro, entao
+            -- nao existe "caminho de codigo que reescreve uma versao" nem por
+            -- engano numa migration futura.
+            --
+            -- Ele NAO cobre DELETE de proposito: apagar o PATCH leva a historia
+            -- junto (o patch deixou de existir, e historico de patch que nao
+            -- existe e lixo que o dono nao pode nem ver para limpar). A unica
+            -- forma de uma linha sair daqui e o `ON DELETE CASCADE` acima.
+            CREATE TRIGGER preset_version_sem_reescrita
+            BEFORE UPDATE ON preset_version
+            BEGIN
+                SELECT RAISE(ABORT, 'versao de preset e imutavel');
+            END;
+
+            -- Backfill: todo patch de usuario que JA existia vira a versao 1.
+            -- Sem isto, o historico comecaria vazio para quem ja tem patch — e
+            -- a tela diria "0 versoes" sobre um patch que existe.
+            INSERT INTO preset_version (preset_id, seq, saved_at, name, payload)
+            SELECT id, 1, saved_at, name, payload FROM preset WHERE bank = 'user';
+        "#,
+    },
 ];
 
 /// Versão mais recente que este build conhece.

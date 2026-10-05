@@ -72,6 +72,46 @@ pub fn preset_de_fabrica(pp: u16, nome: &str, pp_type: u16, rotulo: &str) -> gp1
     }
 }
 
+/// Um slot de cadeia serializado no MESMO formato do palco (`BoardSlot[]`).
+///
+/// Os testes de versao/diff nao usam um JSON inventado: usam os campos que
+/// `userPatches.ts` realmente grava (`slot`, `name`, `state`, `knobs[]` com
+/// `pos`/`name`/`value`). Um helper que inventasse outro formato faria o teste
+/// provar o diff contra um dado que o app nunca produz.
+pub fn slot_json(
+    slot: u32,
+    nome: &str,
+    ligado: bool,
+    knobs: &[(u32, &str, Option<&str>)],
+) -> String {
+    let knobs: Vec<serde_json::Value> = knobs
+        .iter()
+        .map(|(pos, nome, valor)| {
+            let mut o = serde_json::json!({ "pos": pos, "name": nome, "kind": "knob" });
+            if let Some(v) = valor {
+                o["value"] = serde_json::Value::String((*v).to_string());
+            }
+            o
+        })
+        .collect();
+    serde_json::json!({
+        "slot": slot,
+        "family": "AMP",
+        "archetype": "AMPLIFIER",
+        "name": nome,
+        "variant": nome.to_lowercase(),
+        "state": ligado,
+        "code": 1,
+        "knobs": knobs,
+    })
+    .to_string()
+}
+
+/// Cadeia serializada a partir de slots.
+pub fn cadeia_json(slots: &[String]) -> String {
+    format!("[{}]", slots.join(","))
+}
+
 /// Registro de usuário pronto para gravar (patch do dono).
 pub fn patch_de_usuario(id: &str, nome: &str, payload: &str) -> gp100_library::Preset {
     gp100_library::Preset {

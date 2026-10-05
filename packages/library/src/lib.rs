@@ -19,17 +19,21 @@ use std::path::Path;
 
 use serde::{Deserialize, Serialize};
 
+pub mod diff;
 pub mod ir;
 pub mod migrations;
 pub mod search;
 pub mod seed;
 pub mod snap_tone;
 pub mod transfer;
+pub mod versions;
 
+pub use diff::{diff_cadeias, ChainDiff, KnobDiff, SlotDiff};
 pub use ir::{Ir, IrBoard, IrRow};
 pub use search::{PresetRow, SearchQuery};
 pub use snap_tone::{Tone, ToneBoard, ToneRow, SLOTS};
 pub use transfer::{ExportBundle, ImportMode, ImportReport, VERSAO_ENVELOPE};
+pub use versions::{Version, VersionRow};
 
 /// Erro do armazenamento. Mensagem para o usuário final é responsabilidade de
 /// quem chama (o shell/front); aqui o texto técnico basta e o `kind` deixa a
@@ -111,6 +115,17 @@ pub enum LibraryError {
     /// não é múltiplo do chunk, id inexistente).
     #[error("IR invalido: {0}")]
     Ir(String),
+
+    /// A cadeia gravada no `payload` não é uma cadeia de slots legível
+    /// (issue #113).
+    ///
+    /// Variante própria, e não `Json`, porque os dois casos pedem mensagens
+    /// diferentes para o dono: `Json` é "o arquivo está corrompido", e aqui o
+    /// JSON está bom — o que não bate é a FORMA (não é uma lista, um slot sem
+    /// `knobs`, um knob sem objeto). É o erro de comparar duas versões quando
+    /// uma delas veio de um app que gravou outra coisa.
+    #[error("cadeia invalida: {0}")]
+    SnapshotInvalido(String),
 }
 
 /// Banco da biblioteca. Dono único da conexão.
@@ -237,30 +252,14 @@ impl Library {
     /// Grava (ou regrava) um registro. O `id` é a chave: dois presets de
     /// fábrica nunca colidem porque o id carrega o pp, e o id de usuário é
     /// gerado no momento do save.
+    ///
+    /// **Um patch de usuário também ACRESCENTA uma versão** ao histórico
+    /// (issue #113): a gravação do registro corrente e a do snapshot acontecem
+    /// na mesma transação, então não existe caminho que escreva um sem o outro.
+    /// Preset de fábrica não versiona — ele vem do `all.prst` embutido e é
+    /// imutável por construção.
     pub fn upsert(&self, p: &Preset) -> Result<(), LibraryError> {
-        self.conn.execute(
-            "INSERT INTO preset (id, bank, pp, name, pp_type, pp_type_name, saved_at, payload)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
-             ON CONFLICT(id) DO UPDATE SET
-                bank = excluded.bank,
-                pp = excluded.pp,
-                name = excluded.name,
-                pp_type = excluded.pp_type,
-                pp_type_name = excluded.pp_type_name,
-                saved_at = excluded.saved_at,
-                payload = excluded.payload",
-            rusqlite::params![
-                p.id,
-                p.bank.as_str(),
-                p.pp,
-                p.name,
-                p.pp_type,
-                p.pp_type_name,
-                p.saved_at,
-                p.payload,
-            ],
-        )?;
-        Ok(())
+        self.upsert_versionado(p)
     }
 
     /// Apaga pelo id. `false` = não existia (apagar duas vezes é o mesmo que
