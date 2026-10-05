@@ -54,17 +54,39 @@ fn hex(data: &[u8]) -> String {
 /// mesma fila do actor sem que nenhum tipo concrete precise conhecer o
 /// outro.
 ///
-/// Este alias é o que a `abrir_backend` de `lib.rs` **anota** nos dois
-/// builds (`let mock: actor::AppDevice = …`), e não é decoração: é ele que
-/// faz o `spawn` ser o mesmo código nos dois caminhos. Sem a anotação, o
-/// build padrão não teria consumidor nenhum do alias e o clippy acusaria
-/// código morto onde o desenho está certo.
+/// Este alias é o que a [`como_app_device`] devolve nos dois builds, e não é
+/// decoração: é ele que faz a `abrir_backend` de `lib.rs` ter o MESMO corpo
+/// nos dois caminhos. Sem ele, o build padrão não teria consumidor nenhum do
+/// alias e o clippy acusaria código morto onde o desenho está certo.
 #[cfg(not(feature = "real-device"))]
 pub type AppDevice = MockDevice;
 
 /// Alias de transporte do build de campo (ver [`AppDevice`]).
 #[cfg(feature = "real-device")]
 pub type AppDevice = Box<dyn DeviceBackend + Send>;
+
+/// Converte o `MockDevice` no transporte que **este** build carrega.
+///
+/// Existe porque a conversão depende do alias e o alias depende da feature: no
+/// build comum o `AppDevice` **é** o `MockDevice` e a conversão é identidade;
+/// no build de campo ele é `Box<dyn DeviceBackend + Send>` e o mock precisa ir
+/// para o heap.
+///
+/// **Por que não uma anotação de tipo na chamada.** `let m: AppDevice = mock`
+/// NÃO faz essa conversão: a coerção sem tamanho acontece dentro do `Box::new`,
+/// não numa atribuição. A anotação compilava no build comum (onde o alias é o
+/// tipo concreto) e quebrava o build de campo com E0308 — foi exatamente o que
+/// a primeira run com `ui-rust` de verdade mostrou, nos dois SOs.
+#[cfg(not(feature = "real-device"))]
+pub fn como_app_device(mock: MockDevice) -> AppDevice {
+    mock
+}
+
+/// Ver [`como_app_device`].
+#[cfg(feature = "real-device")]
+pub fn como_app_device(mock: MockDevice) -> AppDevice {
+    Box::new(mock)
+}
 
 /// `WRITE_VERIFIED` **espelhado** do core (ADR-5).
 ///

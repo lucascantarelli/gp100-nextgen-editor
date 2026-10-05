@@ -144,21 +144,21 @@ fn abrir_backend() -> Result<abrir_backend::Escolha, Box<dyn std::error::Error>>
         let _ = debug_fault_from_env();
     }
 
-    // O mock é montado TIPADO e só depois convertido para `AppDevice`. A ordem
-    // importa: `with_fault` é método do `MockDevice` concreto, e se o
-    // `spawn` recebesse direto um `AppDevice` o build de campo (onde o
-    // alias é `Box<dyn DeviceBackend + Send>`) não teria onde armar a falha
-    // — e o `mut` ficaria sem uso, que o clippy também pune.
+    // O mock é montado TIPADO (é ele que arma a falha de debug, e `with_fault`
+    // é método do `MockDevice` concreto) e só DEPOIS convertido no transporte
+    // que este build carrega.
     //
-    // A conversão aqui é o que dá sentido ao alias nos DOIS builds: o `spawn`
-    // é literalmente o mesmo código, e o `MockDevice` também serve de
-    // fallback quando o `RealDevice` não abre no aparelho.
+    // A conversão é `actor::como_app_device`, e não uma anotação de tipo: anotar
+    // `AppDevice` aqui compila no build comum — onde o alias É o `MockDevice` —
+    // e quebra o build de campo, onde ele é `Box<dyn DeviceBackend + Send>` e o
+    // mock precisa ir para o heap. Uma anotação não faz essa coerção; foi o
+    // E0308 que a primeira run com `ui-rust` de verdade mostrou nos dois SOs.
     let mut mock = MockDevice::new()?;
     if let Some(fault) = debug_fault_from_env() {
         eprintln!("GP100_DEBUG_FAULT armado: {fault:?} (backend mock)");
         mock = mock.with_fault(fault);
     }
-    let mock: actor::AppDevice = mock;
+    let mock = actor::como_app_device(mock);
     Ok(abrir_backend::Escolha {
         actor: actor::DeviceActor::spawn(mock, actor::Backend::Mock),
     })
