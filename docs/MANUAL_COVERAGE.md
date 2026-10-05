@@ -100,8 +100,9 @@
 | X6 | Regressão estética (toHaveScreenshot, baselines por viewport/plataforma/tema) | ✅ | `Testes · E2E visual` + `visual.spec` |
 | X7 | Smoke do shell Tauri REAL no webview (tauri-driver, Linux) | ✅ | `Testes · E2E webview` |
 | X8 | **Gestor de tons SnapTone/NAM** (#25) — importa o `.clo` (convertido pelo Valeton Suite), guarda no SQLite com CRC-32, atribui a 1 dos 5 slots, manda ao aparelho (blocos de 19B + ACK) e faz A/B tocando o WAV do Suite | ✅ botão `∿` no rodapé da biblioteca (fora do manual V1.8; o recurso existe no app oficial — `analysis/release_note.txt`) | 33 unit + e2e (painel/rodapé) |
+| X9 | **Laboratório de IRs** (#24) — importa o `.ir`, guarda no SQLite, atribui a 1 dos 20 slots, sobe ao aparelho (blocos de 15B + ACK por chunk) e mostra a tabela que o **aparelho** relata | ✅ porta de conteúdo `∿` do rodapé (tons OU IRs); fora do manual V1.8 | 13 core + 17 library + 32 front (porta IPC/tela/hook) |
 
-## Placar: **34 ✅ · 5 🟡 · 5 🔴** — nenhuma 🔴/🟡 é silenciosa (ou está explícita na UI como aguardando captura, ou é Fase 2/3 documentada).
+## Placar: **35 ✅ · 5 🟡 · 5 🔴** — nenhuma 🔴/🟡 é silenciosa (ou está explícita na UI como aguardando captura, ou é Fase 2/3 documentada).
 
 ### Legenda
 - ✅ implementado + testado · 🟡 parcial/aguardando captura de writes (G3–G6) ou decisão · 🔴 fase futura (2/3)

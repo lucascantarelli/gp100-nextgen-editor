@@ -546,6 +546,45 @@ documentado: `--update-snapshots=all` local (só `win32`) + input
 `erro-*` NÃO foram tocadas — o que prova que a mudança ficou no rodapé e não
 na casca.
 
+### 7.9 Laboratorio de IRs (issue #24)
+
+> Um IR (impulse response) e o **retrato do gabinete**: o que o microfone
+> gravou na caixa. O dono importa o `.ir` que o Suite exportou, nomeia, escolhe
+> um dos 20 slots do aparelho e sobe o arquivo pelo fio.
+
+**A tela tem DUAS listas de slots, e elas nao podem ser confundidas.** A
+primeira e o que o DONO guardou no arquivo dele (`.ir` + tabela `ir_lib`); a
+segunda e o que o **APARELHO relata** (`list_user_irs`, §13.12), lida do fio.
+As duas divergem de verdade: o dono importa um IR pelo painel de hardware do
+GP-100, ou outra sessao do app faz isso, e o arquivo local nao fica sabendo.
+Com uma lista só, o botao de enviar para o slot 3 sobrescreveria **em
+silencio** um IR que o dono gravou na semana passada.
+
+**O envio e longo de verdade, e a confirmacao mostra o NOME.** Na captura, 296
+chunks levaram ~5 s. Um IR de 300 KB sao ~20.000 chunks e quase 6 minutos. Um
+"tem certeza?" generico e o que se responde sem ler; por isso a confirmacao
+mostra o **nome que o aparelho ja tem naquele slot** — e o primeiro clique so
+ABRE a confirmacao, o segundo envia (o mesmo desenho do SnapTone, §7.8).
+
+**Apagar da biblioteca NAO apaga do aparelho.** O `erase` do slot e um comando
+de fio que o projeto ainda nao tem fechado (§13.12). A tela diz isso no aviso
+de confirmacao em vez de deixar o dono acreditar que o slot ficou livre.
+
+**A porta do conteudo: UM botao, DOIS ambientes.** O botao `∿` do rodape da
+biblioteca (§7.8) abriu o SnapTone; a #24 transformou-o na **porta** de um
+modal que escolhe entre tons e IRs, e nao em um segundo botao. Um quarto botao
+no rodape estoura a linha, o rodape vira duas fileiras, a coluna cresce por
+`stretch` e o pedalboard desce junto — foi o que a #25 custou em 18 baselines.
+A porta tambem diz a verdade: as duas telas guardam conteudo do dono no
+arquivo dele. **Nenhuma baseline foi regenerada pela #24** (os 78 e2e de
+`playwright` passam sem `--update-snapshots`): a geometria da mesa ficou
+intacta, que era o ponto.
+
+**Contrato do fio (§13.7/§13.12):** 20 slots, blocos de **15B**, ACK por chunk
+e paginas de 128 no indice. Chunk de 15B e nao 19B porque o IR e binario cru
+(sem framing de texto) e 15 e o que o `chunk_ack` da §13.7 devolve inteiro sem
+o resto do pacote sobrando.
+
 ---
 
 ## 8. Padrão de mensagens de UI (criado 30/09 — review Q-1/Q-2)
