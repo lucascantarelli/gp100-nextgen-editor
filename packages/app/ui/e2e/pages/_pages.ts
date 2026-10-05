@@ -33,7 +33,18 @@ export class ShellPage {
     this.alerts = page.getByRole("alert");
     this.bootProgress = page.locator('[aria-label="Progresso do boot"]');
     this.rescanButton = this.banner.getByRole("button", { name: "Reescanear device" });
-    this.pushDetails = page.locator("details");
+    // `page.locator("details")` casava com o drawer de pushes por ACIDENTE:
+    // ele era o unico `<details>` da casca, e um seletor que depende de "sou
+    // o unico" quebra no dia que a tela ganha um segundo. O painel de
+    // diagnostico de campo (passo 4c do REAL_DEVICE_GAP) adicionou um, e o
+    // e2e passou a falhar em strict mode ("resolved to 2 elements").
+    //
+    // Ancorar pelo texto do summary mantem o spirit do POM: o objeto de
+    // pagina descreve O QUE procura ("o drawer de pushes"), e nao conta
+    // elementos da tela.
+    this.pushDetails = page.locator("details").filter({
+      hasText: /pushes do device/,
+    });
     this.pushSummary = page.getByText(/pushes do device/);
     this.library = new LibraryPage(page);
     this.board = new BoardPage(page);

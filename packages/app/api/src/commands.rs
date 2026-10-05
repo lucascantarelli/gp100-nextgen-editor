@@ -440,7 +440,7 @@ mod tests {
     /// valores inventados): mesmo estado que o CLI `info` imprime — R1 nos DTOs.
     #[test]
     fn device_info_deriva_do_mock_real() {
-        let mock = MockDevice::new().expect("mock montado (R4 travado no build)");
+        let mut mock = MockDevice::new().expect("mock montado (R4 travado no build)");
         mock.open().expect("abre");
         let actor = crate::actor::DeviceActor::spawn(mock, crate::actor::Backend::Mock);
         let info = DeviceInfo::from_snapshot(&actor.info().expect("snapshot"));
@@ -485,7 +485,7 @@ mod tests {
     /// se alguém renomear campo, o JSON diverge do TS — este teste quebra.
     #[test]
     fn device_info_serializa_camelcase() {
-        let mock = MockDevice::new().expect("mock montado");
+        let mut mock = MockDevice::new().expect("mock montado");
         mock.open().expect("abre");
         let actor = crate::actor::DeviceActor::spawn(mock, crate::actor::Backend::Mock);
         let info = DeviceInfo::from_snapshot(&actor.info().expect("snapshot"));
