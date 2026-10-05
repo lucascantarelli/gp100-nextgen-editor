@@ -230,6 +230,12 @@ function localMockInfo(): DeviceInfo {
     currentName: current.name,
     currentPpType: current.ppType,
     irSlotsWithCrc: 20,
+    // A tabela de IRs no browser e a MESMA forma que o device real devolve
+    // (§13.12): 20 slots, nomes vazios ate a primeira importacao.
+    irSlots: Array.from({ length: 20 }, (_unused, slot) => ({ slot, name: "" })),
+    // No mock a escrita e liberada por construcao (ADR-5: a trava e do
+    // transporte real). Aqui o valor e `true` pelo mesmo motivo.
+    writeVerified: true,
   };
 }
 

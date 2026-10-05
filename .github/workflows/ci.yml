@@ -355,6 +355,16 @@ jobs:
       - name: clippy
         run: |
           cargo clippy -p ${{ matrix.project == 'ui-rust' && 'gp100-ui' || format('gp100-{0}', matrix.project) }} --all-targets -- -D warnings
+      - name: clippy (build de campo do app — feature real-device)
+        # Sem isto, o `DeviceActor`/`abrir_backend`/`impl DeviceBackend for
+        # RealDevice` do crate do Tauri nunca sao compilados por NINGUEM: o
+        # job normal usa o default (mock) e o job de release compila sem a
+        # feature. O caminho do aparelho real do APP seria, literalmente, codigo
+        # so compilado na maquina de quem tem a pedaleira.
+        # `real-device` liga o `midir`, que no Linux precisa do ALSA (passo
+        # acima) e no macOS so do CoreMIDI de sistema.
+        if: matrix.project == 'ui-rust'
+        run: cargo clippy -p gp100-ui --features real-device --all-targets -- -D warnings
 
   lint-ui:
     name: Lint · UI (eslint)
@@ -422,6 +432,14 @@ jobs:
       - name: check
         run: |
           cargo check -p ${{ matrix.project == 'ui-rust' && 'gp100-ui' || format('gp100-{0}', matrix.project) }} --all-targets
+      - name: check (build de campo do app — feature real-device)
+        # Mesmo motivo do passo de clippy: e o unico lugar onde o backend do
+        # app e compilado COM o `RealDevice`. Compilar no Windows so nao prova
+        # o CoreMIDI nem o ALSA — por isso a matriz do `ui-rust` precisa
+        # crescer (ver `scripts/ci_plan.py::matrices`), e este passo e o que
+        # denuncia o buraco enquanto a matriz nao cresce.
+        if: matrix.project == 'ui-rust'
+        run: cargo check -p gp100-ui --features real-device,write-verified --all-targets
 
   build-ui:
     name: Compilação · UI (tsc + vite · ${{ matrix.os }})
@@ -627,6 +645,21 @@ jobs:
       - name: build debug do shell (dist embutido, backend mock)
         working-directory: packages/app/api
         run: cargo build -p gp100-ui
+      # O backend com aparelho real do APP só é compilado aqui: no Windows
+      # (passo `ui-rust` de lint/check) e neste container Linux, que já tem o
+      # ALSA e o WebKitGTK. Sem estes dois passos, `abrir_backend`,
+      # `AppDevice` e o `impl DeviceBackend for RealDevice` do crate do Tauri
+      # seriam código que SÓ a máquina de quem tem a pedaleira compila.
+      #
+      # ⚠️ macOS continua sem cobertura do caminho real do app: o `ui-rust`
+      # saiu da matriz macOS por custo (nota em `scripts/ci_plan.py::matrices`)
+      # — decisão que era correta quando o build não tinha nada específico de
+      # SO, e que deixa de ser quando o `midir` puxa o CoreMIDI. O
+      # transporte real macOS continua coberto pelo `cli`, que é exatamente o
+      # motivo de o CLI ainda existir (ver `docs/REAL_DEVICE_GAP.md` §6).
+      - name: check do backend com aparelho real (ALSA — Linux)
+        working-directory: packages/app/api
+        run: cargo check -p gp100-ui --features real-device --all-targets
       # Lição (run 36943668915): build DEBUG carrega o `devUrl` do
       # tauri.conf.json — o dist embutido só entra em RELEASE. Servimos o dist
       # de produção na devUrl: o smoke segue provando o WEBVIEW, que é o

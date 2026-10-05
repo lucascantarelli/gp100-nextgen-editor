@@ -96,6 +96,26 @@ Isto não precisa ser refeito para o app falar com a pedaleira:
   `--i-know-what-im-doing` **e** a feature de compilação, e a CI já constrói e faz
   smoke do binário com e sem `write-verified`.
 
+
+### A cobertura do caminho real (e por que o CLI ainda existe)
+
+O `RealDevice` usa o `midir`, que resolve para **WinMM** (Windows),
+**CoreMIDI** (macOS) e **ALSA** (Linux). Isso significa que o mesmo `cfg` do
+app compila codigo diferente em cada SO — e uma classe de bug que o build de
+Windows nao pega.
+
+| build do app com `real-device` | onde e compilado |
+|---|---|
+| Windows (WinMM) | job `lint-rust` / `build-rust`, entrada `ui-rust` |
+| Linux (ALSA) | job `test-e2e-webview`, no container `ci-linux` (que ja tinha ALSA) |
+| **macOS (CoreMIDI)** | **ninguem** — o `ui-rust` saiu da matriz macOS por custo |
+
+O transporte real do macOS continua coberto pelo `cli`, que roda em 3 SOs.
+**Esse e o motivo tecnico, e nao uma preferencia, para o CLI ainda existir:**
+ele e a unica cobertura de CoreMIDI do transporte USB-MIDI. Se o CLI sair antes
+de o `ui-rust` ganhar macOS, o `dmg` sai com um backend que ninguem nunca
+compilou para CoreMIDI.
+
 **Falta o miolo, não a peça.**
 
 ## 4. Onde o comportamento muda com o aparelho real (e ninguém veria antes)
@@ -156,7 +176,8 @@ deles precisa do aparelho para ser provado.
 | 3 | Botões de escrita cientes da política (`write-verified` → desabilitado + aviso) | front + commands | e2e do botão desabilitado no build de leitura | não |
 | 4 | `save_preset` e `dump_preset` como commands (os 2 que faltam) | `actor.rs` + `commands.rs` | vetor de bytes igual ao do CLI | não |
 | 5 | `set_inventory` ligado ao que o boot descobre (ou fixado em campo com justificativa) | `session.rs` + `lib.rs` | o total de transações do report muda conforme o inventário | **sim** |
-| 6 | Build de campo **leitura** (`--features real-device`, sem `write-verified`) | `scripts/` | CI compila o crate do Tauri com a feature (hoje **não** compila) | não |
+| 6 | Build de campo **leitura** (`--features real-device`, sem `write-verified`) | `scripts/` | CI compila o crate do Tauri com a feature (WinMM no job `ui-rust`; ALSA no container do webview) | não |
+| 6b | `ui-rust` na matriz **macOS** — fecha o buraco do CoreMIDI | `scripts/ci_plan.py` | o backend do app com `real-device` compila para CoreMIDI | não |
 | 7 | **Sessão de campo no aparelho**: boot, lista de IRs, dump, e a §4 medida | `scripts/h2_field.sh` + relatório | `docs/H3`/novo relatório com os 4 desvios de §4 preenchidos | **sim** |
 | 8 | Release | #17 | o veredito da sessão de campo assinado | **sim** |
 

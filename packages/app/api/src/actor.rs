@@ -37,6 +37,163 @@ use gp100_core::transport::DeviceTransport;
 /// Estado snapshot do mock (alias curto; o tipo vive no core).
 type MockState = gp100_core::transport::mock::MockState;
 
+/// **O tipo de transporte que este binário carrega**, escolhido por
+/// compilação.
+///
+/// No build comum e o `MockDevice` concreto. No build de campo
+/// (`--features real-device`) e `Box<dyn DeviceBackend>` — a trait deste
+/// crate, que ja estende `DeviceTransport`, entao o `RealDevice` entra pela
+/// mesma fila do actor sem que nenhum tipo concrete precise conhecer o
+/// outro.
+#[cfg(not(feature = "real-device"))]
+pub type AppDevice = MockDevice;
+
+/// Alias de transporte do build de campo (ver [`AppDevice`]).
+#[cfg(feature = "real-device")]
+pub type AppDevice = Box<dyn DeviceBackend + Send>;
+
+/// `WRITE_VERIFIED` **espelhado** do core (ADR-5).
+///
+/// Vive como `cfg!` local e nao como import do `core::transport::real`
+/// porque aquele modulo so existe com a feature `real-device` — e este
+/// crate precisa da resposta tambem no build padrao (mock), para o front
+/// saber que ali a escrita esta liberada por construcao.
+///
+/// Espelhar a feature em vez de importa-la e proposital: e o que faz o
+/// binario de campo dizer "estou travado" na tela em vez de so descobrir
+/// quando o operador clica.
+const WRITE_VERIFIED: bool = cfg!(feature = "write-verified");
+
+/// Qual backend esta thread possui. Vem **declarado por quem monta o
+/// transporte**, nunca deduzido: a trait [`DeviceTransport`] e a fronteira
+/// de BYTES CRUOS (ADR-4) e nao tem como responder "sou mock?" — e essa
+/// resposta e o que decide se o app pode prometer nome de preset e CRC de
+/// fabrica.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Backend {
+    /// `MockDevice` — estado local completo, sem tráfego de fio.
+    Mock,
+    /// `RealDevice` (feature `real-device`) — o aparelho **não tem estado
+    /// local**: o que ele mostra na tela, a app precisa ler do fio.
+    Real,
+}
+
+impl Backend {
+    /// Etiqueta estável no fio IPC (`DeviceInfo.backend` do front).
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Backend::Mock => "mock",
+            Backend::Real => "real",
+        }
+    }
+}
+
+/// Fonte do estado local do backend — só o mock tem.
+///
+/// Existe **neste crate**, e nao como metodo do `DeviceTransport`, para nao
+/// alargar a fronteira de bytes do core (ADR-4: a trait trafega SysEx cru e
+/// nada mais). O `RealDevice` devolve `None`, e o app degrada com honestidade
+/// em vez de mostrar zero como se fosse um dado.
+pub trait DeviceBackend: DeviceTransport + Send {
+    /// Estado local do mock, quando existir.
+    fn local_state(&self) -> Option<MockState>;
+
+    /// Mensagens que chegaram ao device e **ninguém pediu** (a inbox do
+    /// `MockDevice`, D7 na perspectiva do device).
+    ///
+    /// **Limite conhecido do aparelho real:** o `RealDevice` guarda o excedente
+    /// numa fila interna de RX e nao expoe peek, entao devolve vazio. O log de
+    /// pushes da UI (`pending_pushes`) e por isso **mock-only por enquanto** —
+    /// o espelho fiel no aparelho precisa de um `peek` no `real.rs`, e isso
+    /// esta anotado em `docs/REAL_DEVICE_GAP.md` §6.
+    fn drain_inbox(&mut self) -> Vec<Vec<u8>>;
+}
+
+impl DeviceBackend for MockDevice {
+    fn local_state(&self) -> Option<MockState> {
+        Some(self.state().clone())
+    }
+
+    fn drain_inbox(&mut self) -> Vec<Vec<u8>> {
+        MockDevice::drain_inbox(self)
+    }
+}
+
+/// `Box<dyn DeviceBackend>` tambem e um backend — e o que deixa o build de
+/// campo passar o `RealDevice` pela MESMA fila do mock, sem duplicar nada.
+impl<T: DeviceBackend + ?Sized> DeviceBackend for Box<T> {
+    fn local_state(&self) -> Option<MockState> {
+        (**self).local_state()
+    }
+
+    fn drain_inbox(&mut self) -> Vec<Vec<u8>> {
+        (**self).drain_inbox()
+    }
+}
+
+#[cfg(feature = "real-device")]
+impl DeviceBackend for gp100_core::transport::real::RealDevice {
+    fn local_state(&self) -> Option<MockState> {
+        // O aparelho nao tem estado local: o que ele mostra na tela, a app
+        // precisa ler do fio. Encher isto seria a app inventando dado.
+        None
+    }
+
+    fn drain_inbox(&mut self) -> Vec<Vec<u8>> {
+        // Limite conhecido, nao um "nao ha nada": ver a doc da trait.
+        Vec::new()
+    }
+}
+
+/// O que a app pode afirmar sobre o device, **por backend**.
+///
+/// A distincao que importa: com o mock, `current_name` e `ir_slots_with_crc`
+/// sao leituras locais. Com o aparelho real, o nome do pp vem da pagina
+/// meta6 (`13010001`) cujo layout **ainda nao foi decifrado** (o
+/// [`gp100_core::session::StatePage`] e opaco de proposito), e o CRC de
+/// fabrica nao existe em lugar nenhum do fio. Encher esses campos com zero
+/// seria a app mentindo sobre o aparelho — por isso eles vao marcados.
+#[derive(Debug, Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DeviceSnapshot {
+    /// Backend ativo ("mock" | "real") — nunca mais um literal.
+    pub backend: &'static str,
+    /// Nº de presets. No mock, o do `all.prst`; no real, o **inventário que
+    /// o boot percorreu** (ver `docs/REAL_DEVICE_GAP.md` §4.3 — hoje é o
+    /// default 0..198, não uma contagem descoberta no aparelho).
+    pub preset_count: usize,
+    /// pp corrente (lido da Session nos dois backends).
+    pub current_pp: u16,
+    /// Nome do pp corrente. **Só no mock** — ver a nota de `DeviceSnapshot`.
+    pub current_name: String,
+    /// ppType do pp corrente. **Só no mock.**
+    pub current_pp_type: u16,
+    /// Slots de IR com CRC de fabrica. **Só no mock** — o fio nao tem esse campo.
+    pub ir_slots_with_crc: usize,
+    /// Tabela de 20 User IRs **lida do device** (§13.12) — existe nos dois.
+    pub ir_slots: Vec<(u8, String)>,
+    /// `true` quando o binario foi compilado com `write-verified` (ADR-5).
+    /// O front usa isto para desabilitar os botoes de escrita com explicacao,
+    /// em vez de descobrir a recusa depois de clicar.
+    pub write_verified: bool,
+}
+
+impl DeviceSnapshot {
+    /// Estado de partida quando nao houve boot (nem mock nem real).
+    fn empty(backend: Backend) -> Self {
+        Self {
+            backend: backend.as_str(),
+            preset_count: 0,
+            current_pp: 0,
+            current_name: String::new(),
+            current_pp_type: 0,
+            ir_slots_with_crc: 0,
+            ir_slots: Vec::new(),
+            write_verified: WRITE_VERIFIED,
+        }
+    }
+}
+
 /// Biblioteca de presets (o flight case da UI) + corrente.
 #[derive(Debug, Clone, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -63,7 +220,7 @@ pub struct PresetEntry {
 enum Request {
     /// Snapshot do estado do device (command `device_info`).
     Info {
-        reply: mpsc::Sender<Result<MockState, String>>,
+        reply: mpsc::Sender<Result<DeviceSnapshot, String>>,
     },
     /// Board do preset: slots/arquétipos/knobs (projeção pura no core).
     Board {
@@ -131,27 +288,37 @@ enum Request {
 }
 
 /// Snapshot do estado via take/remount da Session (mesma semântica do
-/// `Info` — mock: sem tráfego de fio). Helper interno do Library.
-fn device_snapshot(session: &mut Option<Session<MockDevice>>) -> MockState {
-    match session.take() {
-        Some(s) => {
-            let transport = s.into_transport();
-            let st = transport.state().clone();
-            *session = Some(Session::new(transport));
-            st
-        }
-        None => MockState::load().unwrap_or_else(|_| MockState {
-            preset_count: 0,
-            current_pp: 0,
-            current_name: String::new(),
-            current_pp_type: 4,
-            ir_crcs: [0; 20],
-            set_params: Default::default(),
-            snap_tone_model: Vec::new(),
-            snap_tone_transfers: 0,
-            snap_tone_acks: 0,
-            rejected: 0,
-        }),
+/// `Info`).
+///
+/// **O que muda com o aparelho real:** o `MockState` so existe no mock, e
+/// `local_state()` devolve `None` no `RealDevice`. Os campos que vinham
+/// dele (nome do pp, ppType, CRC de fabrica) ficam no estado neutro em vez
+/// de receber um zero que a UI mostraria como dado — ver
+/// [`DeviceSnapshot`].
+fn device_snapshot<T: DeviceBackend>(
+    session: &mut Option<Session<T>>,
+    backend: Backend,
+) -> DeviceSnapshot {
+    let Some(s) = session.take() else {
+        return DeviceSnapshot::empty(backend);
+    };
+    let transport = s.into_transport();
+    let local = transport.local_state();
+    let mut s = Session::new(transport);
+    let current_pp = s.current_pp();
+    let ir_slots = s.list_user_irs().map(|t| t.slots).unwrap_or_default();
+    *session = Some(s);
+    DeviceSnapshot {
+        backend: backend.as_str(),
+        preset_count: local.as_ref().map_or(0, |m| m.preset_count),
+        current_pp: local.as_ref().map_or(current_pp, |m| m.current_pp),
+        current_name: local.as_ref().map_or_else(String::new, |m| m.current_name.clone()),
+        current_pp_type: local.as_ref().map_or(0, |m| m.current_pp_type),
+        ir_slots_with_crc: local
+            .as_ref()
+            .map_or(0, |m| m.ir_crcs.iter().filter(|c| **c != 0).count()),
+        ir_slots,
+        write_verified: WRITE_VERIFIED,
     }
 }
 
@@ -163,31 +330,36 @@ pub struct DeviceActor {
 }
 
 impl DeviceActor {
-    /// Spawn do actor com o device (M1: mock — política ADR-4/ADR-5).
+    /// Spawn do actor com o device.
+    ///
+    /// **O parametro e `T: DeviceBackend`, nao `MockDevice`.** Era essa
+    /// assinatura concreta que impedia o app de falar com a pedaleira: a
+    /// feature `real-device` do crate existia e nao mudava nada, porque
+    /// nao havia como *passar* um `RealDevice` para ca. Com o generico, o
+    /// build de campo passa `Box<dyn DeviceTransport>` e o build de
+    /// desenvolvimento passa o `MockDevice` — o mesmo caminho do CLI
+    /// (`--real`), sem duplicar a fila nem a FSM.
+    ///
+    /// `backend` e **declarado por quem monta** (o `run()` decide pelo
+    /// build), porque a trait de bytes nao responde "sou mock?".
+    ///
     /// Falha de pânico na thread (bug do core) vira erro de canal — nunca
     /// derruba o app.
-    pub fn spawn(device: MockDevice) -> Self {
+    pub fn spawn<T: DeviceBackend + 'static>(device: T, backend: Backend) -> Self {
         let (tx, rx) = mpsc::channel::<Request>();
         let handle = std::thread::spawn(move || {
             let mut device = device;
             if let Err(e) = device.open() {
-                eprintln!("[device] mock.open falhou: {e}");
+                eprintln!("[device] open do backend {backend:?} falhou: {e}");
                 return;
             }
             let mut session = Some(Session::new(device));
             while let Ok(req) = rx.recv() {
                 match req {
-                    Request::Info { reply } => match session.take() {
-                        Some(s) => {
-                            let transport = s.into_transport();
-                            let st = transport.state().clone();
-                            session = Some(Session::new(transport));
-                            let _ = reply.send(Ok(st));
-                        }
-                        None => {
-                            let _ = reply.send(Err("session do actor ausente".into()));
-                        }
-                    },
+                    Request::Info { reply } => {
+                        let snap = device_snapshot(&mut session, backend);
+                        let _ = reply.send(Ok(snap));
+                    }
                     Request::Board { pp, reply } => {
                         // Projeção PURA (doc embedado + dicionário): não toca
                         // a Session nem o fio — pode rodar fora do device
@@ -204,7 +376,7 @@ impl DeviceActor {
                     Request::Library { reply } => {
                         let r = (|| -> Result<PresetLibrary, String> {
                             let doc = embedded_document().map_err(|e| e.to_string())?;
-                            let state = device_snapshot(&mut session); // corrente
+                            let state = device_snapshot(&mut session, backend); // corrente
                             Ok(PresetLibrary {
                                 entries: preset_list(&doc)
                                     .into_iter()
@@ -322,12 +494,16 @@ impl DeviceActor {
         }
     }
 
-    /// Snapshot do estado (mock: sem tráfego de fio — mesma semântica do
-    /// `info` do CLI).
+    /// Snapshot do estado (o que o app **pode afirmar** sobre o device).
+    ///
+    /// No mock: nome do pp, ppType e CRC de fabrica sao leituras locais.
+    /// No aparelho real: `current_pp` e a tabela de IRs sao **lidos do fio**,
+    /// e os campos locais ficam no neutro — a UI mostra "desconhecido", nao
+    /// um zero que parece dado.
     ///
     /// # Erros
     /// String de erro se a thread do actor morreu (pânico do core).
-    pub fn info(&self) -> Result<MockState, String> {
+    pub fn info(&self) -> Result<DeviceSnapshot, String> {
         let (tx, rx) = mpsc::channel();
         self.tx
             .send(Request::Info { reply: tx })
@@ -510,13 +686,14 @@ impl DeviceActor {
 mod tests {
     use super::*;
     use gp100_core::transport::mock::MockFault;
+    use gp100_core::transport::{TransportError, WireKind};
 
     /// Boot completo via actor (2297 transações no inventário default
     /// 0..198) e o resultado chega ao chamador pelo canal de resposta.
     #[test]
     fn boot_via_actor_completa_e_responde() {
         let mock = MockDevice::new().expect("mock montado");
-        let actor = DeviceActor::spawn(mock);
+        let actor = DeviceActor::spawn(mock, Backend::Mock);
         let report = actor.boot(None).expect("boot contra o mock via actor");
         assert_eq!(report.transactions, 2297);
         actor.shutdown();
@@ -528,7 +705,7 @@ mod tests {
     #[test]
     fn progresso_atravessa_o_actor_pelo_canal() {
         let mock = MockDevice::new().expect("mock montado");
-        let actor = DeviceActor::spawn(mock);
+        let actor = DeviceActor::spawn(mock, Backend::Mock);
         let (ptx, prx) = mpsc::channel::<BootProgress>();
         let report = actor.boot(Some(ptx)).expect("boot com progresso");
         let beats: Vec<BootProgress> = prx.try_iter().collect();
@@ -542,7 +719,7 @@ mod tests {
     /// e DEPOIS do info a Session continua utilizável (boot funciona).
     #[test]
     fn info_via_actor_deriva_do_mock() {
-        let actor = DeviceActor::spawn(MockDevice::new().expect("mock"));
+        let actor = DeviceActor::spawn(MockDevice::new().expect("mock"), Backend::Mock);
         let st = actor.info().expect("snapshot");
         assert_eq!(st.preset_count, 99);
         assert_eq!(st.current_name, "It's GP100");
@@ -551,11 +728,77 @@ mod tests {
         actor.shutdown();
     }
 
+    /// **A prova de que o generico nao e vazio.** Um backend que **nao** e
+    /// o mock — sem `MockState`, sem `drain_inbox` de mock — entra na MESMA
+    /// fila e responde. E o que garante que o `RealDevice` do build de campo
+    /// tem caminho ate o fio, e nao so uma assinatura que compila.
+    ///
+    /// O `AparelhoFake` responde `Ok(vec![])` no `recv_raw`; o que importa
+    /// aqui e que `info` **degrada honestamente**: `backend` = "real", e os
+    /// campos que so o mock tem ficam no neutro em vez de virarem zero
+    /// que a UI mostraria como dado.
+    struct AparelhoFake {
+        sent: Vec<Vec<u8>>,
+    }
+
+    impl std::fmt::Debug for AparelhoFake {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            f.debug_struct("AparelhoFake")
+                .field("sent", &self.sent.len())
+                .finish()
+        }
+    }
+
+    impl DeviceTransport for AparelhoFake {
+        fn open(&mut self) -> Result<(), TransportError> {
+            Ok(())
+        }
+        fn close(&mut self) -> Result<(), TransportError> {
+            Ok(())
+        }
+        fn send_raw(&mut self, data: &[u8], _kind: WireKind) -> Result<(), TransportError> {
+            self.sent.push(data.to_vec());
+            Ok(())
+        }
+        fn recv_raw(&mut self, _t: std::time::Duration) -> Result<Vec<u8>, TransportError> {
+            Err(TransportError::RecvTimeout { timeout_ms: 0 })
+        }
+    }
+
+    impl DeviceBackend for AparelhoFake {
+        fn local_state(&self) -> Option<MockState> {
+            None
+        }
+        fn drain_inbox(&mut self) -> Vec<Vec<u8>> {
+            Vec::new()
+        }
+    }
+
+    #[test]
+    fn um_backend_que_nao_e_mock_entra_na_mesma_fila() {
+        let actor = DeviceActor::spawn(
+            AparelhoFake { sent: Vec::new() },
+            Backend::Real,
+        );
+        let st = actor.info().expect("info de um backend sem estado local");
+        assert_eq!(st.backend, "real", "o backend vem DECLARADO, nao deduzido");
+        assert_eq!(st.current_name, "", "sem estado local = vazio, nao nome");
+        assert_eq!(st.current_pp_type, 0);
+        assert_eq!(st.ir_slots_with_crc, 0);
+        assert_eq!(st.preset_count, 0);
+        // O knob dentro da faixa (15.0) sai; fora (99.5) e recusado ANTES do
+        // `send_raw` — a trava da #110 e de conteudo, e vale no caminho
+        // real tambem.
+        actor.set_param(3, 0x0700_006e, 0, 15.0).expect("dentro da faixa");
+        assert!(actor.set_param(3, 0x0700_006e, 0, 99.5).is_err(), "acima do teto");
+        actor.shutdown();
+    }
+
     /// Shutdown: depois dele, requisições novas falham com erro limpo
     /// (string) — nunca pânico no command.
     #[test]
     fn shutdown_depois_falha_limpo() {
-        let actor = DeviceActor::spawn(MockDevice::new().expect("mock"));
+        let actor = DeviceActor::spawn(MockDevice::new().expect("mock"), Backend::Mock);
         actor.shutdown();
         assert!(actor.info().is_err(), "info pós-shutdown = erro, não panic");
     }
@@ -563,7 +806,7 @@ mod tests {
     /// Tabela via actor: 20 slots, nomes ASCII (vazio = 0xFF no fio).
     #[test]
     fn list_user_irs_via_actor() {
-        let actor = DeviceActor::spawn(MockDevice::new().expect("mock"));
+        let actor = DeviceActor::spawn(MockDevice::new().expect("mock"), Backend::Mock);
         let slots = actor.list_user_irs().expect("tabela dos 20 IRs");
         assert_eq!(slots.len(), 20);
         assert_eq!(slots[0].0, 0, "slot 0");
@@ -577,7 +820,7 @@ mod tests {
     /// (F0…F7) e a 2ª drenagem vem vazia (dreno esvazia).
     #[test]
     fn boot_deixa_backlog_d7_drenavel() {
-        let actor = DeviceActor::spawn(MockDevice::new().expect("mock"));
+        let actor = DeviceActor::spawn(MockDevice::new().expect("mock"), Backend::Mock);
         actor.boot(None).expect("boot");
         let pushes = actor.drain_pushes().expect("drenagem");
         assert!(
@@ -597,7 +840,7 @@ mod tests {
     /// do actor é exercitado sem transformar o teste em 36 s.
     #[test]
     fn upload_de_snap_tone_via_actor_fecha_o_stream() {
-        let actor = DeviceActor::spawn(MockDevice::new().expect("mock"));
+        let actor = DeviceActor::spawn(MockDevice::new().expect("mock"), Backend::Mock);
         let rel = actor
             .upload_snap_tone(2, &[0xABu8; 19])
             .expect("upload de 1 bloco");
@@ -613,7 +856,7 @@ mod tests {
     /// (`SnapTone1..5`).
     #[test]
     fn upload_com_slot_invalido_e_erro() {
-        let actor = DeviceActor::spawn(MockDevice::new().expect("mock"));
+        let actor = DeviceActor::spawn(MockDevice::new().expect("mock"), Backend::Mock);
         let e = actor
             .upload_snap_tone(6, &[0xABu8; 19])
             .expect_err("slot 6 nao existe");
@@ -625,7 +868,7 @@ mod tests {
     /// na ordem de envio — sem interleave de transações.
     #[test]
     fn fila_serializa_requisicoes() {
-        let actor = DeviceActor::spawn(MockDevice::new().expect("mock"));
+        let actor = DeviceActor::spawn(MockDevice::new().expect("mock"), Backend::Mock);
         let a = actor.clone();
         let t1 = std::thread::spawn(move || a.info().expect("info 1"));
         let st = actor.info().expect("info 2");
@@ -647,7 +890,7 @@ mod tests {
         let mock = MockDevice::new()
             .expect("mock montado")
             .with_fault(MockFault::DieAfter(300));
-        let actor = DeviceActor::spawn(mock);
+        let actor = DeviceActor::spawn(mock, Backend::Mock);
 
         let t0 = std::time::Instant::now();
         let err = actor.boot(None).expect_err("boot com o device morrendo");

@@ -38,6 +38,11 @@ serde_json = "1"
 # custom-protocol: ligada pelo `tauri build` (assets de produção em file://).
 custom-protocol = ["tauri/custom-protocol"]
 real-device = ["gp100-core/real-device"]
+# Espelha a do core: habilita a ESCRITA num device real (ADR-5). Fica separada
+# da `real-device` de propósito — a decisão do owner em 05/10/2026 foi
+# "leitura primeiro": o build de campo da sessão inicial é `real-device` SEM
+# esta, e qualquer escrita é recusada antes do driver.
+write-verified = ["gp100-core/write-verified"]
 
 [lints.rust]
 missing_docs = "deny"

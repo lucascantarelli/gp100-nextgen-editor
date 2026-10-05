@@ -2,9 +2,13 @@
 //!
 //! **Papel:** ponte IPC entre o front (`ui/`) e o
 //! [gp100-core]. O crate conhece commands, actor e DTOs; **toda regra de
-//! protocolo fica no core** (R1). Na M1 o único backend é o `MockDevice` —
-//! nenhum byte sai para hardware (política ADR-4/ADR-5); a feature
-//! `real-device` (espelhada do core) entra como build de campo pós-H1.
+//! protocolo fica no core** (R1).
+//!
+//! **Backend por compilação (não por env).** O build comum fala com o
+//! `MockDevice` (política ADR-4/ADR-5 — nenhum byte sai para hardware sem o
+//! build de campo dizer que pode); o build `--features real-device` abre o
+//! `RealDevice` e cai no mock se o aparelho não estiver ligado. Ver
+//! [`abrir_backend`] e `docs/REAL_DEVICE_GAP.md`.
 //!
 //! **DeviceActor:** o actor é o dono ÚNICO da `Session` (D8 do
 //! ADR-6) — commands enfileiram requisições; o boot emite progresso via
@@ -97,18 +101,79 @@ fn seed_de_fabrica(lib: &gp100_library::Library) -> Result<usize, String> {
         .map_err(|e| e.to_string())
 }
 
+/// **O backend que este binário vai falar.** Escolha por COMPILAÇÃO, nao por
+/// runtime: o build comum e o `MockDevice` (política ADR-4/ADR-5 — nenhum
+/// byte sai para hardware sem o build de campo dizer que pode), e o build
+/// `--features real-device` tenta o aparelho primeiro e cai no mock se ele
+/// nao estiver ligado.
+///
+/// **POR QUE O `GP100_BACKEND` NAO ESCOLHE.** Um env que troca mock por
+/// aparelho faria o build distribuível trocar de comportamento conforme a
+/// maquina — e um `.exe` que hoje responde 99 presets passaria a responder o
+/// que estiver na USB, sem ninguem pedir. O mock nao e um modo de depuracao
+/// e um **backend**: ele e o que garante que abrir o app nunca escreve no
+/// hardware de surpresa. O CLI ja faz a mesma escolha (`--real` exige
+/// `--i-know-what-im-doing`; ver `packages/cli/src/main.rs`).
+///
+/// O `GP100_DEBUG_FAULT` continua mock-only (e o `if` abaixo deixa isso
+/// explicito em vez de silencioso).
+///
+/// # Erros
+/// Falha de I/O na abertura do backend; o binário encerra em vez de abrir uma
+/// janela que depois mente sobre o device.
+fn abrir_backend() -> Result<abrir_backend::Escolha, Box<dyn std::error::Error>> {
+    #[cfg(feature = "real-device")]
+    {
+        match gp100_core::transport::real::RealDevice::new() {
+            Ok(real) => {
+                eprintln!("[device] RealDevice aberto — build de campo");
+                return Ok(abrir_backend::Escolha {
+                    actor: actor::DeviceActor::spawn(
+                        Box::new(real) as actor::AppDevice,
+                        actor::Backend::Real,
+                    ),
+                });
+            }
+            Err(e) => {
+                eprintln!("[device] aparelho nao abriu ({e}); caindo no MOCK");
+            }
+        }
+    }
+    #[cfg(not(feature = "real-device"))]
+    {
+        let _ = debug_fault_from_env();
+    }
+
+    let mut mock = MockDevice::new()?;
+    if let Some(fault) = debug_fault_from_env() {
+        eprintln!("GP100_DEBUG_FAULT armado: {fault:?} (backend mock)");
+        mock = mock.with_fault(fault);
+    }
+    Ok(abrir_backend::Escolha {
+        actor: actor::DeviceActor::spawn(mock, actor::Backend::Mock),
+    })
+}
+
+/// Resultado de [`abrir_backend`] — isolado num modulo para os dois `cfg`
+/// manterem o MESMO tipo de retorno (o `cfg` some com o ramo, nao com a
+/// assinatura).
+mod abrir_backend {
+    use crate::actor::DeviceActor;
+
+    /// O actor ja aberto, com o backend que ele possui.
+    pub(super) struct Escolha {
+        /// Thread dona unica da `Session` (D8 do ADR-6).
+        pub actor: DeviceActor,
+    }
+}
+
 /// Boot do app Tauri: registra estado + commands (invocado pelo `main`).
 ///
 /// # Erros
 /// Propaga falha de setup/runtime do Tauri (janela/recursos/assets) — o
 /// binário encerra com exit ≠ 0.
 pub fn run() -> Result<(), Box<dyn std::error::Error>> {
-    let mut mock = MockDevice::new()?;
-    if let Some(fault) = debug_fault_from_env() {
-        eprintln!("GP100_DEBUG_FAULT armado: {fault:?} (backend mock)");
-        mock = mock.with_fault(fault);
-    }
-    let actor = actor::DeviceActor::spawn(mock);
+    let actor = abrir_backend()?.actor;
 
     // `build` ANTES de `manage` porque o caminho do banco vem do proprio Tauri
     // (`app_data_dir`), que so existe depois que o app existe. Com

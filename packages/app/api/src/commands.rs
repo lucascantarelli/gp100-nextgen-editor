@@ -12,13 +12,11 @@
 //! mostra barra, nunca trava.
 
 use gp100_core::session::{BootProgress, BootStage};
-use gp100_core::transport::mock::MockState;
 use serde::Serialize;
 use std::sync::mpsc;
 use tauri::{Emitter, State};
 
-use crate::actor::DeviceActor;
-
+use crate::actor::{DeviceActor, DeviceSnapshot};
 /// Estado da aplicação: o actor é o ÚNICO dono do device (D8 — consumidor
 /// único do stream IN; nada de `Mutex<Session>` compartilhado com a UI).
 pub struct AppState {
@@ -37,31 +35,53 @@ pub struct AppState {
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DeviceInfo {
-    /// Backend ativo: sempre "mock" nesta fase (política de hardware).
+    /// Backend ativo: "mock" no build de desenvolvimento, "real" no build
+    /// de campo. **Nunca mais um literal** — ver `docs/REAL_DEVICE_GAP.md` §1.
     pub backend: &'static str,
-    /// Nº de presets do estado (mock: `all.prst` = 99).
+    /// Nº de presets. No mock, o do `all.prst`; no real, o inventário que
+    /// o boot percorreu (que hoje é o default `0..198`, não uma contagem
+    /// descoberta no aparelho — `REAL_DEVICE_GAP.md` §4.3).
     pub preset_count: usize,
-    /// pp corrente (u16 no fio; aqui como número p/ o TS).
+    /// pp corrente (u16 no fio; aqui como número p/ o TS). Lido da Session
+    /// nos dois backends.
     pub current_pp: u16,
-    /// Nome do pp corrente.
+    /// Nome do pp corrente. **Vazio com o aparelho real**: vem da página
+    /// meta6 (`13010001`), cujo layout ainda não foi decifrado. Vazio é
+    /// "a app não sabe"; um nome inventado seria pior.
     pub current_name: String,
-    /// ppType do pp corrente (semântica no dicionário do core).
+    /// ppType do pp corrente (semântica no dicionário do core). **Só no mock.**
     pub current_pp_type: u16,
-    /// Slots de IR com CRC de fábrica (mock: 20).
+    /// Slots de IR com CRC de fábrica. **Só no mock** — o fio não expõe CRC.
     pub ir_slots_with_crc: usize,
+    /// Tabela dos 20 User IRs lida do device (§13.12) — existe nos dois
+    /// backends, e e a unica fonte de verdade de "o que tem no aparelho".
+    pub ir_slots: Vec<IrSlotDto>,
+    /// Binário compilado com `write-verified` (ADR-5)? O front desabilita os
+    /// botões de escrita com este sinal, em vez de o operador descobrir a
+    /// recusa so depois de clicar.
+    pub write_verified: bool,
 }
 
 impl DeviceInfo {
-    /// Extrai o DTO do snapshot do mock (mesmos valores que o CLI `info`
-    /// imprime — fonte: `MockState` do core; R1 também nos DTOs).
-    pub fn from_mock(state: &MockState) -> Self {
+    /// Deriva o DTO do snapshot do actor (R1 também nos DTOs: a fonte e o
+    /// que o backend sabe, nunca um literal no command).
+    pub fn from_snapshot(s: &DeviceSnapshot) -> Self {
         Self {
-            backend: "mock",
-            preset_count: state.preset_count,
-            current_pp: state.current_pp,
-            current_name: state.current_name.clone(),
-            current_pp_type: state.current_pp_type,
-            ir_slots_with_crc: state.ir_crcs.iter().filter(|c| **c != 0).count(),
+            backend: s.backend,
+            preset_count: s.preset_count,
+            current_pp: s.current_pp,
+            current_name: s.current_name.clone(),
+            current_pp_type: s.current_pp_type,
+            ir_slots_with_crc: s.ir_slots_with_crc,
+            ir_slots: s
+                .ir_slots
+                .iter()
+                .map(|(slot, name)| IrSlotDto {
+                    slot: *slot,
+                    name: name.clone(),
+                })
+                .collect(),
+            write_verified: s.write_verified,
         }
     }
 }
@@ -125,7 +145,12 @@ pub struct IrTableDto {
     pub slots: Vec<IrSlotDto>,
 }
 
-/// `device_info` — estado do device para o front (mock: sem tráfego).
+/// `device_info` — estado do device para o front.
+///
+/// No mock: leitura local, sem tráfego de fio. No aparelho real: `current_pp`
+/// e a tabela de IRs são lidos do dispositivo; o que não tem fonte no fio
+/// (nome do pp — meta6 indecifrada —, ppType, CRC de fábrica) volta neutro e
+/// a UI mostra desconhecido em vez de zero.
 ///
 /// # Erros
 /// String de erro se o actor morreu (pânico do core — não deve ocorrer;
@@ -133,7 +158,7 @@ pub struct IrTableDto {
 #[tauri::command]
 pub fn device_info(state: State<'_, AppState>) -> Result<DeviceInfo, String> {
     let snapshot = state.actor.info()?;
-    Ok(DeviceInfo::from_mock(&snapshot))
+    Ok(DeviceInfo::from_snapshot(&snapshot))
 }
 
 /// `device_board` — board do preset (dados do pedalboard da UI): slots da
@@ -249,12 +274,15 @@ mod tests {
     use super::*;
     use gp100_core::transport::mock::MockDevice;
 
-    /// O DTO do command é derivado do MOCK REAL (nunca de valores
-    /// inventados): mesmo estado que o CLI `info` imprime — R1 nos DTOs.
+    /// O DTO do command é derivado do snapshot REAL do actor (nunca de
+    /// valores inventados): mesmo estado que o CLI `info` imprime — R1 nos DTOs.
     #[test]
     fn device_info_deriva_do_mock_real() {
         let mock = MockDevice::new().expect("mock montado (R4 travado no build)");
-        let info = DeviceInfo::from_mock(mock.state());
+        mock.open().expect("abre");
+        let actor = crate::actor::DeviceActor::spawn(mock, crate::actor::Backend::Mock);
+        let info = DeviceInfo::from_snapshot(&actor.info().expect("snapshot"));
+        actor.shutdown();
         assert_eq!(info.backend, "mock");
         assert_eq!(info.preset_count, 99);
         assert_eq!(info.current_pp, 0x0000);
@@ -264,12 +292,42 @@ mod tests {
         assert_eq!(info.current_pp_type, 4);
     }
 
+    /// **O contrato do campo real.** Com o aparelho ligado, `backend` muda
+    /// para "real" e os campos que não têm fonte no fio ficam neutros — o
+    /// oposto de encher de zero, que a UI mostraria como dado. Este teste
+    /// fixa a HONESTIDADE do DTO, não um valor do mock.
+    #[test]
+    fn device_info_do_aparelho_real_nao_inventa_campo() {
+        let info = DeviceInfo::from_snapshot(&crate::actor::DeviceSnapshot {
+            backend: "real",
+            preset_count: 199,
+            current_pp: 0x0000,
+            // nome vazio: o layout da meta6 (13010001) ainda nao foi decifrado
+            current_name: String::new(),
+            current_pp_type: 0,
+            ir_slots_with_crc: 0,
+            ir_slots: vec![(2, "meu_ir".to_string())],
+            write_verified: false,
+        });
+        assert_eq!(info.backend, "real");
+        assert_eq!(info.current_name, "", "sem fonte no fio = vazio, nao nome");
+        assert_eq!(info.current_pp_type, 0);
+        assert_eq!(info.ir_slots_with_crc, 0);
+        assert!(!info.write_verified, "build de leitura: escrita travada");
+        // A tabela de IRs, essa sim, veio do device.
+        assert_eq!(info.ir_slots.len(), 1);
+        assert_eq!(info.ir_slots[0].slot, 2);
+    }
+
     /// O serde em camelCase é o CONTRATO do fio IPC (ui/src/ipc/types.ts):
     /// se alguém renomear campo, o JSON diverge do TS — este teste quebra.
     #[test]
     fn device_info_serializa_camelcase() {
         let mock = MockDevice::new().expect("mock montado");
-        let info = DeviceInfo::from_mock(mock.state());
+        mock.open().expect("abre");
+        let actor = crate::actor::DeviceActor::spawn(mock, crate::actor::Backend::Mock);
+        let info = DeviceInfo::from_snapshot(&actor.info().expect("snapshot"));
+        actor.shutdown();
         let json = serde_json::to_value(&info).expect("serializável");
         assert!(json.get("presetCount").is_some());
         assert!(json.get("currentPp").is_some());
@@ -277,6 +335,8 @@ mod tests {
         assert!(json.get("currentPpType").is_some());
         assert!(json.get("irSlotsWithCrc").is_some());
         assert!(json.get("backend").is_some());
+        assert!(json.get("irSlots").is_some(), "contrato novo com o front");
+        assert!(json.get("writeVerified").is_some(), "sinal de escrita");
         assert_eq!(json["currentPp"], 0);
         assert_eq!(json["currentName"], "It's GP100");
     }

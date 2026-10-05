@@ -7,18 +7,53 @@
 
 /** Resultado do command `device_info` (mock). */
 export interface DeviceInfo {
-  /** Backend ativo: mock por default (política ADR-4/ADR-5). */
+  /**
+   * Backend ativo: `mock` no build de desenvolvimento, `real` no build de
+   * campo (`--features real-device`). Nunca mais um literal do backend —
+   * ver `docs/REAL_DEVICE_GAP.md` §1.
+   */
   backend: "mock" | "real";
-  /** Nº de presets do estado (mock: all.prst = 99). */
+  /**
+   * Nº de presets. No mock, o do `all.prst` (99). No aparelho real, o
+   * inventário que o boot percorreu — que hoje é o default `0..198`, não
+   * uma contagem descoberta no aparelho (`REAL_DEVICE_GAP.md` §4.3).
+   */
   presetCount: number;
-  /** pp corrente (u16 big-endian no protocolo; aqui como número). */
+  /** pp corrente (u16 big-endian no protocolo; aqui como número). Lido da Session nos dois backends. */
   currentPp: number;
-  /** Nome do pp corrente. */
+  /**
+   * Nome do pp corrente.
+   *
+   * **VAZIO com o aparelho real:** vem da página meta6 (`13010001`), cujo
+   * layout ainda não foi decifrado. A UI precisa tratar vazio como
+   * "desconhecido" e não como um preset sem nome — este é o contrato que a
+   * integridade do editor depende.
+   */
   currentName: string;
-  /** ppType (nº do tipo "Rock" etc. — semântica no dicionário do core). */
+  /** ppType (nº do tipo "Rock" etc. — semântica no dicionário do core). Só no mock. */
   currentPpType: number;
-  /** Slots de IR com CRC de fábrica (mock: 20). */
+  /** Slots de IR com CRC de fábrica (mock: 20). **Só no mock** — o fio não expõe CRC. */
   irSlotsWithCrc: number;
+  /**
+   * Tabela dos 20 User IRs (§13.12) **lida do device** — a fonte de
+   * verdade de "o que está no aparelho", nos dois backends. Vazio antes do
+   * boot.
+   */
+  irSlots: IrSlot[];
+  /**
+   * Binário compilado com `write-verified` (ADR-5)? `false` no build de
+   * campo de leitura: os botões de escrita ficam desabilitados com
+   * explicação, em vez de o operador descobrir a recusa depois de clicar.
+   */
+  writeVerified: boolean;
+}
+
+/** Um slot da tabela de User IRs, como o aparelho a relata (§13.12). */
+export interface IrSlot {
+  /** Slot 0..=19. */
+  slot: number;
+  /** Nome ASCII do IR no aparelho ("" = vazio). */
+  name: string;
 }
 
 /** Etapas do script de boot — literais do backend (BootProgressDto). */
