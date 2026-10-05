@@ -23,7 +23,8 @@ o codigo nao responde:
 
 1. **Qual arquivo a trava le?** O sha256 do dicionario. Se alguem editar o
    dicionario sem rodar isto, o gate falha e a mudanca aparece como diff de
-   artefato — nao como um comportamento que mudou em silencio.
+   artefato — nao como um comportamento que mudou em silencio. O hash e do
+   byte canonico (LF), o mesmo que o git guarda: ver `sha256()`.
 2. **A tabela foi alguma vez testada contra o aparelho?** As 92 amostras
    reais de `analysis/fixtures/knobs.jsonl` sao o unico fio que o firmware
    ja aceitou. O gate compara cada uma com a regra declarada.
@@ -59,8 +60,29 @@ MODULE_OF_SLOT = {
 
 
 def sha256(path: str) -> str:
+    """sha256 dos bytes **como o REPO os guarda**, não como estão no disco.
+
+    O `.gitattributes` deste repo tem `* text=auto eol=lf`, e
+    `analysis/parameters.json` NÃO está na lista de bytes congelados
+    (`-text`) — a política é explícita: "identidade semântica, não byte".
+    Consequência: o checkout do Windows tem CRLF e o blob do git tem LF, e
+    os dois são o MESMO arquivo por definição do repo.
+
+    Hashar o byte do disco fazia o gate acusar mudança da fonte em toda
+    máquina que não fosse a do autor. Foi exatamente o que aconteceu: o
+    artefato carregava o sha256 da forma CRLF, e o gate ficou vermelho no
+    CI (checkout LF) desde o commit que o criou — o guard de proveniência,
+    que existe para pegar edição silenciosa, estava acusando o fim de
+    linha.
+
+    Normalizar aqui é a mesma transformação que o git aplica, então o
+    hash é o do blob para qualquer pessoa em qualquer SO. Para os
+    arquivos de bytes congelados (`analysis/fixtures/*.jsonl`, `-text`),
+    a normalização é no-op: eles já estão com LF no blob.
+    """
     with open(path, "rb") as f:
-        return hashlib.sha256(f.read()).hexdigest()
+        bruto = f.read()
+    return hashlib.sha256(bruto.replace(b"\r\n", b"\n")).hexdigest()
 
 
 def collapse(wire: bytes) -> bytes:

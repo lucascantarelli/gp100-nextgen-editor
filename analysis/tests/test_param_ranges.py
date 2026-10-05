@@ -169,3 +169,31 @@ def test_o_artefato_guarda_o_hash_das_duas_fontes():
     assert fontes["capture"]["sha256"] == pr.sha256(pr.CAPTURA)
     assert artefato["issue"] == "#110"
     assert artefato["adr"] == "ADR-10"
+
+
+def test_o_hash_e_o_do_blob_do_git_e_nao_o_do_disco():
+    """A provenance tem que sobreviver a maquina: o hash e canonico (LF).
+
+    Motivo do teste existir: `analysis/parameters.json` NAO esta na lista de
+    bytes congelados do `.gitattributes` (a politica e "identidade semantica,
+    nao byte"), entao o checkout do Windows tem CRLF e o blob do git tem LF.
+    Hashar o byte do disco gravou o sha256 da forma CRLF no artefato e deixou
+    o CI (checkout LF) vermelho desde o commit que criou o artefato — o guard
+    de proveniencia acusando fim de linha em vez de edicao silenciosa.
+
+    Aqui a prova e por MUTACAO: o hash canonico e o do blob, e a forma CRLF do
+    MESMO arquivo nao bate. Sem este teste, voltar a hashear o disco-passaria
+    verde nesta maquina Windows e vermelho em qualquer outra.
+    """
+    import hashlib
+
+    bruto = (RAIZ / "analysis" / "parameters.json").read_bytes()
+    canonico = hashlib.sha256(bruto.replace(b"\r\n", b"\n")).hexdigest()
+    com_crlf = hashlib.sha256(bruto).hexdigest()
+
+    assert pr.sha256(pr.DICIONARIO) == canonico
+    # a forma do disco so difere quando o arquivo tem CRLF; se for LF (Linux,
+    # CI, qualquer outro clone), as duas formas sao o mesmo hash — e o teste
+    # continua valendo, so nao ha o que distinguir.
+    if b"\r\n" in bruto:
+        assert com_crlf != canonico
