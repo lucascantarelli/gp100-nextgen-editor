@@ -29,17 +29,19 @@ import { PRESET_CHAINS } from "../artifacts/presetChains";
 /** Total de transações do script de boot real (inventário default 0..198). */
 const BOOT_TOTAL = 2297;
 
-/** Operações do fallback com gancho de falha simulada (issue #20). */
-type FailOp = "info" | "boot" | "board" | "select" | "set_param";
-
 /**
  * Gancho de teste/e2e — `localStorage[gp100.debug.failDevice]`:
- *   - `"<op>"` (info|boot|board|select|set_param) ou `"all"` — falha SEMPRE;
+ *   - `"<op>"` (info|boot|board|select|set_param|save|dump|log_start|preview)
+ *     ou `"all"` — falha SEMPRE;
  *   - `"<op>:<n>"` — falha as PRÓXIMAS n chamadas (falha TRANSITÓRIA: o
  *     retry/backoff a esconde do usuário — cenário do USB instável);
  *   - `"boot-mid"` — o boot emite progresso até ~40% e REJEITA (device
  *     desconectado NO MEIO do boot).
  * Fora do fallback (webview real) não tem efeito; sem a chave, custo zero.
+ *
+ * **Exportado para `ipc/diag`** — a porta de diagnóstico de campo usa O MESMO
+ * gancho (é o mesmo aparelho), e duplicar o leitor de localStorage aqui e lá
+ * faria os dois divergirem na primeira edição.
  */
 const DEBUG_FAIL_KEY = "gp100.debug.failDevice";
 
@@ -62,7 +64,7 @@ function consumeTransient(op: string, left: number): void {
 }
 
 /** Falha simulada da operação `op` (no-op sem a chave/para outra operação). */
-function debugFail(op: FailOp): void {
+export function debugFail(op: string): void {
   const raw = readFailRaw();
   if (raw === null) return;
   if (raw === "all" || raw === op) {
@@ -213,8 +215,14 @@ export async function runCommand<T>(
   throw last;
 }
 
-/** Detecta o ambiente Tauri (webview) vs browser/teste. */
-function inTauri(): boolean {
+/**
+ * Detecta o ambiente Tauri (webview) vs browser/teste.
+ *
+ * **Exportado para `ipc/diag`:** toda porta precisa decidir entre `invoke` e o
+ * fallback local, e essa decisão é uma só — duas cópias significam dois lugares
+ * para o fallback e o aparelho discordarem.
+ */
+export function inTauri(): boolean {
   return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 }
 

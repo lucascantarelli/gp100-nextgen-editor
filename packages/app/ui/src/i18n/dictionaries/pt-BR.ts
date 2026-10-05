@@ -190,6 +190,43 @@ export const PT_BR = {
   pushRepeats: "Repetições seguidas deste push",
   pushRepeatMark: "×",
 
+  /* ── diagnóstico de campo (capacidades que vieram do utilitário de linha
+       de comando) ──
+     O texto respeita a regra 1 do UI_REFERENCE §8: nada de "§13.9", "ADR-5",
+     "build", "fio" ou "mock do protocolo". O que o operador precisa saber é o
+     que a instalação FAZ — e onde o arquivo sai. */
+  diagTitle: "Diagnóstico de campo",
+  diagSummary: "diagnóstico",
+  diagAria: "Diagnóstico de campo: o que esta instalação conversa com a pedaleira",
+  diagBackendMock: "Simulação — nenhuma pedaleira conectada",
+  diagBackendNone: "Sem pedaleira",
+  diagNoDeviceHint: "O que você editar aqui fica só na tela.",
+  diagBackendReal: "Pedaleira conectada",
+  diagWriteLocked:
+    "Instalação de somente leitura: gravar na pedaleira fica bloqueado antes da conexão USB.",
+  diagWriteOpen: "Gravação liberada nesta instalação.",
+  diagPpLabel: "Patch",
+  diagPpTypeLabel: "Tipo",
+  diagNameLabel: "Nome",
+  diagSave: "Gravar na pedaleira",
+  diagSaveDone: "Gravado na pedaleira.",
+  diagDump: "Ler o que está na pedaleira",
+  diagDumpTitle: "O que a pedaleira tem neste patch",
+  diagDumpMeta6: "Identificação",
+  diagDumpPages: (n: number) => `${n} páginas de estado`,
+  diagLogStart: "Gravar o tráfego",
+  diagLogStop: "Parar a gravação",
+  diagLogPathLabel: "Arquivo do log",
+  diagLogHint: "Grava tudo o que entra e sai pela USB, para o suporte analisar depois.",
+  diagLogOn: (path: string) => `Gravando em ${path}`,
+  diagPreviewBtn: "Ver o que seria enviado",
+  diagPreviewTitle: "O que seria enviado, sem enviar",
+  diagPreviewEmpty: "Nada para mostrar.",
+  diagPreviewCount: (n: number) => `${n} blocos`,
+  diagCopyAria: "Copiar o código hexadecimal",
+  diagCopyBtn: "copiar",
+  diagCopied: "copiado",
+
   /* ── settings ── */
   previewBadge: "prévia local",
   settingsTitle: "Settings",

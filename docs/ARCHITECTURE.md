@@ -39,13 +39,15 @@ idioma) e qualquer seta que faça o core Rust depender do front.
 
 ```
 src/
-├── App.tsx (274)          casca: boot, atalhos, modais abertos e o JSX
+├── App.tsx (299)          casca: boot, atalhos, modais abertos e o JSX
 ├── main.tsx (11)          monta o React
 │
 ├── ipc/                   ── a PORTA ──────────────────────────
-│   ├── device.ts (505)    device_select_preset, device_board, … + retry declarativo
+│   ├── device.ts (538)    device_select_preset, device_board, … + retry declarativo
+│   ├── diag.ts (132)      a COORTE de diagnóstico: gravar no aparelho, ler o
+│   │                      dump, a sessão de log e a prévia do envio
 │   ├── push.ts (63)       log de pushes do device
-│   └── types.ts (146)     BoardSlot/BoardView/DeviceInfo — o contrato do palco
+│   └── types.ts (148)     BoardSlot/BoardView/DeviceInfo — o contrato do palco
 │
 ├── hooks/                 ── ESTADO DE SESSÃO ───────────────────
 │   ├── useStage.ts (248)  o que está NO PALCO: abrir/salvar/apagar preset e
@@ -54,6 +56,7 @@ src/
 │   │                      looper, settings/idioma
 │   ├── useBoot.ts (113)   a sequência de boot e seu progresso
 │   ├── usePushLog.ts (38) o ring buffer de pushes
+│   ├── useFieldDiag.ts (196) o alvo (patch/nome) e o que voltou do diagnóstico
 │   └── useGlobalShortcuts.ts (96)
 │
 ├── components/            ── APRESENTAÇÃO ───────────────────────
@@ -61,6 +64,8 @@ src/
 │   │   PedalModal.tsx (284) · Knob.tsx (207) · TopBar.tsx (385)
 │   ├── LibraryPanel.tsx (269) · LooperPanel.tsx (610)
 │   ├── DrumPanel.tsx (196) · TunerPanel.tsx (359) · PushLog.tsx (104)
+│   ├── FieldDiagPanel.tsx (330) o diagnóstico de campo em tela (carrega o
+│   │                      próprio <details>, para o App ganhar 1 linha)
 │   └── BootProgressBar.tsx (63) · ErrorBanner.tsx (56)
 │
 ├── design/                ── PURO, SEM REACT ────────────────────
@@ -97,7 +102,11 @@ quais modais estão abertos e o JSX.
 2. **Precisa falar com o device?** → passa por `ipc/device.ts`, **declarando a
    política de execução na chamada** (`IDEMPOTENTE` ou `semRetry("motivo")`). Não
    existe chamada que herda retry — o padrão está na assinatura justamente para o
-   compilador cobrar a decisão.
+   compilador cobrar a decisão. Se a operação é de **diagnóstico de campo**
+   (gravar/ler/dump/log/prévia), ela vai para `ipc/diag.ts`: são outra coorte
+   de contrato — hexadecimal em vez de estado, uma delas não idempotente, uma
+   delas sessão de arquivo — e misturar as duas fez a porta do dia a dia passar
+   do teto sem nenhuma decisão nova.
 3. **É estado que sobrevive a um rerender?** → `hooks/`. Se alguém fecha a janela,
    ele vai para `usePrefs` com a chave de `localStorage` exportada pelo dono
    (`LooperPanel.KEY`, `SettingsModal.KEY`) — nunca com a string repetida no
@@ -119,6 +128,7 @@ App volta a inchar. Um critério que só vale no dia do PR não impede nada.
 | `LooperPanel.tsx` | 700 | apresentação grande; a FSM já saiu para `looper/fsm.ts` |
 | qualquer outro `components/` | 700 | acima disso, ou falta extrair regra ou falta extrair subcomponente |
 | `ipc/device.ts` | 600 | a porta cresce por **operação de device**, não por feature de UI |
+| `ipc/diag.ts` | 600 | herda a regra: cresce por operação de diagnóstico, não por feature de UI |
 
 O gate é `scripts/check_module_size.py`, rodado em `scripts/gates.py` e no
 `ci.yml`. Ele falha com o nome do arquivo e a contagem, e a lista de exceções fica

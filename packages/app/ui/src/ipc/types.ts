@@ -48,8 +48,45 @@ export interface DeviceInfo {
   writeVerified: boolean;
 }
 
-/** Um slot da tabela de User IRs, como o aparelho a relata (§13.12). */
-export interface IrSlot {
+/**
+ * Um frame que o aparelho **receberia**, sem receber (o `--dry-run` do CLI,
+ * agora no backend).
+ *
+ * O hex é o mesmo que sairia pelo `send_raw`. E o backend que monta — o
+ * front nunca monta SysEx (porta única: `ipc/` não importa o core) — então
+ * o preview e o envio não podem divergir.
+ */
+export interface PreviewFrame {
+  /** `func` + addr do frame (ex.: "12/10030002"). */
+  label: string;
+  /** O SysEx completo em hex. */
+  hex: string;
+}
+
+/** A operação que `devicePreview` sabe descrever. */
+export type PreviewOp =
+  /** Um knob da cadeia (1 frame, §13.11). */
+  | { op: "setParam"; slot: number; code: number; ctrl: number; value: number }
+  /** A gravação do preset (9 frames, §13.12). */
+  | { op: "save"; pp: number; ppType: number; name: string };
+
+/** O que o `dump-preset` devolve: meta6 + as 8 páginas, em hex cru (§13.9). */
+export interface DumpReport {
+  /** pp que foi lido. */
+  pp: number;
+  /** Página meta6 do pp (6B). */
+  meta6: string;
+  /** Páginas 0..=7 e a final de 4B, na ordem do fio. */
+  pages: string[];
+}
+
+/**
+ * Um slot da tabela de User IRs, como o aparelho a relata (§13.12).
+ *
+ * Sem `export`: chega ao front por dentro de `DeviceInfo.irSlots`, e ninguém
+ * importa o nome sozinho.
+ */
+interface IrSlot {
   /** Slot 0..=19. */
   slot: number;
   /** Nome ASCII do IR no aparelho ("" = vazio). */

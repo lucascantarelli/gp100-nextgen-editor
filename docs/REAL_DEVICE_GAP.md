@@ -176,15 +176,22 @@ deles precisa do aparelho para ser provado.
 | 3 | Botões de escrita cientes da política (`write-verified` → desabilitado + aviso) | front + commands | e2e do botão desabilitado no build de leitura | não |
 | 4 | `save_preset` e `dump_preset` como commands — **✅ feito** (o que o CLI tinha e o app nao) | `actor.rs` + `commands.rs` | vetor de bytes igual ao do CLI | não |
 | 4b | **wire logger (schema P4) + dry-run no app** — **✅ feito**: `packages/core/src/wire_log.rs` (uma implementacao, CLI e app) + `device_log_session`/`device_preview`. O ciclo de campo agora fecha pelo app: sessao no editor → `.jsonl` → juiz | `wire_log.rs` + `commands.rs` | o `.jsonl` que o app grava passa no mesmo juiz que o do CLI | **sim** (para o veredito) |
+| 4c | **A camada de UI do diagnóstico** — **✅ feito**: `FieldDiagPanel.tsx` + `useFieldDiag` + `ipc/diag.ts`. As quatro capacidades dos passos 4/4b viraram tela (gravar, ler o dump, ligar/desligar o log, ver o que sairia), com o badge de backend e o aviso de escrita travada na tela. Sem isto a sessao de campo continuava dependendo do binario de terminal | `components/FieldDiagPanel.tsx` · `hooks/useFieldDiag.ts` · `ipc/diag.ts` | o operador de campo nao precisa abrir terminal para dirigir o aparelho | **sim** (para o veredito) |
 | 5 | `set_inventory` ligado ao que o boot descobre (ou fixado em campo com justificativa) | `session.rs` + `lib.rs` | o total de transações do report muda conforme o inventário | **sim** |
 | 6 | Build de campo **leitura** (`--features real-device`, sem `write-verified`) | `scripts/` | CI compila o crate do Tauri com a feature (WinMM no job `ui-rust`; ALSA no container do webview) | não |
 | 6b | `ui-rust` na matriz **macOS** — fecha o buraco do CoreMIDI | `scripts/ci_plan.py` | o backend do app com `real-device` compila para CoreMIDI | não |
-| 7 | **Sessão de campo no aparelho**: boot, lista de IRs, dump, e a §4 medida | `scripts/h2_field.sh` + relatório | `docs/H3`/novo relatório com os 4 desvios de §4 preenchidos | **sim** |
+| 7 | **Sessão de campo no aparelho**: boot, lista de IRs, dump, e a §4 medida | o painel de diagnóstico (passo 4c) + relatório | relatório com os 4 desvios de §4 preenchidos, com o `.jsonl` gerado **pelo app** | **sim** |
 | 8 | Release | #17 | o veredito da sessão de campo assinado | **sim** |
 
-Passos 1–4 e 6 são software e podem ser feitos e provados agora. O passo 5 é o
-primeiro que precisa de uma decisão do campo. **O passo 7 é o que a #17 exige,
+Passos 1–4, 4b, 4c e 6 são software e podem ser feitos e provados agora. O passo 5
+é o primeiro que precisa de uma decisão do campo. **O passo 7 é o que a #17 exige,
 e a #17 não fecha antes dele.**
+
+**O passo 4c é o que muda o formato do passo 7.** A sessão de campo deixa de ser um
+roteiro de terminal e passa a ser um relatório de tela: o operador abre o editor,
+grava o patch, lê o dump e entrega o `.jsonl` que o **app** gravou. É a última
+peça de software antes do aparelho — depois dela, o que falta é o aparelho, não
+o código.
 
 ## 7. O que a #17 já tem e o que falta
 

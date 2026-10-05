@@ -55,6 +55,7 @@ import { LooperPanel } from "./components/LooperPanel";
 import { SnapTonePanel } from "./components/SnapTonePanel";
 import { IrLabPanel } from "./components/IrLabPanel";
 import { PushLog } from "./components/PushLog";
+import { FieldDiagPanel } from "./components/FieldDiagPanel";
 import { MSG } from "./i18n/messages";
 
 export default function App() {
@@ -238,6 +239,7 @@ export default function App() {
           </summary>
           <PushLog log={log} onClear={clear} />
         </details>
+        <FieldDiagPanel info={info} />
 
         {/* linha biblioteca ↔ pedalboard: alturas iguais (stretch), sem lacunas */}
         <div className="shell-main">

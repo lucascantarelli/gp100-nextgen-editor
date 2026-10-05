@@ -196,7 +196,7 @@ O Tauri não gera pacote Arch: a unidade de distribuição **é** a receita vers
 ### Contagem de testes (medido 05/10)
 | Suíte | Comando | Contagem |
 |---|---|---|
-| Unit do front | `pnpm exec vitest run` | **399** em **28** arquivos (398 passando) |
+| Unit do front | `pnpm exec vitest run` | **411** em **29** arquivos (411 passando) |
 | Cobertura do front | `pnpm run test:coverage` | ⚠️ **sem número — ver a nota abaixo** |
 | E2E (Playwright) | `pnpm exec playwright test --list` | **78** testes em **7** arquivos · **96** baselines |
 | Rust (core + cli) | `cargo test --workspace` | **237** testes em **28** suítes |
