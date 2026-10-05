@@ -114,6 +114,27 @@ pub enum ProtocolError {
         /// O que de fato chegou (hex curto).
         got: String,
     },
+
+    /// Valor de parâmetro fora da faixa que o firmware aceita (#110, ADR-10).
+    ///
+    /// Variante nova por ADR (regra do ADR-2): o caso é de **conteúdo**, não
+    /// de shape — o frame teria bytes perfeitamente bem formados e ainda
+    /// assim derrubaria o aparelho num assert do firmware
+    /// (`audio.c:1828`, `para <= GetParaMaxVal`), exigindo power-cycle
+    /// físico. Recusar aqui é o que transforma uma perda de tempo em um erro
+    /// visível. `addr` + `param` + `allowed` estão no payload porque o
+    /// runbook de campo precisa dizer qual knob e até onde.
+    #[error("valor fora da faixa em {addr} ({param}): {got}; permitido {allowed}")]
+    ValueOutOfRange {
+        /// Endereço da transação recusada (`10 [slot] 00 02` do §13.11).
+        addr: String,
+        /// Par identificado como `effectCode/ctrl` (hex/decimal).
+        param: String,
+        /// O valor que foi pedido (valor não-finito vem assim).
+        got: String,
+        /// O que o dicionário permite (faixa numérica ou lista de ids).
+        allowed: String,
+    },
 }
 
 /// model — dicionário de algoritmos/controles.
@@ -127,6 +148,9 @@ pub mod golden;
 
 /// codec — codificação do fio: nibble + helpers semânticos.
 pub mod codec;
+
+/// Faixas de valor por knob/chave, e a recusa antes do fio (#110, ADR-10).
+pub mod param_range;
 
 /// snap_tone — framing do upload de SnapTone (GP-50 de família: CRC-8/0x07 +
 /// bloco de 19B, §2/§3/§5 do PROTOCOL.md).

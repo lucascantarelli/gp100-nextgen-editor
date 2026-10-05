@@ -92,8 +92,17 @@ pub fn nibble_collapse(data: &[u8]) -> Result<Vec<u8>, ProtocolError> {
 /// Payload do SET de parâmetro (§13.11): 20B nibble-exp de
 /// `[effectCode u32 LE][ctrl u8][00][f32 LE]`.
 ///
+/// **Valida a faixa do valor ANTES de montar os bytes (#110, ADR-10).** A
+/// trava mora aqui, e não no `Session` nem no transporte, por dois motivos:
+/// este é o ÚNICO ponto por onde todo `set-param` passa (CLI de campo,
+/// `DeviceActor` do app, replay das fixtures), e nenhum byte existe ainda —
+/// logo a recusa é literalmente "antes do `send_raw`". Ver
+/// [`param_range`](crate::param_range) para a política e a evidência.
+///
 /// # Erros
-/// [`ProtocolError::InvalidShape`] se `slot` fora de 1..=9 (cadeia de 9).
+/// [`ProtocolError::InvalidShape`] se `slot` fora de 1..=9 (cadeia de 9);
+/// [`ProtocolError::ValueOutOfRange`] se `value` estiver fora da faixa que o
+/// dicionário declara para `(code, ctrl)`, ou não for finito.
 pub fn set_param_payload(
     slot: u8,
     code: u32,
@@ -106,6 +115,12 @@ pub fn set_param_payload(
             got: format!("slot={slot}"),
         });
     }
+    // O RECUSA AQUI, e não depois do Vec: um `Err` neste ponto devolve o
+    // frame inteiro como erro, e o chamador (Session/CLI/actor) nunca chega
+    // a `send_raw`. Sem esta linha, o `99.5` do runbook do H2 derrubava o
+    // aparelho num assert do firmware (audio.c:1828) sem nenhum aviso no
+    // fio — set-param é fire-and-forget (§13.11, D4).
+    crate::param_range::check(slot, code, ctrl, value)?;
     let mut real = Vec::with_capacity(10);
     real.extend_from_slice(&code.to_le_bytes()); // effectCode u32 LE
     real.push(ctrl);
@@ -115,6 +130,13 @@ pub fn set_param_payload(
 }
 
 /// SysEx COMPLETO do set-param: `… | 12 | 10 [slot] 00 02 | payload | F7`.
+///
+/// A faixa do valor é validada por [`set_param_payload`] (#110) — logo um
+/// valor fora da faixa falha aqui e **nenhum byte chega ao transporte**.
+///
+/// # Erros
+/// [`ProtocolError::InvalidShape`] (slot inválido) ou
+/// [`ProtocolError::ValueOutOfRange`] (valor fora da faixa do dicionário).
 pub fn set_param(slot: u8, code: u32, ctrl: u8, value: f32) -> Result<Vec<u8>, ProtocolError> {
     let payload = set_param_payload(slot, code, ctrl, value)?;
     Ok(envelope(

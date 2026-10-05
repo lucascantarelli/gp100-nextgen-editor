@@ -145,7 +145,7 @@ quirk de fim de sessão (§13.7) — **não** é confirmação de save (D3).
 
 | # | Fluxo | Endereço (func/addr) | Tipo | Esperado (§13) | Obtido | Severidade |
 |---|---|---|---|---|---|---|
-| 1 | **F1 com valor `99.5`** | `12/10030002` | **comportamento** | knob do AMP Gan para o valor pedido | **assert de firmware** `para <= GetParaMaxVal(` em `Drivers/audio/audio.c:1828`; device mudo para toda transação até power-cycle | **bloqueia-H2** (resolvido: valor corrigido para `15.0`) |
+| 1 | **F1 com valor `99.5`** | `12/10030002` | **comportamento** | knob do AMP Gan para o valor pedido | **assert de firmware** `para <= GetParaMaxVal(` em `Drivers/audio/audio.c:1828`; device mudo para toda transação até power-cycle | **bloqueia-H2** — resolvido nos dois fronts: o runbook passou a `15.0` (o valor real da captura) **e** a [#110](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/110) agora recusa valor fora da faixa **antes do fio** (ADR-10) |
 | 2 | F3 com o device já travado | `12/12001002` | protocolo | ACK por chunk | timeout de 3000 ms; **slot 2 continuou `(vazio)`**, ou seja, o chunk 0 nem chegou a ser gravado | info (efeito do #1) |
 | 3 | 1ª `list-user-irs` após power-cycle | `12/12001002` | comportamento | resposta na 1ª tentativa | timeout; a **2ª tentativa, sem mudar nada, responde** | info — é o D6 já documentado. Vale como alerta: um único timeout **não** prova device travado |
 

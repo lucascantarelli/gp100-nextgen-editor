@@ -522,3 +522,87 @@ pode ser recusado noutra.
 - (−) `rusqlite` com `bundled` compila o SQLite a partir do fonte: primeiro
   build mais lento e exige um compilador C (minGW no Windows-gnu, cc nos
   containers Linux).
+
+---
+
+## ADR-10 — Trava de conteúdo no `set-param`: faixa do valor antes do fio (#110)
+
+**Status:** Accepted · **Pré-assinada:** 05/10/2026 (owner) · **Afeta:** `gp100-core` (codec + `param_range`), CLI de campo, `DeviceActor` do app
+
+**Contexto.** Em 05/10/2026, no gate H2, o runbook de campo mandava
+`set-param 3 0x0700006e 0 99.5`. O `99.5` era um número inventado. O
+firmware V2.1 tem, em `Drivers/audio/audio.c:1828`, o assert
+
+```text
+CODE:para <= GetParaMaxVal(
+```
+
+e ao assertar **para de responder a toda transação**, inclusive às leituras
+puras. O device continua enumerado e `OK` no Windows, o que elimina cabo,
+driver e porta como causa; a única recuperação é um **power-cycle físico**.
+O detalhe cruel é que o `set-param` é fire-and-forget (§13.11, D4): o fio
+não devolve **nenhum** aviso, e o operador descobre que quebrou o pedal
+quando a leitura seguinte toma timeout.
+
+**Decisão.** O `set_param_payload` valida o **conteúdo** do valor antes de
+montar o frame, e uma variante nova de `ProtocolError`
+(`ValueOutOfRange { addr, param, got, allowed }`) sobe até a borda. A regra
+vem do dicionário (`analysis/parameters.json`, derivado do `algorithm.xml`
+oficial da Suite V1.5.1):
+
+| par `(slot, code, ctrl)` | regra | ação |
+|---|---|---|
+| `knob` | `min <= v <= max` (normalizado por `Control::range`) | **recusa** fora da faixa |
+| `switch`/`combox` | `v ∈ option_ids` (id exato) | **recusa** id desconhecido |
+| **sem regra** no dicionário | — | **aceita** |
+| `NaN` / `±inf` | — | **recusa sempre** |
+
+A chave carrega o **slot**, não só o `code`: o `nibble` do `effectCode` não
+é o módulo (`0x05` = C-Wah no PRE, `0x03` = Green OD no DST), e sem o slot
+`Boost` e `14 Boost` — mesmo `effectCode`, PRE e DST — colidiriam.
+
+**Por que o dicionário, e não só as amostras.** A armadilha conhecida da
+captura é que `knobs.jsonl` é **uma sessão só**: uma faixa derivada dela é
+piso, não verdade. Mas o dicionário é a fonte declarada da própria Suite, e
+a Suite é quem fala com o firmware. A corroboração está medida e é gate
+(`analysis/param_ranges.py --check`): das 92 amostras reais, **13 dos 14
+pares observados caem inteiros dentro da faixa declarada, zero
+contradições**. Duas fontes independentes — o que a Suite declara e o que
+ela de fato manda — concordam, e a Suite nunca escreve fora do que o
+aparelho aceita. Cobertura: 639 regras para 639 controles (575 knob +
+64 discretos).
+
+**Por que "sem regra" aceita.** O 14º par é `0x0a00002c` (U-ban 4x12, CAB)
+com `ctrl = 1`: o aparelho **varreu esse knob de 0 a 99** em 8 amostras
+reais, mas o dicionário só descreve o `ctrl = 0` desse cab. É um buraco do
+dicionário, não um valor perigoso — recusá-lo quebraria um knob que
+comprovadamente funciona. O gate nomeia o par (`observed_without_rule`)
+para que o buraco fique visível em vez de sumir. `NaN`/`inf` são recusados
+mesmo sem regra: o bit-pattern de `f32` para eles é lixo que nenhum
+firmware aceitaria.
+
+**Alternativas rejeitadas.**
+- *Só os 14 pares com amostra real.* 625 pares sem medição ficariam sem
+  trava justamente onde não sabemos nada. Menos atrito, bem menos proteção.
+- *Recusar também o que está sem regra.* Mais seguro contra dicionário
+  incompleto, ao custo de travar o knob do CAB que o aparelho aceita.
+- *Escape hatch (`--force-param`) em campo.* Deixado para uma necessidade
+  real de campo; não entra agora porque a evidência diz que a tabela não
+  bloqueia nada que a Suite mande.
+
+**Consequências.**
+- (+) A trava é de **conteúdo**, não de política: vale igual no mock e no
+  aparelho real, então o H1 (read-only) fica seguro por construção e o
+  mock continua exercitando escrita (ADR-5).
+- (+) Ela mora no `set_param_payload`, o **único** ponto por onde todo
+  `set-param` passa (CLI, `DeviceActor`, replay das fixtures), e **antes**
+  de existirem bytes — provado por mutação em
+  `packages/core/tests/value_gate.rs` (transporte que pune qualquer byte)
+  e no CLI (`set_param_fora_da_faixa_falha_sem_mandar_nada`).
+- (−) Se o dicionário declarar uma faixa **mais larga** que o
+  `GetParaMaxVal` do firmware para algum controle, a trava deixa passar um
+  valor que o aparelho rejeita. É o risco residual: nenhum dos 13 pares
+  corroborados mostra isso, e nenhum caminho de escrita novo depende de
+  faixa inventada.
+- (−) `--dry-run` do CLI passou a recusar valor fora da faixa. É
+  intencional: um frame que o firmware rejeitaria não é inspecionável.

@@ -66,6 +66,11 @@ GATES: list[tuple[str, list[str], str]] = [
         "o effectCode e u32 LE no fio real — se alguem escrever BE, os decoders mentem",
     ),
     (
+        "param_ranges",
+        [sys.executable, "analysis/param_ranges.py", "--check"],
+        "a trava de conteudo do knob (#110) bate com o dicionario e com as 92 amostras reais",
+    ),
+    (
         "h2_compare",
         [sys.executable, "scripts/h2_compare.py", "--self-check"],
         "a transcricao do gate H2 bate com a referencia de escrita (#22)",

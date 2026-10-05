@@ -1,0 +1,5316 @@
+{
+  "adr": "ADR-10",
+  "counts": {
+    "observed_pairs": 14,
+    "observed_pairs_with_rule": 13,
+    "observed_pairs_without_rule": 1,
+    "observed_samples": 92,
+    "rules": 639,
+    "rules_discrete": 64,
+    "rules_knob": 575
+  },
+  "issue": "#110",
+  "motivo": "trava de conteudo do set-param: o firmware V2.1 asserta em para <= GetParaMaxVal (audio.c:1828) e derruba o aparelho sem aviso no fio",
+  "observed_without_rule": {
+    "5/0a00002c/1": {
+      "code": "0x0a00002c",
+      "ctrl": 1,
+      "observed_max": 99.0,
+      "observed_min": 0.0,
+      "samples": 8,
+      "slot": 5
+    }
+  },
+  "pairs": {
+    "1/00000000/0": {
+      "alg": "COMP",
+      "ctrl_name": "Sustain",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "1/00000000/1": {
+      "alg": "COMP",
+      "ctrl_name": "Output",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "1/00000001/0": {
+      "alg": "COMP4",
+      "ctrl_name": "Sustain",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "1/00000001/1": {
+      "alg": "COMP4",
+      "ctrl_name": "Attack",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "1/00000001/2": {
+      "alg": "COMP4",
+      "ctrl_name": "Output",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "1/00000001/3": {
+      "alg": "COMP4",
+      "ctrl_name": "Clip",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "1/0000000e/0": {
+      "alg": "14 Boost",
+      "ctrl_name": "Gain",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "1/0000001a/0": {
+      "alg": "Boost",
+      "ctrl_name": "Gain",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "1/0000001a/1": {
+      "alg": "Boost",
+      "ctrl_name": "Bright",
+      "ids": [
+        1,
+        0
+      ],
+      "kind": "discrete",
+      "samples": 0
+    },
+    "1/01000001/0": {
+      "alg": "AC Sim",
+      "ctrl_name": "Body",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "1/01000001/1": {
+      "alg": "AC Sim",
+      "ctrl_name": "Top",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "1/01000001/2": {
+      "alg": "AC Sim",
+      "ctrl_name": "VOL",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "1/01000001/3": {
+      "alg": "AC Sim",
+      "ctrl_name": "Mode",
+      "ids": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "kind": "discrete",
+      "samples": 0
+    },
+    "1/0100000f/0": {
+      "alg": "T-Wah",
+      "ctrl_name": "Sens",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "1/0100000f/1": {
+      "alg": "T-Wah",
+      "ctrl_name": "Range",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "1/0100000f/2": {
+      "alg": "T-Wah",
+      "ctrl_name": "Q",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "1/0100000f/3": {
+      "alg": "T-Wah",
+      "ctrl_name": "Mix",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "1/0100000f/4": {
+      "alg": "T-Wah",
+      "ctrl_name": "Mode",
+      "ids": [
+        0,
+        1
+      ],
+      "kind": "discrete",
+      "samples": 0
+    },
+    "1/01000015/0": {
+      "alg": "A-WAH",
+      "ctrl_name": "Depth",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "1/01000015/1": {
+      "alg": "A-WAH",
+      "ctrl_name": "Rate",
+      "kind": "range",
+      "max": 10.0,
+      "min": 0.1,
+      "samples": 0
+    },
+    "1/01000015/2": {
+      "alg": "A-WAH",
+      "ctrl_name": "VOL",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "1/01000015/3": {
+      "alg": "A-WAH",
+      "ctrl_name": "Low",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "1/01000015/4": {
+      "alg": "A-WAH",
+      "ctrl_name": "Q",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "1/01000015/5": {
+      "alg": "A-WAH",
+      "ctrl_name": "High",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "1/01000015/6": {
+      "alg": "A-WAH",
+      "ctrl_name": "Sync",
+      "ids": [
+        1,
+        0
+      ],
+      "kind": "discrete",
+      "samples": 0
+    },
+    "1/01000019/0": {
+      "alg": "Step Filter",
+      "ctrl_name": "Step 1",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "1/01000019/1": {
+      "alg": "Step Filter",
+      "ctrl_name": "Step 2",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "1/01000019/2": {
+      "alg": "Step Filter",
+      "ctrl_name": "Step 3",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "1/01000019/3": {
+      "alg": "Step Filter",
+      "ctrl_name": "Step 4",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "1/01000019/4": {
+      "alg": "Step Filter",
+      "ctrl_name": "Rate",
+      "kind": "range",
+      "max": 10.0,
+      "min": 0.1,
+      "samples": 0
+    },
+    "1/01000019/5": {
+      "alg": "Step Filter",
+      "ctrl_name": "Sync",
+      "ids": [
+        1,
+        0
+      ],
+      "kind": "discrete",
+      "samples": 0
+    },
+    "1/01000021/0": {
+      "alg": "OCTA",
+      "ctrl_name": "L-Oct",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "1/01000021/1": {
+      "alg": "OCTA",
+      "ctrl_name": "H-Oct",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "1/01000021/2": {
+      "alg": "OCTA",
+      "ctrl_name": "Dry",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "1/01000023/0": {
+      "alg": "Pitch",
+      "ctrl_name": "H-Pitch",
+      "kind": "range",
+      "max": 24.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "1/01000023/1": {
+      "alg": "Pitch",
+      "ctrl_name": "L-Pitch",
+      "kind": "range",
+      "max": 0.0,
+      "min": -24.0,
+      "samples": 0
+    },
+    "1/01000023/2": {
+      "alg": "Pitch",
+      "ctrl_name": "Dry",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "1/01000023/3": {
+      "alg": "Pitch",
+      "ctrl_name": "H-Vol",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "1/01000023/4": {
+      "alg": "Pitch",
+      "ctrl_name": "L-Vol",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "1/01000024/0": {
+      "alg": "P-Bend",
+      "ctrl_name": "H-Pitch",
+      "kind": "range",
+      "max": 12.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "1/01000024/1": {
+      "alg": "P-Bend",
+      "ctrl_name": "L-Pitch",
+      "kind": "range",
+      "max": 0.0,
+      "min": -12.0,
+      "samples": 0
+    },
+    "1/01000024/2": {
+      "alg": "P-Bend",
+      "ctrl_name": "Wet",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "1/01000024/3": {
+      "alg": "P-Bend",
+      "ctrl_name": "Dry",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "1/01000024/4": {
+      "alg": "P-Bend",
+      "ctrl_name": "Range",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "1/0100002f/0": {
+      "alg": "Ring Mod",
+      "ctrl_name": "Mix",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "1/0100002f/1": {
+      "alg": "Ring Mod",
+      "ctrl_name": "Freq",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "1/0100002f/2": {
+      "alg": "Ring Mod",
+      "ctrl_name": "Fine",
+      "kind": "range",
+      "max": 50.0,
+      "min": -50.0,
+      "samples": 0
+    },
+    "1/0100002f/3": {
+      "alg": "Ring Mod",
+      "ctrl_name": "Tone",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "1/01000033/0": {
+      "alg": "Saturate",
+      "ctrl_name": "Gain",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "1/01000033/1": {
+      "alg": "Saturate",
+      "ctrl_name": "Mix",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "1/01000033/2": {
+      "alg": "Saturate",
+      "ctrl_name": "VOL",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "1/01000033/3": {
+      "alg": "Saturate",
+      "ctrl_name": "H-Cut",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "1/01000049/0": {
+      "alg": "Hammy",
+      "ctrl_name": "Range",
+      "ids": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "kind": "discrete",
+      "samples": 0
+    },
+    "1/01000049/1": {
+      "alg": "Hammy",
+      "ctrl_name": "Harmony",
+      "ids": [
+        1,
+        0
+      ],
+      "kind": "discrete",
+      "samples": 0
+    },
+    "1/01000049/2": {
+      "alg": "Hammy",
+      "ctrl_name": "VOL",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "1/01000049/3": {
+      "alg": "Hammy",
+      "ctrl_name": "Position",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "1/05000001/0": {
+      "alg": "V-Wah",
+      "ctrl_name": "Range",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "1/05000001/1": {
+      "alg": "V-Wah",
+      "ctrl_name": "Q",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "1/05000001/2": {
+      "alg": "V-Wah",
+      "ctrl_name": "VOL",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "1/05000008/0": {
+      "alg": "C-Wah",
+      "ctrl_name": "Range",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "observed_max": 99.0,
+      "observed_min": 2.0,
+      "samples": 10
+    },
+    "1/05000008/1": {
+      "alg": "C-Wah",
+      "ctrl_name": "Q",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "1/05000008/2": {
+      "alg": "C-Wah",
+      "ctrl_name": "VOL",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "2/0000000e/0": {
+      "alg": "14 Boost",
+      "ctrl_name": "Gain",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "2/0000001a/0": {
+      "alg": "Boost",
+      "ctrl_name": "Gain",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "2/0000001a/1": {
+      "alg": "Boost",
+      "ctrl_name": "Bright",
+      "ids": [
+        1,
+        0
+      ],
+      "kind": "discrete",
+      "samples": 0
+    },
+    "2/03000000/0": {
+      "alg": "Green OD",
+      "ctrl_name": "Gain",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "observed_max": 99.0,
+      "observed_min": 5.0,
+      "samples": 6
+    },
+    "2/03000000/1": {
+      "alg": "Green OD",
+      "ctrl_name": "Tone",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "2/03000000/2": {
+      "alg": "Green OD",
+      "ctrl_name": "VOL",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "2/03000002/0": {
+      "alg": "Yellow OD",
+      "ctrl_name": "Gain",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "2/03000002/1": {
+      "alg": "Yellow OD",
+      "ctrl_name": "VOL",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "2/03000006/0": {
+      "alg": "Super OD",
+      "ctrl_name": "Gain",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "2/03000006/1": {
+      "alg": "Super OD",
+      "ctrl_name": "Tone",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "2/03000006/2": {
+      "alg": "Super OD",
+      "ctrl_name": "VOL",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "2/03000008/0": {
+      "alg": "Scream OD",
+      "ctrl_name": "Gain",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "2/03000008/1": {
+      "alg": "Scream OD",
+      "ctrl_name": "Tone",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "2/03000008/2": {
+      "alg": "Scream OD",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "2/03000008/3": {
+      "alg": "Scream OD",
+      "ctrl_name": "Fat",
+      "ids": [
+        1,
+        0
+      ],
+      "kind": "discrete",
+      "samples": 0
+    },
+    "2/03000008/4": {
+      "alg": "Scream OD",
+      "ctrl_name": "Air",
+      "ids": [
+        1,
+        0
+      ],
+      "kind": "discrete",
+      "samples": 0
+    },
+    "2/03000009/0": {
+      "alg": "Blues OD",
+      "ctrl_name": "Gain",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "2/03000009/1": {
+      "alg": "Blues OD",
+      "ctrl_name": "Tone",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "2/03000009/2": {
+      "alg": "Blues OD",
+      "ctrl_name": "VOL",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "2/0300000b/0": {
+      "alg": "Tube Clipper",
+      "ctrl_name": "Gain",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "2/0300000b/1": {
+      "alg": "Tube Clipper",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "2/0300000b/2": {
+      "alg": "Tube Clipper",
+      "ctrl_name": "Bass",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "2/0300000b/3": {
+      "alg": "Tube Clipper",
+      "ctrl_name": "Treble",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "2/03000010/0": {
+      "alg": "TaiChi OD",
+      "ctrl_name": "Gain",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "2/03000010/1": {
+      "alg": "TaiChi OD",
+      "ctrl_name": "Tone",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "2/03000010/2": {
+      "alg": "TaiChi OD",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "2/03000010/3": {
+      "alg": "TaiChi OD",
+      "ctrl_name": "Voice",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "2/03000014/0": {
+      "alg": "Penesas",
+      "ctrl_name": "Gain",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "2/03000014/1": {
+      "alg": "Penesas",
+      "ctrl_name": "Tone",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "2/03000014/2": {
+      "alg": "Penesas",
+      "ctrl_name": "VOL",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "2/03000022/0": {
+      "alg": "Lazaro",
+      "ctrl_name": "Sustain",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "2/03000022/1": {
+      "alg": "Lazaro",
+      "ctrl_name": "Tone",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "2/03000022/2": {
+      "alg": "Lazaro",
+      "ctrl_name": "VOL",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "2/03000024/0": {
+      "alg": "Red Haze",
+      "ctrl_name": "Fuzz",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "2/03000024/1": {
+      "alg": "Red Haze",
+      "ctrl_name": "VOL",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "2/03000029/0": {
+      "alg": "Plustortion",
+      "ctrl_name": "Gain",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "2/03000029/1": {
+      "alg": "Plustortion",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "2/0300002a/0": {
+      "alg": "SM Dist",
+      "ctrl_name": "Gain",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "2/0300002a/1": {
+      "alg": "SM Dist",
+      "ctrl_name": "Tone",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "2/0300002a/2": {
+      "alg": "SM Dist",
+      "ctrl_name": "VOL",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "2/0300002b/0": {
+      "alg": "Darktale",
+      "ctrl_name": "Gain",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "2/0300002b/1": {
+      "alg": "Darktale",
+      "ctrl_name": "Filter",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "2/0300002b/2": {
+      "alg": "Darktale",
+      "ctrl_name": "VOL",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "2/0300002d/0": {
+      "alg": "Chief",
+      "ctrl_name": "Gain",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "2/0300002d/1": {
+      "alg": "Chief",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "2/0300002d/2": {
+      "alg": "Chief",
+      "ctrl_name": "Bass",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "2/0300002d/3": {
+      "alg": "Chief",
+      "ctrl_name": "Middle",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "2/0300002d/4": {
+      "alg": "Chief",
+      "ctrl_name": "Treble",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "2/03000030/0": {
+      "alg": "La Charger",
+      "ctrl_name": "Gain",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "2/03000030/1": {
+      "alg": "La Charger",
+      "ctrl_name": "Tone",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "2/03000030/2": {
+      "alg": "La Charger",
+      "ctrl_name": "VOL",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "2/0300003f/0": {
+      "alg": "Flex OD",
+      "ctrl_name": "Gain",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "2/0300003f/1": {
+      "alg": "Flex OD",
+      "ctrl_name": "Tone",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "2/0300003f/2": {
+      "alg": "Flex OD",
+      "ctrl_name": "VOL",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "2/0300003f/3": {
+      "alg": "Flex OD",
+      "ctrl_name": "Mode",
+      "ids": [
+        0,
+        1,
+        2
+      ],
+      "kind": "discrete",
+      "samples": 0
+    },
+    "2/0300003f/4": {
+      "alg": "Flex OD",
+      "ctrl_name": "Blend",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "2/03000040/0": {
+      "alg": "Bass Dist",
+      "ctrl_name": "Gain",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "2/03000040/1": {
+      "alg": "Bass Dist",
+      "ctrl_name": "Blend",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "2/03000040/2": {
+      "alg": "Bass Dist",
+      "ctrl_name": "VOL",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "2/03000040/3": {
+      "alg": "Bass Dist",
+      "ctrl_name": "Bass",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "2/03000040/4": {
+      "alg": "Bass Dist",
+      "ctrl_name": "Treble",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000001/0": {
+      "alg": "Tweedy",
+      "ctrl_name": "VOL",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000001/1": {
+      "alg": "Tweedy",
+      "ctrl_name": "Tone",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000001/2": {
+      "alg": "Tweedy",
+      "ctrl_name": "Output",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000003/0": {
+      "alg": "Bellman 59N",
+      "ctrl_name": "VOL",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000003/1": {
+      "alg": "Bellman 59N",
+      "ctrl_name": "PRES ",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000003/2": {
+      "alg": "Bellman 59N",
+      "ctrl_name": "Output",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000003/3": {
+      "alg": "Bellman 59N",
+      "ctrl_name": "Bass",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000003/4": {
+      "alg": "Bellman 59N",
+      "ctrl_name": "Middle",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000003/5": {
+      "alg": "Bellman 59N",
+      "ctrl_name": "Treble",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000004/0": {
+      "alg": "Dark Twin",
+      "ctrl_name": "VOL",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000004/1": {
+      "alg": "Dark Twin",
+      "ctrl_name": "Output",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000004/2": {
+      "alg": "Dark Twin",
+      "ctrl_name": "Bass",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000004/3": {
+      "alg": "Dark Twin",
+      "ctrl_name": "Middle",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000004/4": {
+      "alg": "Dark Twin",
+      "ctrl_name": "Treble",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000004/5": {
+      "alg": "Dark Twin",
+      "ctrl_name": "Bright",
+      "ids": [
+        1,
+        0
+      ],
+      "kind": "discrete",
+      "samples": 0
+    },
+    "3/07000011/0": {
+      "alg": "Foxy 30N",
+      "ctrl_name": "VOL",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000011/1": {
+      "alg": "Foxy 30N",
+      "ctrl_name": "Cut",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000011/2": {
+      "alg": "Foxy 30N",
+      "ctrl_name": "Master",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000011/3": {
+      "alg": "Foxy 30N",
+      "ctrl_name": "Bright",
+      "ids": [
+        1,
+        0
+      ],
+      "kind": "discrete",
+      "samples": 0
+    },
+    "3/07000014/0": {
+      "alg": "J-120 CL",
+      "ctrl_name": "VOL",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000014/1": {
+      "alg": "J-120 CL",
+      "ctrl_name": "Bass",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000014/2": {
+      "alg": "J-120 CL",
+      "ctrl_name": "Middle",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000014/3": {
+      "alg": "J-120 CL",
+      "ctrl_name": "Treble",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000014/4": {
+      "alg": "J-120 CL",
+      "ctrl_name": "Bright",
+      "ids": [
+        1,
+        0
+      ],
+      "kind": "discrete",
+      "samples": 0
+    },
+    "3/07000015/0": {
+      "alg": "Match CL",
+      "ctrl_name": "Gain",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000015/1": {
+      "alg": "Match CL",
+      "ctrl_name": "PRES",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000015/2": {
+      "alg": "Match CL",
+      "ctrl_name": "Master",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000015/3": {
+      "alg": "Match CL",
+      "ctrl_name": "Bass",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000015/4": {
+      "alg": "Match CL",
+      "ctrl_name": "Middle",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000015/5": {
+      "alg": "Match CL",
+      "ctrl_name": "Treble",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000019/0": {
+      "alg": "L-Star CL",
+      "ctrl_name": "Gain",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000019/1": {
+      "alg": "L-Star CL",
+      "ctrl_name": "PRES",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000019/2": {
+      "alg": "L-Star CL",
+      "ctrl_name": "Master",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000019/3": {
+      "alg": "L-Star CL",
+      "ctrl_name": "Bass",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000019/4": {
+      "alg": "L-Star CL",
+      "ctrl_name": "Middle",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000019/5": {
+      "alg": "L-Star CL",
+      "ctrl_name": "Treble",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700001a/0": {
+      "alg": "BogSV CL",
+      "ctrl_name": "Gain",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700001a/1": {
+      "alg": "BogSV CL",
+      "ctrl_name": "PRES",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700001a/2": {
+      "alg": "BogSV CL",
+      "ctrl_name": "Master",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700001a/3": {
+      "alg": "BogSV CL",
+      "ctrl_name": "Bass",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700001a/4": {
+      "alg": "BogSV CL",
+      "ctrl_name": "Treble",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700001a/5": {
+      "alg": "BogSV CL",
+      "ctrl_name": "Bright",
+      "ids": [
+        1,
+        0
+      ],
+      "kind": "discrete",
+      "samples": 0
+    },
+    "3/0700001b/0": {
+      "alg": "Z38 CL",
+      "ctrl_name": "Gain",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700001b/1": {
+      "alg": "Z38 CL",
+      "ctrl_name": "Cut",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700001b/2": {
+      "alg": "Z38 CL",
+      "ctrl_name": "Master",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700001b/3": {
+      "alg": "Z38 CL",
+      "ctrl_name": "Bass",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700001b/4": {
+      "alg": "Z38 CL",
+      "ctrl_name": "Middle",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700001b/5": {
+      "alg": "Z38 CL",
+      "ctrl_name": "Treble",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700001f/0": {
+      "alg": "Knights CL",
+      "ctrl_name": "Gain",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700001f/1": {
+      "alg": "Knights CL",
+      "ctrl_name": "VOL",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700001f/2": {
+      "alg": "Knights CL",
+      "ctrl_name": "Bass",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700001f/3": {
+      "alg": "Knights CL",
+      "ctrl_name": "Middle",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700001f/4": {
+      "alg": "Knights CL",
+      "ctrl_name": "Treble",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000022/0": {
+      "alg": "Bad-KT CL",
+      "ctrl_name": "Gain",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000022/1": {
+      "alg": "Bad-KT CL",
+      "ctrl_name": "PRES",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000022/2": {
+      "alg": "Bad-KT CL",
+      "ctrl_name": "Master",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000024/0": {
+      "alg": "Bellman 59B",
+      "ctrl_name": "VOL",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000024/1": {
+      "alg": "Bellman 59B",
+      "ctrl_name": "PRES",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000024/2": {
+      "alg": "Bellman 59B",
+      "ctrl_name": "Output",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000024/3": {
+      "alg": "Bellman 59B",
+      "ctrl_name": "Bass",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000024/4": {
+      "alg": "Bellman 59B",
+      "ctrl_name": "Middle",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000024/5": {
+      "alg": "Bellman 59B",
+      "ctrl_name": "Treble",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000027/0": {
+      "alg": "Foxy 30TB",
+      "ctrl_name": "VOL",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000027/1": {
+      "alg": "Foxy 30TB",
+      "ctrl_name": "Cut",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000027/2": {
+      "alg": "Foxy 30TB",
+      "ctrl_name": "Master",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000027/3": {
+      "alg": "Foxy 30TB",
+      "ctrl_name": "Bass",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000027/4": {
+      "alg": "Foxy 30TB",
+      "ctrl_name": "Treble",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000027/5": {
+      "alg": "Foxy 30TB",
+      "ctrl_name": "Char",
+      "ids": [
+        0,
+        1
+      ],
+      "kind": "discrete",
+      "samples": 0
+    },
+    "3/07000028/0": {
+      "alg": "SUPDual OD",
+      "ctrl_name": "VOL 1",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000028/1": {
+      "alg": "SUPDual OD",
+      "ctrl_name": "Tone 1",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000028/2": {
+      "alg": "SUPDual OD",
+      "ctrl_name": "VOL 2",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000028/3": {
+      "alg": "SUPDual OD",
+      "ctrl_name": "Tone 2",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000028/4": {
+      "alg": "SUPDual OD",
+      "ctrl_name": "Output",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700002a/0": {
+      "alg": "UK 45",
+      "ctrl_name": "VOL",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700002a/1": {
+      "alg": "UK 45",
+      "ctrl_name": "PRES",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700002a/2": {
+      "alg": "UK 45",
+      "ctrl_name": "Output",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700002a/3": {
+      "alg": "UK 45",
+      "ctrl_name": "Bass",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700002a/4": {
+      "alg": "UK 45",
+      "ctrl_name": "Middle",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700002a/5": {
+      "alg": "UK 45",
+      "ctrl_name": "Treble",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700002f/0": {
+      "alg": "UK 50JP",
+      "ctrl_name": "VOL 1",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700002f/1": {
+      "alg": "UK 50JP",
+      "ctrl_name": "PRES",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700002f/2": {
+      "alg": "UK 50JP",
+      "ctrl_name": "Output",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700002f/3": {
+      "alg": "UK 50JP",
+      "ctrl_name": "Bass",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700002f/4": {
+      "alg": "UK 50JP",
+      "ctrl_name": "Middle ",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700002f/5": {
+      "alg": "UK 50JP",
+      "ctrl_name": "Treble",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700002f/6": {
+      "alg": "UK 50JP",
+      "ctrl_name": "VOL 2",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000035/0": {
+      "alg": "UK 800",
+      "ctrl_name": "Gain",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000035/1": {
+      "alg": "UK 800",
+      "ctrl_name": "PRES",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000035/2": {
+      "alg": "UK 800",
+      "ctrl_name": "Master",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000035/3": {
+      "alg": "UK 800",
+      "ctrl_name": "Bass",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000035/4": {
+      "alg": "UK 800",
+      "ctrl_name": "Middle",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000035/5": {
+      "alg": "UK 800",
+      "ctrl_name": "Treble",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000039/0": {
+      "alg": "Mess2C+ 1",
+      "ctrl_name": "Gain",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000039/1": {
+      "alg": "Mess2C+ 1",
+      "ctrl_name": "PRES",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000039/2": {
+      "alg": "Mess2C+ 1",
+      "ctrl_name": "Master",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000039/3": {
+      "alg": "Mess2C+ 1",
+      "ctrl_name": "Bass",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000039/4": {
+      "alg": "Mess2C+ 1",
+      "ctrl_name": "Middle",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000039/5": {
+      "alg": "Mess2C+ 1",
+      "ctrl_name": "Treble",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700003a/0": {
+      "alg": "Mess2C+ 2",
+      "ctrl_name": "Gain",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700003a/1": {
+      "alg": "Mess2C+ 2",
+      "ctrl_name": "PRES",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700003a/2": {
+      "alg": "Mess2C+ 2",
+      "ctrl_name": "Master",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700003a/3": {
+      "alg": "Mess2C+ 2",
+      "ctrl_name": "Bass",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700003a/4": {
+      "alg": "Mess2C+ 2",
+      "ctrl_name": "Middle",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700003a/5": {
+      "alg": "Mess2C+ 2",
+      "ctrl_name": "Treble",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700003d/0": {
+      "alg": "BogSV OD",
+      "ctrl_name": "Gain",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700003d/1": {
+      "alg": "BogSV OD",
+      "ctrl_name": "PRES",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700003d/2": {
+      "alg": "BogSV OD",
+      "ctrl_name": "Master",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700003d/3": {
+      "alg": "BogSV OD",
+      "ctrl_name": "Bass",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700003d/4": {
+      "alg": "BogSV OD",
+      "ctrl_name": "Middle",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700003d/5": {
+      "alg": "BogSV OD",
+      "ctrl_name": "Treble",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000040/0": {
+      "alg": "Flagman",
+      "ctrl_name": "Gain",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000040/1": {
+      "alg": "Flagman",
+      "ctrl_name": "PRES",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000040/2": {
+      "alg": "Flagman",
+      "ctrl_name": "Master",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000040/3": {
+      "alg": "Flagman",
+      "ctrl_name": "Bass",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000040/4": {
+      "alg": "Flagman",
+      "ctrl_name": "Middle ",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000040/5": {
+      "alg": "Flagman",
+      "ctrl_name": "Treble",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000047/0": {
+      "alg": "Solo100 OD",
+      "ctrl_name": "Gain",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000047/1": {
+      "alg": "Solo100 OD",
+      "ctrl_name": "PRES",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000047/2": {
+      "alg": "Solo100 OD",
+      "ctrl_name": "Master",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000047/3": {
+      "alg": "Solo100 OD",
+      "ctrl_name": "Bass",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000047/4": {
+      "alg": "Solo100 OD",
+      "ctrl_name": "Middle",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000047/5": {
+      "alg": "Solo100 OD",
+      "ctrl_name": "Treble",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000048/0": {
+      "alg": "Match OD",
+      "ctrl_name": "Gain",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000048/1": {
+      "alg": "Match OD",
+      "ctrl_name": "PRES",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000048/2": {
+      "alg": "Match OD",
+      "ctrl_name": "Master",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000048/3": {
+      "alg": "Match OD",
+      "ctrl_name": "Bass",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000048/4": {
+      "alg": "Match OD",
+      "ctrl_name": "Middle",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000048/5": {
+      "alg": "Match OD",
+      "ctrl_name": "Treble",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000049/0": {
+      "alg": "Z38 OD",
+      "ctrl_name": "Gain",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000049/1": {
+      "alg": "Z38 OD",
+      "ctrl_name": "Cut",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000049/2": {
+      "alg": "Z38 OD",
+      "ctrl_name": "Master",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000049/3": {
+      "alg": "Z38 OD",
+      "ctrl_name": "Bass",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000049/4": {
+      "alg": "Z38 OD",
+      "ctrl_name": "Middle",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000049/5": {
+      "alg": "Z38 OD",
+      "ctrl_name": "Treble",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700004a/0": {
+      "alg": "L-Star OD",
+      "ctrl_name": "Gain",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700004a/1": {
+      "alg": "L-Star OD",
+      "ctrl_name": "PRES",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700004a/2": {
+      "alg": "L-Star OD",
+      "ctrl_name": "Master",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700004a/3": {
+      "alg": "L-Star OD",
+      "ctrl_name": "Bass",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700004a/4": {
+      "alg": "L-Star OD",
+      "ctrl_name": "Middle",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700004a/5": {
+      "alg": "L-Star OD",
+      "ctrl_name": "Treble",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700004b/0": {
+      "alg": "Bad-KT OD",
+      "ctrl_name": "Gain",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700004b/1": {
+      "alg": "Bad-KT OD",
+      "ctrl_name": "PRES",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700004b/2": {
+      "alg": "Bad-KT OD",
+      "ctrl_name": "Master",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700004b/3": {
+      "alg": "Bad-KT OD",
+      "ctrl_name": "Bass",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700004b/4": {
+      "alg": "Bad-KT OD",
+      "ctrl_name": "Edge",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700004b/5": {
+      "alg": "Bad-KT OD",
+      "ctrl_name": "Treble",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700004e/0": {
+      "alg": "UK 900",
+      "ctrl_name": "Gain",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700004e/1": {
+      "alg": "UK 900",
+      "ctrl_name": "PRES",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700004e/2": {
+      "alg": "UK 900",
+      "ctrl_name": "Master",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700004e/3": {
+      "alg": "UK 900",
+      "ctrl_name": "Bass",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700004e/4": {
+      "alg": "UK 900",
+      "ctrl_name": "Middle",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700004e/5": {
+      "alg": "UK 900",
+      "ctrl_name": "Treble",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000053/0": {
+      "alg": "Juice R100",
+      "ctrl_name": "Gain",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000053/1": {
+      "alg": "Juice R100",
+      "ctrl_name": "Master",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000053/2": {
+      "alg": "Juice R100",
+      "ctrl_name": "Bass",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000053/3": {
+      "alg": "Juice R100",
+      "ctrl_name": "Middle",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000053/4": {
+      "alg": "Juice R100",
+      "ctrl_name": "Treble",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000055/0": {
+      "alg": "Mess4 LD",
+      "ctrl_name": "Gain",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000055/1": {
+      "alg": "Mess4 LD",
+      "ctrl_name": "PRES",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000055/2": {
+      "alg": "Mess4 LD",
+      "ctrl_name": "Master",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000055/3": {
+      "alg": "Mess4 LD",
+      "ctrl_name": "Bass",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000055/4": {
+      "alg": "Mess4 LD",
+      "ctrl_name": "Middle",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000055/5": {
+      "alg": "Mess4 LD",
+      "ctrl_name": "Treble",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000059/0": {
+      "alg": "Solo100 LD",
+      "ctrl_name": "Gain",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000059/1": {
+      "alg": "Solo100 LD",
+      "ctrl_name": "PRES",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000059/2": {
+      "alg": "Solo100 LD",
+      "ctrl_name": "Master",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000059/3": {
+      "alg": "Solo100 LD",
+      "ctrl_name": "Bass",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000059/4": {
+      "alg": "Solo100 LD",
+      "ctrl_name": "Middle",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000059/5": {
+      "alg": "Solo100 LD",
+      "ctrl_name": "Treble",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700005a/0": {
+      "alg": "EV 51",
+      "ctrl_name": "Gain",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700005a/1": {
+      "alg": "EV 51",
+      "ctrl_name": "Master",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700005a/2": {
+      "alg": "EV 51",
+      "ctrl_name": "Bass",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700005a/3": {
+      "alg": "EV 51",
+      "ctrl_name": "Middle",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700005a/4": {
+      "alg": "EV 51",
+      "ctrl_name": "Treble",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700005a/5": {
+      "alg": "EV 51",
+      "ctrl_name": "PRES",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700005d/0": {
+      "alg": "Flagman+",
+      "ctrl_name": "Gain",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700005d/1": {
+      "alg": "Flagman+",
+      "ctrl_name": "PRES",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700005d/2": {
+      "alg": "Flagman+",
+      "ctrl_name": "Master",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700005d/3": {
+      "alg": "Flagman+",
+      "ctrl_name": "Bass",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700005d/4": {
+      "alg": "Flagman+",
+      "ctrl_name": "Middle",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700005d/5": {
+      "alg": "Flagman+",
+      "ctrl_name": "Treble",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700005f/0": {
+      "alg": "Eagle 120",
+      "ctrl_name": "Gain",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700005f/1": {
+      "alg": "Eagle 120",
+      "ctrl_name": "PRES",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700005f/2": {
+      "alg": "Eagle 120",
+      "ctrl_name": "Master",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700005f/3": {
+      "alg": "Eagle 120",
+      "ctrl_name": "Bass",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700005f/4": {
+      "alg": "Eagle 120",
+      "ctrl_name": "Middle",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700005f/5": {
+      "alg": "Eagle 120",
+      "ctrl_name": "Treble",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000063/0": {
+      "alg": "Power LD",
+      "ctrl_name": "Gain",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000063/1": {
+      "alg": "Power LD",
+      "ctrl_name": "PRES",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000063/2": {
+      "alg": "Power LD",
+      "ctrl_name": "Master",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000063/3": {
+      "alg": "Power LD",
+      "ctrl_name": "Bass",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000063/4": {
+      "alg": "Power LD",
+      "ctrl_name": "Middle",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000063/5": {
+      "alg": "Power LD",
+      "ctrl_name": "Treble",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000065/0": {
+      "alg": "Dizz VH",
+      "ctrl_name": "Gain",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000065/1": {
+      "alg": "Dizz VH",
+      "ctrl_name": "PRES",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000065/2": {
+      "alg": "Dizz VH",
+      "ctrl_name": "Master",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000065/3": {
+      "alg": "Dizz VH",
+      "ctrl_name": "Bass",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000065/4": {
+      "alg": "Dizz VH",
+      "ctrl_name": "Middle",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000065/5": {
+      "alg": "Dizz VH",
+      "ctrl_name": "Treble",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000068/0": {
+      "alg": "Mess DualV",
+      "ctrl_name": "Gain",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000068/1": {
+      "alg": "Mess DualV",
+      "ctrl_name": "PRES",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000068/2": {
+      "alg": "Mess DualV",
+      "ctrl_name": "Master",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000068/3": {
+      "alg": "Mess DualV",
+      "ctrl_name": "Bass",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000068/4": {
+      "alg": "Mess DualV",
+      "ctrl_name": "Middle",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000068/5": {
+      "alg": "Mess DualV",
+      "ctrl_name": "Treble",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000069/0": {
+      "alg": "Mess DualM",
+      "ctrl_name": "Gain",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000069/1": {
+      "alg": "Mess DualM",
+      "ctrl_name": "PRES",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000069/2": {
+      "alg": "Mess DualM",
+      "ctrl_name": "Master",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000069/3": {
+      "alg": "Mess DualM",
+      "ctrl_name": "Bass",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000069/4": {
+      "alg": "Mess DualM",
+      "ctrl_name": "Middle",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000069/5": {
+      "alg": "Mess DualM",
+      "ctrl_name": "Treble",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700006d/0": {
+      "alg": "Bog BlueV",
+      "ctrl_name": "Gain",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700006d/1": {
+      "alg": "Bog BlueV",
+      "ctrl_name": "PRES",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700006d/2": {
+      "alg": "Bog BlueV",
+      "ctrl_name": "Master",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700006d/3": {
+      "alg": "Bog BlueV",
+      "ctrl_name": "Bass",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700006d/4": {
+      "alg": "Bog BlueV",
+      "ctrl_name": "Middle",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700006d/5": {
+      "alg": "Bog BlueV",
+      "ctrl_name": "Treble",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700006e/0": {
+      "alg": "Bog RedM",
+      "ctrl_name": "Gain",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "observed_max": 99.0,
+      "observed_min": 15.0,
+      "samples": 6
+    },
+    "3/0700006e/1": {
+      "alg": "Bog RedM",
+      "ctrl_name": "PRES",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700006e/2": {
+      "alg": "Bog RedM",
+      "ctrl_name": "Master",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "observed_max": 99.0,
+      "observed_min": 1.0,
+      "samples": 5
+    },
+    "3/0700006e/3": {
+      "alg": "Bog RedM",
+      "ctrl_name": "Bass",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700006e/4": {
+      "alg": "Bog RedM",
+      "ctrl_name": "Middle",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700006e/5": {
+      "alg": "Bog RedM",
+      "ctrl_name": "Treble",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000073/0": {
+      "alg": "Classic Bass",
+      "ctrl_name": "Gain",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000073/1": {
+      "alg": "Classic Bass",
+      "ctrl_name": "Bass",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000073/2": {
+      "alg": "Classic Bass",
+      "ctrl_name": "Middle",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000073/3": {
+      "alg": "Classic Bass",
+      "ctrl_name": "MRange",
+      "ids": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "kind": "discrete",
+      "samples": 0
+    },
+    "3/07000073/4": {
+      "alg": "Classic Bass",
+      "ctrl_name": "Treble",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000073/5": {
+      "alg": "Classic Bass",
+      "ctrl_name": "Master",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000075/0": {
+      "alg": "Foxy Bass",
+      "ctrl_name": "VOL",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000075/1": {
+      "alg": "Foxy Bass",
+      "ctrl_name": "Bass",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000075/2": {
+      "alg": "Foxy Bass",
+      "ctrl_name": "Treble",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000077/0": {
+      "alg": "Mess Bass",
+      "ctrl_name": "VOL",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000077/1": {
+      "alg": "Mess Bass",
+      "ctrl_name": "Master",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000077/2": {
+      "alg": "Mess Bass",
+      "ctrl_name": "Bass",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000077/3": {
+      "alg": "Mess Bass",
+      "ctrl_name": "Middle",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/07000077/4": {
+      "alg": "Mess Bass",
+      "ctrl_name": "Treble",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700007c/0": {
+      "alg": "Knights OD",
+      "ctrl_name": "Gain",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700007c/1": {
+      "alg": "Knights OD",
+      "ctrl_name": "Bass",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700007c/2": {
+      "alg": "Knights OD",
+      "ctrl_name": "Middle",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700007c/3": {
+      "alg": "Knights OD",
+      "ctrl_name": "Treble",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0700007c/4": {
+      "alg": "Knights OD",
+      "ctrl_name": "VOL",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/08000075/0": {
+      "alg": "Mini Bass",
+      "ctrl_name": "VOL",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/08000075/1": {
+      "alg": "Mini Bass",
+      "ctrl_name": "Bass",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/08000075/2": {
+      "alg": "Mini Bass",
+      "ctrl_name": "Treble",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/08000076/0": {
+      "alg": "Bass Pre",
+      "ctrl_name": "VOL",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/08000076/1": {
+      "alg": "Bass Pre",
+      "ctrl_name": "Bright",
+      "ids": [
+        1,
+        0
+      ],
+      "kind": "discrete",
+      "samples": 0
+    },
+    "3/08000076/2": {
+      "alg": "Bass Pre",
+      "ctrl_name": "Bass",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/08000076/3": {
+      "alg": "Bass Pre",
+      "ctrl_name": "Middle",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/08000076/4": {
+      "alg": "Bass Pre",
+      "ctrl_name": "Treble",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0800007a/0": {
+      "alg": "AC Pre",
+      "ctrl_name": "VOL",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0800007a/1": {
+      "alg": "AC Pre",
+      "ctrl_name": "Tone",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0800007a/2": {
+      "alg": "AC Pre",
+      "ctrl_name": "Gain",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0800007a/3": {
+      "alg": "AC Pre",
+      "ctrl_name": "EQ Freq",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0800007a/4": {
+      "alg": "AC Pre",
+      "ctrl_name": "EQ Q",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0800007a/5": {
+      "alg": "AC Pre",
+      "ctrl_name": "EQ Gain",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0f000000/0": {
+      "alg": "SnapTone 1",
+      "ctrl_name": "Gain",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0f000000/1": {
+      "alg": "SnapTone 1",
+      "ctrl_name": "VOL",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0f000000/2": {
+      "alg": "SnapTone 1",
+      "ctrl_name": "Bass",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0f000000/3": {
+      "alg": "SnapTone 1",
+      "ctrl_name": "Middle",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0f000000/4": {
+      "alg": "SnapTone 1",
+      "ctrl_name": "Treble",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0f000001/0": {
+      "alg": "SnapTone 2",
+      "ctrl_name": "Gain",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0f000001/1": {
+      "alg": "SnapTone 2",
+      "ctrl_name": "VOL",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0f000001/2": {
+      "alg": "SnapTone 2",
+      "ctrl_name": "Bass",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0f000001/3": {
+      "alg": "SnapTone 2",
+      "ctrl_name": "Middle",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0f000001/4": {
+      "alg": "SnapTone 2",
+      "ctrl_name": "Treble",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0f000002/0": {
+      "alg": "SnapTone 3",
+      "ctrl_name": "Gain",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0f000002/1": {
+      "alg": "SnapTone 3",
+      "ctrl_name": "VOL",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0f000002/2": {
+      "alg": "SnapTone 3",
+      "ctrl_name": "Bass",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0f000002/3": {
+      "alg": "SnapTone 3",
+      "ctrl_name": "Middle",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0f000002/4": {
+      "alg": "SnapTone 3",
+      "ctrl_name": "Treble",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0f000003/0": {
+      "alg": "SnapTone 4",
+      "ctrl_name": "Gain",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0f000003/1": {
+      "alg": "SnapTone 4",
+      "ctrl_name": "VOL",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0f000003/2": {
+      "alg": "SnapTone 4",
+      "ctrl_name": "Bass",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0f000003/3": {
+      "alg": "SnapTone 4",
+      "ctrl_name": "Middle",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0f000003/4": {
+      "alg": "SnapTone 4",
+      "ctrl_name": "Treble",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0f000004/0": {
+      "alg": "SnapTone 5",
+      "ctrl_name": "Gain",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0f000004/1": {
+      "alg": "SnapTone 5",
+      "ctrl_name": "VOL",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0f000004/2": {
+      "alg": "SnapTone 5",
+      "ctrl_name": "Bass",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0f000004/3": {
+      "alg": "SnapTone 5",
+      "ctrl_name": "Middle",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "3/0f000004/4": {
+      "alg": "SnapTone 5",
+      "ctrl_name": "Treble",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "4/0000001b/0": {
+      "alg": "Gate 1",
+      "ctrl_name": "Thre ",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "4/0000001d/0": {
+      "alg": "Gate 2",
+      "ctrl_name": "Thre",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "observed_max": 99.0,
+      "observed_min": 1.0,
+      "samples": 7
+    },
+    "4/0000001d/1": {
+      "alg": "Gate 2",
+      "ctrl_name": "Attack",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "4/0000001d/2": {
+      "alg": "Gate 2",
+      "ctrl_name": "Rel",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "5/0a000000/0": {
+      "alg": "SUP 1x6",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "5/0a000001/0": {
+      "alg": "TWD 1x8",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "5/0a000002/0": {
+      "alg": "TWD-P 1x10",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "5/0a000004/0": {
+      "alg": "Dark 1x12",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "5/0a000006/0": {
+      "alg": "BogSV 1x12",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "5/0a000007/0": {
+      "alg": "Bad-KT 1x12",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "5/0a000008/0": {
+      "alg": "Foxy 1x12",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "5/0a00000c/0": {
+      "alg": "Studio 1x12",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "5/0a00000d/0": {
+      "alg": "Regular 1x12",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "5/0a000011/0": {
+      "alg": "J-120 2x12",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "5/0a000012/0": {
+      "alg": "DarkTW 2x12",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "5/0a000013/0": {
+      "alg": "UK-GN 2x12",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "5/0a000019/0": {
+      "alg": "L-Star 2x12",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "5/0a00001a/0": {
+      "alg": "Free 2x12",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "5/0a00001b/0": {
+      "alg": "TWD 2x12",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "5/0a00001c/0": {
+      "alg": "2Rick 2x12",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "5/0a00001e/0": {
+      "alg": "Bellman 4x10",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "5/0a00001f/0": {
+      "alg": "UK-LD 4x12",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "5/0a000020/0": {
+      "alg": "EV51 4x12",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "5/0a000021/0": {
+      "alg": "UK-MD 4x12",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "5/0a000022/0": {
+      "alg": "UK-GN 4x12",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "5/0a000024/0": {
+      "alg": "Mess-D 4x12",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "5/0a000026/0": {
+      "alg": "Eagle 4x12",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "5/0a000027/0": {
+      "alg": "Pogner 4x12",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "5/0a000028/0": {
+      "alg": "Solo 4x12",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "5/0a000029/0": {
+      "alg": "Juice 4x12",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "5/0a00002a/0": {
+      "alg": "H-Way 4x12",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "5/0a00002b/0": {
+      "alg": "UK-DK 4x12",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "5/0a00002c/0": {
+      "alg": "U-ban 4x12",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "5/0a00002e/0": {
+      "alg": "Dizz 4x12",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "5/0a000030/0": {
+      "alg": "UK-75 4x12",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "5/0a000031/0": {
+      "alg": "US 4x12",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "5/0a000035/0": {
+      "alg": "MessBass 2x10",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "5/0a000038/0": {
+      "alg": "Ameg 4x10",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "5/0a000039/0": {
+      "alg": "Max 4x10",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "5/0a00003b/0": {
+      "alg": "Ameg 8x10",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "5/0a00003c/0": {
+      "alg": "D",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "5/0a00003e/0": {
+      "alg": "OM",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "5/0a00003f/0": {
+      "alg": "Jumbo",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "5/0a000041/0": {
+      "alg": "GA",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "5/0a100000/0": {
+      "alg": "",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "5/0a100001/0": {
+      "alg": "",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "5/0a100002/0": {
+      "alg": "",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "5/0a100003/0": {
+      "alg": "",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "5/0a100004/0": {
+      "alg": "",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "5/0a100005/0": {
+      "alg": "",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "5/0a100006/0": {
+      "alg": "",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "5/0a100007/0": {
+      "alg": "",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "5/0a100008/0": {
+      "alg": "",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "5/0a100009/0": {
+      "alg": "",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "5/0a10000a/0": {
+      "alg": "",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "5/0a10000b/0": {
+      "alg": "",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "5/0a10000c/0": {
+      "alg": "",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "5/0a10000d/0": {
+      "alg": "",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "5/0a10000e/0": {
+      "alg": "",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "5/0a10000f/0": {
+      "alg": "",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "5/0a100010/0": {
+      "alg": "",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "5/0a100011/0": {
+      "alg": "",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "5/0a100012/0": {
+      "alg": "",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "5/0a100013/0": {
+      "alg": "",
+      "ctrl_name": "Volume",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "6/01000035/0": {
+      "alg": "EQ 1",
+      "ctrl_name": "125Hz",
+      "kind": "range",
+      "max": 50.0,
+      "min": -50.0,
+      "samples": 0
+    },
+    "6/01000035/1": {
+      "alg": "EQ 1",
+      "ctrl_name": "400Hz",
+      "kind": "range",
+      "max": 50.0,
+      "min": -50.0,
+      "samples": 0
+    },
+    "6/01000035/2": {
+      "alg": "EQ 1",
+      "ctrl_name": "800Hz",
+      "kind": "range",
+      "max": 50.0,
+      "min": -50.0,
+      "samples": 0
+    },
+    "6/01000035/3": {
+      "alg": "EQ 1",
+      "ctrl_name": "1.6kHz",
+      "kind": "range",
+      "max": 50.0,
+      "min": -50.0,
+      "samples": 0
+    },
+    "6/01000035/4": {
+      "alg": "EQ 1",
+      "ctrl_name": "4kHz",
+      "kind": "range",
+      "max": 50.0,
+      "min": -50.0,
+      "samples": 0
+    },
+    "6/01000035/5": {
+      "alg": "EQ 1",
+      "ctrl_name": "VOL ",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "6/0100003a/0": {
+      "alg": "EQ 2",
+      "ctrl_name": "50Hz",
+      "kind": "range",
+      "max": 50.0,
+      "min": -50.0,
+      "samples": 0
+    },
+    "6/0100003a/1": {
+      "alg": "EQ 2",
+      "ctrl_name": "120Hz",
+      "kind": "range",
+      "max": 50.0,
+      "min": -50.0,
+      "samples": 0
+    },
+    "6/0100003a/2": {
+      "alg": "EQ 2",
+      "ctrl_name": "400Hz",
+      "kind": "range",
+      "max": 50.0,
+      "min": -50.0,
+      "samples": 0
+    },
+    "6/0100003a/3": {
+      "alg": "EQ 2",
+      "ctrl_name": "800Hz",
+      "kind": "range",
+      "max": 50.0,
+      "min": -50.0,
+      "samples": 0
+    },
+    "6/0100003a/4": {
+      "alg": "EQ 2",
+      "ctrl_name": "2kHz",
+      "kind": "range",
+      "max": 50.0,
+      "min": -50.0,
+      "samples": 0
+    },
+    "6/0100003a/5": {
+      "alg": "EQ 2",
+      "ctrl_name": "VOL ",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "6/0100003c/0": {
+      "alg": "Mess EQ",
+      "ctrl_name": "80Hz",
+      "kind": "range",
+      "max": 50.0,
+      "min": -50.0,
+      "observed_max": 50.0,
+      "observed_min": -40.0,
+      "samples": 5
+    },
+    "6/0100003c/1": {
+      "alg": "Mess EQ",
+      "ctrl_name": "240Hz",
+      "kind": "range",
+      "max": 50.0,
+      "min": -50.0,
+      "observed_max": 50.0,
+      "observed_min": -43.0,
+      "samples": 6
+    },
+    "6/0100003c/2": {
+      "alg": "Mess EQ",
+      "ctrl_name": "750Hz",
+      "kind": "range",
+      "max": 50.0,
+      "min": -50.0,
+      "observed_max": 50.0,
+      "observed_min": -45.0,
+      "samples": 7
+    },
+    "6/0100003c/3": {
+      "alg": "Mess EQ",
+      "ctrl_name": "2.2kHz",
+      "kind": "range",
+      "max": 50.0,
+      "min": -50.0,
+      "observed_max": 50.0,
+      "observed_min": -49.0,
+      "samples": 7
+    },
+    "6/0100003c/4": {
+      "alg": "Mess EQ",
+      "ctrl_name": "6.6kHz",
+      "kind": "range",
+      "max": 50.0,
+      "min": -50.0,
+      "observed_max": 50.0,
+      "observed_min": -38.0,
+      "samples": 6
+    },
+    "7/01000029/0": {
+      "alg": "Detune",
+      "ctrl_name": "Detune",
+      "kind": "range",
+      "max": 50.0,
+      "min": -50.0,
+      "samples": 0
+    },
+    "7/01000029/1": {
+      "alg": "Detune",
+      "ctrl_name": "Wet",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "7/01000029/2": {
+      "alg": "Detune",
+      "ctrl_name": "Dry",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "7/04000000/0": {
+      "alg": "A-Chorus",
+      "ctrl_name": "Depth",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "7/04000000/1": {
+      "alg": "A-Chorus",
+      "ctrl_name": "Rate",
+      "kind": "range",
+      "max": 10.0,
+      "min": 0.1,
+      "observed_max": 10.0,
+      "observed_min": 0.699999988079071,
+      "samples": 7
+    },
+    "7/04000000/2": {
+      "alg": "A-Chorus",
+      "ctrl_name": "Tone",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "7/04000000/3": {
+      "alg": "A-Chorus",
+      "ctrl_name": "Sync",
+      "ids": [
+        1,
+        0
+      ],
+      "kind": "discrete",
+      "samples": 0
+    },
+    "7/04000001/0": {
+      "alg": "G-Chorus",
+      "ctrl_name": "Depth",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "7/04000001/1": {
+      "alg": "G-Chorus",
+      "ctrl_name": "Rate",
+      "kind": "range",
+      "max": 10.0,
+      "min": 0.1,
+      "samples": 0
+    },
+    "7/04000001/2": {
+      "alg": "G-Chorus",
+      "ctrl_name": "VOL",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "7/04000001/3": {
+      "alg": "G-Chorus",
+      "ctrl_name": "Sync",
+      "ids": [
+        1,
+        0
+      ],
+      "kind": "discrete",
+      "samples": 0
+    },
+    "7/04000008/0": {
+      "alg": "B-Chorus",
+      "ctrl_name": "Depth",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "7/04000008/1": {
+      "alg": "B-Chorus",
+      "ctrl_name": "Rate",
+      "kind": "range",
+      "max": 10.0,
+      "min": 0.1,
+      "samples": 0
+    },
+    "7/04000008/2": {
+      "alg": "B-Chorus",
+      "ctrl_name": "Level",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "7/04000008/3": {
+      "alg": "B-Chorus",
+      "ctrl_name": "Sync",
+      "ids": [
+        1,
+        0
+      ],
+      "kind": "discrete",
+      "samples": 0
+    },
+    "7/04000011/0": {
+      "alg": "Flanger",
+      "ctrl_name": "Depth",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "7/04000011/1": {
+      "alg": "Flanger",
+      "ctrl_name": "Rate",
+      "kind": "range",
+      "max": 10.0,
+      "min": 0.1,
+      "samples": 0
+    },
+    "7/04000011/2": {
+      "alg": "Flanger",
+      "ctrl_name": "PreDly",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "7/04000011/3": {
+      "alg": "Flanger",
+      "ctrl_name": "FdBk",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "7/04000011/4": {
+      "alg": "Flanger",
+      "ctrl_name": "Sync",
+      "ids": [
+        1,
+        0
+      ],
+      "kind": "discrete",
+      "samples": 0
+    },
+    "7/04000015/0": {
+      "alg": "Vibrato",
+      "ctrl_name": "Depth",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "7/04000015/1": {
+      "alg": "Vibrato",
+      "ctrl_name": "Rate",
+      "kind": "range",
+      "max": 10.0,
+      "min": 0.1,
+      "samples": 0
+    },
+    "7/04000015/2": {
+      "alg": "Vibrato",
+      "ctrl_name": "Sync",
+      "ids": [
+        1,
+        0
+      ],
+      "kind": "discrete",
+      "samples": 0
+    },
+    "7/04000019/0": {
+      "alg": "Phaser",
+      "ctrl_name": "Rate",
+      "kind": "range",
+      "max": 10.0,
+      "min": 0.1,
+      "samples": 0
+    },
+    "7/04000019/1": {
+      "alg": "Phaser",
+      "ctrl_name": "Sync",
+      "ids": [
+        1,
+        0
+      ],
+      "kind": "discrete",
+      "samples": 0
+    },
+    "7/0400001f/0": {
+      "alg": "Vibe",
+      "ctrl_name": "Depth",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "7/0400001f/1": {
+      "alg": "Vibe",
+      "ctrl_name": "Rate",
+      "kind": "range",
+      "max": 10.0,
+      "min": 0.1,
+      "samples": 0
+    },
+    "7/0400001f/2": {
+      "alg": "Vibe",
+      "ctrl_name": "Sync",
+      "ids": [
+        1,
+        0
+      ],
+      "kind": "discrete",
+      "samples": 0
+    },
+    "7/04000021/0": {
+      "alg": "Opto Trem",
+      "ctrl_name": "Depth",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "7/04000021/1": {
+      "alg": "Opto Trem",
+      "ctrl_name": "Rate",
+      "kind": "range",
+      "max": 10.0,
+      "min": 0.1,
+      "samples": 0
+    },
+    "7/04000021/2": {
+      "alg": "Opto Trem",
+      "ctrl_name": "Sync",
+      "ids": [
+        1,
+        0
+      ],
+      "kind": "discrete",
+      "samples": 0
+    },
+    "7/04000026/0": {
+      "alg": "Sine Trem",
+      "ctrl_name": "Depth",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "7/04000026/1": {
+      "alg": "Sine Trem",
+      "ctrl_name": "Rate",
+      "kind": "range",
+      "max": 10.0,
+      "min": 0.1,
+      "samples": 0
+    },
+    "7/04000026/2": {
+      "alg": "Sine Trem",
+      "ctrl_name": "VOL",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "7/04000026/3": {
+      "alg": "Sine Trem",
+      "ctrl_name": "Sync",
+      "ids": [
+        1,
+        0
+      ],
+      "kind": "discrete",
+      "samples": 0
+    },
+    "7/04000027/0": {
+      "alg": "Triangle Trem",
+      "ctrl_name": "Depth",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "7/04000027/1": {
+      "alg": "Triangle Trem",
+      "ctrl_name": "Rate",
+      "kind": "range",
+      "max": 10.0,
+      "min": 0.1,
+      "samples": 0
+    },
+    "7/04000027/2": {
+      "alg": "Triangle Trem",
+      "ctrl_name": "VOL",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "7/04000027/3": {
+      "alg": "Triangle Trem",
+      "ctrl_name": "Sync",
+      "ids": [
+        1,
+        0
+      ],
+      "kind": "discrete",
+      "samples": 0
+    },
+    "7/04000028/0": {
+      "alg": "Bias Trem",
+      "ctrl_name": "Depth",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "7/04000028/1": {
+      "alg": "Bias Trem",
+      "ctrl_name": "Rate",
+      "kind": "range",
+      "max": 10.0,
+      "min": 0.1,
+      "samples": 0
+    },
+    "7/04000028/2": {
+      "alg": "Bias Trem",
+      "ctrl_name": "VOL",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "7/04000028/3": {
+      "alg": "Bias Trem",
+      "ctrl_name": "Sync",
+      "ids": [
+        1,
+        0
+      ],
+      "kind": "discrete",
+      "samples": 0
+    },
+    "7/04000028/4": {
+      "alg": "Bias Trem",
+      "ctrl_name": "Bias",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "8/0b000000/0": {
+      "alg": "P-Echo",
+      "ctrl_name": "Mix",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "observed_max": 99.0,
+      "observed_min": 0.0,
+      "samples": 6
+    },
+    "8/0b000000/1": {
+      "alg": "P-Echo",
+      "ctrl_name": "Time",
+      "kind": "range",
+      "max": 4000.0,
+      "min": 20.0,
+      "samples": 0
+    },
+    "8/0b000000/2": {
+      "alg": "P-Echo",
+      "ctrl_name": "FdBk",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "8/0b000000/3": {
+      "alg": "P-Echo",
+      "ctrl_name": "Sync",
+      "ids": [
+        1,
+        0
+      ],
+      "kind": "discrete",
+      "samples": 0
+    },
+    "8/0b000000/4": {
+      "alg": "P-Echo",
+      "ctrl_name": "Tail",
+      "ids": [
+        1,
+        0
+      ],
+      "kind": "discrete",
+      "samples": 0
+    },
+    "8/0b000002/0": {
+      "alg": "M-Echo",
+      "ctrl_name": "Mix",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "8/0b000002/1": {
+      "alg": "M-Echo",
+      "ctrl_name": "Time",
+      "kind": "range",
+      "max": 4000.0,
+      "min": 20.0,
+      "samples": 0
+    },
+    "8/0b000002/2": {
+      "alg": "M-Echo",
+      "ctrl_name": "FdBk",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "8/0b000002/3": {
+      "alg": "M-Echo",
+      "ctrl_name": "Sync",
+      "ids": [
+        1,
+        0
+      ],
+      "kind": "discrete",
+      "samples": 0
+    },
+    "8/0b000002/4": {
+      "alg": "M-Echo",
+      "ctrl_name": "Tail",
+      "ids": [
+        1,
+        0
+      ],
+      "kind": "discrete",
+      "samples": 0
+    },
+    "8/0b000003/0": {
+      "alg": "Dual Echo",
+      "ctrl_name": "Mix A",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "8/0b000003/1": {
+      "alg": "Dual Echo",
+      "ctrl_name": "FdBk A",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "8/0b000003/2": {
+      "alg": "Dual Echo",
+      "ctrl_name": "Time A",
+      "kind": "range",
+      "max": 4000.0,
+      "min": 20.0,
+      "samples": 0
+    },
+    "8/0b000003/3": {
+      "alg": "Dual Echo",
+      "ctrl_name": "Mix B",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "8/0b000003/4": {
+      "alg": "Dual Echo",
+      "ctrl_name": "FdBk B",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "8/0b000003/5": {
+      "alg": "Dual Echo",
+      "ctrl_name": "Time B",
+      "kind": "range",
+      "max": 4000.0,
+      "min": 20.0,
+      "samples": 0
+    },
+    "8/0b000003/6": {
+      "alg": "Dual Echo",
+      "ctrl_name": "Sync A",
+      "ids": [
+        1,
+        0
+      ],
+      "kind": "discrete",
+      "samples": 0
+    },
+    "8/0b000003/7": {
+      "alg": "Dual Echo",
+      "ctrl_name": "Sync B",
+      "ids": [
+        1,
+        0
+      ],
+      "kind": "discrete",
+      "samples": 0
+    },
+    "8/0b000003/8": {
+      "alg": "Dual Echo",
+      "ctrl_name": "Trail",
+      "ids": [
+        1,
+        0
+      ],
+      "kind": "discrete",
+      "samples": 0
+    },
+    "8/0b000004/0": {
+      "alg": "Ping Pong",
+      "ctrl_name": "Mix",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "8/0b000004/1": {
+      "alg": "Ping Pong",
+      "ctrl_name": "FdBk",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "8/0b000004/2": {
+      "alg": "Ping Pong",
+      "ctrl_name": "Time",
+      "kind": "range",
+      "max": 4000.0,
+      "min": 20.0,
+      "samples": 0
+    },
+    "8/0b000004/3": {
+      "alg": "Ping Pong",
+      "ctrl_name": "Sync",
+      "ids": [
+        1,
+        0
+      ],
+      "kind": "discrete",
+      "samples": 0
+    },
+    "8/0b000004/4": {
+      "alg": "Ping Pong",
+      "ctrl_name": "Trail",
+      "ids": [
+        1,
+        0
+      ],
+      "kind": "discrete",
+      "samples": 0
+    },
+    "8/0b000005/0": {
+      "alg": "Slapbk",
+      "ctrl_name": "Mix",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "8/0b000005/1": {
+      "alg": "Slapbk",
+      "ctrl_name": "Time",
+      "kind": "range",
+      "max": 300.0,
+      "min": 20.0,
+      "samples": 0
+    },
+    "8/0b000005/2": {
+      "alg": "Slapbk",
+      "ctrl_name": "FdBk",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "8/0b000005/3": {
+      "alg": "Slapbk",
+      "ctrl_name": "Tail",
+      "ids": [
+        1,
+        0
+      ],
+      "kind": "discrete",
+      "samples": 0
+    },
+    "8/0b000006/0": {
+      "alg": "Swp Echo",
+      "ctrl_name": "Mix",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "8/0b000006/1": {
+      "alg": "Swp Echo",
+      "ctrl_name": "Fdbk",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "8/0b000006/2": {
+      "alg": "Swp Echo",
+      "ctrl_name": "Time",
+      "kind": "range",
+      "max": 4000.0,
+      "min": 20.0,
+      "samples": 0
+    },
+    "8/0b000006/3": {
+      "alg": "Swp Echo",
+      "ctrl_name": "S-Depth",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "8/0b000006/4": {
+      "alg": "Swp Echo",
+      "ctrl_name": "S-Rate",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "8/0b000006/5": {
+      "alg": "Swp Echo",
+      "ctrl_name": "S-Sync",
+      "ids": [
+        1,
+        0
+      ],
+      "kind": "discrete",
+      "samples": 0
+    },
+    "8/0b000006/6": {
+      "alg": "Swp Echo",
+      "ctrl_name": "T-Sync",
+      "ids": [
+        1,
+        0
+      ],
+      "kind": "discrete",
+      "samples": 0
+    },
+    "8/0b000006/7": {
+      "alg": "Swp Echo",
+      "ctrl_name": "Trail",
+      "ids": [
+        1,
+        0
+      ],
+      "kind": "discrete",
+      "samples": 0
+    },
+    "8/0b00000b/0": {
+      "alg": "T-Echo",
+      "ctrl_name": "Mix",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "8/0b00000b/1": {
+      "alg": "T-Echo",
+      "ctrl_name": "Time",
+      "kind": "range",
+      "max": 4000.0,
+      "min": 20.0,
+      "samples": 0
+    },
+    "8/0b00000b/2": {
+      "alg": "T-Echo",
+      "ctrl_name": "FdBk",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "8/0b00000b/3": {
+      "alg": "T-Echo",
+      "ctrl_name": "Sync",
+      "ids": [
+        1,
+        0
+      ],
+      "kind": "discrete",
+      "samples": 0
+    },
+    "8/0b00000b/4": {
+      "alg": "T-Echo",
+      "ctrl_name": "Tail",
+      "ids": [
+        1,
+        0
+      ],
+      "kind": "discrete",
+      "samples": 0
+    },
+    "8/0b00000c/0": {
+      "alg": "M-Echo2",
+      "ctrl_name": "Mix",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "8/0b00000c/1": {
+      "alg": "M-Echo2",
+      "ctrl_name": "Time",
+      "kind": "range",
+      "max": 4000.0,
+      "min": 20.0,
+      "samples": 0
+    },
+    "8/0b00000c/2": {
+      "alg": "M-Echo2",
+      "ctrl_name": "FdBk",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "8/0b00000c/3": {
+      "alg": "M-Echo2",
+      "ctrl_name": "Tone",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "8/0b00000c/4": {
+      "alg": "M-Echo2",
+      "ctrl_name": "Sync",
+      "ids": [
+        1,
+        0
+      ],
+      "kind": "discrete",
+      "samples": 0
+    },
+    "8/0b00000c/5": {
+      "alg": "M-Echo2",
+      "ctrl_name": "Trail",
+      "ids": [
+        1,
+        0
+      ],
+      "kind": "discrete",
+      "samples": 0
+    },
+    "8/0b00000d/0": {
+      "alg": "Sweet",
+      "ctrl_name": "Mix",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "8/0b00000d/1": {
+      "alg": "Sweet",
+      "ctrl_name": "Time",
+      "kind": "range",
+      "max": 4000.0,
+      "min": 20.0,
+      "samples": 0
+    },
+    "8/0b00000d/2": {
+      "alg": "Sweet",
+      "ctrl_name": "FdBk",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "8/0b00000d/3": {
+      "alg": "Sweet",
+      "ctrl_name": "Sync",
+      "ids": [
+        1,
+        0
+      ],
+      "kind": "discrete",
+      "samples": 0
+    },
+    "8/0b00000d/4": {
+      "alg": "Sweet",
+      "ctrl_name": "Tail",
+      "ids": [
+        1,
+        0
+      ],
+      "kind": "discrete",
+      "samples": 0
+    },
+    "8/0b000012/0": {
+      "alg": "999 Echo",
+      "ctrl_name": "Mix",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "8/0b000012/1": {
+      "alg": "999 Echo",
+      "ctrl_name": "Time",
+      "kind": "range",
+      "max": 4000.0,
+      "min": 20.0,
+      "samples": 0
+    },
+    "8/0b000012/2": {
+      "alg": "999 Echo",
+      "ctrl_name": "FdBk",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "8/0b000012/3": {
+      "alg": "999 Echo",
+      "ctrl_name": "Sync",
+      "ids": [
+        1,
+        0
+      ],
+      "kind": "discrete",
+      "samples": 0
+    },
+    "8/0b000012/4": {
+      "alg": "999 Echo",
+      "ctrl_name": "Tail",
+      "ids": [
+        1,
+        0
+      ],
+      "kind": "discrete",
+      "samples": 0
+    },
+    "8/0b000013/0": {
+      "alg": "Rev Echo",
+      "ctrl_name": "Mix",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "8/0b000013/1": {
+      "alg": "Rev Echo",
+      "ctrl_name": "FdBk",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "8/0b000013/2": {
+      "alg": "Rev Echo",
+      "ctrl_name": "Time",
+      "kind": "range",
+      "max": 4000.0,
+      "min": 20.0,
+      "samples": 0
+    },
+    "8/0b000013/3": {
+      "alg": "Rev Echo",
+      "ctrl_name": "Sync",
+      "ids": [
+        1,
+        0
+      ],
+      "kind": "discrete",
+      "samples": 0
+    },
+    "8/0b000013/4": {
+      "alg": "Rev Echo",
+      "ctrl_name": "Tail",
+      "ids": [
+        1,
+        0
+      ],
+      "kind": "discrete",
+      "samples": 0
+    },
+    "8/0b000014/0": {
+      "alg": "Vin-Rack",
+      "ctrl_name": "Mix",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "8/0b000014/1": {
+      "alg": "Vin-Rack",
+      "ctrl_name": "FdBk",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "8/0b000014/2": {
+      "alg": "Vin-Rack",
+      "ctrl_name": "Time",
+      "kind": "range",
+      "max": 4000.0,
+      "min": 20.0,
+      "samples": 0
+    },
+    "8/0b000014/3": {
+      "alg": "Vin-Rack",
+      "ctrl_name": "Mod",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "8/0b000014/4": {
+      "alg": "Vin-Rack",
+      "ctrl_name": "Tone",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "8/0b000014/5": {
+      "alg": "Vin-Rack",
+      "ctrl_name": "Sync",
+      "ids": [
+        1,
+        0
+      ],
+      "kind": "discrete",
+      "samples": 0
+    },
+    "8/0b000014/6": {
+      "alg": "Vin-Rack",
+      "ctrl_name": "Trail",
+      "ids": [
+        1,
+        0
+      ],
+      "kind": "discrete",
+      "samples": 0
+    },
+    "9/0c000000/0": {
+      "alg": "Room",
+      "ctrl_name": "Mix",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "9/0c000000/1": {
+      "alg": "Room",
+      "ctrl_name": "PreDly",
+      "kind": "range",
+      "max": 100.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "9/0c000000/2": {
+      "alg": "Room",
+      "ctrl_name": "Decay",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "9/0c000000/3": {
+      "alg": "Room",
+      "ctrl_name": "Trail",
+      "ids": [
+        1,
+        0
+      ],
+      "kind": "discrete",
+      "samples": 0
+    },
+    "9/0c000001/0": {
+      "alg": "Hall",
+      "ctrl_name": "Mix",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "observed_max": 97.0,
+      "observed_min": 7.0,
+      "samples": 6
+    },
+    "9/0c000001/1": {
+      "alg": "Hall",
+      "ctrl_name": "PreDly",
+      "kind": "range",
+      "max": 100.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "9/0c000001/2": {
+      "alg": "Hall",
+      "ctrl_name": "Decay",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "9/0c000001/3": {
+      "alg": "Hall",
+      "ctrl_name": "Trail",
+      "ids": [
+        1,
+        0
+      ],
+      "kind": "discrete",
+      "samples": 0
+    },
+    "9/0c000002/0": {
+      "alg": "Church",
+      "ctrl_name": "Mix",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "9/0c000002/1": {
+      "alg": "Church",
+      "ctrl_name": "PreDly",
+      "kind": "range",
+      "max": 100.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "9/0c000002/2": {
+      "alg": "Church",
+      "ctrl_name": "Decay",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "9/0c000002/3": {
+      "alg": "Church",
+      "ctrl_name": "Trail",
+      "ids": [
+        1,
+        0
+      ],
+      "kind": "discrete",
+      "samples": 0
+    },
+    "9/0c000003/0": {
+      "alg": "Plate",
+      "ctrl_name": "Mix",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "9/0c000003/1": {
+      "alg": "Plate",
+      "ctrl_name": "Decay",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "9/0c000003/2": {
+      "alg": "Plate",
+      "ctrl_name": "H-Damp",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "9/0c000003/3": {
+      "alg": "Plate",
+      "ctrl_name": "Trail",
+      "ids": [
+        1,
+        0
+      ],
+      "kind": "discrete",
+      "samples": 0
+    },
+    "9/0c000004/0": {
+      "alg": "Spring",
+      "ctrl_name": "Mix",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "9/0c000004/1": {
+      "alg": "Spring",
+      "ctrl_name": "Tone",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "9/0c000004/2": {
+      "alg": "Spring",
+      "ctrl_name": "Decay",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "9/0c000004/3": {
+      "alg": "Spring",
+      "ctrl_name": "Trail",
+      "ids": [
+        1,
+        0
+      ],
+      "kind": "discrete",
+      "samples": 0
+    },
+    "9/0c000005/0": {
+      "alg": "Clear Sky",
+      "ctrl_name": "Mix",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "9/0c000005/1": {
+      "alg": "Clear Sky",
+      "ctrl_name": "Decay",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "9/0c000005/2": {
+      "alg": "Clear Sky",
+      "ctrl_name": "Trail",
+      "ids": [
+        1,
+        0
+      ],
+      "kind": "discrete",
+      "samples": 0
+    },
+    "9/0c000006/0": {
+      "alg": "N-Star",
+      "ctrl_name": "Mix",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "9/0c000006/1": {
+      "alg": "N-Star",
+      "ctrl_name": "Decay",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "9/0c000006/2": {
+      "alg": "N-Star",
+      "ctrl_name": "Trail",
+      "ids": [
+        1,
+        0
+      ],
+      "kind": "discrete",
+      "samples": 0
+    },
+    "9/0c000007/0": {
+      "alg": "Deep Sea",
+      "ctrl_name": "Mix",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "9/0c000007/1": {
+      "alg": "Deep Sea",
+      "ctrl_name": "Decay",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "9/0c000007/2": {
+      "alg": "Deep Sea",
+      "ctrl_name": "Trail",
+      "ids": [
+        1,
+        0
+      ],
+      "kind": "discrete",
+      "samples": 0
+    },
+    "9/0c000008/0": {
+      "alg": "Mod Verb",
+      "ctrl_name": "Mix",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "9/0c000008/1": {
+      "alg": "Mod Verb",
+      "ctrl_name": "PreDly",
+      "kind": "range",
+      "max": 100.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "9/0c000008/2": {
+      "alg": "Mod Verb",
+      "ctrl_name": "Decay",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "9/0c000008/3": {
+      "alg": "Mod Verb",
+      "ctrl_name": "Lo End",
+      "kind": "range",
+      "max": 50.0,
+      "min": -50.0,
+      "samples": 0
+    },
+    "9/0c000008/4": {
+      "alg": "Mod Verb",
+      "ctrl_name": "Hi End",
+      "kind": "range",
+      "max": 50.0,
+      "min": -50.0,
+      "samples": 0
+    },
+    "9/0c000008/5": {
+      "alg": "Mod Verb",
+      "ctrl_name": "Trail",
+      "ids": [
+        1,
+        0
+      ],
+      "kind": "discrete",
+      "samples": 0
+    },
+    "9/0c000009/0": {
+      "alg": "Shimmer",
+      "ctrl_name": "Mix",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "9/0c000009/1": {
+      "alg": "Shimmer",
+      "ctrl_name": "PreDly",
+      "kind": "range",
+      "max": 100.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "9/0c000009/2": {
+      "alg": "Shimmer",
+      "ctrl_name": "Decay",
+      "kind": "range",
+      "max": 99.0,
+      "min": 0.0,
+      "samples": 0
+    },
+    "9/0c000009/3": {
+      "alg": "Shimmer",
+      "ctrl_name": "Lo End",
+      "kind": "range",
+      "max": 50.0,
+      "min": -50.0,
+      "samples": 0
+    },
+    "9/0c000009/4": {
+      "alg": "Shimmer",
+      "ctrl_name": "Hi End",
+      "kind": "range",
+      "max": 50.0,
+      "min": -50.0,
+      "samples": 0
+    },
+    "9/0c000009/5": {
+      "alg": "Shimmer",
+      "ctrl_name": "Trail",
+      "ids": [
+        1,
+        0
+      ],
+      "kind": "discrete",
+      "samples": 0
+    }
+  },
+  "policy": "regra do dicionario manda; par sem regra aceita; NaN/inf sempre recusado",
+  "sources": {
+    "capture": {
+      "path": "analysis/fixtures/knobs.jsonl",
+      "provenance": "captura real da Suite no GP-100 (sessao S3)",
+      "sha256": "3755b3efd7cbbb83e556831a7db1b827cc7ed27b7d9a12f26e7547624c7c5a83"
+    },
+    "dictionary": {
+      "path": "analysis/parameters.json",
+      "provenance": "algorithm.xml oficial da Suite (V1.5.1)",
+      "sha256": "196c67992cd072bbd78c1f7ce3cfc615133d73934e2aa034c6f32b13c171a020"
+    }
+  },
+  "version": 1
+}

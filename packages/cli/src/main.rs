@@ -849,11 +849,16 @@ mod tests {
     ///
     /// A prova e a CONTAGEM de writes no transporte: 1 para o set-param,
     /// 9 para o save (5 do meta + 4 ops, D3).
+    ///
+    /// O valor e o vetor REAL do H2 (`knobs.jsonl` linha 1: slot 3, AMP
+    /// Gain, 15.0) e nao um numero inventado — o `99.5` que o runbook
+    /// mandava esta agora recusado pela trava da #110, e um teste que
+    /// voltasse a usa-lo ensinaria o numero que derrubou o aparelho.
     #[test]
     fn set_param_sem_dry_run_manda_o_frame_ao_transporte() {
         let (t, (writes, ultimos)) = Contador::new();
         let mut s = Session::new(t);
-        let codigo = run_set_param(&mut s, 1, 0x0700_006e, 0, 99.5, &nao_dry_run());
+        let codigo = run_set_param(&mut s, 3, 0x0700_006e, 0, 15.0, &nao_dry_run());
         assert_eq!(codigo, 0, "set-param de campo nao pode falhar");
         assert_eq!(
             writes.get(),
@@ -863,8 +868,49 @@ mod tests {
         // E o frame exato que a §13.11 manda, byte a byte.
         assert_eq!(
             ultimos.borrow()[0],
-            gp100_core::codec::set_param(1, 0x0700_006e, 0, 99.5).unwrap()
+            gp100_core::codec::set_param(3, 0x0700_006e, 0, 15.0).unwrap()
         );
+    }
+
+    /// **A trava da #110 no nivel do CLI (#110, ADR-10).** O `99.5` que o
+    /// runbook do H2 mandava derrubou o aparelho num assert do firmware
+    /// (`audio.c:1828`), sem nenhum aviso no fio. Aqui o comando recusa
+    /// ANTES de montar o frame: sai codigo de erro, NAO sai frame, e o
+    /// operador le o teto na stderr.
+    #[test]
+    fn set_param_fora_da_faixa_falha_sem_mandar_nada() {
+        let (t, (writes, _ultimos)) = Contador::new();
+        let mut s = Session::new(t);
+        let codigo = run_set_param(&mut s, 3, 0x0700_006e, 0, 99.5, &nao_dry_run());
+        assert_eq!(
+            codigo, EXIT_PROTOCOL_ERROR,
+            "99.5 acima do teto 99 tem que falhar, nao 'enviado com sucesso'"
+        );
+        assert_eq!(
+            writes.get(),
+            0,
+            "ZERO frames no transporte — o byte nao pode sair da maquina"
+        );
+    }
+
+    /// A trava vale tambem no `--dry-run`: o dry-run existe para o operador
+    /// inspecionar o frame, e um frame que o firmware rejeitaria nao e
+    /// inspecionavel — e nada e impresso como se fosse mandavel.
+    #[test]
+    fn dry_run_tambem_recusa_valor_fora_da_faixa() {
+        let (t, (writes, _ultimos)) = Contador::new();
+        let mut s = Session::new(t);
+        let dry = Args {
+            command: Command::Info,
+            dry_run: true,
+            log: None,
+            real: false,
+        };
+        assert_eq!(
+            run_set_param(&mut s, 3, 0x0700_006e, 0, 99.5, &dry),
+            EXIT_PROTOCOL_ERROR
+        );
+        assert_eq!(writes.get(), 0, "nada sai em dry-run — nem frame");
     }
 
     /// O `save` e a escrita que PERSISTE (regra 3.2 do H2_CHECKLIST). Um
@@ -897,7 +943,7 @@ mod tests {
         };
         let (t, (writes, _ultimos)) = Contador::new();
         let mut s = Session::new(t);
-        assert_eq!(run_set_param(&mut s, 1, 0x0700_006e, 0, 99.5, &dry), 0);
+        assert_eq!(run_set_param(&mut s, 3, 0x0700_006e, 0, 15.0, &dry), 0);
         assert_eq!(
             writes.get(),
             0,
