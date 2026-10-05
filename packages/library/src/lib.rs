@@ -19,12 +19,14 @@ use std::path::Path;
 
 use serde::{Deserialize, Serialize};
 
+pub mod ir;
 pub mod migrations;
 pub mod search;
 pub mod seed;
 pub mod snap_tone;
 pub mod transfer;
 
+pub use ir::{Ir, IrBoard, IrRow};
 pub use search::{PresetRow, SearchQuery};
 pub use snap_tone::{Tone, ToneBoard, ToneRow, SLOTS};
 pub use transfer::{ExportBundle, ImportMode, ImportReport, VERSAO_ENVELOPE};
@@ -84,6 +86,31 @@ pub enum LibraryError {
     /// inexistente): é o que o app importou ou pediu, não o banco.
     #[error("tom invalido: {0}")]
     Tone(String),
+
+    /// Slot de User IR fora de 0..=19 (`<ppIRInfo0..19>`, §13.12).
+    ///
+    /// Variante própria do IR (e não uma genérica) porque a faixa é diferente
+    /// da do SnapTone: o slot **0 é válido** aqui. O segundo campo é o
+    /// MAIOR slot válido (`SLOTS - 1` = 19), e não a quantidade — a mensagem
+    /// que o dono lê tem que dizer a faixa, e "esperado 0..=20" num aparelho de
+    /// 20 slots é a tela mentindo sobre o formato.
+    #[error("slot de User IR invalido: {0} (esperado 0..={1})")]
+    IrSlotInvalido(u32, u8),
+
+    /// O slot de IR já é de outro IR — o erro carrega o dono, que é o que a
+    /// tela precisa mostrar: "o slot 3 é do 'Vintage 4x12'".
+    #[error("o slot {slot} ja e do IR '{dono}'")]
+    IrSlotOcupado {
+        /// Slot disputado (0..=19).
+        slot: u8,
+        /// Nome do IR que já ocupa o slot.
+        dono: String,
+    },
+
+    /// Conteúdo de IR recusado (nome vazio, arquivo de 0 bytes, tamanho que
+    /// não é múltiplo do chunk, id inexistente).
+    #[error("IR invalido: {0}")]
+    Ir(String),
 }
 
 /// Banco da biblioteca. Dono único da conexão.

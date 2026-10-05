@@ -111,6 +111,43 @@ const MIGRATIONS: &[Migration] = &[
             ALTER TABLE snap_tone_model ADD COLUMN preview BLOB;
         "#,
     },
+    Migration {
+        version: 5,
+        sql: r#"
+            -- IRs do USUÁRIO (issue #24): o laboratorio. O `.ir` escolhido no
+            -- disco é opaco aqui como o `.clo` é para o tom — quem conhece o
+            -- formato é o aparelho (§13.7), e o banco guarda bytes + o CRC que
+            -- prova que eles não mudaram no caminho.
+            --
+            -- O CHECK de slot é a MESMA regra de `ir.rs` e a mesma constante do
+            -- core (`<ppIRInfo0..19>`, §13.12) — o limite 20 está escrito aqui
+            -- porque `MIGRATIONS` é SQL estático, e o teste
+            -- `limite_do_slot_do_ir_no_sql_bate_com_o_core` amarra os dois. A
+            -- faixa começa em **0**: para IR o slot 0 é o primeiro slot, e um
+            -- `BETWEEN 1 AND 5` copiado do SnapTone recusaria o primeiro slot
+            -- do aparelho.
+            CREATE TABLE ir_lib (
+                id       TEXT    PRIMARY KEY,
+                name     TEXT    NOT NULL,
+                bytes    INTEGER NOT NULL,
+                crc32    INTEGER NOT NULL,
+                slot     INTEGER CHECK (slot IS NULL OR (slot BETWEEN 0 AND 19)),
+                saved_at TEXT    NOT NULL
+            );
+            -- Um slot, um IR: sem este índice parcial dois registros apontariam
+            -- para o mesmo slot do aparelho, e a tela passaria a mentir sobre
+            -- o que está gravado la.
+            CREATE UNIQUE INDEX ir_lib_slot ON ir_lib(slot) WHERE slot IS NOT NULL;
+            CREATE INDEX ir_lib_name ON ir_lib(name);
+            -- O conteúdo mora à parte: a lista do laboratorio não paga centenas
+            -- de KB por linha para mostrar um nome. O CASCADE faz o blob
+            -- sumir junto com o IR.
+            CREATE TABLE ir_lib_blob (
+                id   TEXT PRIMARY KEY REFERENCES ir_lib(id) ON DELETE CASCADE,
+                blob BLOB NOT NULL
+            );
+        "#,
+    },
 ];
 
 /// Versão mais recente que este build conhece.
