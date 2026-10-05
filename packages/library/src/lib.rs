@@ -26,7 +26,7 @@ pub mod snap_tone;
 pub mod transfer;
 
 pub use search::{PresetRow, SearchQuery};
-pub use snap_tone::{Tone, ToneRow, SLOTS};
+pub use snap_tone::{Tone, ToneBoard, ToneRow, SLOTS};
 pub use transfer::{ExportBundle, ImportMode, ImportReport, VERSAO_ENVELOPE};
 
 /// Erro do armazenamento. Mensagem para o usuário final é responsabilidade de

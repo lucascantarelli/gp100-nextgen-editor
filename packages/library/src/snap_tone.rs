@@ -81,6 +81,24 @@ pub struct Tone {
     pub model: Vec<u8>,
 }
 
+/// O quadro do gestor: os tons e o estado dos slots, numa leitura só.
+///
+/// **Por que `usados` sai daqui e não da UI.** A tela mostra os cinco slots e
+/// diz quantos estão com tom; se as duas coisas viessem de consultas separadas,
+/// o rodapé poderia dizer "3 em uso" com a lista mostrando 2 (o estado mudou
+/// entre as duas leituras, e o dono lê as duas ao mesmo tempo). Contando a
+/// partir das MESMAS linhas que a lista devolve, as duas não podem divergir.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ToneBoard {
+    /// Os tons, na ordem do gestor (slot primeiro, depois nome).
+    pub tones: Vec<ToneRow>,
+    /// Quantidade de slots do aparelho (`SnapTone1..5`).
+    pub slots: u8,
+    /// Quantos slots têm tom atribuído.
+    pub usados: u8,
+}
+
 /// Colunas da listagem, na ordem do DTO. Uma constante para o SELECT e para o
 /// `row`: dois lugares para lembrar a ordem é como um campo troca de nome no
 /// caminho.
@@ -299,6 +317,20 @@ impl Library {
         Ok(self
             .conn()
             .query_row("SELECT COUNT(*) FROM snap_tone", [], |r| r.get(0))?)
+    }
+
+    /// O quadro inteiro do gestor — os tons e os slots, em UMA leitura.
+    ///
+    /// # Erros
+    /// [`LibraryError::Sqlite`] se o banco falhar.
+    pub fn tone_board(&self) -> Result<ToneBoard, LibraryError> {
+        let tones = self.tons()?;
+        let usados = tones.iter().filter(|t| t.slot.is_some()).count() as u8;
+        Ok(ToneBoard {
+            tones,
+            slots: SLOTS,
+            usados,
+        })
     }
 }
 

@@ -358,6 +358,28 @@ fn length_mentiroso_e_recusado() {
     assert!(e.to_string().contains("length 9 != payload de 3"));
 }
 
+/// O relatório de envio é o que volta pela ponte IPC, e o contrato do fio
+/// (camelCase/plain, sem wrapper) é testado AQUI — no crate que compila nas
+/// três plataformas — em vez de no crate do Tauri, que só a CI do Windows
+/// constrói. Um campo renomeado aqui passaria pelo typecheck do Rust e
+/// quebraria no `invoke` da tela.
+#[test]
+fn o_relatorio_de_envio_serializa_com_o_contrato_do_fio() {
+    let rel = gp100_core::session::SnapToneUploadReport {
+        slot: 3,
+        blocks: 143,
+        acks: 143,
+        bytes: 2700,
+    };
+    let json = serde_json::to_value(&rel).expect("serializável");
+    assert_eq!(json["slot"], 3);
+    assert_eq!(json["blocks"], 143);
+    assert_eq!(json["acks"], 143);
+    assert_eq!(json["bytes"], 2700);
+    // E o relatório de um modelo de 2,7 KB bate com o §5: um ACK por bloco.
+    assert_eq!(rel.acks, rel.blocks, "um ACK por bloco (§5)");
+}
+
 // ─────────────────────────────── o settle de §4 ───────────────────────────
 
 /// O settle de §4 EXISTE no caminho de produção: entre dois blocos há pelo

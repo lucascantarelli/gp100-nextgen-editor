@@ -119,7 +119,12 @@ pub struct IrUploadReport {
 pub const SNAP_TONE_SETTLE_MS: u64 = 250;
 
 /// Relatório do upload de SnapTone (§5).
-#[derive(Debug, Clone, PartialEq, Eq)]
+///
+/// `Serialize` porque este relatório é o que volta pela ponte IPC: o command
+/// do Tauri devolve o valor como está e o TS lê `blocks`/`acks`. Derivando o
+/// serde aqui, no crate que compila nas três plataformas da matriz, o contrato
+/// do fio é testado no CI comum em vez de depender de uma compilação Windows.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct SnapToneUploadReport {
     /// Slot de destino (1..=5 — `SnapTone1..5`).
     pub slot: u8,

@@ -8,6 +8,63 @@
 use gp100_library::snap_tone::crc32;
 use gp100_library::{Library, LibraryError};
 
+/// O camelCase no fio é o CONTRATO da ponte IPC (`ui/src/ipc/tones.ts`): se um
+/// campo virar `saved_at`, o serde escreve `saved_at`, o TS lê `undefined` e a
+/// tela mostra uma data vazia sem nenhum erro no console.
+///
+/// Este teste existe no crate da biblioteca, e não no do shell, por uma razão
+/// concreta: o crate do Tauri é MSVC e só compila na CI do Windows — um
+/// contrato de serde verificado aqui é verificado nas três plataformas da
+/// matriz a cada push.
+#[test]
+fn o_contrato_ipc_dos_tons_e_camelcase() {
+    let lib = Library::open_in_memory().expect("banco");
+    let linha = lib
+        .import_tone("Marshall", &modelo(3, 1), agora())
+        .expect("importa");
+
+    let linha_json = serde_json::to_value(&linha).expect("serializável");
+    assert_eq!(linha_json["savedAt"], agora());
+    assert!(linha_json.get("saved_at").is_none());
+    assert_eq!(linha_json["crc32"], linha.crc32);
+    // A LISTA não carrega o modelo: são ~2,7 KB por tom e a tela só mostra o
+    // nome. Ler o modelo é `tone_get`.
+    assert!(linha_json.get("model").is_none());
+
+    let tom = lib.ton_com_modelo(&linha.id).expect("lê").expect("existe");
+    let tom_json = serde_json::to_value(&tom).expect("serializável");
+    // `flatten`: os campos do tom sobem para o objeto, sem `row` no meio.
+    assert_eq!(tom_json["name"], "Marshall");
+    assert!(tom_json.get("row").is_none());
+    assert_eq!(tom_json["savedAt"], agora());
+    // O modelo vai como ARRAY DE NÚMEROS — é a representação que o serde dá a
+    // `Vec<u8>` em JSON e a que o `Array.from(new Uint8Array(...))` do
+    // `<input type="file">` entrega. O teste fixa a representação porque uma
+    // mudança aqui (base64, por exemplo) passaria pelo typecheck dos dois
+    // lados e quebraria só com o aparelho na mão.
+    assert_eq!(tom_json["model"], serde_json::json!(modelo(3, 1)));
+}
+
+/// O quadro do gestor traz `slots` e `usados` na MESMA leitura da lista — o
+/// rodapé não pode dizer "3 em uso" com a lista mostrando 2.
+#[test]
+fn o_quadro_traz_lista_e_slots_juntos() {
+    let lib = Library::open_in_memory().expect("banco");
+    let a = lib.import_tone("A", &modelo(10, 1), agora()).expect("A");
+    lib.import_tone("B", &modelo(10, 2), agora()).expect("B");
+    lib.atribuir_slot(&a.id, Some(2)).expect("slot");
+
+    let quadro = lib.tone_board().expect("quadro");
+    assert_eq!(quadro.slots, 5, "§5: SnapTone1..5");
+    assert_eq!(quadro.usados, 1);
+    assert_eq!(quadro.tones.len(), 2);
+
+    let json = serde_json::to_value(&quadro).expect("serializável");
+    assert_eq!(json["slots"], 5);
+    assert_eq!(json["usados"], 1);
+    assert!(json["tones"].is_array());
+}
+
 /// Modelo sintético de N bytes (o conteúdo é opaco para a biblioteca).
 fn modelo(n: usize, semente: u8) -> Vec<u8> {
     (0..n)
