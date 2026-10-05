@@ -14,7 +14,7 @@
     "e2e": "playwright test"
   },
   "dependencies": {
-    "@tauri-apps/api": "^2.12.0",
+    "@tauri-apps/api": "^2.12.1",
     "react": "^19.3.0",
     "react-dom": "^19.3.0"
   },
