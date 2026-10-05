@@ -544,6 +544,12 @@ jobs:
       - uses: ./.github/actions/playwright-setup
       - name: suíte e2e (o playwright.config sobe o dev server sozinho)
         working-directory: packages/app/ui
+        # SKIP_VISUAL=1 tira o visual.spec.ts: as baselines têm o job delas
+        # logo abaixo (`test-e2e-visual`). Sem isto elas rodavam DUAS vezes por
+        # PR, e como o arquivo é serial num worker só, ele virava o gargalo do
+        # job inteiro.
+        env:
+          SKIP_VISUAL: "1"
         run: pnpm exec playwright test
 
   test-e2e-visual:
