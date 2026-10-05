@@ -4,7 +4,7 @@
 > fonte de verdade de cada assunto. Mantenha-o atualizado a cada novo documento
 > ou mudança de status — é o contrato de navegação entre agentes e humanos.
 
-**Última revisão:** 2026-10-05 (**gate H em campo** — o H2 passou nos 3 fluxos de escrita contra o GP-100 V2.1 real (#22, PR #108) e o H3 congelou a baseline (#23, PR #96); **o gate H inteiro fechou em campo** (#21 H1 · #22 H2 · #23 H3). **a épica M2 (#15) fechou com o gate H** — conteúdo (#24/#25/#26) entregue, distribuição é a #17. Auditoria 03/10 fechada (#71–#83). **Trabalho aberto vive em ISSUES do GitHub** (milestone **v1.0.0**; abertas: #110 e as épicas #17/#16). Estado atual e números: **§6** — todos remedidos nesta data, não herdados.)
+**Última revisão:** 2026-10-05 (**gate H em campo** — o H2 passou nos 3 fluxos de escrita contra o GP-100 V2.1 real (#22, PR #108) e o H3 congelou a baseline (#23, PR #96); **o gate H inteiro fechou em campo** (#21 H1 · #22 H2 · #23 H3). **a épica M2 (#15) fechou com o gate H** — conteúdo (#24/#25/#26) entregue, distribuição é a #17. Auditoria 03/10 fechada (#71–#83). **Trabalho aberto vive em ISSUES do GitHub** (milestone **v1.0.0**; abertas em 05/10: **#17** — release, bloqueada no aparelho — e as oito temáticas **M3** (#113–#120); a #110 fechou com a trava de faixa do ADR-10). Estado atual e números: **§6** — todos remedidos nesta data, não herdados.)
 
 ---
 
@@ -199,7 +199,7 @@ O Tauri não gera pacote Arch: a unidade de distribuição **é** a receita vers
 | Unit do front | `pnpm exec vitest run` | **411** em **29** arquivos (411 passando) |
 | Cobertura do front | `pnpm run test:coverage` | ⚠️ **sem número — ver a nota abaixo** |
 | E2E (Playwright) | `pnpm exec playwright test --list` | **78** testes em **7** arquivos · **96** baselines |
-| Rust (core + cli) | `cargo test --workspace` | **237** testes em **28** suítes |
+| Rust (core + cli + library) | `cargo test --workspace` | **261** testes em **30** arquivos (28 binários de teste + 2 doc-tests) |
 | Spec (pytest) | `.venv/Scripts/python.exe -m pytest` | **92** |
 | Gates locais | `python scripts/gates.py` | **13** |
 
@@ -215,9 +215,10 @@ O Tauri não gera pacote Arch: a unidade de distribuição **é** a receita vers
 | # | Título | Bloqueio |
 |---|---|---|
 | ~~[#21](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/21)~~ | H1: primeiro contato real — **FECHADA em 05/10**: sessão real executada e arquivada em `analysis/captures/sessionH1/` (PR #109); juiz: níveis 1 e 3 limpos, divergências só de nível 2 (conteúdo, esperado) | ✅ |
-| [#110](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/110) | `set_param_payload` aceita valor fora da faixa e trava o firmware do GP-100 | — |
+| ~~[#110](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/110)~~ | `set_param_payload` aceita valor fora da faixa e trava o firmware do GP-100 — **FECHADA**: a trava de conteúdo virou o ADR-10 | ✅ |
 | ~~[#15](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/15)~~ | EPIC M2 — **FECHADA em 05/10**: conteúdo entregue (#24 IR lab · #25 SnapTone/NAM · #26 biblioteca); a distribuição é a #17 | ✅ |
-| [#16](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/16) | EPIC M3 — diferenciais (live mode, cloud, tone match) | — |
+| ~~[#16](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/16)~~ | EPIC M3 — **FECHADA**, e destrinchada nas oito temáticas **#113–#120** (biblioteca versionada, export universal, gain staging, A/B, live mode, DAW, tone match, cloud) | ✅ |
+| [#113](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/113) | M3-1 Biblioteca versionada — **em curso**: a camada de armazenamento e o diff já estão no `gp100-library` (histórico append-only, migration v6, 20 testes); falta a tela | — |
 | [#17](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/17) | EPIC Release v1.0.0 multiplataforma | — |
 | ~~[#18](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/18)~~ | EPIC Gate H — **FECHADA**: #21 ✅ (H1 executado, PR #109) · #22 ✅ (H2 em campo, PR #108) · #23 ✅ (H3 congelado, PR #96) | ✅ |
 

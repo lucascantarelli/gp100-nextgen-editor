@@ -119,7 +119,10 @@ Windows nao pega.
 | Linux (ALSA) | job `test-e2e-webview`, no container `ci-linux` (que ja tinha ALSA) |
 | macOS (CoreMIDI) | job `lint-rust-clippy` / `build-rust`, entrada `ui-rust` — **desde 05/10 (passo 6b)** |
 
-**O buraco do CoreMIDI fechou, e com ele o último motivo técnico do CLI.**
+**O buraco do CoreMIDI fechou, e com ele o último motivo técnico do CLI — e
+agora com prova, não com afirmacao de commit.** A run `37389032681` (48 jobs,
+zero vermelhos) compila, passa `clippy -D warnings` e roda `cargo test` do crate
+do app com `real-device` nos DOIS SOs da matrix do `ui-rust`, Windows e macOS.
 Enquanto o `ui-rust` ficou só no Windows, o `gp100-cli` era a ÚNICA cobertura
 de CoreMIDI do transporte USB-MIDI — ele roda em 3 SOs, o app não. Esse era o
 motivo técnico (não uma preferência) para o CLI continuar existindo, e ele
