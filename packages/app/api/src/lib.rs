@@ -18,6 +18,7 @@
 mod actor;
 mod commands;
 mod library_commands;
+mod snap_tone_commands;
 
 use gp100_core::transport::mock::{MockDevice, MockFault};
 use tauri::Manager;
@@ -129,6 +130,16 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
             library_commands::library_get,
             library_commands::library_import,
             library_commands::library_export,
+            snap_tone_commands::tone_board,
+            snap_tone_commands::tone_stats,
+            snap_tone_commands::tone_import,
+            snap_tone_commands::tone_set_preview,
+            snap_tone_commands::tone_get,
+            snap_tone_commands::tone_do_slot,
+            snap_tone_commands::tone_rename,
+            snap_tone_commands::tone_assign_slot,
+            snap_tone_commands::tone_delete,
+            snap_tone_commands::tone_send,
         ])
         .build(tauri::generate_context!())?;
 

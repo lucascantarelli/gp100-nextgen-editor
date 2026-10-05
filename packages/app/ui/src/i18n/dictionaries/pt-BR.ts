@@ -355,6 +355,55 @@ export const PT_BR = {
     `Importado: ${inserted} novos, ${replaced} atualizados, ${skipped} já existiam.`,
   libImportRejected: "O arquivo não é uma biblioteca deste editor — nada foi importado.",
 
+  /* ── SnapTone/NAM (#25): o `.clo` e o audio que o Suite renderiza ── */
+  errToneRead: "Não foi possível ler os tons — tente novamente.",
+  errToneWrite: "Não foi possível gravar o tom — o arquivo não respondeu.",
+  errToneImport: "O tom não foi importado — nada foi gravado.",
+  errToneSlot: "Não foi possível atribuir o slot.",
+  errToneSend: "O envio ao aparelho falhou.",
+
+  toneBtn: "SnapTone",
+  toneBtnAria: "Abrir o gestor de tons SnapTone",
+  toneTitle: "Tons SnapTone",
+  toneIntro:
+    "Importe o arquivo .clo que o Valeton Suite gera a partir de um .nam. Este app não converte .nam: a conversão é do Suite.",
+  toneNamePlaceholder: "Nome do tom",
+  toneNameAria: "Nome do tom importado",
+  toneImportClo: "Importar .clo",
+  toneImportCloAria: "Importar um modelo .clo convertido pelo Suite",
+  toneImportWav: "Importar áudio .wav",
+  toneImportWavAria: "Anexar o áudio que o Suite renderiza para este tom",
+  toneEmpty: "Nenhum tom importado ainda.",
+  toneListAria: "Tons importados",
+  toneRowTitle: (nome: string, kb: number) => `${nome} — ${kb} KB`,
+  toneSlotNone: "sem slot",
+  toneSlotLabel: (n: number) => `Slot ${n}`,
+  toneSlotAria: (n: number) => `Slot ${n} do aparelho`,
+  toneAssignAria: (nome: string, n: number) => `Colocar “${nome}” no slot ${n}`,
+  toneClearSlot: "Tirar do aparelho",
+  toneClearSlotAria: (nome: string) => `Tirar “${nome}” do aparelho`,
+  toneDeleteAria: (nome: string) => `Apagar o tom “${nome}”`,
+  toneRenameAria: "Renomear o tom",
+  toneSend: "Enviar ao aparelho",
+  toneSendAria: (nome: string) => `Enviar “${nome}” para o slot do aparelho`,
+  toneSending: "Enviando…",
+  toneSent: (blocos: number, bytes: number) =>
+    `Enviado: ${blocos} blocos, ${bytes} bytes, um ACK por bloco.`,
+  toneCabTitle: "SnapTone desliga o CAB",
+  toneCabWarning:
+    "Ao ligar o SnapTone, o módulo CAB é desligado pelo aparelho. Se você usa o CAB, desligue-o de propósito antes de enviar.",
+  toneAbTitle: "Comparar A/B",
+  toneAbHint:
+    "O áudio é o nam_output_wav.wav que o Suite renderiza. O app não roda o modelo: tocar aqui é ouvir o áudio do tom.",
+  toneAbEmpty: "Escolha os dois lados",
+  toneAbA: "A",
+  toneAbB: "B",
+  tonePlay: "Ouvir",
+  tonePlayAria: (lado: string, nome: string) => `Ouvir o lado ${lado}: ${nome}`,
+  toneNoPreview: "Sem áudio",
+  toneStats: (total: number, slots: number, usados: number) =>
+    `${total} tons · ${usados} de ${slots} slots em uso`,
+
   errRetry: "Tentar de novo",
   errRetryAria: "Tentar novamente a operação que falhou",
 } as const;

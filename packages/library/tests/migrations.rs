@@ -108,10 +108,89 @@ fn cada_migration_e_uma_etapa_e_uma_transacao() {
     // significaria um arquivo que salta de 1 para 3 sem 2 existir.
     let sql_de = |v: u32| gp100_library::migrations::sql_da(v).unwrap();
     for v in 1..=gp100_library::migrations::latest() {
-        assert!(sql_de(v).contains("preset"), "migration {v} mexe em preset");
+        let sql = sql_de(v);
+        assert!(
+            sql.contains("preset") || sql.contains("snap_tone"),
+            "migration {v} não mexe em nenhuma tabela conhecida: {sql}"
+        );
     }
     assert!(
         gp100_library::migrations::sql_da(99).is_none(),
         "não há versão 99"
     );
+}
+
+/// A tabela que a migration declara EXISTE no banco migrado.
+///
+/// A versão anterior deste teste perguntava "a migration menciona `preset`?" —
+/// que é uma pergunta sobre o TEXTO, e passou a mentir quando a v3 apareceu
+/// para falar de `snap_tone`. A pergunta útil é sobre o banco: o que a
+/// migration promete criar/modificar tem que estar lá depois de aplicar.
+#[test]
+fn a_tabela_de_cada_migration_existe_depois() {
+    let lib = Library::open_in_memory().expect("banco migrado");
+    for v in 1..=gp100_library::migrations::latest() {
+        let sql = gp100_library::migrations::sql_da(v).expect("versão existe");
+        for tabela in tabelas_declaradas(sql) {
+            let existe: i64 = lib
+                .conn()
+                .query_row(
+                    "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?1",
+                    [&tabela],
+                    |r| r.get(0),
+                )
+                .unwrap();
+            assert_eq!(
+                existe, 1,
+                "migration {v} declarou `{tabela}` e ela não está"
+            );
+        }
+    }
+}
+
+/// As tabelas que o SQL cria ou altera (na ordem em que aparecem).
+fn tabelas_declaradas(sql: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    for linha in sql.lines() {
+        let l = linha.trim();
+        for prefixo in ["CREATE TABLE ", "ALTER TABLE "] {
+            if let Some(resto) = l.strip_prefix(prefixo) {
+                let nome: String = resto
+                    .chars()
+                    .take_while(|c| c.is_alphanumeric() || *c == '_')
+                    .collect();
+                if !nome.is_empty() {
+                    out.push(nome);
+                }
+            }
+        }
+    }
+    out
+}
+
+/// O limite de slot no SQL e o do core são o MESMO número.
+///
+/// As duas metades estão em linguagens diferentes — o `CHECK` do SQLite e o
+/// `SLOTS` do crate — e o dono percebe a divergência tarde demais: o banco
+/// aceitaria o slot 6 e a FSM recusaria no envio, com o aparelho na mão. O
+/// número 5 é o das strings de firmware (`SnapTone1..5`, §5).
+#[test]
+fn limite_do_slot_no_sql_bate_com_o_core() {
+    let sql = gp100_library::migrations::sql_da(3).expect("migration 3 (tons)");
+    let esperado = format!("slot BETWEEN 1 AND {}", gp100_library::snap_tone::SLOTS);
+    assert!(
+        sql.contains(&esperado),
+        "a migration 3 deveria fechar `{esperado}`: {sql}"
+    );
+    // E o CHECK MEXE de verdade: o banco recusa 6 e 0 na sua própria boca,
+    // sem passar pela validação do Rust.
+    let lib = Library::open_in_memory().expect("banco migrado");
+    for slot in [0i64, 6, 255] {
+        let r = lib.conn().execute(
+            "INSERT INTO snap_tone (id,name,bytes,crc32,slot,saved_at)
+             VALUES ('x','x',1,1,?1,'2026-01-01T00:00:00Z')",
+            [slot],
+        );
+        assert!(r.is_err(), "o CHECK do banco aceitou o slot {slot}");
+    }
 }

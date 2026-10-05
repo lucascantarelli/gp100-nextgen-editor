@@ -22,6 +22,14 @@
 //!   solicitados a qualquer momento (push intercalado no meio de upload);
 //! - **D8** a fila é exclusiva da `Session` (consumidor único).
 //!
+//! **O mock conhece DOIS framings.** O envelope do GP-100
+//! (`F0 21 25 7F 47 50 2D 64 | FUNC | ADDR | payload | F7`) e o da família
+//! GP-50 (`F0` + nibble-expand(BUF) + `F7`), que é o do SnapTone/NAM (§5).
+//! Os dois começam no mesmo `0xF0` e se discriminam no byte seguinte: `0x21`
+//! do GP-100 contra um nibble da família. O caminho de SnapTone tem ACK de
+//! 16B por bloco (§5) — é ele que torna o upload do modelo verificável de
+//! ponta a ponta sem hardware.
+//!
 //! **Shape gerado × layout:** as páginas 196B de 13xx são GERADAS (pp BE +
 //! corpo do exemplo congelado) — capacidades 196/32B são shape do mock, não
 //! layout decifrado (o byte-a-byte da 13xx permanece fora; o replay
@@ -62,6 +70,16 @@ pub struct MockState {
     pub ir_crcs: [u32; 20],
     /// Parâmetros setados: `((nibble, ctrl), (code, value))` — last-wins.
     pub set_params: HashMap<(u8, u8), (u32, f32)>,
+    /// Modelo de SnapTone **remontado** dos blocos recebidos (§5). É o que o
+    /// mock pode observar do upload: o fio carrega o modelo em blocos com
+    /// índice, e não há seletor de slot no stream (R1 — só a contagem e o
+    /// payload estão evidenciados), então o que fica é a transferência
+    /// corrente, reaberta quando um índice 0 chega.
+    pub snap_tone_model: Vec<u8>,
+    /// Quantas transferências de SnapTone chegaram (um índice 0 = uma nova).
+    pub snap_tone_transfers: usize,
+    /// ACKs de SnapTone emitidos — um por bloco aceito (§5).
+    pub snap_tone_acks: usize,
     /// nº de frames recusados por D5 (diagnóstico de divergência).
     pub rejected: usize,
 }
@@ -103,6 +121,9 @@ impl MockState {
             current_pp_type: first.pp_type().and_then(|s| s.parse().ok()).unwrap_or(4),
             ir_crcs,
             set_params: HashMap::new(),
+            snap_tone_model: Vec::new(),
+            snap_tone_transfers: 0,
+            snap_tone_acks: 0,
             rejected: 0,
         })
     }
@@ -249,6 +270,99 @@ impl MockDevice {
         let tpl = push_template(golden, addr)?;
         let msg = build_from_example(tpl, desired_len, None)?;
         self.inbox.entry((func, addr)).or_default().push(msg);
+        Ok(())
+    }
+
+    /// Enfileira uma mensagem CRUA — fora do envelope do GP-100 (é o que o
+    /// transporte devolve para o framing da família, §5).
+    ///
+    /// A chave da fila é `(0x00, 00000000)`, a MENOR possível: o `recv_raw`
+    /// entrega a mensagem mais antiga pela chave mínima e o ACK do SnapTone
+    /// tem que sair antes de qualquer push da família GP-100 que esteja
+    /// pendente — a resposta é da operação corrente, não do histórico.
+    pub fn queue_raw(&mut self, msg: Vec<u8>) {
+        self.inbox.entry((0x00, [0u8; 4])).or_default().push(msg);
+    }
+
+    /// O modelo de SnapTone remontado e quantas transferências chegaram.
+    ///
+    /// O par vem junto porque os dois contam a MESMA coisa vista de dois
+    /// lados: uma transferência com N bytes pode ser 1 upload ou vários
+    /// índices 0 seguidos, e só os dois juntos distinguem.
+    pub fn snap_tone(&self) -> (&[u8], usize) {
+        (&self.state.snap_tone_model, self.state.snap_tone_transfers)
+    }
+
+    /// Despacha um frame do framing da FAMÍLIA (`F0` + nibbles + `F7`): o
+    /// SnapTone/NAM (§5), que NÃO usa o envelope do GP-100.
+    ///
+    /// O que o mock valida (e recusa com D5, incrementando `rejected`):
+    /// o CRC-8 do BUF (§3), o `length` contra o payload realmente recebido, e
+    /// o `command`. O que ele **remonta** é o modelo, para o upload ser
+    /// verificável de ponta a ponta sem hardware — o teste pede 2 700 bytes,
+    /// o mock devolve os mesmos 2 700.
+    ///
+    /// O conteúdo do ACK é **zeros**: o ACK tem 16 bytes (§5), mas o que
+    /// esses 16 bytes dizem não está evidenciado, e o mock não inventa
+    /// semântica (D5). A FSM valida o tamanho — que é o que a evidência
+    /// sustenta.
+    fn ingest_familia(&mut self, msg: &[u8]) -> Result<(), TransportError> {
+        let b = crate::codec::nibble_collapse(&msg[1..msg.len() - 1])
+            .map_err(|e| TransportError::SendFailed { why: e.to_string() })?;
+        // BUF mínimo = [crc, command, index, length] (§2).
+        if b.len() < 4 {
+            self.state.rejected += 1;
+            return Err(TransportError::SendFailed {
+                why: format!("BUF de familia com {} bytes (minimo 4, §2)", b.len()),
+            });
+        }
+        // CRC (§3): o byte do CRC entra ZERADO no cálculo — comparar o valor
+        // gravado contra o calculado sobre o BUF com o byte zerado.
+        let mut com_crc_zero = b.clone();
+        com_crc_zero[0] = 0;
+        if crate::snap_tone::crc8(&com_crc_zero) != b[0] {
+            self.state.rejected += 1;
+            return Err(TransportError::SendFailed {
+                why: format!(
+                    "CRC do bloco: esperado {:02X}, recebeu {:02X}",
+                    crate::snap_tone::crc8(&com_crc_zero),
+                    b[0]
+                ),
+            });
+        }
+        let (cmd, index, len) = (b[1], b[2], usize::from(b[3]));
+        let payload = &b[4..];
+        if cmd != crate::snap_tone::CMD_SNAP_TONE {
+            self.state.rejected += 1;
+            return Err(TransportError::SendFailed {
+                why: format!("command da familia {cmd:02X} != SnapTone 92"),
+            });
+        }
+        if payload.len() != len {
+            self.state.rejected += 1;
+            return Err(TransportError::SendFailed {
+                why: format!("length {len} != payload de {} bytes", payload.len()),
+            });
+        }
+        // Índice 0 = transferência nova. O fio NÃO carrega o slot (R1: só o
+        // layout do bloco está evidenciado, e nele não há slot), então o
+        // mock reabre o stream no 0 — que é o único sinal de começo que a
+        // evidência sustenta.
+        if index == 0 {
+            self.state.snap_tone_model.clear();
+            self.state.snap_tone_transfers += 1;
+        }
+        self.state.snap_tone_model.extend_from_slice(payload);
+        self.state.snap_tone_acks += 1;
+        let ack = {
+            let mut m = vec![0xF0];
+            m.extend(crate::codec::nibble_expand(
+                &[0u8; crate::snap_tone::ACK_LEN],
+            ));
+            m.push(crate::SYSEX_EOX);
+            m
+        };
+        self.queue_raw(ack);
         Ok(())
     }
 
@@ -589,6 +703,15 @@ impl DeviceTransport for MockDevice {
         self.sent += 1;
         if self.gone() {
             return Err(self.gone_err());
+        }
+        // O framing da FAMÍLIA (SnapTone/NAM, §5) vem antes do decode do
+        // envelope: `F0` + nibbles + `F7` não tem o cabeçalho de 8B do
+        // GP-100, então sem esta volta um bloco de SnapTone viraria
+        // SendFailed "cabeçalho inválido" e o upload do §5 — o único
+        // caminho de escrita com ACK por bloco que dá para testar sem
+        // hardware — ficaria impossível de exercitar.
+        if crate::snap_tone::eh_familia(data) {
+            return self.ingest_familia(data);
         }
         let (func, addr, payload) =
             decode_envelope(data).map_err(|e| TransportError::SendFailed { why: e.to_string() })?;

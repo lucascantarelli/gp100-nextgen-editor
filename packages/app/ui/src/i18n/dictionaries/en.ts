@@ -351,6 +351,55 @@ export const EN: DictPatch = {
     `Imported: ${inserted} new, ${replaced} updated, ${skipped} already there.`,
   libImportRejected: "That file is not a library from this editor — nothing was imported.",
 
+  /* -- SnapTone/NAM (#25): the .clo and the audio the Suite renders -- */
+  errToneRead: "Could not read the tones — try again.",
+  errToneWrite: "Could not save the tone — the file did not answer.",
+  errToneImport: "The tone was not imported — nothing was written.",
+  errToneSlot: "Could not assign the slot.",
+  errToneSend: "Sending to the unit failed.",
+
+  toneBtn: "SnapTone",
+  toneBtnAria: "Open the SnapTone tone manager",
+  toneTitle: "SnapTone tones",
+  toneIntro:
+    "Import the .clo file the Valeton Suite produces from a .nam. This app does not convert .nam: the Suite does.",
+  toneNamePlaceholder: "Tone name",
+  toneNameAria: "Name of the imported tone",
+  toneImportClo: "Import .clo",
+  toneImportCloAria: "Import a .clo model converted by the Suite",
+  toneImportWav: "Import .wav audio",
+  toneImportWavAria: "Attach the audio the Suite rendered for this tone",
+  toneEmpty: "No tone imported yet.",
+  toneListAria: "Imported tones",
+  toneRowTitle: (name: string, kb: number) => `${name} — ${kb} KB`,
+  toneSlotNone: "no slot",
+  toneSlotLabel: (n: number) => `Slot ${n}`,
+  toneSlotAria: (n: number) => `Slot ${n} on the unit`,
+  toneAssignAria: (name: string, n: number) => `Put “${name}” in slot ${n}`,
+  toneClearSlot: "Remove from unit",
+  toneClearSlotAria: (name: string) => `Take “${name}” out of the unit`,
+  toneDeleteAria: (name: string) => `Delete the tone “${name}”`,
+  toneRenameAria: "Rename the tone",
+  toneSend: "Send to unit",
+  toneSendAria: (name: string) => `Send “${name}” to the unit slot`,
+  toneSending: "Sending…",
+  toneSent: (blocks: number, bytes: number) =>
+    `Sent: ${blocks} blocks, ${bytes} bytes, one ACK per block.`,
+  toneCabTitle: "SnapTone turns the CAB off",
+  toneCabWarning:
+    "Turning SnapTone on makes the unit disable the CAB module. If you use the CAB, switch it off on purpose before sending.",
+  toneAbTitle: "Compare A/B",
+  toneAbHint:
+    "The audio is the nam_output_wav.wav the Suite renders. The app does not run the model: playing here means hearing the tone audio.",
+  toneAbEmpty: "Pick both sides",
+  toneAbA: "A",
+  toneAbB: "B",
+  tonePlay: "Play",
+  tonePlayAria: (side: string, name: string) => `Play side ${side}: ${name}`,
+  toneNoPreview: "No audio",
+  toneStats: (total: number, slots: number, used: number) =>
+    `${total} tones · ${used} of ${slots} slots in use`,
+
   errRetry: "Try again",
   errRetryAria: "Retry the operation that failed",
 };

@@ -128,6 +128,10 @@ pub mod golden;
 /// codec — codificação do fio: nibble + helpers semânticos.
 pub mod codec;
 
+/// snap_tone — framing do upload de SnapTone (GP-50 de família: CRC-8/0x07 +
+/// bloco de 19B, §2/§3/§5 do PROTOCOL.md).
+pub mod snap_tone;
+
 /// transport — fronteira de I/O com o device: trait `DeviceTransport`
 /// (ADR-4; implementadores: `MockDevice`/`RealDevice`).
 pub mod transport;

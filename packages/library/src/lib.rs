@@ -22,9 +22,11 @@ use serde::{Deserialize, Serialize};
 pub mod migrations;
 pub mod search;
 pub mod seed;
+pub mod snap_tone;
 pub mod transfer;
 
 pub use search::{PresetRow, SearchQuery};
+pub use snap_tone::{Tone, ToneBoard, ToneRow, SLOTS};
 pub use transfer::{ExportBundle, ImportMode, ImportReport, VERSAO_ENVELOPE};
 
 /// Erro do armazenamento. Mensagem para o usuário final é responsabilidade de
@@ -60,6 +62,28 @@ pub enum LibraryError {
     /// O envelope de export não é nosso, ou a versão dele não é legível.
     #[error("envelope de export invalido: {0}")]
     Envelope(String),
+
+    /// Slot de SnapTone fora de 1..=5 (`SnapTone1..5`, §5). Tipado porque a
+    /// UI escreve o número que veio de um clique — e um `0` ou um `6` ali é
+    /// bug de interface, não arquivo ruim: as duas coisas precisam de
+    /// mensagens diferentes.
+    #[error("slot de SnapTone invalido: {0} (esperado 1..={1})")]
+    SlotInvalido(u32, u8),
+
+    /// O slot já é de outro tom. O erro carrega o dono do slot porque é o
+    /// que a UI precisa mostrar: "o slot 3 e do 'Marshall 4x12'".
+    #[error("o slot {slot} ja e do tom '{dono}'")]
+    SlotOcupado {
+        /// Slot disputado (1..=5).
+        slot: u8,
+        /// Nome do tom que já ocupa o slot.
+        dono: String,
+    },
+
+    /// Conteúdo de tom recusado (nome vazio, modelo de 0 bytes, id
+    /// inexistente): é o que o app importou ou pediu, não o banco.
+    #[error("tom invalido: {0}")]
+    Tone(String),
 }
 
 /// Banco da biblioteca. Dono único da conexão.

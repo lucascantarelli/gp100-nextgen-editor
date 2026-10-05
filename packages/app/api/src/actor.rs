@@ -28,7 +28,7 @@ use std::thread::JoinHandle;
 
 use gp100_core::model::Dictionary;
 use gp100_core::pedalboard::{board_view_for, embedded_document, preset_list, BoardView};
-use gp100_core::session::{BootProgress, BootReport, Session};
+use gp100_core::session::{BootProgress, BootReport, Session, SnapToneUploadReport};
 use gp100_core::transport::mock::MockDevice;
 use gp100_core::transport::DeviceTransport;
 
@@ -103,6 +103,16 @@ enum Request {
     DrainPushes {
         reply: mpsc::Sender<Result<Vec<String>, String>>,
     },
+    /// Envia um modelo de SnapTone ao device (§5): stream de blocos com ACK
+    /// de 16B por bloco e o settle de 250 ms do §4. É a transação mais LONGA
+    /// do app depois do boot — 143 blocos para um `.clo` de ~2,7 KB — e é por
+    /// isso que ela fica na fila do actor e não em `spawn`: a fila é o que
+    /// impede um upload de bytes se misturar com um knob do dono.
+    UploadSnapTone {
+        slot: u8,
+        model: Vec<u8>,
+        reply: mpsc::Sender<Result<SnapToneUploadReport, String>>,
+    },
     /// Encerra a thread do actor (drop do `DeviceActor`).
     Shutdown,
 }
@@ -124,6 +134,9 @@ fn device_snapshot(session: &mut Option<Session<MockDevice>>) -> MockState {
             current_pp_type: 4,
             ir_crcs: [0; 20],
             set_params: Default::default(),
+            snap_tone_model: Vec::new(),
+            snap_tone_transfers: 0,
+            snap_tone_acks: 0,
             rejected: 0,
         }),
     }
@@ -268,6 +281,15 @@ impl DeviceActor {
                             let _ = reply.send(Err("session do actor ausente".into()));
                         }
                     },
+                    Request::UploadSnapTone { slot, model, reply } => match session.as_mut() {
+                        Some(s) => {
+                            let r = s.upload_snap_tone(slot, &model).map_err(|e| e.to_string());
+                            let _ = reply.send(r);
+                        }
+                        None => {
+                            let _ = reply.send(Err("session do actor ausente".into()));
+                        }
+                    },
                     Request::Shutdown => break,
                 }
             }
@@ -394,6 +416,31 @@ impl DeviceActor {
         rx.recv().map_err(|_| "actor morreu no DrainPushes")?
     }
 
+    /// Envia um modelo de SnapTone ao device (§5).
+    ///
+    /// Bloqueia até a FSM fechar TODOS os blocos esperando o ACK de 16B de
+    /// cada um — dezenas de segundos para um `.clo` de ~2,7 KB, porque o
+    /// settle do §4 é 250 ms por operação. É o comportamento correto (§4:
+    /// 0,15 s corrompe o stream e loop tight trava a pedaleira) e por isso
+    /// quem chama precisa mostrar "enviando…" e esperar o `invoke`.
+    ///
+    /// # Erros
+    /// [`ProtocolError`](gp100_core::ProtocolError) como string — `Timeout`
+    /// (D6) quando um ACK não chega na janela, `InvalidShape` (D5) quando o
+    /// ACK vem com outro tamanho ou o slot é inválido.
+    pub fn upload_snap_tone(&self, slot: u8, model: &[u8]) -> Result<SnapToneUploadReport, String> {
+        let (tx, rx) = mpsc::channel();
+        self.tx
+            .send(Request::UploadSnapTone {
+                slot,
+                model: model.to_vec(),
+                reply: tx,
+            })
+            .map_err(|_| "actor de device não está mais rodando".to_string())?;
+        rx.recv()
+            .map_err(|_| "actor morreu no upload de SnapTone".to_string())?
+    }
+
     /// Envia Shutdown e agrega a thread (idempotente).
     pub fn shutdown(&self) {
         let _ = self.tx.send(Request::Shutdown);
@@ -493,6 +540,36 @@ mod tests {
             assert!(h.starts_with("F0") && h.ends_with("F7"), "SysEx: {h}");
         }
         assert!(actor.drain_pushes().expect("2ª").is_empty());
+        actor.shutdown();
+    }
+
+    /// Upload de SnapTone pelo actor: um modelo de 19 bytes é UM bloco, e um
+    /// bloco não paga settle (§4 — não há operação seguinte). Por isso este
+    /// teste é rápido mesmo com o piso de 250 ms em produção: o caminho real
+    /// do actor é exercitado sem transformar o teste em 36 s.
+    #[test]
+    fn upload_de_snap_tone_via_actor_fecha_o_stream() {
+        let actor = DeviceActor::spawn(MockDevice::new().expect("mock"));
+        let rel = actor
+            .upload_snap_tone(2, &[0xABu8; 19])
+            .expect("upload de 1 bloco");
+        assert_eq!(rel.slot, 2);
+        assert_eq!(rel.blocks, 1);
+        assert_eq!(rel.acks, 1, "ACK de 16B por bloco (§5)");
+        assert_eq!(rel.bytes, 19);
+        actor.shutdown();
+    }
+
+    /// Slot fora de 1..=5 é erro TIPADO até a borda do actor — e não um
+    /// "enviado com sucesso" para um slot que não existe no aparelho
+    /// (`SnapTone1..5`).
+    #[test]
+    fn upload_com_slot_invalido_e_erro() {
+        let actor = DeviceActor::spawn(MockDevice::new().expect("mock"));
+        let e = actor
+            .upload_snap_tone(6, &[0xABu8; 19])
+            .expect_err("slot 6 nao existe");
+        assert!(e.contains("1..=5"), "a mensagem diz o intervalo: {e}");
         actor.shutdown();
     }
 

@@ -110,6 +110,32 @@ pub struct IrUploadReport {
     pub acks: usize,
 }
 
+/// Settle mínimo entre duas operações de SnapTone, em ms (PROTOCOL §4,
+/// regra 1 adotada da comunidade: *"settle ≥ 0,25 s entre operações — 0,15 s
+/// corrompe; loop tight **trava a pedaleira**"*).
+///
+/// O valor não é afinação: é o piso que a comunidade mediu. Subir é seguro
+/// (o upload só fica mais lento); descer é o que corrompe o stream.
+pub const SNAP_TONE_SETTLE_MS: u64 = 250;
+
+/// Relatório do upload de SnapTone (§5).
+///
+/// `Serialize` porque este relatório é o que volta pela ponte IPC: o command
+/// do Tauri devolve o valor como está e o TS lê `blocks`/`acks`. Derivando o
+/// serde aqui, no crate que compila nas três plataformas da matriz, o contrato
+/// do fio é testado no CI comum em vez de depender de uma compilação Windows.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct SnapToneUploadReport {
+    /// Slot de destino (1..=5 — `SnapTone1..5`).
+    pub slot: u8,
+    /// Blocos enviados (= `ceil(len / 19)`).
+    pub blocks: usize,
+    /// ACKs de 16B validados — um por bloco (§5).
+    pub acks: usize,
+    /// Bytes do modelo convertido que foram para o fio.
+    pub bytes: usize,
+}
+
 /// FSM de sessão — genérica sobre o transporte (ADR-4/ADR-6).
 pub struct Session<T: DeviceTransport> {
     transport: T,
@@ -589,6 +615,121 @@ impl<T: DeviceTransport> Session<T> {
             chunks: chunks.len(),
             acks,
         })
+    }
+
+    /// SnapTone/NAM (§5): stream de blocos `cmd=0x92` com o **ACK de 16B de
+    /// cada bloco** esperado antes do próximo (§2/§5), e settle de
+    /// [`SNAP_TONE_SETTLE_MS`] entre operações (§4, regra 1 — loop tight
+    /// trava a pedaleira).
+    ///
+    /// `model` são os bytes do arquivo **já convertido** (`.clo`), nunca um
+    /// `.nam`: a conversão acontece no desktop (strings do Suite em
+    /// `exe_strings.txt`) e o crate transporta bytes, não fabrica modelo.
+    ///
+    /// `slot` é 1..=5 (`SnapTone1..5`, §5) e é validado aqui — mas ele **não
+    /// vai no fio**: o layout de bloco evidenciado (`[crc, 0x92, index,
+    /// length, payload]`, §2) não tem campo de slot, e inventar um comando de
+    /// seleção seria inventar campo sem captura (R1). O relatório carrega o
+    /// slot para a UI mostrar o que ela pediu; quando uma captura de campo
+    /// mostrar como o slot é escolhido, é um comando novo ao lado deste
+    /// método, e nada aqui precisa mudar.
+    ///
+    /// # Erros
+    /// [`ProtocolError::InvalidShape`] (slot fora de 1..=5, modelo vazio),
+    /// [`ProtocolError::Timeout`] (D6 — ACK que não veio na janela ADR-3) e
+    /// [`ProtocolError::DeviceGone`] (transporte).
+    pub fn upload_snap_tone(
+        &mut self,
+        slot: u8,
+        model: &[u8],
+    ) -> Result<SnapToneUploadReport, ProtocolError> {
+        self.upload_snap_tone_settled(slot, model, Duration::from_millis(SNAP_TONE_SETTLE_MS))
+    }
+
+    /// O upload de [`Session::upload_snap_tone`] com o **settle injetado**.
+    ///
+    /// Existe separado porque o settle é caro de propósito: um modelo de
+    /// ~2,7 KB são 143 blocos, e 143 × 250 ms dão ~36 s por upload. Um teste
+    /// que pagasse esse relógio provaria que o tempo passa, não que a FSM
+    /// envia a ordem certa — e o contrato que importa aqui é a ORDEM dos
+    /// blocos e o ACK de cada um. O piso de §4 tem prova própria
+    /// (`tests/snap_tone_upload.rs::o_settle_entre_blocos_e_real`), que mede
+    /// o tempo de verdade com um settle pequeno mas não nulo.
+    pub fn upload_snap_tone_settled(
+        &mut self,
+        slot: u8,
+        model: &[u8],
+        settle: Duration,
+    ) -> Result<SnapToneUploadReport, ProtocolError> {
+        if slot == 0 || slot > crate::snap_tone::SLOTS {
+            return Err(ProtocolError::InvalidShape {
+                expected: format!(
+                    "slot 1..={} (§5: SnapTone1..{})",
+                    crate::snap_tone::SLOTS,
+                    crate::snap_tone::SLOTS
+                ),
+                got: format!("{slot}"),
+            });
+        }
+        let blocos = crate::snap_tone::blocks(model)?;
+        let mut acks = 0usize;
+        for (i, (index, payload)) in blocos.iter().enumerate() {
+            let wire = crate::snap_tone::wire_block(*index, payload)?;
+            self.transport
+                .send_raw(&wire, WireKind::Write)
+                .map_err(tx_err)?;
+            // D1: o ACK de 16B é DA OPERAÇÃO — antes do próximo bloco, senão
+            // a fila do device acumula o stream inteiro e o settle vira a
+            // única proteção contra o buffer do driver estourar.
+            let ack = self.wait_snap_ack()?;
+            crate::snap_tone::check_ack(&ack)?;
+            acks += 1;
+            // Settle depois do ACK, e só entre operações: depois do ÚLTIMO
+            // bloco não há operação seguinte, e esperar ali seria 250 ms de
+            // delay devolvidos ao dono sem nenhum ganho.
+            if i + 1 < blocos.len() {
+                std::thread::sleep(settle);
+            }
+        }
+        Ok(SnapToneUploadReport {
+            slot,
+            blocks: blocos.len(),
+            acks,
+            bytes: model.len(),
+        })
+    }
+
+    /// Espera o ACK de 16B de um bloco de SnapTone (§5).
+    ///
+    /// **O filtro D7 aqui é o framing, não o endpoint.** A família responde no
+    /// framing dela (`F0` + nibbles + `F7`) e o envelope do GP-100 começa com
+    /// `F0 21 …` — `decode_envelope` exige o cabeçalho de 8B, que a família
+    /// não carrega, então os dois formatos se separam sem ambiguidade (ver
+    /// [`crate::snap_tone::eh_familia`]). Tudo que decodifica como envelope
+    /// GP-100 é push de endpoint e vai para o backlog como sempre (D7); o que
+    /// sobra é o ACK da operação corrente.
+    fn wait_snap_ack(&mut self) -> Result<Vec<u8>, ProtocolError> {
+        loop {
+            let msg = self
+                .transport
+                .recv_raw(Duration::from_millis(TX_TIMEOUT_MS))
+                .map_err(|e| match e {
+                    TransportError::RecvTimeout { timeout_ms } => ProtocolError::Timeout {
+                        timeout_ms,
+                        addr: "snapTone/ack".into(),
+                    },
+                    TransportError::DeviceGone { why } => ProtocolError::DeviceGone { why },
+                    other => ProtocolError::InvalidShape {
+                        expected: "transporte saudável".into(),
+                        got: other.to_string(),
+                    },
+                })?;
+            if crate::golden::decode_envelope(&msg).is_ok() {
+                self.backlog.push(msg); // D7: push da família GP-100, não é o ACK
+                continue;
+            }
+            return crate::snap_tone::ack_body(&msg);
+        }
     }
 
     /// Tabela dos 20 User IRs: req em `12001002`; o by-len de
