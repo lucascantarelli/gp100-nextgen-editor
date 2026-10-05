@@ -195,6 +195,14 @@ completamente funcional"):** importar/gerar a lista REAL dos 99 presets de fábr
   `analysis/dump_fx_map.py`.
 - ⚠️ `control_count` no fxData quebrou o tsc (removido).
 - ⚠️ Crate `gp100-ui` NÃO compila no host (MSVC ausente — ADR-7); CI é a prova.
+- ⚠️ **Coluna estreita + `flex` sem `flexWrap` = o RÓTULO encolhe, não o botão.**
+  A nota do rodapé da biblioteca (`flex: 0 1 auto`) encolheu para ~100px e o
+  texto de 4 palavras virou uma coluna de 4 linhas — o rodapé cresceu 30px e,
+  como a biblioteca e o pedalboard dividem a fileira por `stretch`, o
+  pedalboard desceu junto. A `flexWrap` devolveu o rótulo à largura inteira
+  (linha própria) e o rodapé ficou com 61px em vez de 91: **o layout ficou
+  MENOR e legível**. O sintoma não é "estourou", é "ficou esquisito de
+  alto" — e ele aparece nas baselines visuais, não em nenhum assert.
 
 ### 3.4 Afinador do palco (issue #8 — refinamento profissional)
 - **Botão do monitor é VISUAL**: ícone ♪ + LED verde (ligado) / vermelho
@@ -498,6 +506,45 @@ o retrato do PALCO, não do preset de fábrica.
   o UA só aplica `border-box` a `<select>`; `.gp-num` ganhou `box-sizing`, com
   assert e2e), redundância do looper removida (estado da fita num lugar só),
   navegação ◀ ▶ do manual implementada e testada, Help verificado por e2e.
+
+### 7.8 Gestor de tons SnapTone/NAM (issue #25)
+
+> O `.nam` é convertido pelo **Valeton Suite** para `.clo` (`analysis/exe_strings.txt`:
+> `Choose a nam file to open it` → `*.nam` → `nam_output_clo.wav` +
+> `nam_output_wav.wav`) e o motor NAM mora no exe da Valeton — o app importa o
+> `.clo` JÁ CONVERTIDO e não finge converter o que não converte.
+
+**O botão `∿` mora no RODAPÉ DA BIBLIOTECA, não na navbar.** A navbar tem ~11px
+de folga em 1280 e qualquer botão novo a estoura (overflow horizontal — o e2e
+de responsivo pegou). O rodapé já é a casa das ações de arquivo (export/import da
+biblioteca) e um `.clo` é exatamente isso: conteúdo que o dono importa para o
+arquivo. O botão é de ÍCONE porque a coluna tem 248px e o texto "SnapTone"
+empurraria os outros botões para uma segunda linha (medido: rodapé 91px → 61px).
+
+**O aviso do CAB é visível e o envio pede confirmação.** O release note da
+Valeton (`analysis/release_note.txt`) diz que o SnapTone **desliga o CAB** do
+aparelho. O `release_note.txt` descrever o modo não é o mesmo que o aparelho
+fazer isso: por isso o modal mostra o aviso e o envio passa por um `confirm`
+antes do primeiro bloco — um stream de 143 blocos que derruba o sinal do
+gabinete sem o dono pedir seria o app mentindo sobre o que faz.
+
+**O A/B toca o WAV do Suite, não o modelo.** O app não reimplementa o motor NAM
+(`BLOCKERS.md`), então o preview (`nam_output_wav.wav`) é o que dá para ouvir;
+o botão fica desabilitado COM o motivo quando o tom não tem áudio — que é o
+caso normal (o Suite só exporta o WAV se pedirem).
+
+**Contrato do fio (§5):** 5 slots (`SnapTone1..5`), blocos de 19B com ACK de
+16B por bloco e settle de 250ms entre eles; o id do tom no banco é o **CRC-32
+do conteúdo** nos DOIS lados (Rust e TS) — reimportar o mesmo `.clo` atualiza
+o registro, e uma colisão de CRC ganha sufixo `-2` em vez de sobrescrever outro
+arquivo.
+
+**As 18 baselines de `board-*`/`lib-*` foram renovadas** (o rodapé ficou 30px
+mais baixo, o que move os dois painéis por `stretch`). Renovadas pelo caminho
+documentado: `--update-snapshots=all` local (só `win32`) + input
+`update-snapshots` do workflow para as de `linux`. `looper-*`, `topbar-*` e
+`erro-*` NÃO foram tocadas — o que prova que a mudança ficou no rodapé e não
+na casca.
 
 ---
 

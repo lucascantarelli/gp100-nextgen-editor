@@ -110,8 +110,14 @@ export class CommandTimeoutError extends Error {}
  * Agora a política é um PARÂMETRO OBRIGATÓRIO: o compilador cobra a decisão em
  * toda chamada nova. E `once` exige `reason`, porque "não repetir" sem motivo
  * escrito é exatamente o comentário que o próximo author apaga sem pensar.
+ *
+ * **Exportada para a porta de tons (#25),** que precisa do MESMO tipo com um
+ * timeout diferente: o envio de SnapTone leva ~36 s (143 blocos × 250 ms do
+ * §4), e o timeout global de `runCommand` (8 s) o declararia falhado logo no
+ * começo. A porta do envio declara a política e o prazo, e o motivo fica escrito
+ * no mesmo lugar da decisão.
  */
-type CommandPolicy =
+export type CommandPolicy =
   /** Repete até `attempts` vezes com backoff. Só para operation IDEMPOTENTE. */
   | { readonly kind: "retry"; readonly attempts: number }
   /** Uma tentativa só. `reason` é obrigatório e aparece no log de debug. */

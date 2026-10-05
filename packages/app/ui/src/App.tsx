@@ -40,6 +40,7 @@ import { useBoot, BOOT_STAGE_LABEL } from "./hooks/useBoot";
 import { usePushLog } from "./hooks/usePushLog";
 import { useGlobalShortcuts } from "./hooks/useGlobalShortcuts";
 import { useStage } from "./hooks/useStage";
+import { useTones } from "./hooks/useTones";
 import { usePrefs } from "./hooks/usePrefs";
 import { TopBar } from "./components/TopBar";
 import { BootProgressBar } from "./components/BootProgressBar";
@@ -49,6 +50,7 @@ import { Stage } from "./components/Stage";
 import { SettingsModal } from "./components/SettingsModal";
 import { PedalModal } from "./components/PedalModal";
 import { LooperPanel } from "./components/LooperPanel";
+import { SnapTonePanel } from "./components/SnapTonePanel";
 import { PushLog } from "./components/PushLog";
 import { MSG } from "./i18n/messages";
 
@@ -73,6 +75,11 @@ export default function App() {
   // por isso é um useCallback vazio de dependências.
   const onPresetChanged = useCallback(() => setEditing(null), []);
   const stage = useStage(onPresetChanged);
+  // O gestor de tons (#25) tem o estado no hook inteiro: a lista, o A/B e o
+  // envio em andamento vivem la porque sao coisas que sobrevivem ao fechar e
+  // reabrir a tela — perder o "enviando…" ao clicar fora mandaria um segundo
+  // stream para o aparelho.
+  const tones = useTones();
   const {
     pp,
     presetName,
@@ -232,6 +239,7 @@ export default function App() {
             onOpenUser={(id, index) => void openUserPatch(id, index)}
             onSave={saveUserPatch}
             onDelete={deleteUserPatch}
+            onOpenTones={tones.abrir}
           />
           <Stage
             board={board}
@@ -261,6 +269,7 @@ export default function App() {
       </footer>
 
       <SettingsModal open={settingsOpen} general={general} onChangeGeneral={onChangeGeneral} onClose={() => setSettingsOpen(false)} />
+      {tones.aberto && <SnapTonePanel tones={tones} />}
       <PedalModal
         slot={editing == null ? null : (board?.slots.find((s) => s.slot === editing) ?? null)}
         engineer={general.engineerMode}

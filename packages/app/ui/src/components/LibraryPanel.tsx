@@ -14,6 +14,12 @@
  *
  * Largura: 248px (era 300px na #11) — o pedalboard precisa do espaço; as
  * linhas encolhem por ellipsis e a lista rola por dentro.
+ *
+ * **O botão do SnapTone mora AQUI, e não na navbar.** O primeiro lugar testado
+ * foi a navbar, ao lado do ⚙ — e o e2e de responsivoOeItava: a navbar tem
+ * ~11px de folga em 1280, então QUALQUER botão novo a estoura. O rodapé já é a
+ * casa das ações de arquivo (exportar/importar a biblioteca), e um `.clo` é
+ * exatamente isso: conteúdo que o dono importa para o arquivo.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
@@ -38,6 +44,8 @@ interface Props {
   onSave: (name: string) => void;
   /** apaga um patch de usuário pelo id */
   onDelete: (id: string) => void;
+  /** abre o gestor de tons SnapTone/NAM (#25) */
+  onOpenTones: () => void;
 }
 
 /* módulo elevado do sistema (`gp-surface`): luz e sombra pelos tokens */
@@ -143,7 +151,13 @@ const saveBtn: CSSProperties = {
 };
 /* botões de arquivo (export/import): mesma família do salvar, sem o destaque */
 const ioBtn: CSSProperties = { ...tab, padding: "4px 8px", minHeight: 32, border: "1px solid transparent", whiteSpace: "nowrap" };
-const ioRow: CSSProperties = { display: "flex", gap: "var(--space-4)", justifyContent: "space-between", alignItems: "center" };
+/* rodapé: números à esquerda, botões de arquivo à direita. `flexWrap` é uma
+   rede de segurança, não o caminho normal: sem ele, um quarto botão faria o
+   rodapé invadir o pedalboard e o "Salvar" ficar embaixo dele (o e2e R2b pegou
+   isso no clique). O botão do SnapTone é ícone justamente para não precisar
+   dessa linha extra. */
+const ioRow: CSSProperties = { display: "flex", flexWrap: "wrap", gap: "var(--space-4)", justifyContent: "space-between", alignItems: "center" };
+const ioGroup: CSSProperties = { display: "flex", flexWrap: "wrap", gap: "var(--space-4)", justifyContent: "flex-end" };
 const note: CSSProperties = { fontSize: "var(--text-xs)", color: "var(--text-muted)", margin: 0, padding: "var(--space-4)" };
 const empty: CSSProperties = { color: "var(--text-muted)", fontSize: "var(--text-sm)", padding: "var(--space-8)" };
 /* banner de erro do ARQUIVO: a barra do App é a do device, esta é do banco —
@@ -197,6 +211,7 @@ export function LibraryPanel({
   onOpenUser,
   onSave,
   onDelete,
+  onOpenTones,
 }: Props) {
   const [draft, setDraft] = useState("");
   /** Relato do import: contabilidade ou recusa. `null` = nada aconteceu. */
@@ -392,7 +407,20 @@ export function LibraryPanel({
         <p style={note} role="status">
           {lib.stats != null ? MSG.libStats(lib.stats.total, lib.stats.user, lib.stats.schema) : ""}
         </p>
-        <div style={{ display: "flex", gap: "var(--space-4)" }}>
+        <div style={ioGroup}>
+          {/* ÍCONE, não texto: a coluna tem 248px e o texto "SnapTone" empurrava
+              os botões para uma segunda linha — o rodapé crescia, a coluna
+              esticava por `stretch` e o pedalboard (que divide a fileira com a
+              biblioteca) descia alguns pixels. O nome do tom fica no
+              `aria-label`/`title`, como o ⚙ da navbar. */}
+          <button
+            style={{ ...ioBtn, minWidth: 32, padding: "4px 6px" }}
+            aria-label={MSG.toneBtnAria}
+            title={MSG.toneBtnAria}
+            onClick={onOpenTones}
+          >
+            ∿
+          </button>
           <button
             style={ioBtn}
             aria-label={MSG.libExportAria}
