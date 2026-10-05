@@ -17,6 +17,7 @@
 
 mod actor;
 mod commands;
+mod ir_commands;
 mod library_commands;
 mod snap_tone_commands;
 
@@ -140,6 +141,15 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
             snap_tone_commands::tone_assign_slot,
             snap_tone_commands::tone_delete,
             snap_tone_commands::tone_send,
+            ir_commands::ir_board,
+            ir_commands::ir_stats,
+            ir_commands::ir_import,
+            ir_commands::ir_get,
+            ir_commands::ir_do_slot,
+            ir_commands::ir_rename,
+            ir_commands::ir_assign_slot,
+            ir_commands::ir_delete,
+            ir_commands::ir_send,
         ])
         .build(tauri::generate_context!())?;
 

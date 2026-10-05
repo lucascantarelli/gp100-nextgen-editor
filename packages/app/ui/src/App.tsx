@@ -41,6 +41,8 @@ import { usePushLog } from "./hooks/usePushLog";
 import { useGlobalShortcuts } from "./hooks/useGlobalShortcuts";
 import { useStage } from "./hooks/useStage";
 import { useTones } from "./hooks/useTones";
+import { useIrs } from "./hooks/useIrs";
+import { useContentMenu } from "./hooks/useContentMenu";
 import { usePrefs } from "./hooks/usePrefs";
 import { TopBar } from "./components/TopBar";
 import { BootProgressBar } from "./components/BootProgressBar";
@@ -51,6 +53,7 @@ import { SettingsModal } from "./components/SettingsModal";
 import { PedalModal } from "./components/PedalModal";
 import { LooperPanel } from "./components/LooperPanel";
 import { SnapTonePanel } from "./components/SnapTonePanel";
+import { IrLabPanel } from "./components/IrLabPanel";
 import { PushLog } from "./components/PushLog";
 import { MSG } from "./i18n/messages";
 
@@ -80,6 +83,14 @@ export default function App() {
   // reabrir a tela — perder o "enviando…" ao clicar fora mandaria um segundo
   // stream para o aparelho.
   const tones = useTones();
+  // O laboratorio de IRs (#24) tem o mesmo dono-do-estado: a lista do dono, a
+  // tabela que o APARELHO relata e o envio em andamento (que pode levar
+  // minutos) vivem no hook porque precisam sobreviver ao fechar e reabrir a
+  // tela — perder o "enviando…" mandaria um segundo stream para o aparelho.
+  const irs = useIrs();
+  // A PORTA do conteudo (#24/#25) fica no hook porque e ela que decide qual das
+  // duas telas abre: um botao na navbar estouraria o overflow em 1280.
+  const conteudo = useContentMenu({ tones, irs });
   const {
     pp,
     presetName,
@@ -239,7 +250,7 @@ export default function App() {
             onOpenUser={(id, index) => void openUserPatch(id, index)}
             onSave={saveUserPatch}
             onDelete={deleteUserPatch}
-            onOpenTones={tones.abrir}
+            onOpenContent={conteudo.abrir}
           />
           <Stage
             board={board}
@@ -270,6 +281,8 @@ export default function App() {
 
       <SettingsModal open={settingsOpen} general={general} onChangeGeneral={onChangeGeneral} onClose={() => setSettingsOpen(false)} />
       {tones.aberto && <SnapTonePanel tones={tones} />}
+      {irs.aberto && <IrLabPanel irs={irs} />}
+      {conteudo.node}
       <PedalModal
         slot={editing == null ? null : (board?.slots.find((s) => s.slot === editing) ?? null)}
         engineer={general.engineerMode}

@@ -20,6 +20,13 @@
  * ~11px de folga em 1280, então QUALQUER botão novo a estoura. O rodapé já é a
  * casa das ações de arquivo (exportar/importar a biblioteca), e um `.clo` é
  * exatamente isso: conteúdo que o dono importa para o arquivo.
+ *
+ * **UM botão para DUAS telas (#25 e #24).** O rodapé tem 248px e três botões
+ * (este + exportar + importar); um quarto estouraria a linha, o rodapé viraria
+ * duas fileiras, a coluna cresceria por `stretch` e o pedalboard desceria junto
+ * — foi o que a #25 custou em 18 baselines visuais. O botão abre o
+ * [`ContentMenu`](./ContentMenu), que leva ao gestor de tons OU ao laboratório
+ * de IRs: as duas telas guardam conteúdo do dono no arquivo dele.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
@@ -44,8 +51,8 @@ interface Props {
   onSave: (name: string) => void;
   /** apaga um patch de usuário pelo id */
   onDelete: (id: string) => void;
-  /** abre o gestor de tons SnapTone/NAM (#25) */
-  onOpenTones: () => void;
+  /** abre a porta do conteúdo do dono: tons SnapTone (#25) ou IRs (#24) */
+  onOpenContent: () => void;
 }
 
 /* módulo elevado do sistema (`gp-surface`): luz e sombra pelos tokens */
@@ -211,7 +218,7 @@ export function LibraryPanel({
   onOpenUser,
   onSave,
   onDelete,
-  onOpenTones,
+  onOpenContent,
 }: Props) {
   const [draft, setDraft] = useState("");
   /** Relato do import: contabilidade ou recusa. `null` = nada aconteceu. */
@@ -411,13 +418,13 @@ export function LibraryPanel({
           {/* ÍCONE, não texto: a coluna tem 248px e o texto "SnapTone" empurrava
               os botões para uma segunda linha — o rodapé crescia, a coluna
               esticava por `stretch` e o pedalboard (que divide a fileira com a
-              biblioteca) descia alguns pixels. O nome do tom fica no
+              biblioteca) descia alguns pixels. O nome fica no
               `aria-label`/`title`, como o ⚙ da navbar. */}
           <button
             style={{ ...ioBtn, minWidth: 32, padding: "4px 6px" }}
-            aria-label={MSG.toneBtnAria}
-            title={MSG.toneBtnAria}
-            onClick={onOpenTones}
+            aria-label={MSG.irBtnAria}
+            title={MSG.irBtnAria}
+            onClick={onOpenContent}
           >
             ∿
           </button>

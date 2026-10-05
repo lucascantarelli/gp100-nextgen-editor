@@ -402,6 +402,58 @@ export const ZH: DictPatch = {
   toneStats: (total: number, slots: number, usados: number) =>
     `${total} 个音色 · ${usados}/${slots} 个槽位使用中`,
 
+  /* ── IR 实验室 (#24)：用户的 `.ir` 文件与设备的 20 个槽位 ── */
+  errIrRead: "无法读取 IR —— 请重试。",
+  errIrWrite: "无法保存 IR —— 文件没有响应。",
+  errIrImport: "IR 未导入 —— 没有写入任何内容。",
+  errIrSlot: "无法分配槽位。",
+  errIrSend: "发送到设备失败。",
+  errIrDevice: "无法读取设备的 IR 表。",
+
+  irBtnAria: "打开你的内容（SnapTone 音色与 IR 实验室）",
+
+  /* 打开两个内容页面的入口。选项直接用页面的标题（`toneTitle`/`irTitle`）：
+     用户在菜单里读到的名字，和他打开的面板顶部看到的，是同一个。 */
+  contentMenuTitle: "内容",
+  contentMenuHint: "你在应用中保存并发送到设备的文件。",
+  contentMenuClose: "关闭",
+  irTitle: "IR 实验室",
+  irIntro: "导入踏板所有者导出的 .ir 文件。设备有 20 个 User IR 槽位；当前已录制的内容见下方。",
+  irDeviceTitle: "设备上的内容",
+  irDeviceHint: "直接读取设备（20 个槽位）。这里没有的槽位可能是在硬件面板上写入的 —— 因此发送到已占用的槽位前会先确认。",
+  irDeviceAria: "设备上的 User IR 槽位",
+  irDeviceEmpty: "空",
+  irDeviceSlotTitle: (slot: number, nombre: string) => `槽位 ${slot}：${nombre}`,
+  irDeviceHas: (nombre: string) => `设备上：${nombre}`,
+  irReadDevice: "重新读取设备",
+  irReadingDevice: "读取中……",
+  irNamePlaceholder: "IR 名称",
+  irNameAria: "导入的 IR 名称",
+  irImport: "导入 .ir",
+  irImportAria: "从磁盘导入 .ir 文件",
+  irEmpty: "尚未导入任何 IR。",
+  irListAria: "已导入的 IR",
+  irRowTitle: (nombre: string, kb: number) => `${nombre} —— ${kb} KB`,
+  irSlotNone: "无槽位",
+  irSlotLabel: (n: number) => `槽位 ${n}`,
+  irSlotAria: (n: number) => `设备的槽位 ${n}`,
+  irRenameAria: "重命名 IR",
+  irSend: "发送到设备",
+  irSendAria: (nombre: string) => `将“${nombre}”发送到设备槽位`,
+  irSending: "发送中……",
+  irNotEnviable: "设备不会发送此文件：大小必须是 15 字节的整数倍。",
+  irOverwriteTitle: "该槽位已有 IR",
+  irOverwriteText: (nombre: string, slot: number) => `设备的槽位 ${slot} 中已有“${nombre}”。发送到这里会覆盖已录制的 IR。`,
+  irOverwriteEmpty: "该设备槽位为空。",
+  irDeleteAria: (nombre: string) => `从库中删除 IR“${nombre}”`,
+  irDelete: "删除",
+  irDeleteWarnTitle: "仅删除此处",
+  irDeleteWarnText: "这会删除本编辑器文件中的 IR。设备上已录制的内容仍然保留：擦除设备槽位的命令尚不存在。",
+  irCancel: "取消",
+  irSent: (chunks: number, bytes: number) => `已发送：${chunks} 个 15 字节块，共 ${bytes} 字节，每块一个 ACK。`,
+  irStats: (total: number, slots: number, usados: number) =>
+    `${total} 个 IR · ${usados}/${slots} 个槽位使用中`,
+
   errRetry: "重试",
   errRetryAria: "重试失败的操作",
 };

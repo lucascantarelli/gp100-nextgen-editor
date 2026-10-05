@@ -110,7 +110,7 @@ fn cada_migration_e_uma_etapa_e_uma_transacao() {
     for v in 1..=gp100_library::migrations::latest() {
         let sql = sql_de(v);
         assert!(
-            sql.contains("preset") || sql.contains("snap_tone"),
+            sql.contains("preset") || sql.contains("snap_tone") || sql.contains("ir_lib"),
             "migration {v} não mexe em nenhuma tabela conhecida: {sql}"
         );
     }
@@ -193,4 +193,55 @@ fn limite_do_slot_no_sql_bate_com_o_core() {
         );
         assert!(r.is_err(), "o CHECK do banco aceitou o slot {slot}");
     }
+}
+
+/// O mesmo contrato para o IR — e com a faixa INVERTIDA, que é onde o erro
+/// seria sneaky: `<ppIRInfo0..19>` (§13.12) vai de **0** a 19, e um
+/// `BETWEEN 1 AND 5` copiado do SnapTone passaria num teste que só contasse
+/// quantos slots existem, recusando na verdade o PRIMEIRO slot do aparelho.
+#[test]
+fn limite_do_slot_do_ir_no_sql_bate_com_o_core() {
+    let sql = gp100_library::migrations::sql_da(5).expect("migration 5 (IRs)");
+    let esperado = format!("slot BETWEEN 0 AND {}", gp100_library::ir::SLOTS - 1);
+    assert!(
+        sql.contains(&esperado),
+        "a migration 5 deveria fechar `{esperado}`: {sql}"
+    );
+    let lib = Library::open_in_memory().expect("banco migrado");
+    // O 0 ENTRA: é o slot 0 do aparelho. E o 19 também.
+    for slot in [0i64, 19] {
+        lib.conn()
+            .execute(
+                "INSERT INTO ir_lib (id,name,bytes,crc32,slot,saved_at)
+                 VALUES (?1,'x',30,1,?2,'2026-01-01T00:00:00Z')",
+                rusqlite::params![format!("ok{slot}"), slot],
+            )
+            .expect("slot valido aceito");
+    }
+    for slot in [-1i64, 20, 255] {
+        let r = lib.conn().execute(
+            "INSERT INTO ir_lib (id,name,bytes,crc32,slot,saved_at)
+             VALUES ('x','x',30,1,?1,'2026-01-01T00:00:00Z')",
+            [slot],
+        );
+        assert!(r.is_err(), "o CHECK do banco aceitou o slot {slot}");
+    }
+}
+
+/// O IR guardado sai BYTE A BYTE e some junto com a linha.
+///
+/// O blob de IR é o conteúdo mais pesado que o app guarda (centenas de KB por
+/// arquivo). Deixar o blob órfão é o tipo de lixo que só aparece quando o
+/// dono tenta importar de novo e o banco cresce até encher — e ele não tem
+/// como limpar pela UI.
+#[test]
+fn o_blob_do_ir_some_com_a_linha() {
+    let lib = Library::open_in_memory().expect("banco migrado");
+    let linha = lib
+        .import_ir("Vintage 4x12", &[0x42u8; 45], "2026-10-05T12:00:00Z")
+        .expect("importa");
+    assert_eq!(lib.blob_ir(&linha.id).unwrap().unwrap().len(), 45);
+    assert!(lib.apagar_ir(&linha.id).unwrap());
+    assert_eq!(lib.blob_ir(&linha.id).unwrap(), None, "o blob foi junto");
+    assert_eq!(lib.irs().unwrap().len(), 0);
 }
