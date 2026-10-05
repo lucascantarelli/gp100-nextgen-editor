@@ -1,7 +1,22 @@
 # 🎛️ H2_CHECKLIST — Gate de hardware: escrita real dos 3 fluxos capturados
 
-> **Status:** ⏳ aguardando a pedaleira + owner · **Última revisão:** 2026-10-04
+> **Status:** ⏳ aguardando a pedaleira + owner · **Última revisão:** 2026-10-05
 > · **Responsáveis:** owner no hardware
+>
+> **Kit de campo PRONTO (05/10, issue #22):** runbook `scripts/h2_field.sh
+> rehearsal|field` · **juiz da Fase C `scripts/h2_compare.py`** (confere os
+> invariantes do §13 nos 3 fluxos e imprime o que o DISPLAY deve mostrar) ·
+> referência `analysis/h2_reference/` que ancora a tabela de formas · gate de
+> CI `h2_compare --self-check`. O `rehearsal` sai com 0 contra o mock.
+>
+> **O QUE A #22 CORRIGIU, e era um buraco no gate:** `set-param` e `save`
+> imprimiam os frames e diziam "(nada enviado — dry-run)" **mesmo sem o
+> `--dry-run`** — nenhum dos dois chamava a `Session`. So o `upload-ir`
+> (F3) enviava de verdade. Os dois fluxos que o §3 e o §4 mandam rodar em
+> campo seriam vazios: o `--log` ficava com 0 bytes, o operador leria
+> "decodificado: …" no terminal e acreditaria que gravou. O `--dry-run` agora
+> e o unico caminho que nao envia, e ha teste contando os frames que
+> sairam pelo transporte.
 >
 > ⚠️ **O QUE ESTE GATE É.** A escrita real no GP-100 é a única operação do
 > projeto que **muda o estado de um aparelho do usuário**. Tudo o resto — boot,
@@ -49,10 +64,13 @@ por FUNC recusaria o próprio caminho de leitura.
 ## 1. Pré-requisitos (TODOS antes de ligar a pedaleira)
 
 **Software:**
-- [ ] Binário de campo do H2 compilado (`--features real-device,write-verified`)
-- [ ] `gp100-cli --help` mostra `upload-ir` e cita `write-verified`
-- [ ] `gp100-cli set-param ... ` **sem** `--dry-run` responde com a recusa do
+- [x] Binário de campo do H2 compilável (`--features real-device,write-verified`)
+- [x] `gp100-cli --help` mostra `upload-ir` e cita `write-verified`
+- [x] `gp100-cli set-param ... ` **sem** `--dry-run` responde com a recusa do
       ADR-5 (e NÃO envia) — prova de que a trava funciona neste binário
+- [x] **Runbook** `scripts/h2_field.sh` (rehearsal | field) e **juiz**
+      `scripts/h2_compare.py` (Fase C)
+- [x] `rehearsal` contra o mock sai com **0** nos 3 fluxos (kit pronto)
 - [ ] CI verde no commit do binário
 
 **Antes de qualquer escrita, com o device ligado:**
@@ -66,6 +84,13 @@ por FUNC recusaria o próprio caminho de leitura.
 ---
 
 ## 2. Os 3 fluxos — regras que valem para todos
+
+> **O runbook impõe a regra 1 e a 3.** `h2_field.sh field` roda UM fluxo por
+> vez e **para** entre eles, e exige o `ok` digitado por uma pessoa — por
+> pipe ele **recusa**, porque o gate de escrita não pode rodar sem alguém
+> olhando o aparelho. O `--log` é obrigatório em todo fluxo e a porta fecha
+> entre eles (regra 3), porque deixar aberta enquanto se pensa é o que ocupa
+> o device para o próximo programa.
 
 1. **UM por vez.** Não rode dois fluxos na mesma sessão sem ler o display entre
    eles.
@@ -142,7 +167,42 @@ upload é a **duplicação do último chunk** (idx `0x226`), não um commit.
 
 ---
 
-## 6. Critérios de saída (DoD do H2)
+## 6. A Fase C é automática (o juiz `h2_compare.py`)
+
+O que o fio **pode** provar, sozinho, é o invariante do §13 — e é isso que o
+juiz confere:
+
+| Fluxo | Invariante conferido | Origem |
+|---|---|---|
+| F1 `set-param` | 1 frame OUT, ZERO IN; o endereço carrega o slot da cadeia 1..=9 | §13.11, D4 |
+| F2 `save` | 9 frames OUT **na ordem** (5 do meta + op0, op0, op1, op1), ZERO IN | §13.12, D3 |
+| F3 `upload-ir` | 1 BEGIN, N chunks, **N ACKs** e a duplicação do último chunk | §13.7 |
+
+O que o fio **não** pode provar — porque os dois primeiros são fire-and-forget
+e o §13 não tem read-back — é o efeito no aparelho. Por isso o juiz **imprime
+o valor que o display DEVERIA mostrar** (`99.5`, o nome `'H2 TESTE'`, o slot
+`0`): a verificação do §2.5 vira uma comparação, e não um "pareceu que".
+
+```bash
+python3 scripts/h2_compare.py <dir-da-sessao>            # Fase C
+python3 scripts/h2_compare.py <dir-da-sessao> --markdown # a tabela do §7
+python3 scripts/h2_compare.py --self-check               # gate de CI
+```
+
+Saída `0` = os 3 fluxos obedeceram o §13 (**ainda não é o H2 verde** — falta o
+veredito do display). Saída `1` = PARAR, e o §7 diz o que fazer.
+
+> **A transcrição do §13 é conferida contra a referência, não contra a
+> memória.** O `--self-check` roda em CI e compara a tabela de formas com os
+> logs que o `MockDevice` emite (`analysis/h2_reference/`). Isso não é
+> paranoia: a tabela já errou uma vez, com o ACK do chunk de IR em 75B — que
+> é o tamanho da resposta da **lista** dos 20 slots, a mesma mensagem
+> `12/12001002` com outro conteúdo. Nada pegou, e o erro só apareceria com a
+> pedaleira na mão.
+
+---
+
+## 7. Critérios de saída (DoD do H2)
 
 - [ ] Os 3 fluxos rodaram, **um por vez**, com verificação no display
 - [ ] Cada uma das 3 verificações tem um veredito escrito (não "pareceu que")
@@ -170,7 +230,7 @@ upload é a **duplicação do último chunk** (idx `0x226`), não um commit.
 
 ---
 
-## 7. Watchlist do H2 (o que se espera dar errado)
+## 8. Watchlist do H2 (o que se espera dar errado)
 
 - **O `00020001` de boot e escrita.** Se a sessão incluir um boot, ele precisa
   da feature do H2 (§0).
@@ -188,7 +248,7 @@ upload é a **duplicação do último chunk** (idx `0x226`), não um commit.
 
 ---
 
-## 8. Fontes
+## 9. Fontes
 
 - `docs/DECISIONS.md` ADR-5 (`WRITE_VERIFIED`) e ADR-6 (D3/D4, semântica de
   escrita) · ADR-2 (erro tipado, sem panic) · ADR-3 (janela de 3 s)

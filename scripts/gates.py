@@ -61,6 +61,11 @@ GATES: list[tuple[str, list[str], str]] = [
         "a referencia do gate H1 tem as formas que a secao 13 manda",
     ),
     (
+        "h2_compare",
+        [sys.executable, "scripts/h2_compare.py", "--self-check"],
+        "a transcricao do gate H2 bate com a referencia de escrita (#22)",
+    ),
+    (
         "baseline",
         [sys.executable, "analysis/baseline.py", "--check"],
         "a baseline do golden tem versao, hash E motivo (R2/R3)",

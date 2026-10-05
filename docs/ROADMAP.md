@@ -389,9 +389,11 @@
 
 ### H2. Escrita real dos 3 fluxos capturados
 - **Responsável:** owner no hardware (confirmação no display) + `protocol-validate` · Depende: H1 · **Estimativa:** 1–2h
-- **Status:** 🚧 **mecanismo entregue** (PR do H2: `WireKind` + trava por
-  feature de compilação `write-verified` + `upload-ir` no CLI + 15 testes de
-  trava); ⏳ **falta a sessão de campo**, que só o owner pode rodar.
+- **Status:** 🚧 **mecanismo E kit de campo entregues** (`WireKind` + trava por
+  feature de compilação `write-verified` + os 3 comandos no CLI; issue #22:
+  runbook `scripts/h2_field.sh`, juiz `scripts/h2_compare.py` com gate de CI, e
+  o `set-param`/`save` **passaram a enviar de verdade** — antes eles só
+  imprimiam); ⏳ **falta a sessão de campo**, que só o owner pode rodar.
 - **O quê:** `set-param` (knob), `save`, `upload-ir` no device real, um por vez,
   com read-back/verificação display (como na S4).
 - **DoD:** 3 fluxos verificados em campo → o `write-verified` é ligado no
@@ -399,6 +401,9 @@
 - **Operacional passo-a-passo:** `docs/H2_CHECKLIST.md` + relatório em
   `docs/H2_REPORT.md`. **Atenção ao B5:** o keepalive de boot é `Write`, então o
   boot completo passou a exigir a feature do H2 (ver ADR-5, rev. 04/10).
+  **Fase C automatizada:** o juiz confere os invariantes do §13 nos 3 logs
+  (contagem, ordem, ACK por chunk) e imprime o valor que o display DEVE
+  mostrar; o que sobra é a conferência do operador.
 - **Decisão pendente do owner:** se o `write-verified` vira o **padrão** do
   binário de campo. Virar padrão é mudança de política (o padrão atual mantém o
   H1 seguro por construção) e merece ADR, não um flip silencioso.

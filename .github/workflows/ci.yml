@@ -275,6 +275,13 @@ jobs:
           # notar. Sem ele, o primeiro sinal de drift seria uma sessão de
           # hardware com a pedaleira na mão.
           python3 scripts/h1_compare.py --self-check
+          # O mesmo para o gate H2 (#22): a transcricao dos INVARIANTES de
+          # escrita (contagens, ordem, ACK por chunk) e conferida contra a
+          # referencia que o MockDevice emite. Ela ja errou uma vez — o ACK
+          # do chunk foi escrito com o tamanho da resposta da LISTA, que e
+          # a mesma mensagem com outro conteudo — e nada pegou. E o gate que
+          # impede a proxima.
+          python3 scripts/h2_compare.py --self-check
           python3 scripts/simulate_release.py
 
   lint-commits:
@@ -1448,7 +1455,7 @@ jobs:
           mkdir -p "$STAGE"
           cp target/release/gp100-cli.exe "$STAGE/"
           cp docs/H1_CHECKLIST.md docs/H1_REPORT.md scripts/h1_field.sh scripts/h1_compare.py "$STAGE/"
-          cp docs/H2_CHECKLIST.md docs/H2_REPORT.md "$STAGE/"
+          cp docs/H2_CHECKLIST.md docs/H2_REPORT.md scripts/h2_field.sh scripts/h2_compare.py "$STAGE/"
           cp docs/H3_CHECKLIST.md docs/H3_REPORT.md "$STAGE/"
           cp analysis/wirelog.py analysis/validate_core_capture.py analysis/baseline.py analysis/baseline.json "$STAGE/"
           cat > "$STAGE/LEIA-ME.txt" <<MD
@@ -1464,7 +1471,14 @@ jobs:
 
             python h1_compare.py <dir-da-sessao> --markdown
 
-          Gate H2 (ESCRITA): docs/H2_CHECKLIST.md + docs/H2_REPORT.md.
+          Gate H2 (ESCRITA): docs/H2_CHECKLIST.md (roteiro) + h2_field.sh (runbook)
+          + h2_compare.py (o juiz da Fase C). Relatorio: docs/H2_REPORT.md.
+          O runbook roda os 3 fluxos UM POR VEZ, com pausa para o display ser
+          lido entre eles, e exige o 'ok' digitado — por pipe ele recusa, porque
+          o gate de escrita nao pode rodar sem alguem olhando o aparelho.
+          Para reprocessar uma sessao sem re-rodar a escrita:
+              python h2_compare.py <dir-da-sessao> --markdown
+
           O binario DESTE zip e o do H1: a escrita real esta BLOQUEADA e nao ha
           flag, variavel de ambiente ou argumento que a abra. Para o gate H2
           recompile com a feature write-verified:

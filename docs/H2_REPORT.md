@@ -6,6 +6,31 @@
 > ⚠️ Este relatório é sobre **alteração de estado de um aparelho do usuário**.
 > Preencher "pareceu que funcionou" como se fosse "funcionou" é o modo de
 > falha mais caro deste projeto: o preset gravado errado não volta sozinho.
+>
+> **A Fase C é automatizada (issue #22).** O juiz
+> [`scripts/h2_compare.py`](../scripts/h2_compare.py) confere os invariantes do
+> §13 nos 3 logs e imprime a tabela do §3.0 — inclusive o **valor que o display
+> DEVERIA mostrar**, para o veredito abaixo ser uma comparação e não uma
+> impressão. O que o fio não preenche é a última coluna, e é a única que
+> decide o H2.
+
+## 3.0 Fase C — o que o fio provou (cola a saída do juiz)
+
+```bash
+python3 scripts/h2_compare.py analysis/h2/<sessão> --markdown
+```
+
+| # | Fluxo (§13) | Invariante do fio | Obtido | Veredito do operador |
+|---|---|---|---|---|
+| F1 set-param | set-param (knob, §13.11) | 1 OUT · 0 IN | ____ | ______ |
+| F2 save | save (§13.12) | 9 OUT na ordem · 0 IN | ____ | ______ |
+| F3 upload-ir | upload-ir (§13.7) | 1 BEGIN · N chunks · N ACKs · dup final | ____ | ______ |
+
+> Saída `1` do juiz = **PARAR** (§7 do checklist). Preserve o log e a saída
+> antes de desligar, e classifique a divergência: o device respondeu diferente
+> do §13 é **protocolo** (fluxo R3); respondeu o §13 mas o efeito não foi o
+> esperado é **comportamento** e vira issue nova (R1: não se conserta mexendo
+> no codec).
 
 ## 1. Identificação da sessão
 
@@ -47,6 +72,12 @@
 Observação: o fluxo não tem read-back no fio (D4). A conferência é visual.
 Anote se o display reaguiu com latência perceptível.
 
+> AVISO (Antes da #22): este fluxo NAO escrevia. O `set-param` imprimia o frame e
+> anunciava "(nada enviado - dry-run)" mesmo SEM o `--dry-run`, porque nao chamava
+> a `Session` -- o `--log` ficava com 0 bytes. Se a sua sessao foi rodada com um
+> binario anterior, o log vazio NAO prova que o knob nao girou: prova que o comando
+> nao mandou nada. Confira `wc -l f1_setparam.jsonl`.
+
 ### 3.2 `save` (§13.12)
 
 | | Valor |
@@ -61,6 +92,10 @@ Anote se o display reaguiu com latência perceptível.
 
 Observação: burst IN tardio (`11000008`/`12000001`) depois da operação é o
 quirk de fim de sessão (§13.7) — **não** é confirmação de save (D3).
+
+> ⚠️ **Antes da #22 este fluxo também não escrevia** (mesmo defeito do §3.1, e
+> é o pior dos dois: o `save` é a escrita que PERSISTE). O esperado era 9
+> frames OUT; um log com menos é o defeito, não um preset que não gravou.
 
 ### 3.3 `upload-ir` (§13.7)
 
