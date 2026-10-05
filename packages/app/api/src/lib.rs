@@ -186,6 +186,8 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
             commands::device_preset_library,
             commands::device_select_preset,
             commands::device_set_param,
+            commands::device_save_preset,
+            commands::device_dump_preset,
             commands::device_boot,
             commands::list_user_irs,
             commands::pending_pushes,

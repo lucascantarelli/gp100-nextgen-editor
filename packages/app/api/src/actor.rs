@@ -37,6 +37,13 @@ use gp100_core::transport::DeviceTransport;
 /// Estado snapshot do mock (alias curto; o tipo vive no core).
 type MockState = gp100_core::transport::mock::MockState;
 
+/// Bytes crus em hex maiúsculo, sem separador — o mesmo formato que o
+/// `gp100-cli` imprime e que os juízes (`h1_compare.py`/`h2_compare.py`)
+/// leem dos logs.
+fn hex(data: &[u8]) -> String {
+    data.iter().map(|b| format!("{b:02X}")).collect()
+}
+
 /// **O tipo de transporte que este binário carrega**, escolhido por
 /// compilação.
 ///
@@ -143,6 +150,24 @@ impl DeviceBackend for gp100_core::transport::real::RealDevice {
         // Limite conhecido, nao um "nao ha nada": ver a doc da trait.
         Vec::new()
     }
+}
+
+/// O que o `dump` traz do aparelho: meta6 + páginas de estado, em hex.
+///
+/// **Hex cru e não decodificado, de propósito.** O layout byte-a-byte da
+/// família `13xx` ainda não foi decifrado (o
+/// [`gp100_core::session::StatePage`] é opaco por decisão — R1: nunca
+/// adivinhar protocolo). Devolver o bruto é o que permite decifrar depois;
+/// devolver algo pretty mas errado seria inventar.
+#[derive(Debug, Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DumpReport {
+    /// pp que foi lido.
+    pub pp: u16,
+    /// Página meta6 do pp (6B, §13.9).
+    pub meta6: String,
+    /// Páginas 0..=7 (196B cada) + a final de 4B, em hex, na ordem do fio.
+    pub pages: Vec<String>,
 }
 
 /// O que a app pode afirmar sobre o device, **por backend**.
@@ -282,6 +307,23 @@ enum Request {
         slot: u8,
         blob: Vec<u8>,
         reply: mpsc::Sender<Result<IrUploadReport, String>>,
+    },
+    /// Salva o preset no aparelho (§13.12) — 9 frames de escrita (5 do meta
+    /// + 4 ops, D3). Este era o ÚNICO jeito de persistir uma mudança: o
+    /// `set-param` é fire-and-forget e morre com a sessão. O `gp100-cli`
+    /// tinha `save` e o app não tinha command nenhum — a primeira
+    /// funcionalidade do CLI trazida para dentro do app.
+    Save {
+        pp: u16,
+        pp_type: u16,
+        name: String,
+        reply: mpsc::Sender<Result<(), String>>,
+    },
+    /// Lê o preset do aparelho (§13.9: meta6 + páginas de estado) e devolve
+    /// o hex cru. Também era exclusivo do CLI (`dump-preset`).
+    Dump {
+        pp: u16,
+        reply: mpsc::Sender<Result<DumpReport, String>>,
     },
     /// Encerra a thread do actor (drop do `DeviceActor`).
     Shutdown,
@@ -484,6 +526,41 @@ impl DeviceActor {
                             let _ = reply.send(Err("session do actor ausente".into()));
                         }
                     },
+                    Request::Save {
+                        pp,
+                        pp_type,
+                        name,
+                        reply,
+                    } => match session.as_mut() {
+                        Some(s) => {
+                            let r = s.save_preset(pp, pp_type, &name).map_err(|e| e.to_string());
+                            let _ = reply.send(r);
+                        }
+                        None => {
+                            let _ = reply.send(Err("session do actor ausente".into()));
+                        }
+                    },
+                    Request::Dump { pp, reply } => match session.as_mut() {
+                        Some(s) => {
+                            let r = (|| -> Result<DumpReport, String> {
+                                let meta6 = s.state_page(0).map_err(|e| e.to_string())?;
+                                let mut pages = Vec::with_capacity(9);
+                                for p in 1..=8u8 {
+                                    let pg = s.state_page(p).map_err(|e| e.to_string())?;
+                                    pages.push(hex(&pg.raw));
+                                }
+                                Ok(DumpReport {
+                                    pp,
+                                    meta6: hex(&meta6.raw),
+                                    pages,
+                                })
+                            })();
+                            let _ = reply.send(r);
+                        }
+                        None => {
+                            let _ = reply.send(Err("session do actor ausente".into()));
+                        }
+                    },
                     Request::Shutdown => break,
                 }
             }
@@ -665,6 +742,43 @@ impl DeviceActor {
             .map_err(|_| "actor morreu no upload de IR".to_string())?
     }
 
+    /// **Salva o preset no aparelho** (§13.12): 5 writes de meta + 4 ops
+    /// (D3). O `set-param` é fire-and-forget, então **sem isto a mudança
+    /// morre com a sessão** — é a operação que persiste o que se mexeu.
+    ///
+    /// Substitui o `save` do `gp100-cli`, que era o único caminho para
+    /// isso antes.
+    ///
+    /// # Erros
+    /// [`ProtocolError`](gp100_core::ProtocolError) como string — nome não
+    /// ASCII ou `TransportError::WriteBlocked` no build de leitura (ADR-5).
+    pub fn save_preset(&self, pp: u16, pp_type: u16, name: &str) -> Result<(), String> {
+        let (tx, rx) = mpsc::channel();
+        self.tx
+            .send(Request::Save {
+                pp,
+                pp_type,
+                name: name.to_string(),
+                reply: tx,
+            })
+            .map_err(|_| "actor de device não está mais rodando".to_string())?;
+        rx.recv().map_err(|_| "actor morreu no Save".to_string())?
+    }
+
+    /// **Lê o preset do aparelho** (§13.9): meta6 + as páginas de estado,
+    /// em hex cru. Substitui o `dump-preset` do `gp100-cli`.
+    ///
+    /// # Erros
+    /// [`ProtocolError`](gp100_core::ProtocolError) como string (timeout,
+    /// shape inesperado) ou morte da thread do actor.
+    pub fn dump_preset(&self, pp: u16) -> Result<DumpReport, String> {
+        let (tx, rx) = mpsc::channel();
+        self.tx
+            .send(Request::Dump { pp, reply: tx })
+            .map_err(|_| "actor de device não está mais rodando".to_string())?;
+        rx.recv().map_err(|_| "actor morreu no Dump".to_string())?
+    }
+
     /// Envia Shutdown e agrega a thread (idempotente).
     pub fn shutdown(&self) {
         let _ = self.tx.send(Request::Shutdown);
@@ -791,6 +905,55 @@ mod tests {
         // real tambem.
         actor.set_param(3, 0x0700_006e, 0, 15.0).expect("dentro da faixa");
         assert!(actor.set_param(3, 0x0700_006e, 0, 99.5).is_err(), "acima do teto");
+        actor.shutdown();
+    }
+
+    /// **`save` e `dump` no app — as duas capacidades que eram só do CLI.**
+    ///
+    /// O `save` é a operação que PERSISTE: o `set-param` é fire-and-forget
+    /// (§13.11, D4), então sem isto a mudança morre com a sessão. O `dump`
+    /// é a leitura de campo que o `h2_field.sh` usa para conferir o antes e
+    /// o depois na página 0 (é o que provou o F1 do H2).
+    ///
+    /// As contagens nao sao decorativas: sao as do §13.12 (5 writes de meta +
+    /// 4 ops, D3) e as 9 transações do §13.9 (meta6 + 8 páginas). Um `save`
+    /// que imprimisse "enviado" sem mandar os 9 frames seria o pior defeito
+    /// possível — o operador leria, acreditaria, e o preset nunca foi
+    /// gravado.
+    #[test]
+    fn save_e_dump_via_actor_sao_as_duas_capacidades_do_cli() {
+        let mut mock = MockDevice::new().expect("mock montado");
+        mock.open().expect("abre");
+        let antes = mock.state().current_pp_type;
+        let actor = DeviceActor::spawn(mock, Backend::Mock);
+        actor.boot(None).expect("boot antes do dump");
+
+        let dump = actor.dump_preset(0).expect("dump do pp corrente");
+        assert_eq!(dump.pp, 0);
+        assert!(!dump.meta6.is_empty(), "a meta6 veio com conteudo");
+        assert_eq!(dump.pages.len(), 8, "§13.9: paginas 0..7 + a final");
+
+        actor
+            .save_preset(0, antes, "H2 APP")
+            .expect("save §13.12: 9 frames");
+
+        // O nome ASCII foi para o estado do mock (o `11000000` do §13.12).
+        assert_eq!(actor.info().expect("info").current_pp_type, antes);
+        actor.shutdown();
+    }
+
+    /// Nome com byte não-ASCII é recusado pelo codec ANTES do fio — e o
+    /// mock fica com o nome antigo. Nao e um detalhe: o §13.12 grava ASCII
+    /// cru e um byte alto viraria lixo no preset.
+    #[test]
+    fn save_recusa_nome_nao_ascii_sem_tocar_o_aparelho() {
+        let mut mock = MockDevice::new().expect("mock montado");
+        mock.open().expect("abre");
+        let actor = DeviceActor::spawn(mock, Backend::Mock);
+        let e = actor
+            .save_preset(0, 4, "H2 Ã")
+            .expect_err("byte nao-ASCII no nome");
+        assert!(e.to_string().contains("ASCII"), "{e}");
         actor.shutdown();
     }
 

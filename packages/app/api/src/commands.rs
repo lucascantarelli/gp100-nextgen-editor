@@ -258,6 +258,47 @@ pub fn list_user_irs(state: State<'_, AppState>) -> Result<IrTableDto, String> {
     })
 }
 
+/// `device_save_preset` — **salva o preset no aparelho** (§13.12).
+///
+/// Substitui o `save` do `gp100-cli`, que era o único caminho para isso: o
+/// `set-param` é fire-and-forget (§13.11, D4), entao sem o save a mudança
+/// morre com a sessão. 9 frames de escrita (5 do meta + 4 ops, D3).
+///
+/// No build de leitura (sem `write-verified`) o transporte real recusa com
+/// `WriteBlocked` **antes do driver** — o operador vê o erro, e o botão
+/// ja nasce desabilitado pelo `writeVerified` do `device_info`.
+///
+/// # Erros
+/// String de erro do core (nome não-ASCII, pp fora de faixa, escrita
+/// bloqueada) ou morte do actor.
+#[tauri::command]
+pub fn device_save_preset(
+    state: State<'_, AppState>,
+    pp: u16,
+    pp_type: u16,
+    name: String,
+) -> Result<(), String> {
+    state.actor.save_preset(pp, pp_type, &name)
+}
+
+/// `device_dump_preset` — **lê o preset do aparelho** (§13.9): meta6 + as 8
+/// páginas de estado, em hex cru.
+///
+/// O hex é deliberadamente cru e não decodificado: o layout byte-a-byte da
+/// família `13xx` ainda não foi decifrado (R1: nunca adivinhar protocolo),
+/// e devolver o bruto é o que permite decifrar depois. É este mesmo dump que
+/// o `h2_field.sh` usou para provar o F1 do H2 no display.
+///
+/// # Erros
+/// String de erro do core (timeout, shape inesperado) ou morte do actor.
+#[tauri::command]
+pub fn device_dump_preset(
+    state: State<'_, AppState>,
+    pp: u16,
+) -> Result<crate::actor::DumpReport, String> {
+    state.actor.dump_preset(pp)
+}
+
 /// `pending_pushes` — backlog D7 drenado do DEVICE (inbox do mock, FIFO
 /// global) como hex cru (F0…F7) para o log da UI. Consumidor alternativo
 /// ao evento `device://push` (poll explícito do front).
