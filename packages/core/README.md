@@ -19,6 +19,12 @@ model       dicionário serde: 185 algs / 639 controles, validação na carga
     ↓
 preset      .prst = XML; parser/writer com LAYOUT COMO DADO —
     ↓       round-trip byte-idêntico (regra R4, sagrada)
+preset_json .prst em JSON VERSIONADO (#114): o layout é PUBLICADO, não
+    ↓       derivado — o wrap do Suite não segue largura (medido: 82 a 91
+    ↓       colunas quebram e não quebram), então adivinhar violaria o R1
+    ↓
+tone_sheet  folha de timbre em PDF (#114): writer próprio, fontes base-14,
+    ↓       sem dependência nativa (ADR-9) e sem stream comprimido
 golden      GoldenFile::embedded() (OnceLock, 1 parse por processo):
     ↓       Template::build_request / matches_response (despacho by-len)
 codec       fio PURO e sem estado: envelope §13.1, trim no 1º F7,
@@ -117,6 +123,8 @@ drop(session); // devolve o transporte ao dono (D8: consumidor único)
 | `golden_consumer.rs` | propriedade extract→build == exemplo nos 40 templates |
 | `codec_wire.rs` | 92 knobs + 2 saves + 1186 frames IR byte a byte (fixtures P4) |
 | `roundtrip_prst.rs` | round-trip byte-idêntico dos 3 `.prst` (R4) |
+| `preset_json_roundtrip.rs` | `.prst` → JSON → `.prst` byte-idêntico, JSON canônico e recusa de versão futura (#114) |
+| `tone_sheet.rs` | folha em PDF: integridade da `xref`, 1 página por preset, determinismo, sem compressão (#114) |
 | `model_dictionary.rs` | carga/validação/rejeição do dicionário |
 | `transport_trait.rs` | trait pub/object-safe, DeviceGone, reconexão |
 | `golden_response.rs` | simetria `build_response` nos 15 exemplos IN |
