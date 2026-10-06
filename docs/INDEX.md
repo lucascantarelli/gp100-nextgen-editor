@@ -188,7 +188,7 @@ O Tauri não gera pacote Arch: a unidade de distribuição **é** a receita vers
 | **M1** (Editor UI) | ✅ M1.0–M1.3 + V-8 (#20) + i18n pt/en/es/zh (#30) |
 | **M2** (#24/#25/#26) | ✅ IR lab, SnapTone/NAM e biblioteca SQLite |
 | **M3** (#113) | ✅ Biblioteca versionada: historico append-only, diff por knob e restauracao (tela `HistoryPanel`) |
-| **M3** (#114) | 🔨 Export universal — **o nucleo esta na arvore**: JSON versionado com round-trip byte-identico e a folha de timbre em PDF (sem dependencia nativa); falta a porta no app (commands + tela + e2e) |
+| **M3** (#114) | 🔨 Export universal — na arvore: JSON versionado com round-trip byte-identico, folha de timbre em PDF (sem dependencia nativa), o recorte de um preset do `all.prst` e os tres commands da casca. Falta **a tela** (botoes de exportar/importar/folha) |
 | **ACHADOS** | ✅ A-1..A-5 |
 | **CI** (#68) | ✅ **1 workflow, 26 jobs** (o `gh pr checks` mostra mais porque os jobs de matriz se desdobram) |
 | **Empacotamento** (#27/#28/#29) | ✅ 5 targets Tauri (`nsis`/`msi`/`dmg`/`deb`/`appimage`) · 18 arquivos de ícone (16 PNG + `.ico` + `.icns`) |
@@ -201,7 +201,7 @@ O Tauri não gera pacote Arch: a unidade de distribuição **é** a receita vers
 | Unit do front | `pnpm exec vitest run` | **430** em **31** arquivos (430 passando) |
 | Cobertura do front | `pnpm run test:coverage` | **88,01%** stmts · **81,65%** branch · **87,44%** funcs · **90,57%** linhas |
 | E2E (Playwright) | `pnpm exec playwright test --list` | **80** testes em **8** arquivos · **96** baselines |
-| Rust (core + cli + library) | `cargo test --workspace` | **278** testes em **32** arquivos (30 binários de teste + 2 suites de doc-test) |
+| Rust (core + cli + library) | `cargo test --workspace` | **285** testes em **33** arquivos (31 binários de teste + 2 suites de doc-test) |
 | Spec (pytest) | `.venv/Scripts/python.exe -m pytest` | **92** |
 | Gates locais | `python scripts/gates.py` | **13** |
 
