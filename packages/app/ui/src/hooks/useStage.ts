@@ -155,10 +155,23 @@ export function useStage(onPresetChanged: () => void): Stage {
       if (board == null) return;
       // o número do dono vem do BANCO (`stats.user`), não do tamanho de um
       // array em memória: com filtro de busca ativo, o array não é a lista
-      const label = name.trim() || MSG.userPatchDefaultName(lib.stats?.user ?? 0);
-      void lib.salva(registroDePatch(snapshotOf(board, label, lib.stats?.user ?? 0)));
+      // Salvar um patch JA ABERTO é uma nova VERSÃO dele (#113); salvar a
+      // partir de um preset de fábrica cria um patch novo.
+      //
+      // Sem esta distinção a biblioteca versionada não teria o que mostrar: o
+      // `snapshotOf` gera um id novo a cada gravação (`u<instante><n>`), então
+      // salvar três vezes daria três patches distintos — e o histórico de cada
+      // um teria uma versão só. O dono que abre o patch, mexe no Gain e salva
+      // estaria criando patches novos a cada ajuste, que é o oposto do que a
+      // issue promete.
+      //
+      // O nome digitado continua valendo: renomear versiona, porque o rótulo
+      // gravado em cada versão é o nome que o patch tinha NAQUELE instante.
+      const label = name.trim() || (openUserId ? presetName : MSG.userPatchDefaultName(lib.stats?.user ?? 0));
+      const registro = registroDePatch(snapshotOf(board, label, lib.stats?.user ?? 0));
+      void lib.salva(openUserId ? { ...registro, id: openUserId } : registro);
     },
-    [board, lib],
+    [board, lib, openUserId, presetName],
   );
 
   // Exclui um patch de usuário. Se era o que estava no palco, volta para o

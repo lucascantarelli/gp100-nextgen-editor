@@ -33,6 +33,8 @@ import type { CSSProperties } from "react";
 import { FACTORY_PRESETS } from "../artifacts/presetData";
 import { MSG } from "../i18n/messages";
 import type { Banco, Library } from "../hooks/useLibrary";
+import { useHistory } from "../hooks/useHistory";
+import { HistoryPanel } from "./HistoryPanel";
 
 interface Props {
   /** preset de fábrica corrente (o chip/navbar navegam por aqui) */
@@ -98,7 +100,7 @@ const list: CSSProperties = { overflowY: "auto", display: "grid", alignContent: 
 const userList: CSSProperties = { display: "grid", alignContent: "start", gap: 2, minWidth: 0 };
 const userRow: CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "minmax(0, 1fr) auto",
+  gridTemplateColumns: "minmax(0, 1fr) auto auto",
   gap: "var(--space-4)",
   alignItems: "center",
   minWidth: 0,
@@ -224,6 +226,27 @@ export function LibraryPanel({
   /** Relato do import: contabilidade ou recusa. `null` = nada aconteceu. */
   const [relato, setRelato] = useState<string | null>(null);
   const arquivoRef = useRef<HTMLInputElement>(null);
+
+  /**
+   * Qual patch o histórico está olhando.
+   *
+   * O `onMudou` do `useHistory` não recebe o patch — ele é "algo mudou, reflita"
+   * — e quem sabe QUAL patch é o painel (é quem abriu). Por isso o alvo fica
+   * num ref no instante da abertura, e não num estado: a restauração só o usa.
+   */
+  const alvoHist = useRef<{ id: string; index: number; nome: string } | null>(null);
+  const hist = useHistory(() => {
+    const alvo = alvoHist.current;
+    if (!alvo) return;
+    // O palco precisa refletir a cadeia nova (a restauração mudou o patch) e
+    // a lista precisa de outra ordem: `user_presets` ordena por instante.
+    onOpenUser(alvo.id, alvo.index);
+    void lib.recarrega();
+  });
+  const abreHist = (id: string, index: number, nome: string) => {
+    alvoHist.current = { id, index, nome };
+    hist.abre(id);
+  };
 
   /**
    * A aba VIVE no hook (`lib.banco`), e é ela que diz de onde vem a lista.
@@ -389,6 +412,14 @@ export function LibraryPanel({
                     </button>
                     <button
                       style={delBtn}
+                      onClick={() => abreHist(p.id, i, p.name)}
+                      aria-label={MSG.histOpenAria(p.name)}
+                      title={MSG.histOpenAria(p.name)}
+                    >
+                      ↺
+                    </button>
+                    <button
+                      style={delBtn}
                       onClick={() => onDelete(p.id)}
                       aria-label={MSG.userPatchDeleteAria(p.name)}
                       title={MSG.userPatchDeleteAria(p.name)}
@@ -465,6 +496,21 @@ export function LibraryPanel({
         <div role="status" style={infoBanner}>
           <span>{MSG.libMigrated(lib.stats?.user ?? 0)}</span>
         </div>
+      )}
+
+      {/* o histórico é uma TELA, e mora aqui porque é o patch de USUÁRIO que
+          tem histórico — preset de fábrica vem do `all.prst` e é imutável por
+          construção. Renderizar aqui (e não no App) também é o que mantém o
+          `App.tsx` no teto de 300 linhas. */}
+      {hist.patchId != null && (
+        <HistoryPanel
+          hist={hist}
+          nome={alvoHist.current?.nome ?? ""}
+          onClose={() => {
+            hist.fecha();
+            alvoHist.current = null;
+          }}
+        />
       )}
     </aside>
   );

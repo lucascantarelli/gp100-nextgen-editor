@@ -104,6 +104,15 @@ export interface Library {
   importar: (json: string, replace: boolean) => Promise<ImportReport | null>;
   /** Havia patches no `localStorage` que foram para o banco? */
   migrouLegado: boolean;
+  /**
+   * Relê a lista com o filtro QUE ESTÁ NA TELA.
+   *
+   * Existe para quem escreve FORA deste hook — hoje, a restauração do
+   * histórico (#113), que cria uma versão nova e muda o instante do patch, e
+   * portanto a ordem da lista (`user_presets` ordena por `saved_at`). Sem isto
+   * a linha ficaria na posição antiga até o próximo clique na busca.
+   */
+  recarrega: () => Promise<boolean>;
 }
 
 /** Atraso do debounce da busca: curto o bastante para parecer imediato. */
@@ -365,5 +374,6 @@ export function useLibrary(bancoInicial: Banco = "factory"): Library {
     exportar,
     importar,
     migrouLegado,
+    recarrega,
   };
 }
