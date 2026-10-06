@@ -280,7 +280,7 @@ deles precisa do aparelho para ser provado.
 | 2 | `DeviceInfo` com **fonte real** (e campos que não têm fonte, declarados) — **✅ feito** (05/10: `DeviceSnapshot` marca `current_name`/`current_pp_type`/`ir_slots_with_crc` como *só no mock*; `ir_slots` é lido do aparelho nos dois backends) | `commands.rs` | `DeviceInfo` sai do `BootReport`/tabela/meta6, não do `MockState` | não |
 | 3 | Botões de escrita cientes da política (`write-verified` → desabilitado + aviso) — **✅ feito** (06/10, #126 face (A)): `escritaLiberada()` é a única leitura do `writeVerified`; knob/IR/SnapTone nascem desabilitados com `MSG.writeLockedHint` e `FieldDiagPanel` usa a mesma função. O select fica de fora de propósito (é `WireKind::Read` no fio) | front (`device.ts` + PedalModal/IrLab/SnapTone) | e2e do botão desabilitado no build de leitura (`e2e/writeLock.spec.ts`) | não |
 | 4 | `save_preset` e `dump_preset` como commands — **✅ feito** (o que o CLI tinha e o app nao) | `actor.rs` + `commands.rs` | vetor de bytes igual ao do CLI | não |
-| 4b | **wire logger (schema P4) + dry-run no app** — **✅ feito**: `packages/core/src/wire_log.rs` (uma implementacao, CLI e app) + `device_log_session`/`device_preview`. O ciclo de campo agora fecha pelo app: sessao no editor → `.jsonl` → juiz | `wire_log.rs` + `commands.rs` | o `.jsonl` que o app grava passa no mesmo juiz que o do CLI | **sim** (para o veredito) |
+| 4b | **wire logger (schema P4) + dry-run no app** — **✅ feito**: `packages/core/src/wire_log.rs` (uma implementacao, CLI e app) + `device_log_session`/`device_preview`. O ciclo de campo agora fecha pelo app: sessao no editor → `.jsonl` → juiz. **06/10: o build de campo passou a ligar o log SOZINHO** (ver §4b.1) | `wire_log.rs` + `commands.rs` + `lib.rs` | o `.jsonl` que o app grava passa no mesmo juiz que o do CLI | **sim** (para o veredito) |
 | 4c | **A camada de UI do diagnóstico** — **✅ feito**: `FieldDiagPanel.tsx` + `useFieldDiag` + `ipc/diag.ts`. As quatro capacidades dos passos 4/4b viraram tela (gravar, ler o dump, ligar/desligar o log, ver o que sairia), com o badge de backend e o aviso de escrita travada na tela. Sem isto a sessao de campo continuava dependendo do binario de terminal | `components/FieldDiagPanel.tsx` · `hooks/useFieldDiag.ts` · `ipc/diag.ts` | o operador de campo nao precisa abrir terminal para dirigir o aparelho | **sim** (para o veredito) |
 | 5 | `set_inventory` ligado ao que o boot descobre (ou fixado em campo com justificativa) | `session.rs` + `lib.rs` | o total de transações do report muda conforme o inventário | **sim** |
 | 6 | Build de campo **leitura** (`--features real-device`, sem `write-verified`) — **✅ feito** (compilação) e, em 06/10, **o `dist-ui` passou a usá-lo** (issue [#126](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/126): caminho `../ui` corrigido + `--features real-device` + `libasound2-dev` no Linux) | `.github/workflows/ci.yml` | CI compila o crate do Tauri com a feature (WinMM no job `ui-rust`; ALSA no container do webview) e o instalador sai com ela | não |
@@ -291,6 +291,42 @@ deles precisa do aparelho para ser provado.
 Passos 1, 2, 3, 4, 4b, 4c, 6 e 6b são software e foram feitos. Ficam de pé
 **o passo 5** (uma decisão de campo) e **o passo 7** (uma sessão com o
 aparelho). **O passo 7 é o que a #17 exige, e a #17 não fecha antes dele.**
+
+### 4b.1 O log de fio automático no campo (06/10/2026)
+
+**Por que existe.** Em 06/10 o app de campo assertou o firmware do GP-100
+(`CODE:PresetNum < TOTAL_PA`, `Drivers/audio/audio.c:912`) e **não havia um
+único frame gravado**: o log dependia de o operador abrir o painel de
+diagnóstico e clicar o toggle. O `select` da abertura automática
+(`useStage` → `openPreset(0)`) foi a hipótese líder da causa — e ficou como
+**dedução lida do código**, porque o fio daquela sessão não foi registrado.
+
+**O que passou a valer.** Quando o backend ativo é o **aparelho**
+(`Backend::Real`), o `run()` liga o log de fio **antes do primeiro command do
+front** — o `select` da abertura entra no arquivo. No **mock** o log não liga:
+sem aparelho não há fio, e um arquivo ali seria ruído por cima do incidente
+real.
+
+| o quê | como fica |
+|---|---|
+| Onde | diretório de DADOS do app, ao lado do `biblioteca.sqlite` (no Windows: `%APPDATA%\com.gp100.nextgen.editor\`) |
+| Nome | `wire-<AAAAMMDDHHMMSS>.jsonl` — **um arquivo por execução** |
+| Rótulo da sessão | `s: "APP"` (`SESSION_APP` do core), o que separa o log do app do `H3` do CLI |
+| Schema | o MESMO P4 do `--log` do CLI (`s`/`t`/`dir`/`func`/`addr`/`data`) — passa nos juízes `h1_compare.py`/`h2_compare.py` |
+| Onde se descobre o caminho | impresso no `stderr` ao ligar: `[log] wire log de campo: <caminho>` |
+
+**Por que um arquivo por execução, e não um nome fixo.** O `WireLogger`
+**trunca** ao abrir. A recuperação de um aparelho assertado é um power-cycle —
+ou seja, o app é reiniciado justo durante a investigação. Com nome fixo, esse
+boot apagaria o log que interessa.
+
+**Interações conhecidas (declaradas, não escondidas).** (1) O toggle do
+`FieldDiagPanel` continua funcionando: ligar com outro caminho passa a gravar
+nesse outro arquivo (o automático para de crescer, nada é perdido); desligar
+para os dois. (2) A pasta acumula um arquivo por execução de campo — não há
+rotação; limpar é manual. (3) Falha ao criar o arquivo **não** derruba a
+sessão: avisa no `stderr` e o app segue (a sessão vale mais que o log, a mesma
+política do `LoggingTransport`).
 
 **O passo 4c é o que muda o formato do passo 7.** A sessão de campo deixa de ser um
 roteiro de terminal e passa a ser um relatório de tela: o operador abre o editor,
