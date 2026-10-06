@@ -27,6 +27,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import {
   deviceDumpPreset,
+  deviceLogPath,
   deviceLogSession,
   deviceLogStop,
   devicePreview,
@@ -58,7 +59,12 @@ interface FieldDiag {
   dump: DumpReport | null;
   /** Frames do preview, ou `null` se ainda não pediu. */
   preview: PreviewFrame[] | null;
-  /** O log de fio está gravando? */
+  /**
+   * O log de fio está gravando?
+   *
+   * Inclui o log que o **build de campo liga sozinho** na abertura (#130): a
+   * tela pergunta ao backend em vez de assumir que começou desligado.
+   */
   logging: boolean;
   /** Caminho do log atual (para o operador saber onde vai o arquivo). */
   logPath: string | null;
@@ -109,6 +115,27 @@ export function useFieldDiag(info: DeviceInfo | null): FieldDiag {
     setName(info.currentName);
   }, [info]);
 
+  // **O log do build de campo já está ligado quando esta tela abre.** Desde a
+  // #130 o `run()` liga o log de fio sozinho no backend real, com o arquivo que
+  // ele escolhe. Perguntar é o que impede o painel de dizer "nenhum log" (e o
+  // botão de oferecer "gravar") por cima de uma sessão que já está em disco.
+  useEffect(() => {
+    let vivo = true;
+    void deviceLogPath()
+      .then((path) => {
+        if (!vivo || path == null) return;
+        setLogging(true);
+        setLogPath(path);
+      })
+      .catch(() => {
+        // Sem resposta do backend a tela fica no repouso: mostrar um arquivo que
+        // a sessão não está gravando seria pior que não mostrar arquivo nenhum.
+      });
+    return () => {
+      vivo = false;
+    };
+  }, []);
+
   const save = useCallback(async () => {
     setBusy("save");
     setError(null);
@@ -143,6 +170,9 @@ export function useFieldDiag(info: DeviceInfo | null): FieldDiag {
       if (logging) {
         await deviceLogStop();
         setLogging(false);
+        // Parou de gravar: o caminho na tela some junto (senão a tela diria
+        // "gravando em X" para um arquivo que parou de crescer).
+        setLogPath(null);
       } else {
         await deviceLogSession(logFile);
         setLogging(true);

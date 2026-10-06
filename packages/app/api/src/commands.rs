@@ -325,6 +325,20 @@ pub fn device_log_stop(state: State<'_, AppState>) -> Result<bool, String> {
     state.actor.log_stop()
 }
 
+/// `device_log_path` — **em que arquivo o log de fio está gravando agora**.
+///
+/// Existe para a TELA poder dizer o arquivo sem depender do `stderr` do
+/// processo: desde a #130 o build de campo liga o log **sozinho** na abertura, e
+/// o caminho é escolhido pelo `run()` (diretório de dados + carimbo), não pelo
+/// front. `None` = nenhum log ativo (o mock, ou o log parado).
+///
+/// # Erros
+/// String de erro se o actor morreu.
+#[tauri::command]
+pub fn device_log_path(state: State<'_, AppState>) -> Result<Option<String>, String> {
+    state.actor.log_path()
+}
+
 /// Um frame que o aparelho **receberia**, sem receber.
 ///
 /// O hex e o mesmo que sairia pelo `send_raw` — inclusive o CRC recalculado

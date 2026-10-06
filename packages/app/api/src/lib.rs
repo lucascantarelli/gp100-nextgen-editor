@@ -236,6 +236,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
             commands::device_dump_preset,
             commands::device_log_session,
             commands::device_log_stop,
+            commands::device_log_path,
             commands::device_preview,
             commands::device_boot,
             commands::list_user_irs,
