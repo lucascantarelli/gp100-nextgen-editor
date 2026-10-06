@@ -72,7 +72,7 @@ pub enum Archetype {
 
 /// Um controle do algoritmo com o valor ATUAL do preset — a spec do knob
 /// para a UI renderizar (tipo, faixa, opções, default).
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct KnobSpec {
     /// Nome do controle (ex.: "Sustain").
     pub name: String,
@@ -91,7 +91,7 @@ pub struct KnobSpec {
 }
 
 /// Um slot do board (posição da cadeia x=0..8).
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct SlotSpec {
     /// Slot da cadeia (x do arquivo, 0..8).
     pub slot: u8,
@@ -113,7 +113,7 @@ pub struct SlotSpec {
 }
 
 /// View de board do preset — o que a UI renderiza no index.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct BoardView {
     /// pp do preset (u16 BE no fio; cru no arquivo em hex).
     pub pp: u16,
