@@ -143,6 +143,12 @@ pub mod model;
 /// preset — arquivo `.prst` com round-trip byte-idêntico (regra R4).
 pub mod preset;
 
+/// preset_json — o `.prst` em JSON versionado, de ida e volta (issue #114).
+pub mod preset_json;
+
+/// tone_sheet — a folha de timbre em PDF, sem dependencia nativa (issue #114).
+pub mod tone_sheet;
+
 /// golden — consumidor da especificação executável.
 pub mod golden;
 
