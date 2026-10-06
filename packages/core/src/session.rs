@@ -493,16 +493,27 @@ impl<T: DeviceTransport> Session<T> {
         }
         stage = BootStage::Keepalive;
         // T4: keepalive ×2 (D4) — contam como transação para o progresso.
-        for _ in 0..2 {
-            self.send_build(
-                golden,
-                0x12,
-                &[0x00, 0x02, 0x00, 0x01],
-                &[],
-                WireKind::Write,
-            )?;
-            tx += 1;
-            beat!();
+        //
+        // Um transporte que NÃO deixa escrever (ADR-5 com a trava fechada)
+        // recusaria este frame, e o boot inteiro cairia no ÚLTIMO passo —
+        // um build de leitura ficaria sem leitura. Por isso ele é OMITIDO,
+        // não mandado e ignorado: a contagem do relatório é do que de fato
+        // saiu no fio. Decisão do owner (06/10, face (A) da #126); a
+        // alternativa registrada em `tests/write_gate.rs` era exigir
+        // `write-verified` no passo B5 do H1 — a leitura não podia existir
+        // antes disso.
+        if self.transport.permite_escrita() {
+            for _ in 0..2 {
+                self.send_build(
+                    golden,
+                    0x12,
+                    &[0x00, 0x02, 0x00, 0x01],
+                    &[],
+                    WireKind::Write,
+                )?;
+                tx += 1;
+                beat!();
+            }
         }
         Ok(BootReport { transactions: tx })
     }

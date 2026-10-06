@@ -173,6 +173,36 @@ export class ShellPage {
     await expect(this.gain.root).toBeVisible();
     return this.gain;
   }
+
+  /**
+   * Ganho de teste: simula um build de LEITURA (face (A) da #126, ADR-5)
+   * ANTES do load — o mount lê o storage, e é o mesmo caminho que o e2e do
+   * `failDevice` usa. Sem este gancho o mock relata escrita liberada (ADR-5).
+   */
+  async readOnlyBuild(): Promise<void> {
+    await this.page.addInitScript(() => {
+      localStorage.setItem("gp100.debug.writeVerified", "false");
+    });
+  }
+
+  /** Abre o laboratório de IRs (#24) pela PORTA do conteudo (mesmo caminho
+   *  do dono: o item do menu, não um atalho de teste). */
+  async openIrLab(): Promise<Locator> {
+    await this.page.getByRole("button", { name: /Abrir o conteúdo/ }).click();
+    await this.page.getByRole("button", { name: "Laboratório de IRs", exact: true }).click();
+    const dlg = this.page.getByRole("dialog", { name: "Laboratório de IRs" });
+    await expect(dlg).toBeVisible();
+    return dlg;
+  }
+
+  /** Abre o gestor de tons SnapTone (#25) pela PORTA do conteudo. */
+  async openSnapTone(): Promise<Locator> {
+    await this.page.getByRole("button", { name: /Abrir o conteúdo/ }).click();
+    await this.page.getByRole("button", { name: "Tons SnapTone", exact: true }).click();
+    const dlg = this.page.getByRole("dialog", { name: "Tons SnapTone" });
+    await expect(dlg).toBeVisible();
+    return dlg;
+  }
 }
 
 /* ── Assistente de gain staging (#115): leitura da cadeia, sem escrita ── */

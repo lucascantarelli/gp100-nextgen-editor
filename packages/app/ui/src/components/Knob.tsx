@@ -12,6 +12,7 @@
  */
 import { useCallback, useRef } from "react";
 import type { BoardKnob } from "../ipc/types";
+import { MSG } from "../i18n/messages";
 
 interface Props {
   knob: BoardKnob;
@@ -21,6 +22,13 @@ interface Props {
   engineer?: boolean;
   /** Só leitura (palco): sem foco, sem handlers — a edição mora no modal. */
   locked?: boolean;
+  /**
+   * Build de LEITURA (#126 face (A)): o controle fica travado E o tooltip
+   * diz o motivo — quem aponta aqui precisa saber que não é o pedal que se
+   * recusa, é a instalação. Quem trava quem é o `Pedal` (`locked` inclui
+   * este); aqui ele só muda o que o `<title>` conta.
+   */
+  writeLocked?: boolean;
   /** Endereço de memória do comando SET (ex.: "10 01 00 02") — p/ tooltip e etiqueta. */
   addr?: string;
   /** effectCode do algoritmo em hex (ex.: "0x0700006e"). */
@@ -41,6 +49,7 @@ export function Knob({
   accent = "#ffb020",
   engineer = false,
   locked = false,
+  writeLocked = false,
   addr,
   codeHex,
   onChange,
@@ -196,7 +205,9 @@ export function Knob({
         strokeLinecap="round"
       />
       <title>
-        {engineer && addr
+        {writeLocked
+          ? `${knob.name}: ${knob.value ?? "—"} · ${MSG.writeLockedHint}`
+          : engineer && addr
           ? `${knob.name}: ${knob.value ?? "—"} · SET · addr ${addr} · code ${codeHex ?? "?"} · ctrl ${knob.pos} · payload [code u32 LE][ctrl][00][f32 LE]`
           : locked
             ? `${knob.name}: ${knob.value ?? "—"} · clique no pedal para editar`

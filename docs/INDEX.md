@@ -195,13 +195,14 @@ O Tauri não gera pacote Arch: a unidade de distribuição **é** a receita vers
 | **Empacotamento** (#27/#28/#29) | ✅ 5 targets Tauri (`nsis`/`msi`/`dmg`/`deb`/`appimage`) · 18 arquivos de ícone (16 PNG + `.ico` + `.icns`) |
 | **Auditoria 03/10** (#71–#83) | ✅ as 13 issues fechadas |
 | **H** (gate de hardware) | ✅ **os 3 gates fechados em campo**: H1 (#21, PR #109) · H2 (#22, PR #108) · H3 (#23, PR #96) |
+| **#126** (release) | ✅ **face (A) de leitura**: o `dist-ui` constrói com `--features real-device` (caminho `../ui` corrigido — o step antigo morria antes de compilar, `libasound2-dev` no Linux), a **política de escrita está na tela** (`escritaLiberada()`: knob/IR/SnapTone desabilitados COM O MOTIVO, select liberado por ser `WireKind::Read`) e o **keepalive do boot é omitido com a trava fechada** (ADR-5 rev. 06/10) |
 
 ### Contagem de testes (medido 06/10)
 | Suíte | Comando | Contagem |
 |---|---|---|
-| Unit do front | `pnpm exec vitest run` | **470** em **35** arquivos (470 passando) |
-| Cobertura do front | `pnpm run test:coverage` | **87,94%** stmts · **81,37%** branch · **87,11%** funcs · **90,29%** linhas |
-| E2E (Playwright) | `pnpm exec playwright test --list` | **83** testes em **10** arquivos · **96** baselines |
+| Unit do front | `pnpm exec vitest run` | **480** em **36** arquivos (480 passando) |
+| Cobertura do front | `pnpm run test:coverage` | **87,99%** stmts · **81,50%** branch · **87,20%** funcs · **90,34%** linhas |
+| E2E (Playwright) | `pnpm exec playwright test --list` | **87** testes em **11** arquivos · **96** baselines |
 | Rust (core + cli + library) | `cargo test --workspace` | **296** testes em **34** suítes (32 binários de teste + 2 suites de doc-test) |
 | Spec (pytest) | `.venv/Scripts/python.exe -m pytest` | **92** |
 | Gates locais | `python scripts/gates.py` | **13** |
@@ -222,12 +223,13 @@ O Tauri não gera pacote Arch: a unidade de distribuição **é** a receita vers
 | ~~[#113](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/113)~~ | M3-1 Biblioteca versionada — **FECHADA**: histórico append-only no `gp100-library` (migration v6, trigger anti-reescrita, diff por knob), 5 commands Tauri e a tela `HistoryPanel` (par antes/depois visível, restauração total e pontual que **acrescenta** versão) | ✅ |
 | ~~[#114](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/114)~~ | M3-2 Export universal — **FECHADA**: JSON versionado com round-trip byte-idêntico, folha de timbre em PDF sem dependência nativa, os 3 commands da casca e a tela `PresetFilePanel` (export + reimport, e2e com a cadeia preservada) | ✅ |
 | ~~[#115](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/115)~~ | M3-3 Assistente de gain staging — **FECHADA**: `gp100_core::gain` (função pura), `preset_gain_report` e a tela `GainPanel` com a origem de cada número, o método e a limitação NA TELA; nenhuma escrita (prova com `ByteGuard` no core) | ✅ |
+| ~~[#126](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/126)~~ | `dist-ui` na face (A) de leitura — **FECHADA em 06/10**: `tauri build --features real-device` com o caminho `../ui` corrigido (o step antigo morria antes de compilar: 0 runs para `v0.1.0` e `v0.2.0-rc.*`) + `libasound2-dev` no Linux; a política de escrita na tela (`writeLock.ui.test.tsx` + `writeLock.spec.ts`); o keepalive do boot omitido com a trava fechada (ADR-5) | ✅ |
 | [#17](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/17) | EPIC Release v1.0.0 multiplataforma | — |
 | ~~[#18](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/18)~~ | EPIC Gate H — **FECHADA**: #21 ✅ (H1 executado, PR #109) · #22 ✅ (H2 em campo, PR #108) · #23 ✅ (H3 congelado, PR #96) | ✅ |
 
 > Fechadas desde a revisão de 03/10: **#13**, **#14** (épicas de UI), **#19**,
 > **#20**, **#24**, **#25**, **#26**, **#27**, **#28**, **#29**, **#30**,
-> **#22**, **#23**, **#113**, **#114**, **#115** e as **13 da auditoria** (#71–#83).
+> **#22**, **#23**, **#113**, **#114**, **#115**, **#126** e as **13 da auditoria** (#71–#83).
 
 ### Datas dos marcos
 `01/10` Issues + #20 · `02/10` #45 baselines win32 · `02/10` **#68 CI consolidada** ·
@@ -235,3 +237,5 @@ O Tauri não gera pacote Arch: a unidade de distribuição **é** a receita vers
 `05/10` **#23 H3 congelado** (PR #96) · `05/10` **#21 sessão H1 real** (PR #109) ·
 `05/10` **#22 H2 em campo — os 3 fluxos de escrita verdes** (PR #108), com o achado
 que virou a #110
+`06/10` **#126 release na face (A) de leitura** — `dist-ui` com a feature ligada,
+trava de escrita na tela e keepalive do boot omitido (ADR-5 rev. 06/10)

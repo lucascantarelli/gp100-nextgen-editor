@@ -147,9 +147,16 @@ async function bytesDoArquivo(f: File): Promise<number[]> {
 interface Props {
   /** O estado do laboratório (o hook é o dono). */
   irs: Irs;
+  /**
+   * Escrita liberada nesta build? (ADR-5; `false` = build de leitura, face
+   * (A) da #126). Travado, o envio fica desabilitado COM O MOTIVO na tela e
+   * no `title` — a recusa do fio chegaria como erro DEPOIS do clique, e o
+   * envio de um IR são minutos de chunks (§4).
+   */
+  podeGravar?: boolean;
 }
 
-export function IrLabPanel({ irs }: Props) {
+export function IrLabPanel({ irs, podeGravar = true }: Props) {
   const [nome, setNome] = useState("");
   const [renomeando, setRenomeando] = useState<string | null>(null);
   const [confirmando, setConfirmando] = useState<string | null>(null);
@@ -238,6 +245,11 @@ export function IrLabPanel({ irs }: Props) {
       <div role="dialog" aria-modal="true" aria-label={MSG.irTitle} style={sheet}>
         <h2 style={h2t}>{MSG.irTitle}</h2>
         <p style={p}>{MSG.irIntro}</p>
+        {/* o build de leitura diz na tela que não envia: o botão travado sem
+            motivo obriga o dono a descobrir sozinho o que esta instalação é */}
+        {!podeGravar && (
+          <p style={{ ...p, color: "var(--accent-text)" }} role="status">{MSG.writeLockedHint}</p>
+        )}
 
         {/* ── o que o APARELHO tem: a leitura do fio, não do arquivo ── */}
         <div style={{ display: "grid", gap: "var(--space-8)" }}>
@@ -344,10 +356,16 @@ export function IrLabPanel({ irs }: Props) {
                     ✎
                   </button>
                   <button
-                    style={enviavel && ir.slot != null ? btn : btnOff}
-                    disabled={!enviavel || ir.slot == null || irs.enviando != null}
+                    style={podeGravar && enviavel && ir.slot != null ? btn : btnOff}
+                    disabled={!podeGravar || !enviavel || ir.slot == null || irs.enviando != null}
                     aria-label={MSG.irSendAria(ir.name)}
-                    title={enviavel && ir.slot != null ? MSG.irSendAria(ir.name) : MSG.irNotEnviable}
+                    title={
+                      !podeGravar
+                        ? MSG.writeLockedHint
+                        : enviavel && ir.slot != null
+                          ? MSG.irSendAria(ir.name)
+                          : MSG.irNotEnviable
+                    }
                     onClick={() => void envia(ir.id)}
                   >
                     {irs.enviando === ir.id ? MSG.irSending : MSG.irSend}
@@ -372,7 +390,12 @@ export function IrLabPanel({ irs }: Props) {
                 : MSG.irOverwriteEmpty}
             </span>
             <div style={{ display: "flex", gap: "var(--space-8)" }}>
-              <button style={btn} onClick={() => { if (emEnvio != null) void envia(emEnvio.id); }}>
+              <button
+                style={podeGravar ? btn : btnOff}
+                disabled={!podeGravar}
+                title={podeGravar ? undefined : MSG.writeLockedHint}
+                onClick={() => { if (emEnvio != null) void envia(emEnvio.id); }}
+              >
                 {MSG.irSend}
               </button>
               <button style={btnOff} onClick={() => setConfirmando(null)}>

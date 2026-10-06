@@ -233,6 +233,7 @@ export const ZH: DictPatch = {
   diagBackendReal: "设备已连接",
   diagWriteLocked: "只读安装：在连接 USB 之前就已阻止写入设备。",
   diagWriteOpen: "此安装允许写入。",
+  writeLockedHint: "只读安装：此构建中已阻止写入设备。",
   diagPpLabel: "Patch",
   diagPpTypeLabel: "类型",
   diagNameLabel: "名称",

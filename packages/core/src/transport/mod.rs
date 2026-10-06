@@ -190,6 +190,30 @@ pub trait DeviceTransport {
     /// [`TransportError::RecvTimeout`] se nada chegar na janela;
     /// [`TransportError::Closed`] se o transporte não estiver aberto.
     fn recv_raw(&mut self, timeout: Duration) -> Result<Vec<u8>, TransportError>;
+
+    /// Este transporte deixa ESCREVER? — a pergunta que o `boot()` faz antes
+    /// do keepalive (ADR-5, decisão do owner de 06/10).
+    ///
+    /// **Por que existe.** O script de boot termina no ping `12/00020001`,
+    /// que é `WireKind::Write`. Com a trava fechada o transporte o recusaria
+    /// e o boot inteiro falharia no ÚLTIMO frame — ou seja, um build de
+    /// LEITURA não teria leitura. O `Session::boot` pergunta aqui e **omite**
+    /// o ping quando a resposta é `false`, em vez de mandar e ser barrado.
+    /// (A alternativa que ficou registrada em `tests/write_gate.rs` era
+    /// exigir `write-verified` no passo B5 do H1.)
+    ///
+    /// **Por que a pergunta vai ao transporte e não ao `cfg!(feature)`.** A
+    /// trava é da build, mas quem sabe se o byte passa é o objeto que vai
+    /// enviá-lo — e o `MockDevice` vive numa build SEM a feature e mesmo
+    /// assim permite escrita (ADR-5: "mock SEMPRE permite", senão os replays
+    /// das fixtures não existiriam). Perguntar ao `cfg` no core pularia o
+    /// keepalive do mock e mudaria o boot de 2297 transações para 2295.
+    ///
+    /// `true` (default) = os `Write` saem; `false` = este transporte
+    /// recusaria qualquer um deles.
+    fn permite_escrita(&self) -> bool {
+        true
+    }
 }
 
 /// `Box<dyn DeviceTransport>` também é um transporte (dispatch por trait
@@ -208,6 +232,9 @@ impl<T: DeviceTransport + ?Sized> DeviceTransport for Box<T> {
     fn recv_raw(&mut self, timeout: Duration) -> Result<Vec<u8>, TransportError> {
         (**self).recv_raw(timeout)
     }
+    fn permite_escrita(&self) -> bool {
+        (**self).permite_escrita()
+    }
 }
 
 /// `&mut T` também é um transporte (a Session toma empréstimo mutável;
@@ -224,6 +251,9 @@ impl<T: DeviceTransport + ?Sized> DeviceTransport for &mut T {
     }
     fn recv_raw(&mut self, timeout: Duration) -> Result<Vec<u8>, TransportError> {
         (**self).recv_raw(timeout)
+    }
+    fn permite_escrita(&self) -> bool {
+        (**self).permite_escrita()
     }
 }
 

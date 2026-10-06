@@ -39,11 +39,14 @@ idioma) e qualquer seta que faça o core Rust depender do front.
 
 ```
 src/
-├── App.tsx (299)          casca: boot, atalhos, modais abertos e o JSX
+├── App.tsx (300)          casca: boot, atalhos, modais abertos e o JSX
 ├── main.tsx (11)          monta o React
 │
 ├── ipc/                   ── a PORTA ──────────────────────────
-│   ├── device.ts (535)    device_select_preset, device_board, … + retry declarativo
+│   ├── device.ts (570)    device_select_preset, device_board, … + retry declarativo
+│   │                      e a POLÍTICA de escrita da tela: `escritaLiberada()`
+│   │                      é a ÚNICA leitura de `writeVerified` para decidir
+│   │                      botão (#126 — knob/IR/SnapTone nascem travados)
 │   ├── diag.ts (132)      a COORTE de diagnóstico: gravar no aparelho, ler o
 │   │                      dump, a sessão de log e a prévia do envio
 │   ├── push.ts (63)       log de pushes do device
@@ -91,12 +94,12 @@ src/
 │   │                      porque não têm estado a preservar entre aberturas
 │
 ├── components/            ── APRESENTAÇÃO ───────────────────────
-│   ├── Stage.tsx (359) · Pedalboard.tsx (337) · Pedal.tsx (504)
-│   │   PedalModal.tsx (284) · Knob.tsx (207) · TopBar.tsx (385)
+│   ├── Stage.tsx (359) · Pedalboard.tsx (337) · Pedal.tsx (518)
+│   │   PedalModal.tsx (293) · Knob.tsx (218) · TopBar.tsx (385)
 │   ├── LibraryPanel.tsx (516) · LooperPanel.tsx (637)
 │   ├── HistoryPanel.tsx (298) o histórico do patch (#113): par antes/depois
 │   │                      visível, o diff por knob e as duas restaurações
-│   ├── IrLabPanel.tsx (417) · SnapTonePanel.tsx (417)  os laboratórios
+│   ├── IrLabPanel.tsx (440) · SnapTonePanel.tsx (434)  os laboratórios
 │   ├── SettingsModal.tsx (409) · TunerPanel.tsx (359)
 │   ├── PresetFilePanel.tsx (244) o preset em arquivo (#114): os 3 caminhos
 │   │                      (JSON, folha, import) e o relato do que entrou
@@ -104,7 +107,7 @@ src/
 │   │                      folga, a ORIGEM de cada número, a ordem de ajuste e o
 │   │                      MÉTODO impresso na tela — sem nenhum botão de escrita
 │   ├── DrumPanel.tsx (196) · PushLog.tsx (104) · ContentMenu.tsx (98)
-│   ├── FieldDiagPanel.tsx (350) o diagnóstico de campo em tela (carrega o
+│   ├── FieldDiagPanel.tsx (351) o diagnóstico de campo em tela (carrega o
 │   │                      próprio <details>, para o App ganhar 1 linha)
 │   └── BootProgressBar.tsx (64) · ErrorBanner.tsx (57)
 │

@@ -35,7 +35,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { DeviceInfo } from "./ipc/types";
-import { deviceInfo } from "./ipc/device";
+import { deviceInfo, escritaLiberada } from "./ipc/device";
 import { useBoot, BOOT_STAGE_LABEL } from "./hooks/useBoot";
 import { usePushLog } from "./hooks/usePushLog";
 import { useGlobalShortcuts } from "./hooks/useGlobalShortcuts";
@@ -282,11 +282,12 @@ export default function App() {
       </footer>
 
       <SettingsModal open={settingsOpen} general={general} onChangeGeneral={onChangeGeneral} onClose={() => setSettingsOpen(false)} />
-      {tones.aberto && <SnapTonePanel tones={tones} />}
-      {irs.aberto && <IrLabPanel irs={irs} />}
+      {tones.aberto && <SnapTonePanel tones={tones} podeGravar={escritaLiberada(info)} />}
+      {irs.aberto && <IrLabPanel irs={irs} podeGravar={escritaLiberada(info)} />}
       {conteudo.node}
       <PedalModal
         slot={editing == null ? null : (board?.slots.find((s) => s.slot === editing) ?? null)}
+        podeGravar={escritaLiberada(info)}
         engineer={general.engineerMode}
         onToggle={onToggle}
         onKnobChange={applyKnob}

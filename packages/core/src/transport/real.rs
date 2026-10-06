@@ -228,6 +228,13 @@ impl DeviceTransport for RealDevice {
             .map_err(|e| TransportError::SendFailed { why: e.to_string() })
     }
 
+    /// `WRITE_VERIFIED` é `cfg!` da build: com a trava fechada, este
+    /// transporte NÃO deixa escrever — e é isso que o `boot()` pergunta
+    /// antes do keepalive (`DeviceTransport::permite_escrita`).
+    fn permite_escrita(&self) -> bool {
+        WRITE_VERIFIED
+    }
+
     /// Drena a fila de RX (FIFO global do D1) até `timeout` (ADR-3).
     fn recv_raw(&mut self, timeout: Duration) -> Result<Vec<u8>, TransportError> {
         let deadline = Instant::now() + timeout;

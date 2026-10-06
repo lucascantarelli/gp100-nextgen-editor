@@ -230,6 +230,9 @@ export const PT_BR = {
   diagWriteLocked:
     "Instalação de somente leitura: gravar na pedaleira fica bloqueado antes da conexão USB.",
   diagWriteOpen: "Gravação liberada nesta instalação.",
+  /** O motivo de todo botão de escrita travado (#126 face A): fica no `title`
+   * do botão desabilitado e, quando a tela inteira é de leitura, visível. */
+  writeLockedHint: "Instalação de somente leitura: gravar no aparelho está bloqueado nesta build.",
   diagPpLabel: "Patch",
   diagPpTypeLabel: "Tipo",
   diagNameLabel: "Nome",

@@ -38,6 +38,8 @@ transport   trait DeviceTransport (ADR-4, bytes crus, sync, ciclo de
     ↓       vida do CHAMADOR) + MockDevice (responde conforme o golden,
             D1–D8) · RealDevice (H1) atrás da feature `real-device`:
             midir/WinMM, callback→fila, trim no 1º F7 na entrada
+            `permite_escrita()` (ADR-5 rev. 06/10): o boot OMITE o keepalive
+            com a escrita travada (2295 transações, não 2297)
 session     FSM Session<T: DeviceTransport> (ADR-6 rev.3): boot/scan,
             select/state_page, set_param, save_preset (fire-and-forget D3),
             upload_ir (ACK por chunk), list_user_irs, backlog D7
