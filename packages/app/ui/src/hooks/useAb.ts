@@ -179,11 +179,17 @@ export function useAb({ openUserId, rotulo, podeGravar, aplica }: AbArgs) {
         return;
       }
       setOcupado(true);
+      // DoD 1 da #116: o intervalo do PEDIDO entra no relatório como número.
+      // Mede do clique ao último frame; o fio não tem read-back (D4), então o
+      // que não dá pra medir aqui — o som chegar — é o que o ouvido fecha na
+      // sessão de campo. Medir só o local mente menos do que não medir nada.
+      const t0 = performance.now();
       try {
         for (const c of cmds) {
           await deviceSetParam(c.slot + 1, c.code, c.pos, Number(c.valor));
         }
-        setRelato(MSG.abRelatoEnviado(cmds.length) + aviso);
+        const ms = Math.round(performance.now() - t0);
+        setRelato(MSG.abRelatoEnviado(cmds.length) + " " + MSG.abRelatoTempo(ms) + aviso);
       } catch (e) {
         console.error("useAb: set_param falhou:", e);
         setErr({ message: MSG.errSetParam, retry: () => void escolhe(qual) });

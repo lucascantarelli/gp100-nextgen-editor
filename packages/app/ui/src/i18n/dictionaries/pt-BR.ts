@@ -617,6 +617,7 @@ export const PT_BR = {
   abRelatoLocal: (n: number) =>
     `${n} knob(s) mudaram no palco; neste build de leitura o aparelho não recebe (ADR-5).`,
   abRelatoEnviado: (n: number) => `${n} knob(s) enviados ao aparelho.`,
+  abRelatoTempo: (ms: number) => `Pedido→último frame: ${ms} ms (sem read-back no fio — o ouvido fecha a medição).`,
   abRelatoCalibra: (n: number, antes: string, depois: string) =>
     `${n} controle(s) de nível igualado(es): diferença de ${antes} para ${depois} pontos.`,
 

@@ -204,6 +204,9 @@ describe("A/B — o par de versões", () => {
     expect(aplicados[1].slots[0].knobs[0].value).toBe("40");
     // liberado: os knobs que mudaram vão para o aparelho (mock resolve)
     expect(texto(host)).toContain(MSG.abRelatoEnviado(1));
+    // DoD 1: o intervalo pedido→último frame está no relatório, COM NÚMERO
+    expect(texto(host)).toMatch(/\d+ ms/);
+    expect(texto(host)).toContain("read-back");
     unmount();
   });
 

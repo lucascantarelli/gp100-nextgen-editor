@@ -596,6 +596,7 @@ export const ZH: DictPatch = {
   abRelatoLocal: (n: number) =>
     `${n} 个旋钮在舞台上改变了；在只读构建中设备不会收到（ADR-5）。`,
   abRelatoEnviado: (n: number) => `已向设备发送 ${n} 个旋钮。`,
+  abRelatoTempo: (ms: number) => `请求→最后一帧：${ms} ms（线路无回读——由耳朵完成测量）。`,
   abRelatoCalibra: (n: number, antes: string, depois: string) =>
     `已对齐 ${n} 个音量控件：差值从 ${antes} 降到 ${depois} 点。`,
 

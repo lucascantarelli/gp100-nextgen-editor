@@ -608,6 +608,7 @@ export const ES: DictPatch = {
   abRelatoLocal: (n: number) =>
     `${n} knob(s) cambiaron en el escenario; en esta build de solo lectura el aparato no los recibe (ADR-5).`,
   abRelatoEnviado: (n: number) => `${n} knob(s) enviados al aparato.`,
+  abRelatoTempo: (ms: number) => `Petición→último frame: ${ms} ms (sin read-back en el hilo — el oído cierra la medición).`,
   abRelatoCalibra: (n: number, antes: string, depois: string) =>
     `${n} control(es) de nivel igualado(s): diferencia de ${antes} a ${depois} puntos.`,
 
