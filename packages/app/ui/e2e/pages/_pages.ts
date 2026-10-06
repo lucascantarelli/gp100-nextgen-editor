@@ -271,6 +271,61 @@ export class LibraryPage {
     await opt.click();
     return opt;
   }
+
+  /** abre o histórico de um patch de usuário (issue #113) */
+  historyButton(name: string): Locator {
+    return this.page.getByRole("button", { name: `Abrir o histórico de “${name}”` });
+  }
+
+  /** a tela de histórico (a folha que abre por cima) */
+  history(): HistoryPanelPage {
+    return new HistoryPanelPage(this.page);
+  }
+}
+
+/* ── Histórico do patch (issue #113) ── */
+export class HistoryPanelPage {
+  readonly page: Page;
+  readonly root: Locator;
+
+  constructor(page: Page) {
+    this.page = page;
+    this.root = page.getByRole("dialog", { name: /Histórico do patch/ });
+  }
+
+  /** a ponta "antes" do par comparado */
+  beforeSelect(): Locator {
+    return this.root.locator("#hist-antes");
+  }
+
+  /** a ponta "depois" do par comparado */
+  afterSelect(): Locator {
+    return this.root.locator("#hist-depois");
+  }
+
+  /** as opções de versão de um dos seletores (o 1º é "escolha uma versão") */
+  versionOptions(which: "before" | "after"): Locator {
+    return (which === "before" ? this.beforeSelect() : this.afterSelect()).locator("option");
+  }
+
+  close(): Locator {
+    return this.root.getByRole("button", { name: "Fechar o histórico" });
+  }
+
+  /** restauração TOTAL da versão `seq` */
+  restoreAll(seq: number): Locator {
+    return this.root.getByRole("button", { name: `Restaurar o patch inteiro na versão ${seq}` });
+  }
+
+  /** restauração PONTUAL de um knob que mudou de `from` para `to` */
+  restoreKnob(knob: string, from: string, to: string): Locator {
+    return this.root.getByRole("button", { name: `Restaurar ${knob} de ${to} para ${from}` });
+  }
+
+  /** o relato da última restauração ("virou a versão N") */
+  status(): Locator {
+    return this.root.getByRole("status");
+  }
 }
 
 /* ── Board/palco (região) + trava ⇄ mover ── */

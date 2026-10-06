@@ -187,6 +187,7 @@ O Tauri não gera pacote Arch: a unidade de distribuição **é** a receita vers
 | **M0** (gp100-core) | ✅ M0.1–M0.8 — round-trip `.prst` byte-idêntico, replay das 4 fixtures |
 | **M1** (Editor UI) | ✅ M1.0–M1.3 + V-8 (#20) + i18n pt/en/es/zh (#30) |
 | **M2** (#24/#25/#26) | ✅ IR lab, SnapTone/NAM e biblioteca SQLite |
+| **M3** (#113) | ✅ Biblioteca versionada: historico append-only, diff por knob e restauracao (tela `HistoryPanel`) |
 | **ACHADOS** | ✅ A-1..A-5 |
 | **CI** (#68) | ✅ **1 workflow, 26 jobs** (o `gh pr checks` mostra mais porque os jobs de matriz se desdobram) |
 | **Empacotamento** (#27/#28/#29) | ✅ 5 targets Tauri (`nsis`/`msi`/`dmg`/`deb`/`appimage`) · 18 arquivos de ícone (16 PNG + `.ico` + `.icns`) |
@@ -196,20 +197,18 @@ O Tauri não gera pacote Arch: a unidade de distribuição **é** a receita vers
 ### Contagem de testes (medido 05/10)
 | Suíte | Comando | Contagem |
 |---|---|---|
-| Unit do front | `pnpm exec vitest run` | **411** em **29** arquivos (411 passando) |
-| Cobertura do front | `pnpm run test:coverage` | ⚠️ **sem número — ver a nota abaixo** |
-| E2E (Playwright) | `pnpm exec playwright test --list` | **78** testes em **7** arquivos · **96** baselines |
+| Unit do front | `pnpm exec vitest run` | **430** em **31** arquivos (430 passando) |
+| Cobertura do front | `pnpm run test:coverage` | **88,01%** stmts · **81,65%** branch · **87,44%** funcs · **90,57%** linhas |
+| E2E (Playwright) | `pnpm exec playwright test --list` | **80** testes em **8** arquivos · **96** baselines |
 | Rust (core + cli + library) | `cargo test --workspace` | **261** testes em **30** arquivos (28 binários de teste + 2 doc-tests) |
 | Spec (pytest) | `.venv/Scripts/python.exe -m pytest` | **92** |
 | Gates locais | `python scripts/gates.py` | **13** |
 
-> ⚠️ **A cobertura não tem número aqui de propósito.** Em 05/10 a suíte tem uma
-> falha intermitente de `testTimeout` que **troca de arquivo a cada rodada**
-> (`i18n.test.tsx` numa, `shortcuts.test.tsx` na outra) e derruba a rodada de
-> coverage antes de ela imprimir a tabela. É a **#79 de volta**, e o motivo está
-> a um número de distância: o `maxWorkers: 4` do `vite.config.ts` foi
-> dimensionado para uma suíte de **15** arquivos, e hoje ela tem **28**. Escrever
-> um percentual de cobertura hoje seria medir uma suíte que não termina.
+> ✅ **A cobertura voltou a imprimir número em 05/10.** Ela vinha sem valor desde
+> a revisão anterior, por uma falha intermitente de `testTimeout` que trocava de
+> arquivo a cada rodada — o sintoma de `maxWorkers: 4` dimensionado para uma
+> suíte de 15 arquivos, contra uma que já passou de 30. Três rodadas seguidas de
+> `test:coverage` fecharam limpas, e o número acima é de uma delas.
 
 ### Trabalho aberto (milestone `v1.0.0`)
 | # | Título | Bloqueio |
@@ -218,7 +217,7 @@ O Tauri não gera pacote Arch: a unidade de distribuição **é** a receita vers
 | ~~[#110](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/110)~~ | `set_param_payload` aceita valor fora da faixa e trava o firmware do GP-100 — **FECHADA**: a trava de conteúdo virou o ADR-10 | ✅ |
 | ~~[#15](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/15)~~ | EPIC M2 — **FECHADA em 05/10**: conteúdo entregue (#24 IR lab · #25 SnapTone/NAM · #26 biblioteca); a distribuição é a #17 | ✅ |
 | ~~[#16](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/16)~~ | EPIC M3 — **FECHADA**, e destrinchada nas oito temáticas **#113–#120** (biblioteca versionada, export universal, gain staging, A/B, live mode, DAW, tone match, cloud) | ✅ |
-| [#113](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/113) | M3-1 Biblioteca versionada — **em curso**: a camada de armazenamento e o diff já estão no `gp100-library` (histórico append-only, migration v6, 20 testes); falta a tela | — |
+| ~~[#113](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/113)~~ | M3-1 Biblioteca versionada — **FECHADA**: histórico append-only no `gp100-library` (migration v6, trigger anti-reescrita, diff por knob), 5 commands Tauri e a tela `HistoryPanel` (par antes/depois visível, restauração total e pontual que **acrescenta** versão) | ✅ |
 | [#17](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/17) | EPIC Release v1.0.0 multiplataforma | — |
 | ~~[#18](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/18)~~ | EPIC Gate H — **FECHADA**: #21 ✅ (H1 executado, PR #109) · #22 ✅ (H2 em campo, PR #108) · #23 ✅ (H3 congelado, PR #96) | ✅ |
 

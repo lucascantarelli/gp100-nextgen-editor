@@ -17,6 +17,7 @@
  * testes exercitam o caminho de verdade da UI sem SQLite.
  */
 import type { BoardSlot } from "./types";
+import type { LibraryVersion } from "./history";
 import { FACTORY_PRESETS } from "../artifacts/presetData";
 import { IDEMPOTENTE, runCommand, semRetry } from "./device";
 
@@ -88,7 +89,7 @@ const SEM_RETRY_ESCRITA = semRetry("escrita em arquivo local: repetir nao conser
  *  nada, então repetir é repetir o trabalho, não consertar a causa. */
 const SEM_RETRY_IMPORT = semRetry("import e transacional: falhou = nada foi gravado");
 
-function dentroDoShell(): boolean {
+export function dentroDoShell(): boolean {
   return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 }
 
@@ -119,7 +120,58 @@ function semeiaFabrica(): Map<string, RegistroCompleto> {
 
 let fallback: Map<string, RegistroCompleto> | null = null;
 
-function bancoFallback(): Map<string, RegistroCompleto> {
+/**
+ * Historico de versao em memoria (issue #113): os snapshots que o crate
+ * guardaria em `preset_version`.
+ *
+ * **O store mora AQUI e nao em `history.ts`, e e deliberado.** A regra que
+ * garante a feature e "toda gravacao de patch de usuario versiona" — e ela e
+ * do `librarySave`, que e o unico caminho de escrita do banco. Se o store
+ * vivesse no arquivo do historico, o `librarySave` teria que IMPORTAR dali e o
+ * par de arquivos viraria ciclo; mais honesto e manter a invariante num lugar
+ * so e deixar `history.ts` ler daqui (a seta de dependencia fica de um lado
+ * so: `history -> library`).
+ *
+ * Vive no MESCO modulo (e nao numa struct) para o reset dos testes apagar banco
+ * e historico no mesmo gesto — historico de um patch que o teste acabou de
+ * apagar faria o teste seguinte passar errado.
+ */
+let versoesFallback: LibraryVersion[] = [];
+/** Contador de `id`, como o AUTOINCREMENT do SQLite. */
+let proximoId = 1;
+
+/**
+ * Acrescenta o snapshot de um patch de usuario (espelha `append_versao` do
+ * crate). Patch de fabrica nao versiona: ele vem do `all.prst` embutido e e
+ * imutavel por construcao.
+ */
+function registraVersao(p: LibraryRecord): LibraryVersion | null {
+  if (p.bank !== "user") return null;
+  const doPatch = versoesFallback.filter((v) => v.presetId === p.id);
+  const seq = (doPatch.at(-1)?.seq ?? 0) + 1;
+  const v: LibraryVersion = {
+    id: proximoId++,
+    presetId: p.id,
+    seq,
+    savedAt: p.savedAt,
+    name: p.name,
+    payload: p.payload,
+  };
+  versoesFallback = [...versoesFallback, v];
+  return v;
+}
+
+/** As versoes de um patch, em ordem de gravacao (1..N). Leitura do historico. */
+export function versoesDoPatch(presetId: string): LibraryVersion[] {
+  return versoesFallback.filter((v) => v.presetId === presetId).sort((a, b) => a.seq - b.seq);
+}
+
+/** Uma versao pelo id, ou `undefined`. Leitura do historico. */
+export function versaoPorId(id: number): LibraryVersion | undefined {
+  return versoesFallback.find((v) => v.id === id);
+}
+
+export function bancoFallback(): Map<string, RegistroCompleto> {
   if (fallback === null) fallback = semeiaFabrica();
   return fallback;
 }
@@ -127,6 +179,10 @@ function bancoFallback(): Map<string, RegistroCompleto> {
 /** Zera o fallback (usado pelos testes; fora deles é caso de bug). */
 export function resetaFallback(): void {
   fallback = null;
+  // O historico tambem e estado do fallback: deixar ele sobreviver ao reset
+  // faria um teste seguinte ver versoes de um patch que ele ja apagou.
+  versoesFallback = [];
+  proximoId = 1;
 }
 
 /**
@@ -189,7 +245,7 @@ function buscaFallback(q: LibraryQuery): LibraryPreset[] {
 
 // ────────────────────────────── a porta (invoke) ────────────────────────────
 
-async function invocar<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
+export async function invocar<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
   const { invoke } = await import("@tauri-apps/api/core");
   return invoke<T>(cmd, args);
 }
@@ -235,6 +291,11 @@ export async function libraryStats(): Promise<LibraryStats> {
 export async function librarySave(p: LibraryRecord): Promise<void> {
   if (!dentroDoShell()) {
     bancoFallback().set(p.id, p);
+    // Toda gravacao de patch de usuario versiona — e por aqui, e nao numa
+    // chamada a parte, porque e a MESMA porta que o shell usa (`library_save`
+    // ja versiona no crate). Um caminho de gravacao que nao versiona seria a
+    // historia com um buraco, e nao haveria como o dono saber onde.
+    registraVersao(p);
     return;
   }
   await runCommand("library_save", SEM_RETRY_ESCRITA, () => invocar<void>("library_save", { preset: p }));

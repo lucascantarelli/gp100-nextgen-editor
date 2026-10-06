@@ -43,30 +43,46 @@ src/
 ├── main.tsx (11)          monta o React
 │
 ├── ipc/                   ── a PORTA ──────────────────────────
-│   ├── device.ts (538)    device_select_preset, device_board, … + retry declarativo
+│   ├── device.ts (535)    device_select_preset, device_board, … + retry declarativo
 │   ├── diag.ts (132)      a COORTE de diagnóstico: gravar no aparelho, ler o
 │   │                      dump, a sessão de log e a prévia do envio
 │   ├── push.ts (63)       log de pushes do device
-│   └── types.ts (148)     BoardSlot/BoardView/DeviceInfo — o contrato do palco
+│   ├── library.ts (517)   a lista e o CRUD de patch de usuário + o store do
+│   │                      histórico em memória (o fallback); `registraVersao`
+│   │                      mora AQUI, dentro do `librarySave` — ver `history.ts`
+│   ├── history.ts (312)   o HISTÓRICO por patch (#113): as 5 leituras/restaurações
+│   │                      e a cópia do diff do crate para o fallback
+│   ├── ir.ts (394) · tones.ts (388)   os laboratórios de IR e de tones (#24/#25)
+│   └── types.ts (218)     BoardSlot/BoardView/DeviceInfo — o contrato do palco
 │
 ├── hooks/                 ── ESTADO DE SESSÃO ───────────────────
-│   ├── useStage.ts (248)  o que está NO PALCO: abrir/salvar/apagar preset e
+│   ├── useStage.ts (287)  o que está NO PALCO: abrir/salvar/apagar preset e
 │   │                      patch, knob, efeito, footswitch, o banner {msg,retry}
-│   ├── usePrefs.ts (141)  o que SOBREVIVE à janela: master, drum, tuner,
+│   ├── useLibrary.ts (378) a lista da biblioteca, a busca e o CRUD de usuário
+│   ├── useHistory.ts (253) o par comparado, o diff e as restaurações (#113);
+│   │                      a política fica no hook porque ela sobrevive ao reload
+│   │                      da lista (o 1º `restaura` recarrega — o par não pode
+│   │                      morar no componente)
+│   ├── useIrs.ts (248) · useTones.ts (267)  os laboratórios (#24/#25)
+│   ├── usePrefs.ts (142)  o que SOBREVIVE à janela: master, drum, tuner,
 │   │                      looper, settings/idioma
 │   ├── useBoot.ts (113)   a sequência de boot e seu progresso
 │   ├── usePushLog.ts (38) o ring buffer de pushes
-│   ├── useFieldDiag.ts (196) o alvo (patch/nome) e o que voltou do diagnóstico
-│   └── useGlobalShortcuts.ts (96)
+│   ├── useFieldDiag.ts (197) o alvo (patch/nome) e o que voltou do diagnóstico
+│   ├── useGlobalShortcuts.ts (96) · useContentMenu.tsx (48)
 │
 ├── components/            ── APRESENTAÇÃO ───────────────────────
 │   ├── Stage.tsx (359) · Pedalboard.tsx (337) · Pedal.tsx (504)
 │   │   PedalModal.tsx (284) · Knob.tsx (207) · TopBar.tsx (385)
-│   ├── LibraryPanel.tsx (269) · LooperPanel.tsx (610)
-│   ├── DrumPanel.tsx (196) · TunerPanel.tsx (359) · PushLog.tsx (104)
-│   ├── FieldDiagPanel.tsx (330) o diagnóstico de campo em tela (carrega o
+│   ├── LibraryPanel.tsx (516) · LooperPanel.tsx (637)
+│   ├── HistoryPanel.tsx (298) o histórico do patch (#113): par antes/depois
+│   │                      visível, o diff por knob e as duas restaurações
+│   ├── IrLabPanel.tsx (417) · SnapTonePanel.tsx (417)  os laboratórios
+│   ├── SettingsModal.tsx (409) · TunerPanel.tsx (359)
+│   ├── DrumPanel.tsx (196) · PushLog.tsx (104) · ContentMenu.tsx (81)
+│   ├── FieldDiagPanel.tsx (350) o diagnóstico de campo em tela (carrega o
 │   │                      próprio <details>, para o App ganhar 1 linha)
-│   └── BootProgressBar.tsx (63) · ErrorBanner.tsx (56)
+│   └── BootProgressBar.tsx (64) · ErrorBanner.tsx (57)
 │
 ├── design/                ── PURO, SEM REACT ────────────────────
 │   ├── geometry.ts (131)  pedalDims/layoutFor: a geometria saiu do Pedal (#82)
@@ -74,7 +90,7 @@ src/
 │
 ├── looper/fsm.ts (146) · tuner/pitch.ts (162) ── máquinas de estado puras
 ├── effects.ts (94)        troca de algoritmo dentro do slot (issue #19)
-├── userPatches.ts (83)    snapshot de patch de usuário (prévia em localStorage)
+├── userPatches.ts (118)   snapshot de patch de usuário (prévia em localStorage)
 │
 ├── artifacts/             ── DADOS GERADOS ──────────────────────
 │   └── presetChains.ts · fxData.ts · fxModels.ts · presetData.ts · drumData.ts
@@ -92,6 +108,17 @@ tuner e looper não têm nada a ver com o palco e foram para o `usePrefs`.
 
 O que ficou no `App` é o que só ele tem: boot, log de pushes, atalhos globais,
 quais modais estão abertos e o JSX.
+
+**A porta do histórico (#113) é o contraexemplo que fixa a regra.** `library.ts`
+e `history.ts` parecem o mesmo assunto e viraram dois arquivos assim mesmo: o
+primeiro é o CRUD da lista e o registro corrente (mutável), o segundo é a
+leitura de um histórico **imutável** mais as restaurações. Duas
+responsabilidades, duas coortes de contrato. E a seta de dependência ficou de um
+lado só de propósito: o store de versões do fallback mora em `library.ts`,
+porque a invariante que garante a feature — "**toda** gravação de patch
+versiona" — é do `librarySave`. Se o store viesse para `history.ts`, o
+`librarySave` teria que importar de lá e o par viraria um ciclo. O que impede
+isso de se perder é o teste do `librarySave` que conta a versão a cada gravação.
 
 ---
 
