@@ -28,6 +28,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
   deviceDumpPreset,
   deviceLogPath,
+  deviceLogReveal,
   deviceLogSession,
   deviceLogStop,
   devicePreview,
@@ -71,7 +72,7 @@ interface FieldDiag {
   /** O preset foi gravado nesta sessão? (o botão não repete sozinho) */
   saved: boolean;
   /** Operação em voo — desabilita os botões em vez de duplicar clique. */
-  busy: null | "save" | "dump" | "log" | "preview";
+  busy: null | "save" | "dump" | "log" | "preview" | "reveal";
   /** Última mensagem de erro (a UI mostra e não engole). */
   error: string | null;
   /** Grava o preset no aparelho. Não tem retry: gravar duas vezes é pior. */
@@ -80,6 +81,13 @@ interface FieldDiag {
   dumpPreset: () => Promise<void>;
   /** Liga/desliga o log de fio da sessão. */
   toggleLog: () => Promise<void>;
+  /**
+   * Abre o gerenciador de arquivos com o LOG ATIVO selecionado (#135).
+   *
+   * O caminho é do backend: o front só clica — é o que impede este botão de
+   * levar o operador para um lugar qualquer do disco.
+   */
+  revealLog: () => Promise<void>;
   /** Pede os frames que o aparelho receberia, sem receber. */
   previa: () => Promise<void>;
   /** Limpa o dump e o preview (não mexe no log — desligar é explícito). */
@@ -185,8 +193,7 @@ export function useFieldDiag(info: DeviceInfo | null): FieldDiag {
     }
   }, [logging, logFile]);
 
-  const previa = useCallback(async () => {
-    setBusy("preview");
+  const previa = useCallback(async () => {    setBusy("preview");
     setError(null);
     try {
       setPreview(await devicePreview({ op: "save", pp, ppType, name }));
@@ -197,6 +204,20 @@ export function useFieldDiag(info: DeviceInfo | null): FieldDiag {
       setBusy(null);
     }
   }, [pp, ppType, name]);
+
+  const revealLog = useCallback(async () => {
+    setBusy("reveal");
+    setError(null);
+    try {
+      await deviceLogReveal();
+    } catch (e) {
+      // Sem desktop (browser) ou sem handler de arquivo, a operação é DITA —
+      // deixar o botão mudo seria o operador achando que a pasta abriu.
+      setError(msg(e));
+    } finally {
+      setBusy(null);
+    }
+  }, []);
 
   const clear = useCallback(() => {
     setDump(null);
@@ -222,6 +243,7 @@ export function useFieldDiag(info: DeviceInfo | null): FieldDiag {
     save,
     dumpPreset,
     toggleLog,
+    revealLog,
     previa,
     clear,
   };

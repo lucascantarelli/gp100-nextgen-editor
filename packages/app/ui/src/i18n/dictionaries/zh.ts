@@ -248,6 +248,8 @@ export const ZH: DictPatch = {
   diagLogPathLabel: "日志文件",
   diagLogHint: "录制经 USB 进出的一切通信，供支持人员事后分析。",
   diagLogOn: (path: string) => `正在录制到 ${path}`,
+  diagLogReveal: "打开文件所在文件夹",
+  diagLogCopyPath: "复制路径",
   diagPreviewBtn: "查看将被发送的内容",
   diagPreviewTitle: "将被发送的内容（不发送）",
   diagPreviewEmpty: "没有可显示的内容。",

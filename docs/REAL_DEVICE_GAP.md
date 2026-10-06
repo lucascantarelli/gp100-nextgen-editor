@@ -331,7 +331,14 @@ arquivo está gravando (`device_log_path`): o operador vê o caminho do log
 automático na própria tela — e o botão oferece **parar**, porque a sessão já
 está em disco — sem depender do `stderr` do processo. Isso é o que fecha a
 lacuna que a #133 abriu: o caminho é do backend (o `run()` o escolhe), não do
-front.
+front. (5) **Entregar a sessão é um clique** (#135): `device_log_reveal` abre o
+gerenciador do SO com o arquivo **selecionado** (`explorer /select` no Windows,
+`open -R` no macOS, `xdg-open` na pasta no Linux — sem "selecionar arquivo" no
+Linux, e a doc diz isso em vez de fingir) e um segundo botão copia o caminho
+para o clipboard. Os dois só aparecem com log **ativo**; o caminho não é
+argumento do front — quem decide é o backend, dono do log — e sem desktop
+(browser) a operação **lança e a tela mostra o motivo**, em vez de fingir que
+a pasta abriu.
 
 **O passo 4c é o que muda o formato do passo 7.** A sessão de campo deixa de ser um
 roteiro de terminal e passa a ser um relatório de tela: o operador abre o editor,
