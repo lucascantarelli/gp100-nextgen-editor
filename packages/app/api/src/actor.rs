@@ -388,6 +388,13 @@ enum Request {
     LogStop {
         reply: mpsc::Sender<Result<bool, String>>,
     },
+    /// Em que arquivo o log de fio esta gravando agora (`None` = sem log).
+    ///
+    /// Existe porque o caminho **nao e do front**: desde a #130 o build de campo
+    /// liga o log sozinho na abertura, com o nome que o `run()` escolhe
+    /// (diretorio de dados + carimbo). Sem isto a tela mostraria "nenhum log" e
+    /// ofereceria "gravar" por cima de uma sessao que **ja esta em disco**.
+    LogPath { reply: mpsc::Sender<Option<String>> },
     /// Encerra a thread do actor (drop do `DeviceActor`).
     Shutdown,
 }
@@ -466,6 +473,10 @@ impl DeviceActor {
                 return;
             }
             let mut session = Some(Session::new(logged));
+            // O caminho ATIVO do log — estado do actor, e nao do transporte: o
+            // `WireLogger` guarda o arquivo, nao o nome dele, e quem pergunta e
+            // a tela (`device_log_path`).
+            let mut log_path: Option<String> = None;
             while let Ok(req) = rx.recv() {
                 match req {
                     Request::Info { reply } => {
@@ -639,6 +650,12 @@ impl DeviceActor {
                         let mut t = s.into_transport();
                         let r = t.enable_log(std::path::Path::new(&path));
                         session = Some(Session::new(t));
+                        // So um log que ABRIU passa a ser o ativo: um caminho
+                        // que nao pode ser criado nao pode aparecer na tela como
+                        // "gravando".
+                        if r.is_ok() {
+                            log_path = Some(path);
+                        }
                         let _ = reply.send(r.map(|()| true));
                     }
                     Request::LogStop { reply } => {
@@ -649,7 +666,13 @@ impl DeviceActor {
                         let mut t = s.into_transport();
                         t.logger = None;
                         session = Some(Session::new(t));
+                        log_path = None;
                         let _ = reply.send(Ok(true));
+                    }
+                    Request::LogPath { reply } => {
+                        // Clonado: o estado continua no actor, a resposta e do
+                        // chamador (a tela precisa do nome, nao da posse dele).
+                        let _ = reply.send(log_path.clone());
                     }
                     Request::Shutdown => break,
                 }
@@ -902,6 +925,23 @@ impl DeviceActor {
             .map_err(|_| "actor morreu no LogStop".to_string())?
     }
 
+    /// Em que arquivo o log de fio esta gravando agora (`None` = nenhum).
+    ///
+    /// E o que deixa a TELA dizer o arquivo sem depender do `stderr` do
+    /// processo: desde a #130 o build de campo liga o log sozinho na abertura, e
+    /// o caminho e escolhido pelo `run()` (diretorio de dados + carimbo), nao
+    /// pelo front.
+    ///
+    /// # Erros
+    /// String de erro se a thread do actor morreu.
+    pub fn log_path(&self) -> Result<Option<String>, String> {
+        let (tx, rx) = mpsc::channel();
+        self.tx
+            .send(Request::LogPath { reply: tx })
+            .map_err(|_| "actor de device não está mais rodando".to_string())?;
+        rx.recv().map_err(|_| "actor morreu no LogPath".to_string())
+    }
+
     /// Envia Shutdown e agrega a thread (idempotente).
     pub fn shutdown(&self) {
         let _ = self.tx.send(Request::Shutdown);
@@ -1012,6 +1052,38 @@ mod tests {
             .find(|l| l.contains("\"dir\":\"out\"") && l.contains("\"addr\":\"13010000\""))
             .unwrap_or_else(|| panic!("o select nao foi registrado: {linhas:?}"));
         assert!(select.contains("\"func\":\"11\""), "{select}");
+    }
+
+    /// **O caminho do log é do BACKEND, e a tela pergunta por ele.** Sem isto o
+    /// painel mostraria "nenhum log" enquanto a sessão de campo já está em disco
+    /// (#130 liga sozinho) — e o botão ofereceria "gravar" por cima do arquivo
+    /// que o próprio app abriu.
+    #[test]
+    fn log_path_reflete_o_log_ligado_e_parado() {
+        let dir = std::env::temp_dir().join("gp100-actor-log-path");
+        std::fs::create_dir_all(&dir).expect("dir");
+        let path = dir.join("sessao.jsonl");
+        let _ = std::fs::remove_file(&path);
+
+        let actor = DeviceActor::spawn(MockDevice::new().expect("mock montado"), Backend::Mock);
+        assert_eq!(actor.log_path().expect("consulta"), None, "nasce sem log");
+
+        actor
+            .log_session(path.to_str().expect("caminho utf8"))
+            .expect("log ligado");
+        assert_eq!(
+            actor.log_path().expect("consulta"),
+            Some(path.to_string_lossy().to_string()),
+            "ligado: o caminho e o que foi pedido"
+        );
+
+        actor.log_stop().expect("log parado");
+        assert_eq!(
+            actor.log_path().expect("consulta"),
+            None,
+            "parado volta a nada"
+        );
+        actor.shutdown();
     }
 
     /// **A prova de que o generico nao e vazio.** Um backend que **nao** e

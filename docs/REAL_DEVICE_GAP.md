@@ -326,7 +326,12 @@ nesse outro arquivo (o automático para de crescer, nada é perdido); desligar
 para os dois. (2) A pasta acumula um arquivo por execução de campo — não há
 rotação; limpar é manual. (3) Falha ao criar o arquivo **não** derruba a
 sessão: avisa no `stderr` e o app segue (a sessão vale mais que o log, a mesma
-política do `LoggingTransport`).
+política do `LoggingTransport`). (4) **O painel pergunta ao backend** em que
+arquivo está gravando (`device_log_path`): o operador vê o caminho do log
+automático na própria tela — e o botão oferece **parar**, porque a sessão já
+está em disco — sem depender do `stderr` do processo. Isso é o que fecha a
+lacuna que a #133 abriu: o caminho é do backend (o `run()` o escolhe), não do
+front.
 
 **O passo 4c é o que muda o formato do passo 7.** A sessão de campo deixa de ser um
 roteiro de terminal e passa a ser um relatório de tela: o operador abre o editor,
