@@ -1,13 +1,16 @@
 # REAL_DEVICE_GAP — o que o app fala com o aparelho, e o que ainda é mock
 
-> **Status:** 🔨 vivo · **Criado:** 05/10/2026 · **Issue:** [#17](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/17) (bloqueio), [#16](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/16) (entrada)
+> **Status:** 🔨 vivo · **Criado:** 05/10/2026 · **Última auditoria:** 06/10/2026 (a §1 foi reescrita: a barreira de código caiu no mesmo dia em que foi levantada) · **Issue:** [#17](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/17) (bloqueio), [#16](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/16) (entrada)
 > **Pergunta que responde:** *a aplicação já está completamente conectada? todas as
 > funcionalidades já estão integradas com o comportamento real? baseado no manual,
 > documentos?*
 > **Resposta curta:** **não.** Toda a lógica de protocolo está implementada e
-> **validada contra o aparelho real** (gates H1/H2 em campo). O que não existe é a
-> **ligação**: o app do Tauri é *monomórfico* no `MockDevice` e não tem como falar
-> com a pedaleira. Nenhum byte do build distribuível toca hardware.
+> **validada contra o aparelho real** (gates H1/H2 em campo), e a **ligação já
+> existe** (05/10, `d4ad1e8`/`827cbe8`): o `abrir_backend()` escolhe `RealDevice` ou
+> mock conforme a feature de compilação. O que falta é do outro lado do mesmo
+> par: **o build distribuído é construído SEM a feature** (o `dist-ui` chama
+> `tauri build` sem `--features real-device`) e **nenhuma sessão de campo saiu do
+> app** — as duas medições são a §6 passo 7 e a §1, item 1.
 
 Este documento é o levantamento pedido pelo owner em 05/10/2026 e é a base do
 go/no-go da [#17](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/17):
@@ -16,39 +19,71 @@ mock com o nome de release.
 
 ---
 
-## 1. A barreira, em três linhas de código
+## 1. A barreira de código caiu em 05/10 — o que segura a release é o BUILD e o CAMPO
 
-[`packages/app/api/src/lib.rs`](../packages/app/api/src/lib.rs) — o `run()`:
+> **Auditoria 06/10.** A barreira original (o `run()` instanciando `MockDevice`
+> direto, `DeviceActor::spawn` monomórfico, feature `real-device` de letra morta)
+> era verdadeira quando este documento nasceu no mesmo dia. Ela **fechou na
+> mesma data** (`d4ad1e8`, depois `827cbe8`) e este trecho foi reescrito para
+> parar de apontar para código que não existe mais. O que sobra não é código:
+> é *build* e *campo* — os três itens no fim da seção.
+
+### Como está hoje
+
+[`packages/app/api/src/lib.rs`](../packages/app/api/src/lib.rs) — o `run()` delega
+para [`abrir_backend()`](../packages/app/api/src/lib.rs):
 
 ```rust
-let mut mock = MockDevice::new()?;
-let actor = actor::DeviceActor::spawn(mock);
+fn abrir_backend() -> Result<abrir_backend::Escolha, Box<dyn std::error::Error>> {
+    #[cfg(feature = "real-device")]
+    {
+        match gp100_core::transport::real::RealDevice::new() {
+            Ok(real) => return Ok(abrir_backend::Escolha {
+                actor: actor::DeviceActor::spawn(
+                    Box::new(real) as actor::AppDevice,
+                    actor::Backend::Real,
+                ),
+            }),
+            Err(e) => { eprintln!("[device] aparelho nao abriu ({e}); caindo no MOCK"); }
+        }
+    }
+    // …ramo do mock, com o MESMO corpo nos dois `cfg` — ver `como_app_device`
+}
 ```
 
-[`packages/app/api/src/actor.rs`](../packages/app/api/src/actor.rs) — o spawn:
+- **`AppDevice`** é um alias `cfg`: sem a feature é o próprio `MockDevice`; com
+  ela, `Box<dyn DeviceBackend + Send>`. A coerção é a função `como_app_device()`
+  — função e não anotação de tipo, porque `let m: AppDevice = mock` não compila
+  no build comum (foi o E0308 que a primeira run do `ui-rust` mostrou nos dois SOs).
+- **`DeviceActor::spawn<T: DeviceBackend + 'static>`** é genérico: qualquer
+  backend entra. **`Backend::{Mock, Real}`** viaja no spawn e vira
+  `DeviceSnapshot.backend` (`"mock" | "real"`) — o `DeviceInfo` não tem mais
+  literal, e o `FieldDiagPanel` mostra o badge.
+- **A feature `real-device` é referenciada** (`cfg` em `lib.rs` e `actor.rs`), não
+  é mais letra morta: a CI compila e clippa o crate do app com ela na matriz
+  `ui-rust` dos **três SOs** (`ci.yml` L372 clippy · L446 check `real-device,
+  write-verified`) e no container Linux com ALSA (L665).
 
-```rust
-pub fn spawn(device: MockDevice) -> Self {
-    // ...
-    let mut session = Some(Session::new(device));
-```
+### O que ainda segura a coluna `app → aparelho real` da §2
 
-E o detalhe que fecha a porta: a feature `real-device` está **declarada** em
-`packages/app/api/Cargo.toml` e **nunca referenciada** em `packages/app/api/src/`.
-Ela é letra morta — compilar com `--features real-device` não muda nada.
-
-Não é um bug de plumbing, é **monomorfismo**: `DeviceActor::spawn` aceita
-`MockDevice` (tipo concreto), não `Box<dyn DeviceTransport>`. A `Session<T>` do
-core já é genérica e já tem o impl de `Box<dyn DeviceTransport>` em
-[`transport/mod.rs`](../packages/core/src/transport/mod.rs) — **o CLI de campo
-já faz exatamente esse dispatch** ([`packages/cli/src/main.rs`](../packages/cli/src/main.rs),
-`LoggingTransport<Box<dyn DeviceTransport>>`, `--real` + `--i-know-what-im-doing`).
-O caminho está escrito e testado; só o app não o usa.
-
-E há um segundo furo, mais silencioso: mesmo com a trait object,
-[`DeviceActor::info`](../packages/app/api/src/actor.rs) devolve `MockState`, um
-tipo que **só o mock produz**. `DeviceInfo::from_mock` embute `backend: "mock"`
-como literal. Com um aparelho real esse campo não tem de onde sair.
+1. **O build distribuível não leva a feature.** O job `dist-ui` chama
+   `tauri build ${{ matrix.args }}` **sem `--features real-device`**
+   ([`ci.yml`](../.github/workflows/ci.yml), ~L1366) — issue
+   [#126](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/126),
+   que também traz a decisão de qual **face** do build vai para a release
+   (leitura primeiro é escrever). Os instaladores de hoje são builds mock **por
+   linha de comando, não por limitação de código** — um `nsis`/`dmg` publicado
+   assim não falaria com a pedaleira, mesmo o código sabendo. É a diferença
+   entre "o caminho está compilado" e "o binário que o dono baixa tem o caminho
+   ligado".
+2. **Nenhuma sessão de campo partiu do APP.** O H1/H2 provaram o core e o CLI;
+   `ir_send`, `tone_send` e o knob do **editor** não foram medidos. É o passo 7
+   da §6, e é o que a #17 espera.
+3. **O `DeviceInfo` declara sua fonte, mas nem toda ela é do aparelho.**
+   `DeviceSnapshot` marca os campos que o fio não traz (`current_name`,
+   `current_pp_type`, `ir_slots_with_crc`) como *só no mock*; `ir_slots` é lido
+   do aparelho nos dois backends. O que falta não é uma ligação — é medir, na
+   sessão do passo 7, o que muda de valor (§4).
 
 ## 2. Inventário: core · CLI · app · aparelho real
 
@@ -146,6 +181,11 @@ mesmo código. Uma sessão de teste no aparelho é a única forma de medi-los:
    real não tem estado local. O `DeviceInfo` precisa de uma **fonte real**
    (provavelmente o `BootReport` + a tabela de IRs + a página meta6), e os
    campos que não tiverem fonte real precisam deixar de ser prometidos.
+   > **Estado 06/10:** o segundo meio da frase está feito — `DeviceSnapshot`
+   > marca `current_name`/`current_pp_type`/`ir_slots_with_crc` como *só no mock*,
+   > `ir_slots` é lido do aparelho nos dois backends, e `backend` não é mais
+   > literal. O que sobra é **medir** o que deixa de ser verdade quando a fonte
+   > muda — é isso que a sessão do passo 7 preenche.
 2. **O palco (`device_board`) mostra o arquivo embutido, não o aparelho.**
    [`Request::Board`](../packages/app/api/src/actor.rs) faz
    `embedded_document()` — projeção pura de `all.prst`, **zero tráfego de fio**.
@@ -195,7 +235,7 @@ agora significa duas coisas:
 
 | Item do manual | O que a matriz diz | Por quê, em termo de canal |
 |---|---|---|
-| `B6` Save/Import/Export/Rename no device | 🔴 | `save_preset` existe no core e no CLI; **não há command no app** |
+| `B6` Save/Import/Export/Rename no device | 🔴 | `save_preset` existe no core, no CLI **e no app** (`device_save_preset` + `diagSave`, passo 4/4c). O que ainda falta é produto: nenhum botão da biblioteca/palco grava no aparelho, e a sessão de campo não mediu uma única gravação feita pelo editor |
 | `C2` Effects List (trocar o efeito) | 🟡 | `0x47` sem formato validado (BLOCKERS 10b) — bloqueia **em qualquer backend** |
 | `T6` Stomp Mode · `P2/P3` Patch BPM/EXP | 🟡 | mesmo bloqueio de `C2` |
 | `S2/S3/S4` escritas do menu GLOBAL | 🟡 | idem |
@@ -212,21 +252,23 @@ deles precisa do aparelho para ser provado.
 
 | # | Passo | Onde | DoD | Precisa do aparelho? |
 |---|---|---|---|---|
-| 1 | `DeviceActor` genérico sobre `Box<dyn DeviceTransport>` + seleção mock/real | `packages/app/api/src/{actor,lib}.rs` | os testes do actor passam **sem** mudar (o mock vira o caso padrão); `--features real-device` compila | não |
-| 2 | `DeviceInfo` com **fonte real** (e campos que não têm fonte, declarados) | `commands.rs` | `DeviceInfo` sai do `BootReport`/tabela/meta6, não do `MockState` | não |
-| 3 | Botões de escrita cientes da política (`write-verified` → desabilitado + aviso) | front + commands | e2e do botão desabilitado no build de leitura | não |
+| 1 | `DeviceActor` genérico sobre `Box<dyn DeviceTransport>` + seleção mock/real — **✅ feito** (`d4ad1e8`, 05/10: `AppDevice` alias `cfg` + `abrir_backend()`; a CI clippa e checa com `real-device` nos três SOs) | `packages/app/api/src/{actor,lib}.rs` | os testes do actor passam **sem** mudar (o mock vira o caso padrão); `--features real-device` compila | não |
+| 2 | `DeviceInfo` com **fonte real** (e campos que não têm fonte, declarados) — **✅ feito** (05/10: `DeviceSnapshot` marca `current_name`/`current_pp_type`/`ir_slots_with_crc` como *só no mock*; `ir_slots` é lido do aparelho nos dois backends) | `commands.rs` | `DeviceInfo` sai do `BootReport`/tabela/meta6, não do `MockState` | não |
+| 3 | Botões de escrita cientes da política (`write-verified` → desabilitado + aviso) — **em aberto**: só o `FieldDiagPanel` lê `writeVerified`; o knob, o IR e o SnapTone mandam e deixam o erro tipado chegar. É parte da face (A) da [#126](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/126) | front + commands | e2e do botão desabilitado no build de leitura | não |
 | 4 | `save_preset` e `dump_preset` como commands — **✅ feito** (o que o CLI tinha e o app nao) | `actor.rs` + `commands.rs` | vetor de bytes igual ao do CLI | não |
 | 4b | **wire logger (schema P4) + dry-run no app** — **✅ feito**: `packages/core/src/wire_log.rs` (uma implementacao, CLI e app) + `device_log_session`/`device_preview`. O ciclo de campo agora fecha pelo app: sessao no editor → `.jsonl` → juiz | `wire_log.rs` + `commands.rs` | o `.jsonl` que o app grava passa no mesmo juiz que o do CLI | **sim** (para o veredito) |
 | 4c | **A camada de UI do diagnóstico** — **✅ feito**: `FieldDiagPanel.tsx` + `useFieldDiag` + `ipc/diag.ts`. As quatro capacidades dos passos 4/4b viraram tela (gravar, ler o dump, ligar/desligar o log, ver o que sairia), com o badge de backend e o aviso de escrita travada na tela. Sem isto a sessao de campo continuava dependendo do binario de terminal | `components/FieldDiagPanel.tsx` · `hooks/useFieldDiag.ts` · `ipc/diag.ts` | o operador de campo nao precisa abrir terminal para dirigir o aparelho | **sim** (para o veredito) |
 | 5 | `set_inventory` ligado ao que o boot descobre (ou fixado em campo com justificativa) | `session.rs` + `lib.rs` | o total de transações do report muda conforme o inventário | **sim** |
-| 6 | Build de campo **leitura** (`--features real-device`, sem `write-verified`) | `scripts/` | CI compila o crate do Tauri com a feature (WinMM no job `ui-rust`; ALSA no container do webview) | não |
+| 6 | Build de campo **leitura** (`--features real-device`, sem `write-verified`) — **✅ feito** (compilação); **o `dist-ui` ainda não o usa** — issue [#126](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/126) | `scripts/` | CI compila o crate do Tauri com a feature (WinMM no job `ui-rust`; ALSA no container do webview) | não |
 | 6b | `ui-rust` na matriz **macOS** — fecha o buraco do CoreMIDI — **✅ feito** (05/10): a matriz do `ui-rust` tem Windows + macOS, e o ALSA segue no container | `scripts/ci_plan.py::matrices` | o backend do app com `real-device` compila para CoreMIDI | não |
 | 7 | **Sessão de campo no aparelho**: boot, lista de IRs, dump, e a §4 medida | o painel de diagnóstico (passo 4c) + relatório | relatório com os 4 desvios de §4 preenchidos, com o `.jsonl` gerado **pelo app** | **sim** |
 | 8 | Release | #17 | o veredito da sessão de campo assinado | **sim** |
 
-Passos 1–4, 4b, 4c, 6 e 6b são software e foram feitos. Do caminho inteiro, só
-o passo 5 (uma decisão de campo) e o passo 7 (uma sessão com o aparelho) ficam
-de pé. **O passo 7 é o que a #17 exige, e a #17 não fecha antes dele.**
+Passos 1, 2, 4, 4b, 4c, 6 e 6b são software e foram feitos. Ficam de pé **o
+passo 3** (software também: o knob, o IR e o SnapTone ainda não leem
+`writeVerified` — é a face (A) da [#126](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/126)),
+**o passo 5** (uma decisão de campo) e **o passo 7** (uma sessão com o
+aparelho). **O passo 7 é o que a #17 exige, e a #17 não fecha antes dele.**
 
 **O passo 4c é o que muda o formato do passo 7.** A sessão de campo deixa de ser um
 roteiro de terminal e passa a ser um relatório de tela: o operador abre o editor,
@@ -241,7 +283,10 @@ verde, 13 gates, baseline do golden versionada, e o histórico do PR
 `#112` provando que a build de campo da CI é sadia.
 
 Falta, e é o que decide o go/no-go:
-- o binário distribuível **falar com o aparelho** (§1);
+- o **build distribuível** sair com a feature ligada — hoje o `dist-ui` constrói
+  sem `--features real-device`, então o instalador publicado é mock
+  ([#126](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/126), §1
+  item 1);
 - uma **sessão de campo** com o aparelho ligado, com veredito assinado — e ela
   agora acontece **dentro do app** pelo painel de diagnóstico (passo 4c), não
   por roteiro de terminal;
