@@ -965,6 +965,55 @@ mod tests {
         actor.shutdown();
     }
 
+    /// **O log de fio do app grava o fio de verdade.** É o que faz um incidente
+    /// de campo ser ATRIBUÍVEL em vez de dedutivo: o arquivo tem o frame que
+    /// saiu, com `func`/`addr`/`data`. No incidente de 06/10 não havia log
+    /// nenhum, e a causa teve de ser lida do código.
+    ///
+    /// O `select` é o comando daquele incidente (`11/13010000` com o `pp`): ele
+    /// atravessa o actor com o logger ligado e tem de aparecer no arquivo — não
+    /// basta o `WireLogger` ter teste próprio no core, porque o que se prova
+    /// aqui é que o caminho do APP (actor → `LoggingTransport`) o aciona.
+    #[test]
+    fn log_de_fio_do_actor_registra_o_select_que_atravessa() {
+        let dir = std::env::temp_dir().join("gp100-actor-wire-log");
+        std::fs::create_dir_all(&dir).expect("dir");
+        let path = dir.join("sessao.jsonl");
+        let _ = std::fs::remove_file(&path);
+
+        let actor = DeviceActor::spawn(MockDevice::new().expect("mock montado"), Backend::Mock);
+        actor
+            .log_session(path.to_str().expect("caminho utf8"))
+            .expect("log ligado");
+        actor.select_preset(0).expect("select no mock");
+        actor.shutdown();
+
+        let texto = std::fs::read_to_string(&path).expect("o log tem de existir");
+        let linhas: Vec<&str> = texto.lines().filter(|l| !l.is_empty()).collect();
+        assert!(!linhas.is_empty(), "o log nao pode sair vazio");
+
+        // Schema P4 — as chaves que `h1_compare.py`/`h2_compare.py` leem.
+        for l in &linhas {
+            for chave in [
+                "\"s\":",
+                "\"t\":",
+                "\"dir\":",
+                "\"func\":",
+                "\"addr\":",
+                "\"data\":",
+            ] {
+                assert!(l.contains(chave), "falta {chave} em: {l}");
+            }
+        }
+
+        // O frame do incidente: o select do preset 0 (`11/13010000`).
+        let select = linhas
+            .iter()
+            .find(|l| l.contains("\"dir\":\"out\"") && l.contains("\"addr\":\"13010000\""))
+            .unwrap_or_else(|| panic!("o select nao foi registrado: {linhas:?}"));
+        assert!(select.contains("\"func\":\"11\""), "{select}");
+    }
+
     /// **A prova de que o generico nao e vazio.** Um backend que **nao** e
     /// o mock — sem `MockState`, sem `drain_inbox` de mock — entra na MESMA
     /// fila e responde. E o que garante que o `RealDevice` do build de campo
