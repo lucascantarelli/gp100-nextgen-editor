@@ -52,12 +52,19 @@ src/
 │   │                      mora AQUI, dentro do `librarySave` — ver `history.ts`
 │   ├── history.ts (312)   o HISTÓRICO por patch (#113): as 5 leituras/restaurações
 │   │                      e a cópia do diff do crate para o fallback
+│   ├── preset.ts (190)    o PRESET COMO ARQUIVO (#114): exportar em JSON
+│   │                      versionado, a folha de timbre em PDF e o import de
+│   │                      volta para o palco. O fallback fora do shell exporta
+│   │                      a CADEIA, com formato próprio — o front não tem o
+│   │                      `.prst`, e o core recusa as duas formas com a
+│   │                      mensagem certa (ver `preset_json.rs`)
 │   ├── ir.ts (394) · tones.ts (388)   os laboratórios de IR e de tones (#24/#25)
 │   └── types.ts (218)     BoardSlot/BoardView/DeviceInfo — o contrato do palco
 │
 ├── hooks/                 ── ESTADO DE SESSÃO ───────────────────
-│   ├── useStage.ts (287)  o que está NO PALCO: abrir/salvar/apagar preset e
-│   │                      patch, knob, efeito, footswitch, o banner {msg,retry}
+│   ├── useStage.ts (310)  o que está NO PALCO: abrir/salvar/apagar preset e
+│   │                      patch, o IMPORTADO de arquivo (#114), knob, efeito,
+│   │                      footswitch, o banner {msg,retry}
 │   ├── useLibrary.ts (378) a lista da biblioteca, a busca e o CRUD de usuário
 │   ├── useHistory.ts (253) o par comparado, o diff e as restaurações (#113);
 │   │                      a política fica no hook porque ela sobrevive ao reload
@@ -69,7 +76,9 @@ src/
 │   ├── useBoot.ts (113)   a sequência de boot e seu progresso
 │   ├── usePushLog.ts (38) o ring buffer de pushes
 │   ├── useFieldDiag.ts (197) o alvo (patch/nome) e o que voltou do diagnóstico
-│   ├── useGlobalShortcuts.ts (96) · useContentMenu.tsx (48)
+│   ├── useGlobalShortcuts.ts (96)
+│   ├── useContentMenu.tsx (76)  a PORTA do conteúdo (#25/#24/#114): escolhe
+│   │                      entre tons, IRs e o preset em arquivo
 │
 ├── components/            ── APRESENTAÇÃO ───────────────────────
 │   ├── Stage.tsx (359) · Pedalboard.tsx (337) · Pedal.tsx (504)
@@ -79,7 +88,9 @@ src/
 │   │                      visível, o diff por knob e as duas restaurações
 │   ├── IrLabPanel.tsx (417) · SnapTonePanel.tsx (417)  os laboratórios
 │   ├── SettingsModal.tsx (409) · TunerPanel.tsx (359)
-│   ├── DrumPanel.tsx (196) · PushLog.tsx (104) · ContentMenu.tsx (81)
+│   ├── PresetFilePanel.tsx (244) o preset em arquivo (#114): os 3 caminhos
+│   │                      (JSON, folha, import) e o relato do que entrou
+│   ├── DrumPanel.tsx (196) · PushLog.tsx (104) · ContentMenu.tsx (90)
 │   ├── FieldDiagPanel.tsx (350) o diagnóstico de campo em tela (carrega o
 │   │                      próprio <details>, para o App ganhar 1 linha)
 │   └── BootProgressBar.tsx (64) · ErrorBanner.tsx (57)

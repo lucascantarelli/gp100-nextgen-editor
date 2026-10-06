@@ -182,12 +182,13 @@ describe("IrLabPanel — apagar avisa o que NÃO acontece", () => {
 });
 
 describe("ContentMenu — a porta do conteúdo do dono", () => {
-  it("oferece as DUAS telas e fecha sem abrir nada", async () => {
+  it("oferece as TRÊS telas e fecha sem abrir nada", async () => {
     const host = document.createElement("div");
     document.body.appendChild(host);
     const root: Root = createRoot(host);
     let tons = 0;
     let irs = 0;
+    let preset = 0;
     act(() =>
       root.render(
         <ContentMenu
@@ -196,6 +197,9 @@ describe("ContentMenu — a porta do conteúdo do dono", () => {
           }}
           onIrs={() => {
             irs += 1;
+          }}
+          onPreset={() => {
+            preset += 1;
           }}
           onClose={() => undefined}
         />,
@@ -206,6 +210,7 @@ describe("ContentMenu — a porta do conteúdo do dono", () => {
     // topo do painel que abriu.
     expect(dlg.textContent).toContain(MSG.toneTitle);
     expect(dlg.textContent).toContain(MSG.irTitle);
+    expect(dlg.textContent).toContain(MSG.presetFileTitle);
     await act(async () => {
       Array.from(dlg.querySelectorAll("button"))
         .find((b) => b.textContent === MSG.toneTitle)!
@@ -213,6 +218,13 @@ describe("ContentMenu — a porta do conteúdo do dono", () => {
     });
     expect(tons).toBe(1);
     expect(irs).toBe(0);
+    expect(preset).toBe(0);
+    await act(async () => {
+      Array.from(dlg.querySelectorAll("button"))
+        .find((b) => b.textContent === MSG.presetFileTitle)!
+        .dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    expect(preset).toBe(1);
     act(() => root.unmount());
     host.remove();
   });
@@ -230,6 +242,9 @@ describe("useContentMenu — a porta que escolhe a tela", () => {
       const c = useContentMenu({
         tones: { abrir: () => (tons += 1) },
         irs: { abrir: () => (irs += 1) },
+        // O preset em arquivo não tem manopla: a tela dele nasce no hook. O
+        // que ele recebe é o preset do PALCO e a porta de volta do importado.
+        preset: { pp: 0, onImport: () => undefined },
       });
       return (
         <>
@@ -289,6 +304,22 @@ describe("useContentMenu — a porta que escolhe a tela", () => {
     });
     expect(p.conta()).toEqual({ tons: 0, irs: 1 });
     expect(p.host.querySelector('[role="dialog"]')).toBeNull();
+    p.feito();
+  });
+
+  it("escolher o preset em arquivo ABRE a tela do arquivo (e não os tons)", async () => {
+    const p = porta();
+    await p.abrir();
+    const dlg = p.host.querySelector<HTMLElement>('[role="dialog"]')!;
+    await act(async () => {
+      Array.from(dlg.querySelectorAll("button"))
+        .find((b) => b.textContent === MSG.presetFileTitle)!
+        .dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    expect(p.conta()).toEqual({ tons: 0, irs: 0 });
+    expect(p.host.querySelector('[role="dialog"]')!.getAttribute("aria-label")).toBe(
+      MSG.presetFileTitle,
+    );
     p.feito();
   });
 

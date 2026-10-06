@@ -26,6 +26,7 @@ export class ShellPage {
   readonly settings: SettingsDialog;
   readonly tuner: TunerPage;
   readonly brand: BrandPage;
+  readonly presetFile: PresetFilePage;
 
   constructor(page: Page) {
     this.page = page;
@@ -53,6 +54,7 @@ export class ShellPage {
     this.settings = new SettingsDialog(page);
     this.tuner = new TunerPage(page);
     this.brand = new BrandPage(this);
+    this.presetFile = new PresetFilePage(page);
   }
 
   /** contrato comum dos specs: goto + banner visível */
@@ -141,6 +143,60 @@ export class ShellPage {
     await this.page.getByRole("button", { name: "Abrir configurações" }).click();
     await expect(this.settings.dialog).toBeVisible();
     return this.settings;
+  }
+
+  /**
+   * Abre o preset em arquivo (#114) pela PORTA do conteudo (o ∿ do rodape da
+   * biblioteca). Passa pelo menu de proposito: e o caminho do dono — a tela
+   * nasce como destino da porta, e um atalho de teste pularia justamente o
+   * passo que pode quebrar (o item do menu).
+   */
+  async openPresetFile(): Promise<PresetFilePage> {
+    await this.page.getByRole("button", { name: /Abrir o conteúdo/ }).click();
+    // `exact`: o ∿ da biblioteca tem "preset em arquivo" no aria-label (é o
+    // botão que abre esta porta) e o name por substring casaria os dois.
+    await this.page.getByRole("button", { name: "Preset em arquivo", exact: true }).click();
+    await expect(this.presetFile.root).toBeVisible();
+    return this.presetFile;
+  }
+}
+
+/* ── Preset em arquivo (#114): export JSON/folha e import ── */
+export class PresetFilePage {
+  readonly page: Page;
+  readonly root: Locator;
+
+  constructor(page: Page) {
+    this.page = page;
+    this.root = page.getByRole("dialog", { name: "Preset em arquivo" });
+  }
+
+  exportJson(): Locator {
+    return this.root.getByRole("button", { name: "Exportar o preset para um arquivo JSON versionado" });
+  }
+
+  /** a folha de timbre (PDF) — desabilitada no navegador, sem motor de PDF */
+  toneSheet(): Locator {
+    return this.root.getByRole("button", { name: "Exportar a folha de timbre do preset em PDF" });
+  }
+
+  /** o botão de importar (o input de arquivo tem o mesmo nome — daí o first) */
+  importButton(): Locator {
+    return this.root.getByRole("button", { name: "Importar um preset de um arquivo JSON" }).first();
+  }
+
+  /** o input invisivel por tras do botao de importar */
+  fileInput(): Locator {
+    return this.root.locator('input[type="file"]');
+  }
+
+  /** o relato do import ("Cadeia importada: …" / "Arquivo recusado: …") */
+  status(): Locator {
+    return this.root.getByRole("status");
+  }
+
+  close(): Locator {
+    return this.root.getByRole("button", { name: "Fechar o preset em arquivo" }).first();
   }
 }
 

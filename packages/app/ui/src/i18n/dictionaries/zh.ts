@@ -467,7 +467,26 @@ export const ZH: DictPatch = {
   errIrSend: "发送到设备失败。",
   errIrDevice: "无法读取设备的 IR 表。",
 
-  irBtnAria: "打开你的内容（SnapTone 音色与 IR 实验室）",
+  irBtnAria: "打开你的内容（SnapTone 音色、IR 实验室与预设文件）",
+
+  /* ── 预设文件（#114）：带版本的 JSON + 参数表 ── */
+  presetFileTitle: "预设文件",
+  presetFileHint: "舞台上工厂预设的两个文件：带版本的 JSON（可以还原为预设）和可打印的参数表。",
+  presetFileTarget: (rotulo: string, nombre: string) => `正在导出 ${rotulo} ${nombre}`,
+  presetFileExport: "导出 JSON",
+  presetFileExportAria: "把预设导出为带版本的 JSON 文件",
+  presetFileSheet: "参数表（PDF）",
+  presetFileSheetAria: "把预设参数表导出为 PDF",
+  presetFileSheetOff: "仅限应用内",
+  presetFileSheetHint: "参数表由应用内置的 PDF 引擎生成：应用之外没有。",
+  presetFileImport: "导入 JSON",
+  presetFileImportAria: "从 JSON 文件导入预设",
+  presetFileImported: (rotulo: string, nombre: string, slots: number) =>
+    `已导入链：${rotulo} ${nombre}，舞台上有 ${slots} 个槽位。`,
+  presetFileRejected: (motivo: string) => `文件被拒绝：${motivo}`,
+  presetFileFailed: "无法生成文件 —— 请重试。",
+  presetFileClose: "关闭预设文件",
+  presetFileNote: "导入不会写入设备：链只进入舞台，保存到 GP-100 仍然是单独的一步。",
 
   /* 打开两个内容页面的入口。选项直接用页面的标题（`toneTitle`/`irTitle`）：
      用户在菜单里读到的名字，和他打开的面板顶部看到的，是同一个。 */

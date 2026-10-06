@@ -474,7 +474,29 @@ export const PT_BR = {
   errIrSend: "O envio ao aparelho falhou.",
   errIrDevice: "Não foi possível ler a tabela de IRs do aparelho.",
 
-  irBtnAria: "Abrir o conteúdo do dono (tons SnapTone e laboratório de IRs)",
+  irBtnAria: "Abrir o conteúdo (tons SnapTone, laboratório de IRs e o preset em arquivo)",
+
+  /* ── o preset em arquivo (#114): JSON versionado + folha de timbre ── */
+  presetFileTitle: "Preset em arquivo",
+  presetFileHint:
+    "O preset de fábrica que está no palco, em dois arquivos: o JSON versionado (que volta a ser um preset) e a folha de timbre para imprimir.",
+  presetFileTarget: (rotulo: string, nome: string) => `Exportando ${rotulo} ${nome}`,
+  presetFileExport: "Exportar JSON",
+  presetFileExportAria: "Exportar o preset para um arquivo JSON versionado",
+  presetFileSheet: "Folha de timbre (PDF)",
+  presetFileSheetAria: "Exportar a folha de timbre do preset em PDF",
+  presetFileSheetOff: "só no app",
+  presetFileSheetHint:
+    "A folha de timbre é gerada pelo motor de PDF do app: fora dele não existe.",
+  presetFileImport: "Importar JSON",
+  presetFileImportAria: "Importar um preset de um arquivo JSON",
+  presetFileImported: (rotulo: string, nome: string, slots: number) =>
+    `Cadeia importada: ${rotulo} ${nome}, ${slots} slots no palco.`,
+  presetFileRejected: (motivo: string) => `Arquivo recusado: ${motivo}`,
+  presetFileFailed: "Não foi possível gerar o arquivo — tente novamente.",
+  presetFileClose: "Fechar o preset em arquivo",
+  presetFileNote:
+    "Importar não grava no aparelho: a cadeia vai para o palco, e salvar no GP-100 continua sendo um ato separado.",
 
   /* A PORTA que abre as duas telas de conteúdo. Os rótulos das opções são os
      TÍTULOS das telas (`toneTitle`/`irTitle`) de propósito: o dono lê o mesmo
