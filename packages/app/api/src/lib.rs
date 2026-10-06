@@ -21,6 +21,7 @@
 
 mod actor;
 mod commands;
+mod export_commands;
 mod ir_commands;
 mod library_commands;
 mod snap_tone_commands;
@@ -235,6 +236,9 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
             ir_commands::ir_assign_slot,
             ir_commands::ir_delete,
             ir_commands::ir_send,
+            export_commands::preset_export_json,
+            export_commands::preset_export_tone_sheet,
+            export_commands::preset_import_json,
         ])
         .build(tauri::generate_context!())?;
 
