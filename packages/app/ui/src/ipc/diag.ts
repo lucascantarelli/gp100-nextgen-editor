@@ -136,6 +136,33 @@ export async function deviceLogPath(): Promise<string | null> {
 }
 
 /**
+ * `device_log_reveal` — **abre o gerenciador de arquivos com o log selecionado**.
+ *
+ * É o fim do fluxo de entrega da sessão de campo (#135): o painel já diz EM
+ * QUE arquivo a gravação está; este command leva o arquivo até o suporte, sem
+ * o operador caçar a pasta na mão.
+ *
+ * O caminho **não é argumento**: quem decide é o backend, que é o dono do log
+ * ativo — o front não manda o explorer para lugar nenhum.
+ *
+ * No fallback (browser) não existe desktop para abrir, e a operação é **dita**,
+ * não fingida: lança, o painel mostra a mensagem, e ninguém acredita que a
+ * pasta abriu.
+ */
+export async function deviceLogReveal(): Promise<void> {
+  if (inTauri()) {
+    const { invoke } = await import("@tauri-apps/api/core");
+    await runCommand("log_reveal", IDEMPOTENTE, () =>
+      invoke<void>("device_log_reveal"),
+    );
+    return;
+  }
+  return runCommand("log_reveal", IDEMPOTENTE, async () => {
+    throw new Error("abrir a pasta do log existe só no aplicativo desktop");
+  });
+}
+
+/**
  * `device_preview` — **o que o aparelho receberia, sem receber**.
  *
  * O hex vem do BACKEND, nunca montado aqui: a porta única proíbe o front de

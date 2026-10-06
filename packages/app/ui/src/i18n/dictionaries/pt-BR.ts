@@ -247,6 +247,8 @@ export const PT_BR = {
   diagLogPathLabel: "Arquivo do log",
   diagLogHint: "Grava tudo o que entra e sai pela USB, para o suporte analisar depois.",
   diagLogOn: (path: string) => `Gravando em ${path}`,
+  diagLogReveal: "Abrir a pasta do arquivo",
+  diagLogCopyPath: "copiar o caminho",
   diagPreviewBtn: "Ver o que seria enviado",
   diagPreviewTitle: "O que seria enviado, sem enviar",
   diagPreviewEmpty: "Nada para mostrar.",

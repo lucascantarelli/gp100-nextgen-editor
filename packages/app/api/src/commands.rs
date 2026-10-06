@@ -339,6 +339,84 @@ pub fn device_log_path(state: State<'_, AppState>) -> Result<Option<String>, Str
     state.actor.log_path()
 }
 
+/// Sistema onde o app está rodando — separado de [`comando_revelar`] para que
+/// o teste cubra os TRÊS alvos em qualquer host (sem abrir janela em nenhum).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Alvo {
+    /// `explorer /select,<arquivo>` — abre a pasta com o arquivo MARCADO.
+    Windows,
+    /// `open -R <arquivo>` — o Finder "mostrar no Finder".
+    Macos,
+    /// `xdg-open <pasta>` — sem "selecionar arquivo" no Linux: abre a pasta.
+    Linux,
+}
+
+/// O SO de hoje, por compilação (mesma escolha do resto do crate: sem env).
+fn alvo_atual() -> Alvo {
+    if cfg!(target_os = "windows") {
+        Alvo::Windows
+    } else if cfg!(target_os = "macos") {
+        Alvo::Macos
+    } else {
+        Alvo::Linux
+    }
+}
+
+/// Monta (programa, argumentos) que revela o arquivo no gerenciador do SO.
+///
+/// **Puro de propósito:** o `spawn` fica no command, e assim o teste confere os
+/// três alvos sem abrir janela nenhuma em CI — o que o SO recebe é a parte que
+/// pode divergir por plataforma.
+fn comando_revelar(alvo: Alvo, caminho: &str) -> (String, Vec<String>) {
+    match alvo {
+        Alvo::Windows => ("explorer".into(), vec![format!("/select,{caminho}")]),
+        Alvo::Macos => ("open".into(), vec!["-R".into(), caminho.into()]),
+        Alvo::Linux => {
+            // Sem "revelar" no Linux: o que existe é abrir a PASTA que contém
+            // o arquivo. `parent` vazio = o arquivo está na raiz relativa.
+            let pasta = std::path::Path::new(caminho)
+                .parent()
+                .map(|p| p.to_string_lossy().into_owned())
+                .filter(|p| !p.is_empty())
+                .unwrap_or_else(|| ".".into());
+            ("xdg-open".into(), vec![pasta])
+        }
+    }
+}
+
+/// Decisão do `device_log_reveal` sem o `State` (testável) — devolve o comando
+/// ou a RECUSA quando não há log ativo.
+///
+/// Recusar aqui é o que impede o painel de mandar o explorer para qualquer
+/// lugar: o caminho não vem do front, vem do log que a sessão abriu.
+fn plano_revelar(log_ativo: Option<String>) -> Result<(String, Vec<String>), String> {
+    let caminho = log_ativo.ok_or_else(|| "nenhum log de fio ativo".to_string())?;
+    Ok(comando_revelar(alvo_atual(), &caminho))
+}
+
+/// `device_log_reveal` — **abre o gerenciador de arquivos com o log selecionado**.
+///
+/// É a última etapa de entregar uma sessão de campo (#135): o painel já diz EM
+/// QUE arquivo a gravação está; aqui o operador leva o arquivo até o suporte
+/// sem caçar a pasta (`%APPDATA%`/`AppData/Roaming` não é óbvio para quem
+/// recebe o `.jsonl`).
+///
+/// O caminho é o do log ATIVO (o actor), nunca um do front — ver
+/// [`plano_revelar`]. O `spawn` não bloqueia: o gerenciador é outro processo.
+///
+/// # Erros
+/// `String` quando não há log ativo ou o SO recusou abrir (explorer ausente,
+/// xdg-open sem handler). O painel mostra a mensagem — ele não finge que abriu.
+#[tauri::command]
+pub fn device_log_reveal(state: State<'_, AppState>) -> Result<(), String> {
+    let (programa, args) = plano_revelar(state.actor.log_path()?)?;
+    std::process::Command::new(programa)
+        .args(args)
+        .spawn()
+        .map(|_processo| ())
+        .map_err(|e| format!("não abri a pasta do log: {e}"))
+}
+
 /// Um frame que o aparelho **receberia**, sem receber.
 ///
 /// O hex e o mesmo que sairia pelo `send_raw` — inclusive o CRC recalculado
@@ -532,5 +610,54 @@ mod tests {
         assert_eq!(json["done"], 45);
         assert_eq!(json["total"], 2299);
         assert_eq!(json["currentPp"], 0x0100);
+    }
+
+    /// **Os três SOs, num host só.** O que diverge por plataforma é a linha de
+    /// comando; se o teste rodasse só o SO atual, um Linux quebrado passaria
+    /// na CI do Windows. Nenhum teste aqui abre janela — só monta o par.
+    #[test]
+    fn comando_revelar_monta_a_linha_de_cada_so() {
+        let win = comando_revelar(Alvo::Windows, "C:\\dados\\wire-20261006.jsonl");
+        assert_eq!(win.0, "explorer");
+        assert_eq!(win.1, vec!["/select,C:\\dados\\wire-20261006.jsonl"]);
+
+        let mac = comando_revelar(Alvo::Macos, "/Users/o/wire-20261006.jsonl");
+        assert_eq!(mac.0, "open");
+        assert_eq!(mac.1, vec!["-R", "/Users/o/wire-20261006.jsonl"]);
+
+        // Linux não tem "selecionar": abre a PASTA que contém o arquivo.
+        let lin = comando_revelar(Alvo::Linux, "/home/o/logs/wire-20261006.jsonl");
+        assert_eq!(lin.0, "xdg-open");
+        assert_eq!(lin.1, vec!["/home/o/logs"]);
+    }
+
+    /// Caminho na raiz (sem pasta) não vira argumento vazio — vira `.`, que é
+    /// a única resposta que o `xdg-open` entende.
+    #[test]
+    fn comando_revelar_linux_sem_pasta_abre_o_diretorio_atual() {
+        let lin = comando_revelar(Alvo::Linux, "wire.jsonl");
+        assert_eq!(lin.1, vec!["."]);
+    }
+
+    /// **Sem log ativo não há o que revelar, e a recusa é explícita.** É o que
+    /// impede o painel de abrir um gerenciador num lugar qualquer: o caminho
+    /// vem do log da sessão, não de um campo do front.
+    #[test]
+    fn plano_revelar_sem_log_recusa_antes_de_montar_o_comando() {
+        let erro = plano_revelar(None).expect_err("sem log tem de recusar");
+        assert!(erro.contains("nenhum log de fio ativo"), "{erro}");
+    }
+
+    /// Com log ativo, o comando sai com o CAMINHO do log (o backend é quem
+    /// sabe o arquivo — o front só clica no botão).
+    #[test]
+    fn plano_revelar_com_log_devolve_o_caminho_da_sessao() {
+        let (programa, args) = plano_revelar(Some("/dados/wire-1.jsonl".into())).expect("plano");
+        assert!(!programa.is_empty());
+        assert!(
+            args.iter()
+                .any(|a| a.contains("wire-1.jsonl") || a.contains("/dados")),
+            "o caminho do log tem de aparecer no comando: {args:?}"
+        );
     }
 }

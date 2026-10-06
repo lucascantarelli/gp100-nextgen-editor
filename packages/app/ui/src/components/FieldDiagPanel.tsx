@@ -55,11 +55,18 @@ export function FieldDiagPanel({ info }: Props) {
   // O botão de cópia tem dois rótulos: o que FAZ ("copiar") e o que ACONTECEU
   // ("copiado"). Mostrar o passado em repouso faria a lista parecer já copiada.
   const [copiado, setCopiado] = useState<number | null>(null);
+  /** O CAMINHO do log foi copiado? (feedback igual ao do hex, estado próprio) */
+  const [camCopiado, setCamCopiado] = useState(false);
   useEffect(() => {
     if (copiado == null) return;
     const t = setTimeout(() => setCopiado(null), COPIADO_MS);
     return () => clearTimeout(t);
   }, [copiado]);
+  useEffect(() => {
+    if (!camCopiado) return;
+    const t = setTimeout(() => setCamCopiado(false), COPIADO_MS);
+    return () => clearTimeout(t);
+  }, [camCopiado]);
 
   return (
     <details className="gp-surface gp-surface--flat" style={styles.wrap}>
@@ -176,6 +183,35 @@ export function FieldDiagPanel({ info }: Props) {
             </button>
           </div>
           <p style={styles.hint}>{d.logging && d.logPath != null ? MSG.diagLogOn(d.logPath) : MSG.diagLogHint}</p>
+
+          {/* Entregar a sessão é parte do trabalho de campo: abrir a pasta
+              (o arquivo selecionado) e copiar o caminho, para o suporte
+              receber o .jsonl sem o operador caçar o diretório na mão. Os dois
+              só existem com log ATIVO — oferecer "abrir pasta" de um arquivo
+              que não existe seria o botão mentindo (#135). */}
+          {d.logPath != null && (
+            <div style={styles.row}>
+              <button
+                type="button"
+                style={styles.btnOff}
+                disabled={d.busy != null}
+                onClick={() => void d.revealLog()}
+              >
+                {MSG.diagLogReveal}
+              </button>
+              <button
+                type="button"
+                style={styles.copy}
+                disabled={d.busy != null}
+                onClick={() => {
+                  setCamCopiado(true);
+                  void copiar(d.logPath ?? "");
+                }}
+              >
+                {camCopiado ? MSG.diagCopied : MSG.diagLogCopyPath}
+              </button>
+            </div>
+          )}
         </div>
 
         {/* o dump fica recolhido: são 9 blocos de hexadecimal, e o operador só
