@@ -466,7 +466,29 @@ export const EN: DictPatch = {
   errIrSend: "Sending to the device failed.",
   errIrDevice: "Could not read the device's IR table.",
 
-  irBtnAria: "Open your content (SnapTone tones and the IR lab)",
+  irBtnAria: "Open your content (SnapTone tones, the IR lab and the preset as a file)",
+
+  /* ── the preset as a file (#114): versioned JSON + tone sheet ── */
+  presetFileTitle: "Preset as a file",
+  presetFileHint:
+    "The factory preset on the stage, in two files: the versioned JSON (which turns back into a preset) and the tone sheet to print.",
+  presetFileTarget: (label: string, name: string) => `Exporting ${label} ${name}`,
+  presetFileExport: "Export JSON",
+  presetFileExportAria: "Export the preset to a versioned JSON file",
+  presetFileSheet: "Tone sheet (PDF)",
+  presetFileSheetAria: "Export the preset tone sheet as a PDF",
+  presetFileSheetOff: "app only",
+  presetFileSheetHint:
+    "The tone sheet is produced by the app's PDF engine: outside it there is none.",
+  presetFileImport: "Import JSON",
+  presetFileImportAria: "Import a preset from a JSON file",
+  presetFileImported: (label: string, name: string, slots: number) =>
+    `Chain imported: ${label} ${name}, ${slots} slots on the stage.`,
+  presetFileRejected: (reason: string) => `File refused: ${reason}`,
+  presetFileFailed: "Could not produce the file — try again.",
+  presetFileClose: "Close the preset as a file",
+  presetFileNote:
+    "Importing does not write to the device: the chain goes to the stage, and saving to the GP-100 stays a separate act.",
 
   /* The DOOR that opens both content screens. The option labels are the panel
      TITLES (`toneTitle`/`irTitle`) on purpose: the owner reads the same name in

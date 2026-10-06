@@ -89,9 +89,9 @@ export default function App() {
   // minutos) vivem no hook porque precisam sobreviver ao fechar e reabrir a
   // tela — perder o "enviando…" mandaria um segundo stream para o aparelho.
   const irs = useIrs();
-  // A PORTA do conteudo (#24/#25) fica no hook porque e ela que decide qual das
-  // duas telas abre: um botao na navbar estouraria o overflow em 1280.
-  const conteudo = useContentMenu({ tones, irs });
+  // A PORTA do conteudo (#24/#25/#114) fica no hook porque e ela que decide qual
+  // das telas abre (botao na navbar estoura em 1280); o preset vem por `stage`.
+  const conteudo = useContentMenu({ tones, irs, preset: { pp: stage.pp, onImport: stage.openImported } });
   const {
     pp,
     presetName,

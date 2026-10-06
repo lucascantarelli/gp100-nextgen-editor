@@ -1,13 +1,17 @@
 /**
- * ContentMenu — a porta do conteúdo do dono (issues #25 e #24).
+ * ContentMenu — a porta do conteúdo (issues #25, #24 e #114).
  *
- * **Por que um menu e não dois botões no rodapé.** A coluna da biblioteca tem
+ * **Por que um menu e não mais botões no rodapé.** A coluna da biblioteca tem
  * 248px e o rodapé já tem três botões (este + exportar + importar). Um quarto
  * botão estoura a linha, o rodapé vira duas fileiras, a coluna cresce por
  * `stretch` e o pedalboard desce junto — foi o que a #25 custou em baselines
- * visuais (18 PNGs renovadas). Uma porta com dois ambientes é o que mantém a
- * geometria intacta E diz a verdade: as duas telas guardam conteúdo do dono
- * no arquivo dele (o `.clo` convertido e o `.ir` do pedal).
+ * visuais (18 PNGs renovadas). Uma porta com três ambientes é o que mantém a
+ * geometria intacta E diz a verdade: as três telas levam conteúdo do pedal para
+ * um ARQUIVO (o `.clo` convertido, o `.ir` do pedal, e o preset em JSON/folha).
+ *
+ * A navbar não é alternativa: ela tem ~11px de folga em 1280 e qualquer botão
+ * novo a estoura (o achado da #25). O modal é o único lugar que cresce sem
+ * mexer em geometria de repouso.
  *
  * **É um modal, e não um popover.** Um popover ancorado no rodapé depende da
  * posição do botão e some quando o painel da biblioteca rola; o modal segue o
@@ -56,11 +60,13 @@ interface Props {
   onTones: () => void;
   /** Abre o laboratório de IRs. */
   onIrs: () => void;
+  /** Abre o preset em arquivo (JSON + folha de timbre). */
+  onPreset: () => void;
   /** Fecha este menu. */
   onClose: () => void;
 }
 
-export function ContentMenu({ onTones, onIrs, onClose }: Props) {
+export function ContentMenu({ onTones, onIrs, onPreset, onClose }: Props) {
   return (
     <div style={box} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div role="dialog" aria-modal="true" aria-label={MSG.contentMenuTitle} style={sheet}>
@@ -71,6 +77,9 @@ export function ContentMenu({ onTones, onIrs, onClose }: Props) {
         </button>
         <button style={item} onClick={onIrs}>
           {MSG.irTitle}
+        </button>
+        <button style={item} onClick={onPreset}>
+          {MSG.presetFileTitle}
         </button>
         <button style={fecha} onClick={onClose}>
           {MSG.contentMenuClose}

@@ -55,6 +55,11 @@ export interface Stage {
   openPreset: (target: number) => Promise<void>;
   stepPreset: (delta: 1 | -1) => void;
   openUserPatch: (id: string, index: number) => Promise<void>;
+  /**
+   * Aplica um preset IMPORTADO de arquivo (#114) no palco — mesmo tipo do
+   * `device_board`, então o palco não sabe a diferença.
+   */
+  openImported: (board: BoardView) => void;
   saveUserPatch: (name: string) => void;
   deleteUserPatch: (id: string) => void;
   applyKnob: (slot: BoardSlot, pos: number, value: string) => void;
@@ -147,6 +152,23 @@ export function useStage(onPresetChanged: () => void): Stage {
     },
     [changedRef, lib, openPreset, pp],
   );
+
+  // Importar um arquivo (#114): o palco passa a desenhar o retrato que veio,
+  // **sem falar com o device** — o `preset_import_json` não seleciona nem
+  // grava nada no aparelho, e o palco desenha o mesmo `BoardView` do
+  // `device_board`, então nada muda em quem lê dali para baixo.
+  //
+  // O `pp` vem do PRÓPRIO board: o arquivo carrega o preset de fábrica de que
+  // ele saiu, e é ele que a navbar mostra. E o patch de usuário aberto é solto
+  // — a cadeia em cena agora não é mais a dele (mesma regra do `openPreset`).
+  const openImported = useCallback((b: BoardView) => {
+    setPp(b.pp);
+    setPresetName(b.name);
+    setBoard(b);
+    setOpenUserId(null);
+    setErr(null);
+    changedRef.current(); // o dono do modal fecha a edição ampliada
+  }, []);
 
   // Salva o patch CORRENTE: a cadeia que está no palco agora (fábrica ou
   // usuário), com o nome digitado — sem nome, numeração do dono.
@@ -277,6 +299,7 @@ export function useStage(onPresetChanged: () => void): Stage {
     openPreset,
     stepPreset,
     openUserPatch,
+    openImported,
     saveUserPatch,
     deleteUserPatch,
     applyKnob,
