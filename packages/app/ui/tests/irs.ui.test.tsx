@@ -182,13 +182,14 @@ describe("IrLabPanel — apagar avisa o que NÃO acontece", () => {
 });
 
 describe("ContentMenu — a porta do conteúdo do dono", () => {
-  it("oferece as TRÊS telas e fecha sem abrir nada", async () => {
+  it("oferece as QUATRO telas e fecha sem abrir nada", async () => {
     const host = document.createElement("div");
     document.body.appendChild(host);
     const root: Root = createRoot(host);
     let tons = 0;
     let irs = 0;
     let preset = 0;
+    let gain = 0;
     act(() =>
       root.render(
         <ContentMenu
@@ -201,6 +202,9 @@ describe("ContentMenu — a porta do conteúdo do dono", () => {
           onPreset={() => {
             preset += 1;
           }}
+          onGain={() => {
+            gain += 1;
+          }}
           onClose={() => undefined}
         />,
       ),
@@ -211,6 +215,7 @@ describe("ContentMenu — a porta do conteúdo do dono", () => {
     expect(dlg.textContent).toContain(MSG.toneTitle);
     expect(dlg.textContent).toContain(MSG.irTitle);
     expect(dlg.textContent).toContain(MSG.presetFileTitle);
+    expect(dlg.textContent).toContain(MSG.gainTitle);
     await act(async () => {
       Array.from(dlg.querySelectorAll("button"))
         .find((b) => b.textContent === MSG.toneTitle)!
@@ -219,12 +224,19 @@ describe("ContentMenu — a porta do conteúdo do dono", () => {
     expect(tons).toBe(1);
     expect(irs).toBe(0);
     expect(preset).toBe(0);
+    expect(gain).toBe(0);
     await act(async () => {
       Array.from(dlg.querySelectorAll("button"))
         .find((b) => b.textContent === MSG.presetFileTitle)!
         .dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
     expect(preset).toBe(1);
+    await act(async () => {
+      Array.from(dlg.querySelectorAll("button"))
+        .find((b) => b.textContent === MSG.gainTitle)!
+        .dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    expect(gain).toBe(1);
     act(() => root.unmount());
     host.remove();
   });

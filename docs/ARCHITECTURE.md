@@ -58,6 +58,12 @@ src/
 │   │                      a CADEIA, com formato próprio — o front não tem o
 │   │                      `.prst`, e o core recusa as duas formas com a
 │   │                      mensagem certa (ver `preset_json.rs`)
+│   ├── gain.ts (263)     o ASSISTENTE DE GAIN STAGING (#115): o relatório
+│   │                      módulo a módulo, com a origem de cada número, o risco
+│   │                      e a ordem de ajuste. Porta de LEITURA — sem
+│   │                      `set_param`; o fallback espelha a regra de
+│   │                      `packages/core/src/gain.rs` (a mesma regra, duas
+│   │                      cópias, e o preço de divergirem está no cabeçalho)
 │   ├── ir.ts (394) · tones.ts (388)   os laboratórios de IR e de tones (#24/#25)
 │   └── types.ts (218)     BoardSlot/BoardView/DeviceInfo — o contrato do palco
 │
@@ -77,8 +83,12 @@ src/
 │   ├── usePushLog.ts (38) o ring buffer de pushes
 │   ├── useFieldDiag.ts (197) o alvo (patch/nome) e o que voltou do diagnóstico
 │   ├── useGlobalShortcuts.ts (96)
-│   ├── useContentMenu.tsx (76)  a PORTA do conteúdo (#25/#24/#114): escolhe
-│   │                      entre tons, IRs e o preset em arquivo
+│   ├── useGain.ts (59)   o relatório do assistente em andamento, com falha
+│   │                      COM ação (#20) — o retry relê o MESMO pp
+│   ├── useContentMenu.tsx (102)  a PORTA do conteúdo (#25/#24/#114/#115):
+│   │                      escolhe entre tons, IRs, o preset em arquivo e o
+│   │                      assistente de gain — as duas últimas telas nascem AQUI,
+│   │                      porque não têm estado a preservar entre aberturas
 │
 ├── components/            ── APRESENTAÇÃO ───────────────────────
 │   ├── Stage.tsx (359) · Pedalboard.tsx (337) · Pedal.tsx (504)
@@ -90,7 +100,10 @@ src/
 │   ├── SettingsModal.tsx (409) · TunerPanel.tsx (359)
 │   ├── PresetFilePanel.tsx (244) o preset em arquivo (#114): os 3 caminhos
 │   │                      (JSON, folha, import) e o relato do que entrou
-│   ├── DrumPanel.tsx (196) · PushLog.tsx (104) · ContentMenu.tsx (90)
+│   ├── GainPanel.tsx (271) o assistente de gain staging (#115): risco, menor
+│   │                      folga, a ORIGEM de cada número, a ordem de ajuste e o
+│   │                      MÉTODO impresso na tela — sem nenhum botão de escrita
+│   ├── DrumPanel.tsx (196) · PushLog.tsx (104) · ContentMenu.tsx (98)
 │   ├── FieldDiagPanel.tsx (350) o diagnóstico de campo em tela (carrega o
 │   │                      próprio <details>, para o App ganhar 1 linha)
 │   └── BootProgressBar.tsx (64) · ErrorBanner.tsx (57)

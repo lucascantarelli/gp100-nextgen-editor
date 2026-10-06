@@ -27,6 +27,7 @@ export class ShellPage {
   readonly tuner: TunerPage;
   readonly brand: BrandPage;
   readonly presetFile: PresetFilePage;
+  readonly gain: GainPage;
 
   constructor(page: Page) {
     this.page = page;
@@ -55,6 +56,7 @@ export class ShellPage {
     this.tuner = new TunerPage(page);
     this.brand = new BrandPage(this);
     this.presetFile = new PresetFilePage(page);
+    this.gain = new GainPage(page);
   }
 
   /** contrato comum dos specs: goto + banner visível */
@@ -158,6 +160,53 @@ export class ShellPage {
     await this.page.getByRole("button", { name: "Preset em arquivo", exact: true }).click();
     await expect(this.presetFile.root).toBeVisible();
     return this.presetFile;
+  }
+
+  /**
+   * Abre o assistente de gain staging (#115) pela PORTA do conteudo. Mesmo
+   * caminho do preset em arquivo — e o do dono: o item do menu e um passo que
+   * pode quebrar, e um atalho de teste o pularia.
+   */
+  async openGain(): Promise<GainPage> {
+    await this.page.getByRole("button", { name: /Abrir o conteúdo/ }).click();
+    await this.page.getByRole("button", { name: "Assistente de gain staging", exact: true }).click();
+    await expect(this.gain.root).toBeVisible();
+    return this.gain;
+  }
+}
+
+/* ── Assistente de gain staging (#115): leitura da cadeia, sem escrita ── */
+export class GainPage {
+  readonly page: Page;
+  readonly root: Locator;
+
+  constructor(page: Page) {
+    this.page = page;
+    this.root = page.getByRole("dialog", { name: "Assistente de gain staging" });
+  }
+
+  /** o selo do risco declarado (o P01 de fábrica sai em "BAIXO") */
+  risk(nivel: string): Locator {
+    return this.root.getByText(nivel, { exact: true });
+  }
+
+  /** a linha de um módulo, 1-based como no palco (ex.: /2º · DST · Green OD/) */
+  modulo(re: RegExp): Locator {
+    return this.root.getByText(re);
+  }
+
+  /** o bloco de MÉTODO e limitação — ele tem de estar NA TELA */
+  metodo(): Locator {
+    return this.root.getByText(/não é nível de sinal medido/);
+  }
+
+  /** todos os botões do relatório — o esperado é exatamente um (o ✕) */
+  botoes(): Locator {
+    return this.root.getByRole("button");
+  }
+
+  close(): Locator {
+    return this.root.getByRole("button", { name: "Fechar o assistente de gain staging" });
   }
 }
 

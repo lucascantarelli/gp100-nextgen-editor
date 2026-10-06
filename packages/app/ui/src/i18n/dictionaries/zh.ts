@@ -488,6 +488,40 @@ export const ZH: DictPatch = {
   presetFileClose: "关闭预设文件",
   presetFileNote: "导入不会写入设备：链只进入舞台，保存到 GP-100 仍然是单独的一步。",
 
+  /* ── gain staging 助手（#115）：各控件在量程中的位置 ── */
+  errGainReport: "无法读取增益报告 —— 请重试。",
+  gainTitle: "Gain staging 助手",
+  gainClose: "关闭 gain staging 助手",
+  gainTarget: (rotulo: string, nombre: string) => `正在分析 ${rotulo} ${nombre}`,
+  gainHint:
+    "每个增益与电平控件在设备声明量程中的位置，以及它在链路中如何累积。这只是估算：助手不测量音频。",
+  gainCarregando: "正在读取链路……",
+  gainRisco: "削波风险",
+  gainRiscoNivel: { baixo: "低", medio: "中", alto: "高" },
+  gainFolgaMenor: "最小余量",
+  gainSemFolga: "无电平控件",
+  gainFolgaDe: (slot: number, pct: string) => `第 ${slot} 位：${pct}`,
+  gainFolga: (pct: string) => `余量 ${pct}`,
+  gainModulo: (slot: number, familia: string, nombre: string) => `第 ${slot} 位 · ${familia} · ${nombre}`,
+  gainDesligado: "已关闭（不计入）",
+  gainSemControle: "没有增益或电平控件",
+  gainLeitura: (knob: string, valor: string, lo: number, hi: number) =>
+    `${knob} = ${valor} · 量程 ${lo}–${hi}`,
+  gainPosicao: (pct: string) => `量程的 ${pct}`,
+  gainNoTeto: "到达上限",
+  gainIgnorados: (lista: string) => `不计入（无位置）：${lista}`,
+  gainForaDoDicionario: (slots: string) => `字典外的槽位：${slots}`,
+  gainAjusteTitulo: "建议的调整顺序",
+  gainAjusteVazio: "没有控件到达上限 —— 无需调整。",
+  gainAjusteItem: (familia: string, knob: string, valor: string) => `${familia}：${knob}（当前 ${valor}）`,
+  gainMetodoTitulo: "方法与局限",
+  gainGanho: "增益",
+  gainSaida: "输出",
+  gainMix: "混合（不计）",
+  gainTetoEm: (pct: string) => `上限为 ${pct}`,
+  gainNaoEscreve:
+    "助手不会写入设备：它只指出链路到达上限的地方，决定（和调整）由你来做。",
+
   /* 打开两个内容页面的入口。选项直接用页面的标题（`toneTitle`/`irTitle`）：
      用户在菜单里读到的名字，和他打开的面板顶部看到的，是同一个。 */
   contentMenuTitle: "内容",

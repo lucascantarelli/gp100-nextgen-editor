@@ -22,6 +22,7 @@
 mod actor;
 mod commands;
 mod export_commands;
+mod gain_commands;
 mod ir_commands;
 mod library_commands;
 mod snap_tone_commands;
@@ -239,6 +240,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
             export_commands::preset_export_json,
             export_commands::preset_export_tone_sheet,
             export_commands::preset_import_json,
+            gain_commands::preset_gain_report,
         ])
         .build(tauri::generate_context!())?;
 

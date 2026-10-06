@@ -490,6 +490,41 @@ export const EN: DictPatch = {
   presetFileNote:
     "Importing does not write to the device: the chain goes to the stage, and saving to the GP-100 stays a separate act.",
 
+  /* ── gain staging assistant (#115): where each control sits in the range ── */
+  errGainReport: "Could not read the gain report — try again.",
+  gainTitle: "Gain staging assistant",
+  gainClose: "Close the gain staging assistant",
+  gainTarget: (label: string, name: string) => `Analyzing ${label} ${name}`,
+  gainHint:
+    "Where every gain and level control sits in the device's declared range, and where that piles up along the chain. It is an ESTIMATE: the assistant does not measure audio.",
+  gainCarregando: "Reading the chain…",
+  gainRisco: "Clipping risk",
+  gainRiscoNivel: { baixo: "LOW", medio: "MEDIUM", alto: "HIGH" },
+  gainFolgaMenor: "smallest headroom",
+  gainSemFolga: "no level control",
+  gainFolgaDe: (slot: number, pct: string) => `at slot ${slot}: ${pct}`,
+  gainFolga: (pct: string) => `headroom ${pct}`,
+  gainModulo: (slot: number, family: string, name: string) => `${slot} · ${family} · ${name}`,
+  gainDesligado: "off (out of the count)",
+  gainSemControle: "no gain or level control",
+  gainLeitura: (knob: string, value: string, lo: number, hi: number) =>
+    `${knob} = ${value} · range ${lo}–${hi}`,
+  gainPosicao: (pct: string) => `${pct} of the range`,
+  gainNoTeto: "at the ceiling",
+  gainIgnorados: (list: string) => `out of the count (no position): ${list}`,
+  gainForaDoDicionario: (slots: string) => `Slots outside the dictionary: ${slots}`,
+  gainAjusteTitulo: "Suggested adjustment order",
+  gainAjusteVazio: "Nothing at the ceiling — nothing to adjust.",
+  gainAjusteItem: (family: string, knob: string, value: string) =>
+    `${family}: ${knob} (sitting at ${value})`,
+  gainMetodoTitulo: "Method and limitation",
+  gainGanho: "Gain",
+  gainSaida: "Output",
+  gainMix: "Mix (excluded)",
+  gainTetoEm: (pct: string) => `ceiling at ${pct}`,
+  gainNaoEscreve:
+    "The assistant does NOT write to the device: it points at what sits at the ceiling, and the decision (and the tweak) is yours.",
+
   /* The DOOR that opens both content screens. The option labels are the panel
      TITLES (`toneTitle`/`irTitle`) on purpose: the owner reads the same name in
      the menu and at the top of the panel it opened. */
