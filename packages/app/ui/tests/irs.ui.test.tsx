@@ -182,7 +182,7 @@ describe("IrLabPanel — apagar avisa o que NÃO acontece", () => {
 });
 
 describe("ContentMenu — a porta do conteúdo do dono", () => {
-  it("oferece as QUATRO telas e fecha sem abrir nada", async () => {
+  it("oferece as CINCO telas e fecha sem abrir nada", async () => {
     const host = document.createElement("div");
     document.body.appendChild(host);
     const root: Root = createRoot(host);
@@ -190,6 +190,7 @@ describe("ContentMenu — a porta do conteúdo do dono", () => {
     let irs = 0;
     let preset = 0;
     let gain = 0;
+    let ab = 0;
     act(() =>
       root.render(
         <ContentMenu
@@ -205,6 +206,9 @@ describe("ContentMenu — a porta do conteúdo do dono", () => {
           onGain={() => {
             gain += 1;
           }}
+          onAb={() => {
+            ab += 1;
+          }}
           onClose={() => undefined}
         />,
       ),
@@ -216,6 +220,7 @@ describe("ContentMenu — a porta do conteúdo do dono", () => {
     expect(dlg.textContent).toContain(MSG.irTitle);
     expect(dlg.textContent).toContain(MSG.presetFileTitle);
     expect(dlg.textContent).toContain(MSG.gainTitle);
+    expect(dlg.textContent).toContain(MSG.abTitle);
     await act(async () => {
       Array.from(dlg.querySelectorAll("button"))
         .find((b) => b.textContent === MSG.toneTitle)!
@@ -237,6 +242,12 @@ describe("ContentMenu — a porta do conteúdo do dono", () => {
         .dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
     expect(gain).toBe(1);
+    await act(async () => {
+      Array.from(dlg.querySelectorAll("button"))
+        .find((b) => b.textContent === MSG.abTitle)!
+        .dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    expect(ab).toBe(1);
     act(() => root.unmount());
     host.remove();
   });
@@ -257,6 +268,7 @@ describe("useContentMenu — a porta que escolhe a tela", () => {
         // O preset em arquivo não tem manopla: a tela dele nasce no hook. O
         // que ele recebe é o preset do PALCO e a porta de volta do importado.
         preset: { pp: 0, onImport: () => undefined },
+        ab: { openUserId: null, rotulo: "U01", podeGravar: true },
       });
       return (
         <>

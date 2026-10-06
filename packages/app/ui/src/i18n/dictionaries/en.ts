@@ -574,6 +574,40 @@ export const EN: DictPatch = {
   irStats: (total: number, slots: number, used: number) =>
     `${total} IRs · ${used} of ${slots} slots in use`,
 
+  /* A/B with blind test (#116) */
+  abTitle: "Patch A/B",
+  abIntro:
+    "Compare two versions of the SAME patch: the stage swaps instantly and the knobs that changed go to the device. Blind hides which side is playing until you answer.",
+  abEmpty:
+    "Open a user patch with TWO versions in its history (save once with the patch open): A/B compares the SAME patch at two instants, not two random patches.",
+  abVersao: (seq: number) => `v${seq}`,
+  abLado: (q: string) => `Side ${q}`,
+  abSoando: "playing now",
+  abOuvir: (q: string) => `Play side ${q}`,
+  abTrocar: "Switch side",
+  abPalpite: (q: string) => `It's side ${q}`,
+  abPergunta: "Listen and pick: which side is playing?",
+  abResposta: (q: string, ok: boolean) =>
+    ok ? `It was side ${q} — you got it.` : `It was side ${q} — not this time.`,
+  abBlind: "Blind test (hides the side until the answer)",
+  abDeNovo: "Listen again",
+  abNivel: (q: string, n: string) => `Side ${q}: ${n}`,
+  abDelta: (d: string) => `Level difference (A − B): ${d} points`,
+  abNivelMetodo:
+    "Level = average position of the chain's OUTPUT controls (0–100), the same classification the gain assistant uses. The device reports no dB over SysEx: the number says how far the knob is open, not what comes out — which is why calibration matches knobs, not gain.",
+  abNivelSemControle:
+    "One side has no level control: there is nothing to calibrate, and the comparison only holds if the amplifier volume stays the same.",
+  abCalibrar: "Match level",
+  abAlgoritmos: (n: number) =>
+    `${n} slot(s) with a swapped algorithm do not reach the device (change-effect 0x47 has no captured format) — the swap holds on screen.`,
+  abErrLoad: "Could not read the versions of this patch.",
+  abRelatoNada: "Both sides are identical: nothing to switch.",
+  abRelatoLocal: (n: number) =>
+    `${n} knob(s) changed on stage; in this read-only build the device does not receive them (ADR-5).`,
+  abRelatoEnviado: (n: number) => `${n} knob(s) sent to the device.`,
+  abRelatoCalibra: (n: number, antes: string, depois: string) =>
+    `${n} level control(s) matched: difference from ${antes} to ${depois} points.`,
+
   errRetry: "Try again",
   errRetryAria: "Retry the operation that failed",
 };

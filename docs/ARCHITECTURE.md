@@ -88,10 +88,14 @@ src/
 │   ├── useGlobalShortcuts.ts (96)
 │   ├── useGain.ts (59)   o relatório do assistente em andamento, com falha
 │   │                      COM ação (#20) — o retry relê o MESMO pp
-│   ├── useContentMenu.tsx (102)  a PORTA do conteúdo (#25/#24/#114/#115):
-│   │                      escolhe entre tons, IRs, o preset em arquivo e o
-│   │                      assistente de gain — as duas últimas telas nascem AQUI,
-│   │                      porque não têm estado a preservar entre aberturas
+│   ├── useAb.ts (295)  o A/B entre duas versões do MESMO patch (#116): o par
+│   │                      do histórico, a troca (palco + set_param), a
+│   │                      calibração de nível e o BLIND — estado da tela, lido
+│   │                      só na abertura da porta (não no mount)
+│   ├── useContentMenu.tsx (136)  a PORTA do conteúdo (#25/#24/#114/#115/#116):
+│   │                      escolhe entre tons, IRs, o preset em arquivo, o
+│   │                      assistente de gain e o A/B — as três últimas telas
+│   │                      nascem AQUI, porque a casca está no teto (300/300)
 │
 ├── components/            ── APRESENTAÇÃO ───────────────────────
 │   ├── Stage.tsx (359) · Pedalboard.tsx (337) · Pedal.tsx (518)
@@ -106,7 +110,11 @@ src/
 │   ├── GainPanel.tsx (271) o assistente de gain staging (#115): risco, menor
 │   │                      folga, a ORIGEM de cada número, a ordem de ajuste e o
 │   │                      MÉTODO impresso na tela — sem nenhum botão de escrita
-│   ├── DrumPanel.tsx (196) · PushLog.tsx (104) · ContentMenu.tsx (98)
+│   ├── AbPanel.tsx (246) o A/B com blind (#116): os dois lados, o nível em
+│   │                      POSIÇÃO com o método ao lado, a calibração e o modo
+│   │                      blind — armado, rótulo/versão/nível/relatório somem
+│   │                      até o palpite (o teste de UI prova a ausência)
+│   ├── DrumPanel.tsx (196) · PushLog.tsx (104) · ContentMenu.tsx (105)
 │   ├── FieldDiagPanel.tsx (351) o diagnóstico de campo em tela (carrega o
 │   │                      próprio <details>, para o App ganhar 1 linha)
 │   └── BootProgressBar.tsx (64) · ErrorBanner.tsx (57)
@@ -116,6 +124,9 @@ src/
 │   └── tokens.ts (168)    paleta, escala de Fibonacci, motion
 │
 ├── looper/fsm.ts (146) · tuner/pitch.ts (162) ── máquinas de estado puras
+├── abLevel.ts (150)     o NÍVEL e a TROCA do A/B (#116): posição média dos
+│                         controles de saída, a calibração (só compartilhados)
+│                         e o que é gravável — puro, sem IPC nem React
 ├── effects.ts (94)        troca de algoritmo dentro do slot (issue #19)
 ├── userPatches.ts (118)   snapshot de patch de usuário (prévia em localStorage)
 │

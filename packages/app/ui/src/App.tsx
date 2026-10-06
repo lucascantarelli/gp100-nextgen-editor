@@ -91,7 +91,7 @@ export default function App() {
   const irs = useIrs();
   // A PORTA do conteudo (#24/#25/#114) fica no hook porque e ela que decide qual
   // das telas abre (botao na navbar estoura em 1280); o preset vem por `stage`.
-  const conteudo = useContentMenu({ tones, irs, preset: { pp: stage.pp, onImport: stage.openImported } });
+  const conteudo = useContentMenu({ tones, irs, preset: { pp: stage.pp, onImport: stage.openImported }, ab: { openUserId: stage.openUserId, rotulo: stage.board?.ppLabel ?? MSG.libPp(stage.pp), podeGravar: escritaLiberada(info) } });
   const {
     pp,
     presetName,

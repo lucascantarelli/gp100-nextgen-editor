@@ -565,6 +565,40 @@ export const ZH: DictPatch = {
   irStats: (total: number, slots: number, usados: number) =>
     `${total} 个 IR · ${usados}/${slots} 个槽位使用中`,
 
+  /* A/B 与盲测 (#116) */
+  abTitle: "补丁 A/B",
+  abIntro:
+    "比较同一个补丁的两个版本：舞台立即切换，变化的旋钮发给设备。盲测会隐藏正在播放的是哪一侧，直到你作答。",
+  abEmpty:
+    "打开一个有 2 个版本的用户补丁（打开状态下保存一次）：A/B 比较的是同一个补丁的两个瞬间，而不是任意两个补丁。",
+  abVersao: (seq: number) => `v${seq}`,
+  abLado: (q: string) => `${q} 侧`,
+  abSoando: "正在播放",
+  abOuvir: (q: string) => `播放 ${q} 侧`,
+  abTrocar: "切换到另一侧",
+  abPalpite: (q: string) => `是 ${q} 侧`,
+  abPergunta: "听一听再选：现在播放的是哪一侧？",
+  abResposta: (q: string, ok: boolean) =>
+    ok ? `是 ${q} 侧 — 猜对了。` : `是 ${q} 侧 — 没猜对。`,
+  abBlind: "盲测（作答前隐藏是哪一侧）",
+  abDeNovo: "再听一次",
+  abNivel: (q: string, n: string) => `${q} 侧：${n}`,
+  abDelta: (d: string) => `音量差 (A − B)：${d} 点`,
+  abNivelMetodo:
+    "音量 = 链路输出类控件位置的平均值 (0–100)，与增益助手同一套分类。设备不通过 SysEx 报告 dB：这个数字说的是旋钮开了多少，不是出来的声音 — 所以校准对齐的是旋钮，不是增益。",
+  abNivelSemControle:
+    "其中一侧没有音量控件：没有可校准的对象，只有在音箱音量保持一致时比较才成立。",
+  abCalibrar: "对齐音量",
+  abAlgoritmos: (n: number) =>
+    `${n} 个换过算法的槽位不会写入设备（change-effect 0x47 尚无抓到的格式）— 切换只在界面上成立。`,
+  abErrLoad: "读取该补丁的版本失败。",
+  abRelatoNada: "两侧完全相同：无需切换。",
+  abRelatoLocal: (n: number) =>
+    `${n} 个旋钮在舞台上改变了；在只读构建中设备不会收到（ADR-5）。`,
+  abRelatoEnviado: (n: number) => `已向设备发送 ${n} 个旋钮。`,
+  abRelatoCalibra: (n: number, antes: string, depois: string) =>
+    `已对齐 ${n} 个音量控件：差值从 ${antes} 降到 ${depois} 点。`,
+
   errRetry: "重试",
   errRetryAria: "重试失败的操作",
 };

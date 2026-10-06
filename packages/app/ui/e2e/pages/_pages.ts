@@ -28,6 +28,7 @@ export class ShellPage {
   readonly brand: BrandPage;
   readonly presetFile: PresetFilePage;
   readonly gain: GainPage;
+  readonly ab: AbPage;
 
   constructor(page: Page) {
     this.page = page;
@@ -57,6 +58,7 @@ export class ShellPage {
     this.brand = new BrandPage(this);
     this.presetFile = new PresetFilePage(page);
     this.gain = new GainPage(page);
+    this.ab = new AbPage(page);
   }
 
   /** contrato comum dos specs: goto + banner visível */
@@ -175,6 +177,18 @@ export class ShellPage {
   }
 
   /**
+   * Abre o A/B com blind (#116) pela PORTA do conteúdo. Mesmo caminho do
+   * gain: o item do menu é um passo que pode quebrar, e um atalho de teste o
+   * pularia.
+   */
+  async openAb(): Promise<AbPage> {
+    await this.page.getByRole("button", { name: /Abrir o conteúdo/ }).click();
+    await this.page.getByRole("button", { name: "A/B do patch", exact: true }).click();
+    await expect(this.ab.root).toBeVisible();
+    return this.ab;
+  }
+
+  /**
    * Ganho de teste: simula um build de LEITURA (face (A) da #126, ADR-5)
    * ANTES do load — o mount lê o storage, e é o mesmo caminho que o e2e do
    * `failDevice` usa. Sem este gancho o mock relata escrita liberada (ADR-5).
@@ -237,6 +251,67 @@ export class GainPage {
 
   close(): Locator {
     return this.root.getByRole("button", { name: "Fechar o assistente de gain staging" });
+  }
+}
+
+/* ── A/B com blind test entre versões (#116) ── */
+export class AbPage {
+  readonly page: Page;
+  readonly root: Locator;
+
+  constructor(page: Page) {
+    this.page = page;
+    this.root = page.getByRole("dialog", { name: "A/B do patch" });
+  }
+
+  /** o interruptor do blind (o input; o rótulo é o texto ao lado) */
+  blindToggle(): Locator {
+    return this.root.locator('input[type="checkbox"]');
+  }
+
+  /** "Ouvir o lado A/B" — só existe com o blind DESARMADO */
+  ouvir(q: "A" | "B"): Locator {
+    return this.root.getByRole("button", { name: `Ouvir o lado ${q}` });
+  }
+
+  /** "Trocar de lado" — o único botão do blind que não nomeia destino */
+  trocar(): Locator {
+    return this.root.getByRole("button", { name: "Trocar de lado" });
+  }
+
+  /** a pergunta do blind (role=status; o intro também fala em "qual lado",
+   *  por isso o `role` e não o texto livre) */
+  pergunta(): Locator {
+    return this.root.getByRole("status").filter({ hasText: "qual lado está tocando" });
+  }
+
+  /** um palpite ("É o lado A"): é ele que revela a tela */
+  palpite(q: "A" | "B"): Locator {
+    return this.root.getByRole("button", { name: `É o lado ${q}` });
+  }
+
+  /** "soando agora" — o marcador do lado ativo (escondido no blind) */
+  soando(): Locator {
+    return this.root.getByText("soando agora");
+  }
+
+  /** o bloco de nível com método e limitação (escondido no blind) */
+  metodo(): Locator {
+    return this.root.getByText(/não expõe dB por SysEx/);
+  }
+
+  /** o relatório da última troca/calibração (escondido no blind) */
+  relato(): Locator {
+    return this.root.getByRole("status").filter({ hasText: /knob|controle|idênticos/ });
+  }
+
+  /** o resultado do palpite (só depois da resposta) */
+  resposta(): Locator {
+    return this.root.getByText(/você (acertou|errou)/);
+  }
+
+  close(): Locator {
+    return this.root.getByRole("button", { name: "Cancelar" });
   }
 }
 

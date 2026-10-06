@@ -186,6 +186,7 @@ describe("useContentMenu — o assistente é destino da porta", () => {
         tones: { abrir: () => undefined },
         irs: { abrir: () => undefined },
         preset: { pp, onImport: () => undefined },
+        ab: { openUserId: null, rotulo: "U01", podeGravar: true },
       });
       return (
         <>

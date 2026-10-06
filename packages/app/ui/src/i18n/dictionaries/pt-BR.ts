@@ -586,6 +586,40 @@ export const PT_BR = {
   irStats: (total: number, slots: number, usados: number) =>
     `${total} IRs · ${usados} de ${slots} slots em uso`,
 
+  /* ── A/B com blind test (#116) ── */
+  abTitle: "A/B do patch",
+  abIntro:
+    "Compare duas versões do MESMO patch: o palco troca na hora e os knobs que mudaram vão para o aparelho. O blind esconde qual lado está tocando até a sua resposta.",
+  abEmpty:
+    "Abra um patch de usuário com DUAS versões no histórico (salve uma vez com o patch aberto): o A/B compara o mesmo patch em dois instantes, não dois patches quaisquer.",
+  abVersao: (seq: number) => `v${seq}`,
+  abLado: (q: string) => `Lado ${q}`,
+  abSoando: "soando agora",
+  abOuvir: (q: string) => `Ouvir o lado ${q}`,
+  abTrocar: "Trocar de lado",
+  abPalpite: (q: string) => `É o lado ${q}`,
+  abPergunta: "Ouça e escolha: qual lado está tocando?",
+  abResposta: (q: string, ok: boolean) =>
+    ok ? `Era o lado ${q} — você acertou.` : `Era o lado ${q} — você errou.`,
+  abBlind: "Blind test (esconde o lado até a resposta)",
+  abDeNovo: "Ouvir de novo",
+  abNivel: (q: string, n: string) => `Lado ${q}: ${n}`,
+  abDelta: (d: string) => `Diferença de nível (A − B): ${d} pontos`,
+  abNivelMetodo:
+    "Nível = média das posições dos controles de SAÍDA da cadeia (0–100), a mesma classificação do assistente de gain. O aparelho não expõe dB por SysEx: o número diz o quanto o botão está aberto, não o som que sai — por isso a calibração iguala botão, não ganho.",
+  abNivelSemControle:
+    "Um dos lados não tem controle de nível: não há o que calibrar, e a comparação só vale se o volume do amplificador ficar igual.",
+  abCalibrar: "Igualar nível",
+  abAlgoritmos: (n: number) =>
+    `${n} slot(s) com algoritmo trocado não vão para o aparelho (o change-effect 0x47 não tem formato capturado) — a troca vale na tela.`,
+  abErrLoad: "Não deu para ler as versões deste patch.",
+  abRelatoNada: "Os dois lados estão idênticos: nada a trocar.",
+  abRelatoLocal: (n: number) =>
+    `${n} knob(s) mudaram no palco; neste build de leitura o aparelho não recebe (ADR-5).`,
+  abRelatoEnviado: (n: number) => `${n} knob(s) enviados ao aparelho.`,
+  abRelatoCalibra: (n: number, antes: string, depois: string) =>
+    `${n} controle(s) de nível igualado(es): diferença de ${antes} para ${depois} pontos.`,
+
   errRetry: "Tentar de novo",
   errRetryAria: "Tentar novamente a operação que falhou",
 } as const;

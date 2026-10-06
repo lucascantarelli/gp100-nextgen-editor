@@ -196,13 +196,14 @@ O Tauri não gera pacote Arch: a unidade de distribuição **é** a receita vers
 | **Auditoria 03/10** (#71–#83) | ✅ as 13 issues fechadas |
 | **H** (gate de hardware) | ✅ **os 3 gates fechados em campo**: H1 (#21, PR #109) · H2 (#22, PR #108) · H3 (#23, PR #96) |
 | **#126** (release) | ✅ **face (A) de leitura**: o `dist-ui` constrói com `--features real-device` (caminho `../ui` corrigido — o step antigo morria antes de compilar, `libasound2-dev` no Linux), a **política de escrita está na tela** (`escritaLiberada()`: knob/IR/SnapTone desabilitados COM O MOTIVO, select liberado por ser `WireKind::Read`) e o **keepalive do boot é omitido com a trava fechada** (ADR-5 rev. 06/10) |
+| **M3** (#116) | ✅ **A/B com blind test** (parte sem aparelho): o par vem do histórico versionado (#113), a troca desenha no palco e manda só os knobs graváveis de slots de mesmo algoritmo (o `0x47` não tem formato capturado — BLOCKERS 10b, e a tela diz), o **nível é POSIÇÃO** com método e limitação impressos ao lado do número, a **calibração** iguala o lado alto ao baixo (medido: delta 40.0 → 0.0) e o **blind** esconde rótulo/versão/nível/relatório até o palpite (o teste de UI prova a AUSÊNCIA). **Medição em campo pendente de aparelho** |
 
 ### Contagem de testes (medido 06/10)
 | Suíte | Comando | Contagem |
 |---|---|---|
-| Unit do front | `pnpm exec vitest run` | **480** em **36** arquivos (480 passando) |
-| Cobertura do front | `pnpm run test:coverage` | **87,99%** stmts · **81,50%** branch · **87,20%** funcs · **90,34%** linhas |
-| E2E (Playwright) | `pnpm exec playwright test --list` | **87** testes em **11** arquivos · **96** baselines |
+| Unit do front | `pnpm exec vitest run` | **504** em **38** arquivos (504 passando) |
+| Cobertura do front | `pnpm run test:coverage` | **87,89%** stmts · **81,22%** branch · **87,30%** funcs · **90,39%** linhas |
+| E2E (Playwright) | `pnpm exec playwright test --list` | **89** testes em **12** arquivos · **96** baselines |
 | Rust (core + cli + library) | `cargo test --workspace` | **296** testes em **34** suítes (32 binários de teste + 2 suites de doc-test) |
 | Spec (pytest) | `.venv/Scripts/python.exe -m pytest` | **92** |
 | Gates locais | `python scripts/gates.py` | **13** |
