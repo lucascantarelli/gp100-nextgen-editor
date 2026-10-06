@@ -498,6 +498,41 @@ export const PT_BR = {
   presetFileNote:
     "Importar não grava no aparelho: a cadeia vai para o palco, e salvar no GP-100 continua sendo um ato separado.",
 
+  /* ── assistente de gain staging (#115): a posição de cada controle na faixa ── */
+  errGainReport: "Não foi possível ler o relatório de ganho — tente novamente.",
+  gainTitle: "Assistente de gain staging",
+  gainClose: "Fechar o assistente de gain staging",
+  gainTarget: (rotulo: string, nome: string) => `Analisando ${rotulo} ${nome}`,
+  gainHint:
+    "Onde cada controle de ganho e de nível está na faixa declarada do aparelho, e onde isso se acumula na cadeia. É uma ESTIMATIVA: o assistente não mede áudio.",
+  gainCarregando: "Lendo a cadeia…",
+  gainRisco: "Risco de clipagem",
+  gainRiscoNivel: { baixo: "BAIXO", medio: "MÉDIO", alto: "ALTO" },
+  gainFolgaMenor: "menor folga",
+  gainSemFolga: "sem controle de nível",
+  gainFolgaDe: (slot: number, pct: string) => `no ${slot}º lugar: ${pct}`,
+  gainFolga: (pct: string) => `folga ${pct}`,
+  gainModulo: (slot: number, familia: string, nome: string) => `${slot}º · ${familia} · ${nome}`,
+  gainDesligado: "desligado (fora da conta)",
+  gainSemControle: "sem controle de ganho ou de nível",
+  gainLeitura: (knob: string, valor: string, lo: number, hi: number) =>
+    `${knob} = ${valor} · faixa ${lo}–${hi}`,
+  gainPosicao: (pct: string) => `${pct} da faixa`,
+  gainNoTeto: "no teto",
+  gainIgnorados: (lista: string) => `fora da conta (sem posição): ${lista}`,
+  gainForaDoDicionario: (slots: string) => `Slots fora do dicionário: ${slots}`,
+  gainAjusteTitulo: "Ordem de ajuste sugerida",
+  gainAjusteVazio: "Nada no teto — não há o que ajustar.",
+  gainAjusteItem: (familia: string, knob: string, valor: string) =>
+    `${familia}: ${knob} (está em ${valor})`,
+  gainMetodoTitulo: "Método e limitação",
+  gainGanho: "Ganho",
+  gainSaida: "Saída",
+  gainMix: "Mistura (fora)",
+  gainTetoEm: (pct: string) => `teto em ${pct}`,
+  gainNaoEscreve:
+    "O assistente NÃO escreve no aparelho: ele aponta onde a cadeia está no teto, e a decisão (e o ajuste) é sua.",
+
   /* A PORTA que abre as duas telas de conteúdo. Os rótulos das opções são os
      TÍTULOS das telas (`toneTitle`/`irTitle`) de propósito: o dono lê o mesmo
      nome no menu e no topo do painel que ele abriu. */

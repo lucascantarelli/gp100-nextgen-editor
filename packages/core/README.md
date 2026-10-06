@@ -25,6 +25,11 @@ preset_json .prst em JSON VERSIONADO (#114): o layout é PUBLICADO, não
     ↓
 tone_sheet  folha de timbre em PDF (#114): writer próprio, fontes base-14,
     ↓       sem dependência nativa (ADR-9) e sem stream comprimido
+pedalboard  o BoardView: o preset projetado pelo dicionário, na ordem do sinal
+gain        o ASSISTENTE DE GAIN STAGING (#115): função PURA sobre o BoardView
+    ↓       — posição na faixa do dicionário, nunca dB medido; o método e a
+    ↓       limitação saem NO relatório para a tela mostrar. Sem transporte:
+    ↓       não existe caminho para um byte sair daqui
 golden      GoldenFile::embedded() (OnceLock, 1 parse por processo):
     ↓       Template::build_request / matches_response (despacho by-len)
 codec       fio PURO e sem estado: envelope §13.1, trim no 1º F7,
@@ -125,6 +130,7 @@ drop(session); // devolve o transporte ao dono (D8: consumidor único)
 | `roundtrip_prst.rs` | round-trip byte-idêntico dos 3 `.prst` (R4) |
 | `preset_json_roundtrip.rs` | `.prst` → JSON → `.prst` byte-idêntico, JSON canônico e recusa de versão futura (#114) |
 | `tone_sheet.rs` | folha em PDF: integridade da `xref`, 1 página por preset, determinismo, sem compressão (#114) |
+| `gain_staging.rs` | assistente de gain (#115): origem de cada número recalculada do board, exclusões declaradas, risco/ordem de ajuste e o ByteGuard do "nenhum byte sai" |
 | `model_dictionary.rs` | carga/validação/rejeição do dicionário |
 | `transport_trait.rs` | trait pub/object-safe, DeviceGone, reconexão |
 | `golden_response.rs` | simetria `build_response` nos 15 exemplos IN |

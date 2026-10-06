@@ -178,6 +178,10 @@ pub mod session;
 /// do app: arquétipos por família, knobs do dicionário, biblioteca).
 pub mod pedalboard;
 
+/// gain — assistente de gain staging (#115): headroom e clipagem ESTIMADA por
+/// módulo, como função PURA sobre o board (sem device, sem byte).
+pub mod gain;
+
 // Os testes dos herdados do P2 (header/envelope §13.1) usam SÓ API pública,
 // então vivem como contratos caixa-preta em `tests/wire_envelope.rs` (regra
 // da skill rust-practices: unitário dentro de `src/` só para internals).

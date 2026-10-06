@@ -1,13 +1,16 @@
 /**
- * ContentMenu — a porta do conteúdo (issues #25, #24 e #114).
+ * ContentMenu — a porta do conteúdo (issues #25, #24, #114 e #115).
  *
  * **Por que um menu e não mais botões no rodapé.** A coluna da biblioteca tem
  * 248px e o rodapé já tem três botões (este + exportar + importar). Um quarto
  * botão estoura a linha, o rodapé vira duas fileiras, a coluna cresce por
  * `stretch` e o pedalboard desce junto — foi o que a #25 custou em baselines
- * visuais (18 PNGs renovadas). Uma porta com três ambientes é o que mantém a
- * geometria intacta E diz a verdade: as três telas levam conteúdo do pedal para
- * um ARQUIVO (o `.clo` convertido, o `.ir` do pedal, e o preset em JSON/folha).
+ * visuais (18 PNGs renovadas). Uma porta com os ambientes é o que mantém a
+ * geometria intacta E diz a verdade: três telas levam conteúdo do pedal para um
+ * ARQUIVO (o `.clo` convertido, o `.ir` do pedal, e o preset em JSON/folha) e a
+ * quarta — o assistente de gain staging (#115) — não leva arquivo nenhum: ela
+ * LÊ a cadeia e devolve um relatório. O rótulo do item é o TÍTULO da tela que
+ * ele abre, e é isso que o dono lê nos dois lugares.
  *
  * A navbar não é alternativa: ela tem ~11px de folga em 1280 e qualquer botão
  * novo a estoura (o achado da #25). O modal é o único lugar que cresce sem
@@ -62,11 +65,13 @@ interface Props {
   onIrs: () => void;
   /** Abre o preset em arquivo (JSON + folha de timbre). */
   onPreset: () => void;
+  /** Abre o assistente de gain staging (#115). */
+  onGain: () => void;
   /** Fecha este menu. */
   onClose: () => void;
 }
 
-export function ContentMenu({ onTones, onIrs, onPreset, onClose }: Props) {
+export function ContentMenu({ onTones, onIrs, onPreset, onGain, onClose }: Props) {
   return (
     <div style={box} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div role="dialog" aria-modal="true" aria-label={MSG.contentMenuTitle} style={sheet}>
@@ -80,6 +85,9 @@ export function ContentMenu({ onTones, onIrs, onPreset, onClose }: Props) {
         </button>
         <button style={item} onClick={onPreset}>
           {MSG.presetFileTitle}
+        </button>
+        <button style={item} onClick={onGain}>
+          {MSG.gainTitle}
         </button>
         <button style={fecha} onClick={onClose}>
           {MSG.contentMenuClose}

@@ -493,6 +493,41 @@ export const ES: DictPatch = {
   presetFileNote:
     "Importar no graba en el aparato: la cadena va al escenario, y guardar en el GP-100 sigue siendo un acto aparte.",
 
+  /* ── asistente de gain staging (#115): dónde está cada control en el rango ── */
+  errGainReport: "No se pudo leer el informe de ganancia — inténtalo de nuevo.",
+  gainTitle: "Asistente de gain staging",
+  gainClose: "Cerrar el asistente de gain staging",
+  gainTarget: (rotulo: string, nombre: string) => `Analizando ${rotulo} ${nombre}`,
+  gainHint:
+    "Dónde está cada control de ganancia y de nivel en el rango declarado del aparato, y dónde se acumula en la cadena. Es una ESTIMACIÓN: el asistente no mide audio.",
+  gainCarregando: "Leyendo la cadena…",
+  gainRisco: "Riesgo de saturación",
+  gainRiscoNivel: { baixo: "BAJO", medio: "MEDIO", alto: "ALTO" },
+  gainFolgaMenor: "menor margen",
+  gainSemFolga: "sin control de nivel",
+  gainFolgaDe: (slot: number, pct: string) => `en el ${slot}º lugar: ${pct}`,
+  gainFolga: (pct: string) => `margen ${pct}`,
+  gainModulo: (slot: number, familia: string, nombre: string) => `${slot}º · ${familia} · ${nombre}`,
+  gainDesligado: "apagado (fuera de la cuenta)",
+  gainSemControle: "sin control de ganancia ni de nivel",
+  gainLeitura: (knob: string, valor: string, lo: number, hi: number) =>
+    `${knob} = ${valor} · rango ${lo}–${hi}`,
+  gainPosicao: (pct: string) => `${pct} del rango`,
+  gainNoTeto: "en el tope",
+  gainIgnorados: (lista: string) => `fuera de la cuenta (sin posición): ${lista}`,
+  gainForaDoDicionario: (slots: string) => `Slots fuera del diccionario: ${slots}`,
+  gainAjusteTitulo: "Orden de ajuste sugerido",
+  gainAjusteVazio: "Nada en el tope — no hay qué ajustar.",
+  gainAjusteItem: (familia: string, knob: string, valor: string) =>
+    `${familia}: ${knob} (está en ${valor})`,
+  gainMetodoTitulo: "Método y limitación",
+  gainGanho: "Ganancia",
+  gainSaida: "Salida",
+  gainMix: "Mezcla (fuera)",
+  gainTetoEm: (pct: string) => `tope en ${pct}`,
+  gainNaoEscreve:
+    "El asistente NO escribe en el aparato: señala dónde la cadena está en el tope, y la decisión (y el ajuste) es tuya.",
+
   /* La PUERTA que abre las dos pantallas. Las opciones llevan los TÍTULOS de
      las pantallas (`toneTitle`/`irTitle`) a propósito: el dueño lee el mismo
      nombre en el menú y arriba del panel que abrió. */

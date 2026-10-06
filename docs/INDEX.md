@@ -4,7 +4,7 @@
 > fonte de verdade de cada assunto. Mantenha-o atualizado a cada novo documento
 > ou mudança de status — é o contrato de navegação entre agentes e humanos.
 
-**Última revisão:** 2026-10-05 (**gate H em campo** — o H2 passou nos 3 fluxos de escrita contra o GP-100 V2.1 real (#22, PR #108) e o H3 congelou a baseline (#23, PR #96); **o gate H inteiro fechou em campo** (#21 H1 · #22 H2 · #23 H3). **a épica M2 (#15) fechou com o gate H** — conteúdo (#24/#25/#26) entregue, distribuição é a #17. Auditoria 03/10 fechada (#71–#83). **Trabalho aberto vive em ISSUES do GitHub** (milestone **v1.0.0**; abertas em 05/10: **#17** — release, bloqueada no aparelho — e as oito temáticas **M3** (#113–#120); a #110 fechou com a trava de faixa do ADR-10). Estado atual e números: **§6** — todos remedidos nesta data, não herdados.)
+**Última revisão:** 2026-10-06 (**gate H em campo** — o H2 passou nos 3 fluxos de escrita contra o GP-100 V2.1 real (#22, PR #108) e o H3 congelou a baseline (#23, PR #96); **o gate H inteiro fechou em campo** (#21 H1 · #22 H2 · #23 H3). **a épica M2 (#15) fechou com o gate H** — conteúdo (#24/#25/#26) entregue, distribuição é a #17. Auditoria 03/10 fechada (#71–#83). **Trabalho aberto vive em ISSUES do GitHub** (milestone **v1.0.0**; abertas em 06/10: **#17** — release, bloqueada no aparelho — e as tres medições de campo **M3** (#116–#118); #113/#114/#115 entregues, #119/#120 saíram da v1.0.0, a #110 fechou com a trava de faixa do ADR-10). Estado atual e números: **§6** — todos remedidos nesta data, não herdados.)
 
 ---
 
@@ -169,18 +169,18 @@ O Tauri não gera pacote Arch: a unidade de distribuição **é** a receita vers
 
 ---
 
-## 6. Estado atual (números são a fonte única — **05/10**)
+## 6. Estado atual (números são a fonte única — **06/10**)
 
 > Regra do `docs-sync`: **contador que aparece em mais de um documento é dívida**.
 > Este bloco é a fonte; qualquer outro lugar aponta para cá em vez de repetir
 > o número (item novo da skill `docs-sync`, issue #81).
 >
-> **Todos os números abaixo foram MEDIDOS em 05/10/2026**, com o comando da
+> **Todos os números abaixo foram MEDIDOS em 06/10/2026**, com o comando da
 > própria linha. Nenhum foi herdado de uma revisão anterior — a revisão de 03/10
 > trazia 189 testes de front onde havia 399, e 10 de spec onde havia 81. Se um
 > número divergir do que você vê, ele é que está errado: remeça e corrija aqui.
 
-### Entregue até 05/10
+### Entregue até 06/10
 | Fase/área | Estado |
 |---|---|
 | **P0–P5** (preparação) | ✅ ADR-1..9 em `DECISIONS.md` |
@@ -189,19 +189,20 @@ O Tauri não gera pacote Arch: a unidade de distribuição **é** a receita vers
 | **M2** (#24/#25/#26) | ✅ IR lab, SnapTone/NAM e biblioteca SQLite |
 | **M3** (#113) | ✅ Biblioteca versionada: historico append-only, diff por knob e restauracao (tela `HistoryPanel`) |
 | **M3** (#114) | ✅ Export universal: JSON versionado com round-trip byte-identico, folha de timbre em PDF (sem dependencia nativa), o recorte de um preset do `all.prst`, os tres commands da casca e a **tela** (`PresetFilePanel`, atras da porta do conteudo) — o e2e exporta um preset de fabrica e reimporta com a cadeia preservada |
+| **M3** (#115) | ✅ Assistente de gain staging: `gp100_core::gain` (funcao PURA sobre o `BoardView`), o command `preset_gain_report` e a **tela** (`GainPanel`, 4o destino da porta) — relatorio por modulo com a **origem de cada numero**, o metodo e a LIMITACAO impressos na tela, exclusoes declaradas, risco e ordem de ajuste. NENHUM write: nenhum botao no painel manda byte para o aparelho; o e2e abre, le e fecha |
 | **ACHADOS** | ✅ A-1..A-5 |
 | **CI** (#68) | ✅ **1 workflow, 26 jobs** (o `gh pr checks` mostra mais porque os jobs de matriz se desdobram) |
 | **Empacotamento** (#27/#28/#29) | ✅ 5 targets Tauri (`nsis`/`msi`/`dmg`/`deb`/`appimage`) · 18 arquivos de ícone (16 PNG + `.ico` + `.icns`) |
 | **Auditoria 03/10** (#71–#83) | ✅ as 13 issues fechadas |
 | **H** (gate de hardware) | ✅ **os 3 gates fechados em campo**: H1 (#21, PR #109) · H2 (#22, PR #108) · H3 (#23, PR #96) |
 
-### Contagem de testes (medido 05/10)
+### Contagem de testes (medido 06/10)
 | Suíte | Comando | Contagem |
 |---|---|---|
-| Unit do front | `pnpm exec vitest run` | **449** em **33** arquivos (449 passando) |
-| Cobertura do front | `pnpm run test:coverage` | **87,63%** stmts · **81,27%** branch · **86,89%** funcs · **90,08%** linhas |
-| E2E (Playwright) | `pnpm exec playwright test --list` | **82** testes em **9** arquivos · **96** baselines |
-| Rust (core + cli + library) | `cargo test --workspace` | **285** testes em **33** arquivos (31 binários de teste + 2 suites de doc-test) |
+| Unit do front | `pnpm exec vitest run` | **470** em **35** arquivos (470 passando) |
+| Cobertura do front | `pnpm run test:coverage` | **87,94%** stmts · **81,37%** branch · **87,11%** funcs · **90,29%** linhas |
+| E2E (Playwright) | `pnpm exec playwright test --list` | **83** testes em **10** arquivos · **96** baselines |
+| Rust (core + cli + library) | `cargo test --workspace` | **296** testes em **34** suítes (32 binários de teste + 2 suites de doc-test) |
 | Spec (pytest) | `.venv/Scripts/python.exe -m pytest` | **92** |
 | Gates locais | `python scripts/gates.py` | **13** |
 
@@ -219,12 +220,14 @@ O Tauri não gera pacote Arch: a unidade de distribuição **é** a receita vers
 | ~~[#15](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/15)~~ | EPIC M2 — **FECHADA em 05/10**: conteúdo entregue (#24 IR lab · #25 SnapTone/NAM · #26 biblioteca); a distribuição é a #17 | ✅ |
 | ~~[#16](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/16)~~ | EPIC M3 — **FECHADA**, e destrinchada nas oito temáticas **#113–#120** (biblioteca versionada, export universal, gain staging, A/B, live mode, DAW, tone match, cloud) | ✅ |
 | ~~[#113](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/113)~~ | M3-1 Biblioteca versionada — **FECHADA**: histórico append-only no `gp100-library` (migration v6, trigger anti-reescrita, diff por knob), 5 commands Tauri e a tela `HistoryPanel` (par antes/depois visível, restauração total e pontual que **acrescenta** versão) | ✅ |
+| ~~[#114](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/114)~~ | M3-2 Export universal — **FECHADA**: JSON versionado com round-trip byte-idêntico, folha de timbre em PDF sem dependência nativa, os 3 commands da casca e a tela `PresetFilePanel` (export + reimport, e2e com a cadeia preservada) | ✅ |
+| ~~[#115](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/115)~~ | M3-3 Assistente de gain staging — **FECHADA**: `gp100_core::gain` (função pura), `preset_gain_report` e a tela `GainPanel` com a origem de cada número, o método e a limitação NA TELA; nenhuma escrita (prova com `ByteGuard` no core) | ✅ |
 | [#17](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/17) | EPIC Release v1.0.0 multiplataforma | — |
 | ~~[#18](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/18)~~ | EPIC Gate H — **FECHADA**: #21 ✅ (H1 executado, PR #109) · #22 ✅ (H2 em campo, PR #108) · #23 ✅ (H3 congelado, PR #96) | ✅ |
 
 > Fechadas desde a revisão de 03/10: **#13**, **#14** (épicas de UI), **#19**,
 > **#20**, **#24**, **#25**, **#26**, **#27**, **#28**, **#29**, **#30**,
-> **#22**, **#23** e as **13 da auditoria** (#71–#83).
+> **#22**, **#23**, **#113**, **#114**, **#115** e as **13 da auditoria** (#71–#83).
 
 ### Datas dos marcos
 `01/10` Issues + #20 · `02/10` #45 baselines win32 · `02/10` **#68 CI consolidada** ·
