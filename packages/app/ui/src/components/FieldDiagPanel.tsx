@@ -28,6 +28,7 @@ import type { CSSProperties } from "react";
 import { useEffect, useState } from "react";
 import { MSG } from "../i18n/messages";
 import { useFieldDiag } from "../hooks/useFieldDiag";
+import { escritaLiberada } from "../ipc/device";
 import type { DeviceInfo } from "../ipc/types";
 
 interface Props {
@@ -46,7 +47,7 @@ function inteiro(bruto: string, max = 65535): number {
 export function FieldDiagPanel({ info }: Props) {
   const d = useFieldDiag(info);
   const real = info?.backend === "real";
-  const podeGravar = info?.writeVerified === true;
+  const podeGravar = escritaLiberada(info);
   // Três estados, não dois: sem aparelho nenhum o que o operador mexe fica só
   // na tela. Chamar isso de "simulação" seria mentira — a simulação é quando
   // existe um aparelho de mentira.

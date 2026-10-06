@@ -233,6 +233,7 @@ export const EN: DictPatch = {
   diagWriteLocked:
     "Read-only install: writing to the device is blocked before the USB connection.",
   diagWriteOpen: "Writing is allowed in this install.",
+  writeLockedHint: "Read-only install: writing to the device is blocked in this build.",
   diagPpLabel: "Patch",
   diagPpTypeLabel: "Type",
   diagNameLabel: "Name",

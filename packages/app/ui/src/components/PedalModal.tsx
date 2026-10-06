@@ -29,6 +29,13 @@ export const MODAL_SCALE = 1.25;
 interface Props {
   /** Slot em edição (null = fechado); o objeto vem do board VIVO do App. */
   slot: BoardSlot | null;
+  /**
+   * Escrita liberada nesta build? (ADR-5; `false` = build de leitura, a face
+   * (A) da #126). Travado, os knobs e as caixas de valor ficam inertes e o
+   * MOTIVO aparece no cabeçalho — sem ele o dono descobriria a trava ao
+   * girar o knob e ver o valor não mudar.
+   */
+  podeGravar?: boolean;
   engineer?: boolean;
   onToggle: (slot: BoardSlot) => void;
   onKnobChange: (slot: BoardSlot, pos: number, value: string) => void;
@@ -139,6 +146,7 @@ const note: CSSProperties = { fontSize: "var(--text-xs)", color: "var(--text-mut
 
 export function PedalModal({
   slot,
+  podeGravar = true,
   engineer = false,
   onToggle,
   onKnobChange,
@@ -191,7 +199,7 @@ export function PedalModal({
         >
           <strong style={{ fontSize: "var(--text-md)" }}>{MSG.pedalModalAria(slot.name)}</strong>
           <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>
-            {MSG.pedalModalHint}
+            {podeGravar ? MSG.pedalModalHint : MSG.writeLockedHint}
           </span>
           <button
             type="button"
@@ -233,6 +241,7 @@ export function PedalModal({
                   slot={slot}
                   variant="modal"
                   engineer={engineer}
+                  writeLocked={!podeGravar}
                   onToggle={onToggle}
                   onKnobChange={onKnobChange}
                   onKnobReset={onKnobReset}

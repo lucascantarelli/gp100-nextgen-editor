@@ -120,9 +120,16 @@ async function bytesDoArquivo(f: File): Promise<number[]> {
 interface Props {
   /** O estado do gestor (o hook é o dono). */
   tones: Tones;
+  /**
+   * Escrita liberada nesta build? (ADR-5; `false` = build de leitura, face
+   * (A) da #126). Travado, o envio fica desabilitado COM O MOTIVO na tela e
+   * no `title` — um SnapTone são ~143 blocos e o fio recusaria o primeiro
+   * como erro depois do clique.
+   */
+  podeGravar?: boolean;
 }
 
-export function SnapTonePanel({ tones }: Props) {
+export function SnapTonePanel({ tones, podeGravar = true }: Props) {
   const [nome, setNome] = useState("");
   const [renomeando, setRenomeando] = useState<string | null>(null);
   const [confirmando, setConfirmando] = useState<string | null>(null);
@@ -231,6 +238,11 @@ export function SnapTonePanel({ tones }: Props) {
       <div role="dialog" aria-modal="true" aria-label={MSG.toneTitle} style={sheet}>
         <h2 style={h2t}>{MSG.toneTitle}</h2>
         <p style={p}>{MSG.toneIntro}</p>
+        {/* o build de leitura diz na tela que não envia: um botão travado sem
+            motivo obriga o dono a descobrir sozinho o que esta instalação é */}
+        {!podeGravar && (
+          <p style={{ ...p, color: "var(--accent-text)" }} role="status">{MSG.writeLockedHint}</p>
+        )}
 
         {/* o aviso do CAB: visível ANTES de qualquer botão de enviar */}
         <div role="note" style={aviso}>
@@ -324,10 +336,10 @@ export function SnapTonePanel({ tones }: Props) {
                   ✎
                 </button>
                 <button
-                  style={btn}
-                  disabled={t.slot == null || tones.enviando != null}
+                  style={podeGravar ? btn : btnOff}
+                  disabled={!podeGravar || t.slot == null || tones.enviando != null}
                   aria-label={MSG.toneSendAria(t.name)}
-                  title={MSG.toneSendAria(t.name)}
+                  title={podeGravar ? MSG.toneSendAria(t.name) : MSG.writeLockedHint}
                   onClick={() => void envia(t.id)}
                 >
                   {tones.enviando === t.id ? MSG.toneSending : MSG.toneSend}
@@ -348,7 +360,12 @@ export function SnapTonePanel({ tones }: Props) {
             <strong>{MSG.toneCabTitle}</strong>
             <span>{MSG.toneCabWarning}</span>
             <div style={{ display: "flex", gap: "var(--space-8)" }}>
-              <button style={btn} onClick={() => void envia(confirmando)}>
+              <button
+                style={podeGravar ? btn : btnOff}
+                disabled={!podeGravar}
+                title={podeGravar ? undefined : MSG.writeLockedHint}
+                onClick={() => void envia(confirmando)}
+              >
                 {MSG.toneSend}
               </button>
               <button style={btnOff} onClick={() => setConfirmando(null)}>

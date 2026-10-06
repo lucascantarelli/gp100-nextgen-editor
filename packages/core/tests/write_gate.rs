@@ -77,6 +77,11 @@ impl DeviceTransport for TravaFake {
     fn recv_raw(&mut self, _timeout: Duration) -> Result<Vec<u8>, TransportError> {
         Err(TransportError::RecvTimeout { timeout_ms: 0 })
     }
+
+    /// A mesma resposta que o `real.rs` dá: a flag da build.
+    fn permite_escrita(&self) -> bool {
+        self.write_verified
+    }
 }
 
 /// A MESMA trava do `real.rs`, embrulhando um transporte que tem caminho de
@@ -118,6 +123,9 @@ impl<T: DeviceTransport> DeviceTransport for Gate<T> {
     }
     fn recv_raw(&mut self, timeout: Duration) -> Result<Vec<u8>, TransportError> {
         self.inner.recv_raw(timeout)
+    }
+    fn permite_escrita(&self) -> bool {
+        self.write_verified
     }
 }
 
@@ -282,65 +290,72 @@ fn a_trava_segue_o_kind_nao_o_endereco() {
 
 // ═══════════════════════════ o achado: o boot CONTÉM uma escrita
 
-/// **O `boot()` não é uma operação de leitura.** O script de boot (§13.10)
-/// termina com o keepalive `12/00020001` — um frame OUT que não pede nada
-/// de volta, ou seja, uma ESCRITA pelo critério do `WireKind`.
+/// **O boot de leitura COMPLETA — e o keepalive sai só quando a trava deixa.**
 ///
-/// Consequência que este teste existe para registrar: com `write_verified`
-/// fechado, `boot()` **falha** — e o H1, que é o gate de LEITURA, não pode
-/// rodar o boot completo. O `H1_CHECKLIST.md` §3 B5 oferece o "boot
-/// completo (opcional)" dentro de uma sessão declarada "LER é seguro".
+/// O script de boot (§13.10) termina no ping `12/00020001`: um frame OUT que
+/// não pede nada de volta, ou seja, `WireKind::Write`. Com a trava fechada,
+/// este teste provava que `boot()` **falhava** — e o gate de LEITURA do H1
+/// não podia rodar o boot completo, o que tornava a "build de leitura"
+/// inexistente na prática.
 ///
-/// Isto não é um bug do gate — é o gate dizendo a verdade sobre o que o
-/// boot faz. O desfecho (pular o keepalive, ou exigir a flag no B5) é
-/// decisão do owner com a pedaleira na mão; o que este PR faz é não
-/// esconder.
+/// O desfecho registrado no comentário ("pular o keepalive, ou exigir a flag
+/// no B5") foi decidido pelo owner em 06/10: **pular**. A `Session` pergunta
+/// ao transporte (`DeviceTransport::permite_escrita`) e o T4 é OMITIDO — não
+/// mandado e ignorado. A alternativa de exigir `write-verified` no B5 do H1
+/// deixaria a leitura dependente de uma build de escrita, que é o oposto.
+///
+/// O que este par de testes tranca: (1) com a trava fechada o boot passa,
+/// tudo que saiu é `Read` e o ping não foi sequer tentado; (2) com a trava
+/// aberta o ping sai e a contagem volta a 2297 — ou seja, a omissão é do
+/// TRANSPORTE, não um `if` morto que deixaria a sequência de boot sempre
+/// incompleta.
 #[test]
-fn boot_contem_escrita_e_falha_com_a_trava_fechada() {
+fn boot_com_a_trava_fechada_omite_o_keepalive_e_completa() {
     let mut mock = MockDevice::new().expect("mock");
     mock.open().expect("open");
     let mut dev = Gate::new(mock, false);
     let mut s = Session::new(&mut dev);
-    let err = s.boot().expect_err("boot tem keepalive de escrita");
-    assert!(
-        err.to_string().contains("escrita bloqueada"),
-        "o boot tem de barrar no keepalive, não em outro ponto: {err}"
-    );
-}
+    let relatorio = s.boot().expect("o boot de leitura tem de completar");
 
-/// E o ponto exato do bloqueio é o keepalive: o `send_build` do T4 é o
-/// único `Write` do boot. Se ele parasse de ser `Write`, o boot passaria
-/// inteiro — e o teste acima deixaria de acusar.
-#[test]
-fn o_bloqueio_do_boot_e_no_keepalive_e_nao_no_scan() {
-    let mut mock = MockDevice::new().expect("mock");
-    mock.open().expect("open");
-    let mut dev = Gate::new(mock, false);
-    let mut s = Session::new(&mut dev);
-    let err = s.boot().expect_err("barrado");
-    // Tudo que SAIU antes do bloqueio tem de ser de LEITURA — se algum
-    // `Write` tivesse vazado no scan, o bloqueio não seria no keepalive.
-    for (addr, kind) in &dev.kinds {
-        assert_eq!(*kind, WireKind::Read, "endereço {addr} saiu como escrita");
-    }
+    // O scan inteiro rodou — a leitura existe sem a escrita.
     assert!(
         dev.kinds.len() > 100,
-        "o scan tem que ter rodado antes do keepalive ({} frames)",
+        "o scan tem de rodar ({} frames)",
         dev.kinds.len()
     );
-    // O keepalive é barrado ANTES de entrar no log (a trava vem primeiro) —
-    // então `00020001` não aparece em `kinds`, e o erro diz que endereço.
-    assert!(
-        !dev.kinds.iter().any(|(a, _)| a == "00020001"),
-        "o keepalive barrado não pode ter vazado para o log"
-    );
-    match err {
-        gp100_core::ProtocolError::InvalidShape { got, .. } => assert!(
-            got.contains("00020001"),
-            "a recusa tem de nomear o keepalive: {got}"
-        ),
-        other => panic!("esperava o erro do keepalive, veio {other:?}"),
+    // Tudo que SAIU é de LEITURA: se algum `Write` tivesse vazado, a trava
+    // o teria barrado antes do log.
+    for (addr, kind) in &dev.kinds {
+        assert_eq!(*kind, WireKind::Read, "endereço {addr} saiu como escrita");
+        assert_ne!(
+            addr, "00020001",
+            "o keepalive não pode sair com a trava fechada"
+        );
     }
+    // E o relatório conta o que DE fato saiu no fio: 2297 menos os 2 do ping.
+    assert_eq!(
+        relatorio.transactions, 2295,
+        "o relatório é do que saiu no fio: 2297 - keepalive ×2"
+    );
+    assert_eq!(relatorio.transactions, dev.kinds.len());
+}
+
+/// O outro lado da mesma moeda: com a trava ABERTA o ping sai (×2) e o boot
+/// volta a 2297. Sem este teste, a omissão acima poderia ser um `if` morto no
+/// `boot()` — a sequência do aparelho ficaria incompleta em TODO build.
+#[test]
+fn com_a_trava_aberta_o_keepalive_do_boot_sai() {
+    let mut mock = MockDevice::new().expect("mock");
+    mock.open().expect("open");
+    let mut dev = Gate::new(mock, true);
+    let mut s = Session::new(&mut dev);
+    let relatorio = s.boot().expect("boot");
+    assert_eq!(relatorio.transactions, 2297, "o total do script com o ping");
+    assert_eq!(
+        dev.kinds.iter().filter(|(a, _)| a == "00020001").count(),
+        2,
+        "o keepalive ×2 (D4) tem de estar no fio"
+    );
 }
 
 /// Contraprova: **com a flag ligada, o boot inteiro passa.** Sem isto, um

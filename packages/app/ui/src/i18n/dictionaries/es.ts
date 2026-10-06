@@ -234,6 +234,7 @@ export const ES: DictPatch = {
   diagWriteLocked:
     "Instalación de solo lectura: escribir en el aparato queda bloqueado antes de la conexión USB.",
   diagWriteOpen: "Escritura liberada en esta instalación.",
+  writeLockedHint: "Instalación de solo lectura: escribir en el aparato está bloqueado en esta compilación.",
   diagPpLabel: "Patch",
   diagPpTypeLabel: "Tipo",
   diagNameLabel: "Nombre",

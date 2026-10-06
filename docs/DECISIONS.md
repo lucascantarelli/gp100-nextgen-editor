@@ -111,7 +111,8 @@ pub trait DeviceTransport {
 ## ADR-5 — Feature-flag `WRITE_VERIFIED` (mock sempre permite)
 
 **Status:** Accepted · **Pré-assinada:** 28/09 (owner) · **rev. 04/10** (feature
-`write-verified` + `WireKind` declarado pela `Session`) · **Afeta:** M0.5, Gate H
+`write-verified` + `WireKind` declarado pela `Session`) · **rev. 06/10** (keepalive
+do boot omitido com a trava fechada; select = `Read`) · **Afeta:** M0.5, Gate H
 (H2)
 
 **Decisão.** Escrita no device **real** é guardada por `WRITE_VERIFIED` — que
@@ -139,11 +140,36 @@ de campo com o DoD do H2 executado **pelo gp100-core no device** (3 fluxos, um
 por vez, com read-back/verificação no display). O PR do H2 **não a liga por
 padrão** — entrega o mecanismo e deixa a decisão com o owner e a pedaleira.
 
-**Consequência registrada pelo PR (não óbvia):** o keepalive de boot
-(`12/00020001`, §13.12) é um frame OUT que não pede resposta — logo é `Write`
-pelo critério acima, e o **boot completo (B5 do H1) passa a exigir a feature do
-H2**. A decisão de fundo (pular o keepalive no B5, ou promover o B5 para o H2)
-é do owner; ver [H2_CHECKLIST.md](H2_CHECKLIST.md) §0.
+**Consequência registrada pelo PR (não óbvia), RESOLVIDA em 06/10:** o keepalive
+de boot (`12/00020001`, §13.12) é um frame OUT que não pede resposta — logo é `Write`
+pelo critério acima, e o **boot completo (B5 do H1) passava a exigir a feature do
+H2**.
+
+**Decisão do owner, 06/10: pular o keepalive com a trava fechada.** O
+`Session::boot` pergunta ao TRANSPORTE — `DeviceTransport::permite_escrita()`,
+que existe desde 06/10 com default `true` (`RealDevice` devolve `WRITE_VERIFIED`,
+o `MockDevice` devolve `true`, e os embrulhos `Box`/`&mut`/`LoggingTransport`
+deletram) — e **omite** o ping ×2 quando a resposta é `false`, em vez de mandar
+e ser barrado no último frame (um build de LEITURA ficaria sem leitura, que era
+justamente o que a alternativa do B5/H1 pedia). Perguntar ao `cfg!(feature)` no
+core pularia o keepalive também no mock e mudaria o boot de 2297 para 2295 sem
+ninguém ter pedido — por isso a pergunta vai a quem vai enviar o byte. A omissão
+é **contábil**: o relatório sai com 2295 transações, que é o que de fato saiu no
+fio (`tests/write_gate.rs` prova os dois lados: trava fechada → boot completo sem
+ping; aberta → 2297 com ping ×2).
+
+**Decisão do owner, 06/10 — o select NÃO é escrita.** `Session::select_preset`
+envia `WireKind::Read` (é o mesmo select com que o `boot()` varre os 199 presets
+para LER), e a DoD da #126 listava `select` entre os botões de escrita. Medido no
+código, o owner optou por manter a troca de preset **liberada** no build de
+leitura e travar só o que escreve: knob, IR, SnapTone e `save_preset`.
+
+**A tela tem UM leitor do campo.** `escritaLiberada(info)` (em
+`src/ipc/device.ts`) lê `writeVerified` e é o que o `FieldDiagPanel`, o
+`PedalModal`, o `IrLabPanel` e o `SnapTonePanel` usam — botão desabilitado COM O
+MOTIVO (`MSG.writeLockedHint`), nunca recusa depois do clique. Coberto por unit
+(`tests/writeLock.ui.test.tsx`) e e2e (`e2e/writeLock.spec.ts`, pelo gancho
+`gp100.debug.writeVerified`, que simula o build de leitura sem compilar nada).
 
 **Consequências.**
 - Divergência de fio descoberta no H1/H2 = fluxo R3 (captura → golden → validate),

@@ -1,6 +1,6 @@
 # 🎛️ H2_CHECKLIST — Gate de hardware: escrita real dos 3 fluxos capturados
 
-> **Status:** ⏳ aguardando a pedaleira + owner · **Última revisão:** 2026-10-05
+> **Status:** ⏳ aguardando a pedaleira + owner · **Última revisão:** 2026-10-06
 > · **Responsáveis:** owner no hardware
 >
 > **Kit de campo PRONTO (05/10, issue #22):** runbook `scripts/h2_field.sh
@@ -51,13 +51,18 @@ a semântica (a `Session`), nunca deduzida do byte FUNC — porque `FUNC 0x12` �
 usado tanto para escrita quanto para a leitura de página do §13.10, e um gate
 por FUNC recusaria o próprio caminho de leitura.
 
-> **Efeito colateral registrado pelo PR:** o keepalive de boot (`12/00020001`,
-> §13.12) é um frame OUT que não pede resposta — ou seja, uma **escrita** pelo
-> critério acima. Então o **boot completo (B5 do H1) exige a feature do H2**.
-> O `H1_CHECKLIST.md` §3 oferece o B5 como opcional dentro de uma sessão
-> declarada "LER é seguro"; isso não é mais verdade, e este documento registra.
-> A decisão de fundo (pular o keepalive no B5, ou promover o B5 para o H2)
-> é do owner com a pedaleira na mão.
+> **Efeito colateral registrado pelo PR — RESOLVIDO em 06/10:** o keepalive de
+> boot (`12/00020001`, §13.12) é um frame OUT que não pede resposta — ou seja,
+> uma **escrita** pelo critério acima, e sem ele o boot inteiro cairia no
+> ÚLTIMO frame de um build de leitura. **Decisão do owner (06/10): o
+> `Session::boot` PERGUNTA ao transporte (`DeviceTransport::permite_escrita()`)
+> e OMETE o ping ×2 quando a resposta é `false`** — mandar e ser barrado deixaria
+> um build de LEITURA sem leitura, e exigir `write-verified` no B5 faria a
+> leitura depender da escrita. A omissão é contábil: o relatório sai com 2295
+> transações em vez de 2297 (`tests/write_gate.rs` prova os DOIS lados — trava
+> fechada completa o boot sem ping; aberta, 2297 com ping ×2). O
+> `H1_CHECKLIST.md` §3 segue oferecendo o B5 dentro de uma sessão declarada
+> "LER é seguro"; a única consequência de campo é o total do relatório.
 
 ---
 

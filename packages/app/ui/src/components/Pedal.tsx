@@ -53,6 +53,12 @@ interface Props {
   /** Escala do desenho (default: o palco, compacto). */
   variant?: PedalVariant;
   engineer?: boolean;
+  /**
+   * Build de LEITURA (#126 face (A), ADR-5): knobs e caixas de valor ficam
+   * travados com o motivo. O palco já é travado por ser compacto — esta trava
+   * é a da INSTALAÇÃO, e vale nos dois variantes.
+   */
+  writeLocked?: boolean;
   onKnobChange: (slot: BoardSlot, pos: number, value: string) => void;
   onKnobReset: (slot: BoardSlot, pos: number) => void;
   onToggle: (slot: BoardSlot) => void;
@@ -63,29 +69,34 @@ function ValueBox({
   text,
   frac,
   accent,
+  locked = false,
   onCommit,
 }: {
   text: string;
   frac: boolean;
   accent: string;
+  /** Build de LEITURA (#126 face A): o valor continua visível, a edição não
+   *  abre — e o `disabled` é o que a tela mostra sem precisar de clique. */
+  locked?: boolean;
   onCommit: (raw: string) => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<string | null>(null);
+  /** Entra em modo edição — travado, não há modo edição a entrar. */
+  const comeca = () => {
+    setDraft(null);
+    setEditing(true);
+  };
   if (!editing) {
     return (
       <input
         readOnly
+        disabled={locked}
+        title={locked ? MSG.writeLockedHint : undefined}
         value={text}
         aria-label={MSG.pedalValueAria}
-        onFocus={() => {
-          setDraft(null);
-          setEditing(true);
-        }}
-        onClick={() => {
-          setDraft(null);
-          setEditing(true);
-        }}
+        onFocus={locked ? undefined : comeca}
+        onClick={locked ? undefined : comeca}
         style={{
           width: VALUE_W,
           height: 30,
@@ -153,6 +164,7 @@ export function Pedal({
   slot,
   variant = "board",
   engineer = false,
+  writeLocked = false,
   onKnobChange,
   onKnobReset,
   onToggle,
@@ -371,7 +383,8 @@ export function Pedal({
               <Knob
                 knob={k}
                 size={scale.knob}
-                locked={compact}
+                locked={compact || writeLocked}
+                writeLocked={writeLocked}
                 accent={fam.accent}
                 engineer={engineer}
                 addr={addr}
@@ -402,6 +415,7 @@ export function Pedal({
                   text={k.value ?? "—"}
                   frac={fracOf(k.range)}
                   accent={fam.accent}
+                  locked={writeLocked}
                   onCommit={(raw) => onKnobChange(slot, k.pos, raw)}
                 />
               </foreignObject>

@@ -173,6 +173,12 @@ impl<T: DeviceTransport> DeviceTransport for LoggingTransport<T> {
         self.inner.send_raw(data, kind)
     }
 
+    /// A política não muda por embrulhar: o logger pergunta ao INNER — um
+    /// `RealDevice` de leitura continua não deixando escrever (ADR-5).
+    fn permite_escrita(&self) -> bool {
+        self.inner.permite_escrita()
+    }
+
     fn recv_raw(&mut self, timeout: Duration) -> Result<Vec<u8>, TransportError> {
         let msg = self.inner.recv_raw(timeout)?;
         if let Some(l) = self.logger.as_mut() {

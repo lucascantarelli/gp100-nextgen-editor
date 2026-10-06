@@ -8,9 +8,10 @@
 > **validada contra o aparelho real** (gates H1/H2 em campo), e a **ligação já
 > existe** (05/10, `d4ad1e8`/`827cbe8`): o `abrir_backend()` escolhe `RealDevice` ou
 > mock conforme a feature de compilação. O que falta é do outro lado do mesmo
-> par: **o build distribuído é construído SEM a feature** (o `dist-ui` chama
-> `tauri build` sem `--features real-device`) e **nenhuma sessão de campo saiu do
-> app** — as duas medições são a §6 passo 7 e a §1, item 1.
+> par: **o build distribuído já sai com a feature** (#126, 06/10: `dist-ui`
+> chama `tauri build --features real-device`, face de LEITURA — a escrita segue
+> travada pela ADR-5 e o motivo fica na tela) e **nenhuma sessão de campo saiu do
+> app** — a medição que sobra é a §6 passo 7.
 
 Este documento é o levantamento pedido pelo owner em 05/10/2026 e é a base do
 go/no-go da [#17](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/17):
@@ -66,16 +67,25 @@ fn abrir_backend() -> Result<abrir_backend::Escolha, Box<dyn std::error::Error>>
 
 ### O que ainda segura a coluna `app → aparelho real` da §2
 
-1. **O build distribuível não leva a feature.** O job `dist-ui` chama
-   `tauri build ${{ matrix.args }}` **sem `--features real-device`**
-   ([`ci.yml`](../.github/workflows/ci.yml), ~L1366) — issue
-   [#126](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/126),
-   que também traz a decisão de qual **face** do build vai para a release
-   (leitura primeiro é escrever). Os instaladores de hoje são builds mock **por
-   linha de comando, não por limitação de código** — um `nsis`/`dmg` publicado
-   assim não falaria com a pedaleira, mesmo o código sabendo. É a diferença
-   entre "o caminho está compilado" e "o binário que o dono baixa tem o caminho
-   ligado".
+1. ~~**O build distribuível não leva a feature.**~~ **✅ fechado em 06/10 pela
+   [#126](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/126)
+   (face (A), decisão do owner).** O `dist-ui` agora roda
+   `tauri build --features real-device ${{ matrix.args }}`
+   ([`ci.yml`](../.github/workflows/ci.yml), step `build do instalador`). Dois
+   defeitos na mesma linha, e o segundo era invisível pelo primeiro:
+
+   - o caminho era `../../ui/node_modules/.bin/tauri`, que de
+     `packages/app/api` resolve para um **`packages/ui` inexistente** — o step
+     morria antes de compilar, e por isso o `dist-ui` **nunca gerou instalador**
+     (0 runs para `v0.1.0` e `v0.2.0-rc.1..4`); o certo é `../ui`;
+   - faltava `--features real-device`, e faltava **`libasound2-dev`** no Linux do
+     job: a feature liga o `midir`, que no Linux é ALSA.
+
+   O instalador passa a ser build de **leitura**: fala com a pedaleira e recusa a
+   escrita antes do driver (ADR-5), com o motivo na tela (§6 passo 3). **A prova
+   do step só existe na próxima tag** — `stage-dist` é `tag` em
+   [`ci_plan.py`](../scripts/ci_plan.py); em PR o caminho real é coberto pelo
+   `ui-rust` nos três SOs. Restava antes do campo:
 2. **Nenhuma sessão de campo partiu do APP.** O H1/H2 provaram o core e o CLI;
    `ir_send`, `tone_send` e o knob do **editor** não foram medidos. É o passo 7
    da §6, e é o que a #17 espera.
@@ -193,7 +203,8 @@ mesmo código. Uma sessão de teste no aparelho é a única forma de medi-los:
    arquivo embutido; e o valor do knob que o palco mostra é o do arquivo, não o
    que o aparelho tem depois de um ajuste.
 3. **O boot assume um inventário fixo de 199 pps.** Nem o app nem o CLI chamam
-   `Session::set_inventory` — os dois usam o default `0..198` (2297 transações). O
+   `Session::set_inventory` — os dois usam o default `0..198` (2297 transações;
+   2295 num build de leitura, sem o keepalive — ADR-5 rev. 06/10). O
    `H1_CHECKLIST` §B5 já sinalizou isso como R3 em aberto: *"Device real com pps
    fora de `0..198` → boot() com inventário default diverge"*. O método já
    existe; ninguém o chama.
@@ -220,11 +231,24 @@ mesmo código. Uma sessão de teste no aparelho é a única forma de medi-los:
    > é escrita de código, e código esperando número medido é exatamente o
    > que o ADR-10 (trava de faixa) existe para evitar: regra de parede com
    > número inventado.
-4. **Escrita vai exigir o destravamento.** Com `--features real-device` **sem**
-   `write-verified` (decisão do owner em 05/10/2026: leitura primeiro), as quatro
-   escritas do app — knob, select, IR, SnapTone — são **recusadas com erro
-   tipado** antes do driver. O app precisa mostrar isso como estado, não como
-   falha: o botão fica desabilitado com "build de leitura".
+4. **Escrita exige o destravamento — e a tela já sabe.** Com `--features
+   real-device` **sem** `write-verified` (decisão do owner em 05/10/2026: leitura
+   primeiro), as escritas do app — **knob, IR, SnapTone e `save_preset`** — são
+   **recusadas com erro tipado** antes do driver.
+
+   **O select NÃO é uma delas.** `Session::select_preset` envia
+   `WireKind::Read`: é o mesmo select com que o `boot()` varre os 199 presets
+   para LER, então a troca de preset segue funcionando no build de leitura.
+   Medido em `tests/write_gate.rs`; decisão do owner em 06/10 ao ler a DoD da
+   #126, que listava `select` entre os botões de escrita.
+
+   > **Estado 06/10 (#126 face (A)): feito.** `escritaLiberada(info)` (em
+   > `src/ipc/device.ts`) é a ÚNICA leitura do `writeVerified` para decidir
+   > botão, e os três canais de escrita nascem **desabilitados com o motivo**
+   > (`MSG.writeLockedHint`, visível na tela e no `title`): knob e caixa de
+   > valor do `PedalModal`, envio de IR e envio de SnapTone. O `save_preset` já
+   > era travado pelo `FieldDiagPanel`. Coberto por unit
+   > (`tests/writeLock.ui.test.tsx`) e e2e (`e2e/writeLock.spec.ts`).
 
 ## 5. O que o manual exige e ainda não existe
 
@@ -254,19 +278,17 @@ deles precisa do aparelho para ser provado.
 |---|---|---|---|---|
 | 1 | `DeviceActor` genérico sobre `Box<dyn DeviceTransport>` + seleção mock/real — **✅ feito** (`d4ad1e8`, 05/10: `AppDevice` alias `cfg` + `abrir_backend()`; a CI clippa e checa com `real-device` nos três SOs) | `packages/app/api/src/{actor,lib}.rs` | os testes do actor passam **sem** mudar (o mock vira o caso padrão); `--features real-device` compila | não |
 | 2 | `DeviceInfo` com **fonte real** (e campos que não têm fonte, declarados) — **✅ feito** (05/10: `DeviceSnapshot` marca `current_name`/`current_pp_type`/`ir_slots_with_crc` como *só no mock*; `ir_slots` é lido do aparelho nos dois backends) | `commands.rs` | `DeviceInfo` sai do `BootReport`/tabela/meta6, não do `MockState` | não |
-| 3 | Botões de escrita cientes da política (`write-verified` → desabilitado + aviso) — **em aberto**: só o `FieldDiagPanel` lê `writeVerified`; o knob, o IR e o SnapTone mandam e deixam o erro tipado chegar. É parte da face (A) da [#126](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/126) | front + commands | e2e do botão desabilitado no build de leitura | não |
+| 3 | Botões de escrita cientes da política (`write-verified` → desabilitado + aviso) — **✅ feito** (06/10, #126 face (A)): `escritaLiberada()` é a única leitura do `writeVerified`; knob/IR/SnapTone nascem desabilitados com `MSG.writeLockedHint` e `FieldDiagPanel` usa a mesma função. O select fica de fora de propósito (é `WireKind::Read` no fio) | front (`device.ts` + PedalModal/IrLab/SnapTone) | e2e do botão desabilitado no build de leitura (`e2e/writeLock.spec.ts`) | não |
 | 4 | `save_preset` e `dump_preset` como commands — **✅ feito** (o que o CLI tinha e o app nao) | `actor.rs` + `commands.rs` | vetor de bytes igual ao do CLI | não |
 | 4b | **wire logger (schema P4) + dry-run no app** — **✅ feito**: `packages/core/src/wire_log.rs` (uma implementacao, CLI e app) + `device_log_session`/`device_preview`. O ciclo de campo agora fecha pelo app: sessao no editor → `.jsonl` → juiz | `wire_log.rs` + `commands.rs` | o `.jsonl` que o app grava passa no mesmo juiz que o do CLI | **sim** (para o veredito) |
 | 4c | **A camada de UI do diagnóstico** — **✅ feito**: `FieldDiagPanel.tsx` + `useFieldDiag` + `ipc/diag.ts`. As quatro capacidades dos passos 4/4b viraram tela (gravar, ler o dump, ligar/desligar o log, ver o que sairia), com o badge de backend e o aviso de escrita travada na tela. Sem isto a sessao de campo continuava dependendo do binario de terminal | `components/FieldDiagPanel.tsx` · `hooks/useFieldDiag.ts` · `ipc/diag.ts` | o operador de campo nao precisa abrir terminal para dirigir o aparelho | **sim** (para o veredito) |
 | 5 | `set_inventory` ligado ao que o boot descobre (ou fixado em campo com justificativa) | `session.rs` + `lib.rs` | o total de transações do report muda conforme o inventário | **sim** |
-| 6 | Build de campo **leitura** (`--features real-device`, sem `write-verified`) — **✅ feito** (compilação); **o `dist-ui` ainda não o usa** — issue [#126](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/126) | `scripts/` | CI compila o crate do Tauri com a feature (WinMM no job `ui-rust`; ALSA no container do webview) | não |
+| 6 | Build de campo **leitura** (`--features real-device`, sem `write-verified`) — **✅ feito** (compilação) e, em 06/10, **o `dist-ui` passou a usá-lo** (issue [#126](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/126): caminho `../ui` corrigido + `--features real-device` + `libasound2-dev` no Linux) | `.github/workflows/ci.yml` | CI compila o crate do Tauri com a feature (WinMM no job `ui-rust`; ALSA no container do webview) e o instalador sai com ela | não |
 | 6b | `ui-rust` na matriz **macOS** — fecha o buraco do CoreMIDI — **✅ feito** (05/10): a matriz do `ui-rust` tem Windows + macOS, e o ALSA segue no container | `scripts/ci_plan.py::matrices` | o backend do app com `real-device` compila para CoreMIDI | não |
 | 7 | **Sessão de campo no aparelho**: boot, lista de IRs, dump, e a §4 medida | o painel de diagnóstico (passo 4c) + relatório | relatório com os 4 desvios de §4 preenchidos, com o `.jsonl` gerado **pelo app** | **sim** |
 | 8 | Release | #17 | o veredito da sessão de campo assinado | **sim** |
 
-Passos 1, 2, 4, 4b, 4c, 6 e 6b são software e foram feitos. Ficam de pé **o
-passo 3** (software também: o knob, o IR e o SnapTone ainda não leem
-`writeVerified` — é a face (A) da [#126](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/126)),
+Passos 1, 2, 3, 4, 4b, 4c, 6 e 6b são software e foram feitos. Ficam de pé
 **o passo 5** (uma decisão de campo) e **o passo 7** (uma sessão com o
 aparelho). **O passo 7 é o que a #17 exige, e a #17 não fecha antes dele.**
 
@@ -283,10 +305,9 @@ verde, 13 gates, baseline do golden versionada, e o histórico do PR
 `#112` provando que a build de campo da CI é sadia.
 
 Falta, e é o que decide o go/no-go:
-- o **build distribuível** sair com a feature ligada — hoje o `dist-ui` constrói
-  sem `--features real-device`, então o instalador publicado é mock
-  ([#126](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/126), §1
-  item 1);
+- o **build distribuível** sair com a feature ligada — **✅ feito em 06/10**
+  (#126): o `dist-ui` constrói com `--features real-device` (face de leitura).
+  A primeira prova de máquina é a próxima tag `v*`, que é quando o job roda;
 - uma **sessão de campo** com o aparelho ligado, com veredito assinado — e ela
   agora acontece **dentro do app** pelo painel de diagnóstico (passo 4c), não
   por roteiro de terminal;
@@ -297,6 +318,8 @@ Falta, e é o que decide o go/no-go:
 três SOs (WinMM, ALSA, CoreMIDI) e as capacidades que eram só do CLI ganharam
 tela. O que ainda segura a #17 é o aparelho, não o código.
 
-**Recomendação: manter a #17 aberta.** O build atual é honesto como *build de
-desenvolvimento* — ele fala com um mock que responde como o aparelho, e a UI não
-mente sobre isso. O que ele não pode é ser chamado de release do GP-100.
+**Recomendação: manter a #17 aberta.** O build de DESENVOLVIMENTO é honesto —
+ele fala com um mock que responde como o aparelho, e a UI não mente sobre isso.
+O que falta é o outro lado do par: a **sessão de campo** (passo 7) com o
+instalador que agora sai com a feature ligada. Até lá, nenhuma build deste repo
+é release do GP-100.

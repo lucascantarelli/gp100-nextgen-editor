@@ -45,6 +45,26 @@ const BOOT_TOTAL = 2297;
  */
 const DEBUG_FAIL_KEY = "gp100.debug.failDevice";
 
+/**
+ * Gancho de teste/e2e — `localStorage[gp100.debug.writeVerified] = "false"`
+ * faz o fallback LOCAL relatar um build de LEITURA (face (A) da #126), para a
+ * política de botões ser exercitável sem compilar `write-verified`. Sem a
+ * chave o mock segue a ADR-5: SEMPRE permite (`writeVerified: true`).
+ *
+ * Fora do fallback (webview real) não tem efeito: quem decide ali é a
+ * constante de compilação do transporte (`real.rs`).
+ */
+const DEBUG_WRITE_KEY = "gp100.debug.writeVerified";
+
+/** O gancho acima está armado? (seguro sem localStorage — ver `readFailRaw`). */
+function leituraSimulada(): boolean {
+  try {
+    return localStorage.getItem(DEBUG_WRITE_KEY) === "false";
+  } catch {
+    return false;
+  }
+}
+
 function readFailRaw(): string | null {
   try {
     return localStorage.getItem(DEBUG_FAIL_KEY);
@@ -242,8 +262,9 @@ function localMockInfo(): DeviceInfo {
     // (§13.12): 20 slots, nomes vazios ate a primeira importacao.
     irSlots: Array.from({ length: 20 }, (_unused, slot) => ({ slot, name: "" })),
     // No mock a escrita e liberada por construcao (ADR-5: a trava e do
-    // transporte real). Aqui o valor e `true` pelo mesmo motivo.
-    writeVerified: true,
+    // transporte real). Aqui o valor e `true` pelo mesmo motivo — salvo o
+    // gancho `gp100.debug.writeVerified`, que simula o build de leitura.
+    writeVerified: !leituraSimulada(),
   };
 }
 
@@ -257,6 +278,20 @@ export async function deviceInfo(): Promise<DeviceInfo> {
     debugFail("info");
     return localMockInfo();
   });
+}
+
+/**
+ * A política de escrita da TELA (#126 face (A); ADR-5): este aparelho deixa a
+ * UI oferecer botões que gravam (knob, IR, SnapTone, gravar preset)?
+ *
+ * `true` só quando o backend disse que sim (`writeVerified`); sem informação
+ * (null, ainda carregando) a resposta é `false` — uma trava que abre sozinha
+ * antes de saber quem é o aparelho não é trava. É o ÚNICO lugar que lê o
+ * campo para decidir botão: o `FieldDiagPanel` e os painéis de escrita
+ * passam a concordar por construção, não por três leituras iguais.
+ */
+export function escritaLiberada(info: DeviceInfo | null | undefined): boolean {
+  return info?.writeVerified === true;
 }
 
 /**
