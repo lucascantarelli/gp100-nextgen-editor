@@ -248,6 +248,8 @@ export const EN: DictPatch = {
   diagLogPathLabel: "Log file",
   diagLogHint: "Records everything that goes in and out over USB, for support to analyse later.",
   diagLogOn: (path: string) => `Recording to ${path}`,
+  diagLogReveal: "Open the file's folder",
+  diagLogCopyPath: "copy the path",
   diagPreviewBtn: "See what would be sent",
   diagPreviewTitle: "What would be sent, without sending it",
   diagPreviewEmpty: "Nothing to show.",

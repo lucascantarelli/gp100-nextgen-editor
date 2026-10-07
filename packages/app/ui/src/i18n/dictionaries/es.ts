@@ -249,6 +249,8 @@ export const ES: DictPatch = {
   diagLogPathLabel: "Archivo del log",
   diagLogHint: "Graba todo lo que entra y sale por USB, para que el soporte lo analice después.",
   diagLogOn: (path: string) => `Grabando en ${path}`,
+  diagLogReveal: "Abrir la carpeta del archivo",
+  diagLogCopyPath: "copiar la ruta",
   diagPreviewBtn: "Ver lo que se enviaría",
   diagPreviewTitle: "Lo que se enviaría, sin enviarlo",
   diagPreviewEmpty: "Nada que mostrar.",
