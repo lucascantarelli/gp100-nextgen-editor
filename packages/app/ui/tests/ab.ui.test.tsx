@@ -380,4 +380,75 @@ describe("A/B — o BLIND não vaza antes da resposta (DoD)", () => {
     expect(texto(host)).toContain("v2");
     unmount();
   });
+
+  /**
+   * Nível sem controle: quando uma das versões não tem controle de saída,
+   * a tela diz isso em vez de inventar número — e o botão calibrar fica
+   * indisponível (não há o que igualar).
+   *
+   * A UI monta o A/B a partir do hook `useAb`, que por sua vez lê a
+   * biblioteca via fallback (a mesma porta que o e2e exercita). O teste
+   * aqui segue o estilo do arquivo: salva os dois patches no fallback,
+   * monta o host, clica no botão de abrir A/B e confere o que a tela mostra.
+   */
+  it("sem controle de saída, a tela diz que não há o que calibrar", async () => {
+    // cadeia sem controle de saída (só controles de efeito):
+    const SEM_NIVEL = JSON.stringify([
+      {
+        slot: 1,
+        family: "FX",
+        archetype: "CHORUS",
+        name: "Chorus",
+        variant: "chorus",
+        state: true,
+        code: 5,
+        knobs: [
+          { pos: 0, name: "Rate", kind: "knob", range: [0, 100], options: [], value: "40" },
+          { pos: 1, name: "Depth", kind: "knob", range: [0, 100], options: [], value: "60" },
+        ],
+      },
+    ]);
+
+    // cadeia COM controle de saída (Volume), para formar o par A/B:
+    const COM_NIVEL = JSON.stringify([
+      {
+        slot: 1,
+        family: "FX",
+        archetype: "CHORUS",
+        name: "Chorus",
+        variant: "chorus",
+        state: true,
+        code: 5,
+        knobs: [
+          { pos: 0, name: "Rate", kind: "knob", range: [0, 100], options: [], value: "40" },
+          { pos: 1, name: "Depth", kind: "knob", range: [0, 100], options: [], value: "60" },
+          { pos: 2, name: "Volume", kind: "knob", range: [0, 100], options: [], value: "70" },
+        ],
+      },
+    ]);
+
+    // histórico de 2 versões do MESMO patch: v1 = SEM_NIVEL (lado B),
+    // v2 corrente = COM_NIVEL (lado A) — Volume 70 em [0,100] → nível 70.0
+    await librarySave(patch("u1", SEM_NIVEL));
+    await librarySave(patch("u1", COM_NIVEL));
+
+    const { host, unmount } = mount(false);
+    clica(host, "abrir A/B");
+    await settle();
+
+    // o A/B abre dentro do modal contentMenu — os testes que passam observam
+    // o mesmo host para os textos do par (lado, versão, nível, método, delta).
+    expect(texto(host)).toContain(MSG.abTitle);
+
+    // com um lado sem controle de saída, a tela avisa e não inventa número
+    expect(texto(host)).toContain(MSG.abNivelSemControle);
+    expect(texto(host)).toContain(MSG.abNivel("A", "70.0"));
+    expect(texto(host)).toContain(MSG.abNivel("B", "—"));
+
+    // delta null → calibrar indisponível (ainda que A tenha Volume)
+    const calibrar = botao(host, MSG.abCalibrar);
+    expect(calibrar.disabled).toBe(true);
+
+    unmount();
+  });
 });

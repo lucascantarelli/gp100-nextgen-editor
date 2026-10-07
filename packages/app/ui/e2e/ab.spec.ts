@@ -12,7 +12,10 @@
  *     escuro (o relatório é o canto esquecido: ele não nomeia o lado, mas
  *     conta que a troca aconteceu, e a tela promete silêncio);
  *  3. o palpite é o que revela — a resposta, os lados e o relatório volte
- *     juntos.
+ *     juntos;
+ *  4. um lado sem controle de SAÍDA (o Boost só tem `Gain`): o nível desse
+ *     lado é "—", a tela diz que não há o que calibrar e o botão de igualar
+ *     fica indisponível — o delta de um lado só não existe.
  *
  * Roda no navegador, fora do webview do Tauri, e por isso exercita o fallback
  * em memória da porta — o mesmo caminho do `pnpm dev`.
@@ -76,6 +79,46 @@ test("M3-4: o A/B abre pela porta com os dois lados, nível e método na tela", 
   // sem blind, os dois lados são ouvidos por botões que NOMEIAM o destino
   await expect(ab.ouvir("A")).toBeVisible();
   await expect(ab.ouvir("B")).toBeVisible();
+
+  await ab.close().click();
+  await expect(ab.root).toHaveCount(0);
+});
+
+test("M3-4: um lado sem controle de saída — a tela avisa e não há o que calibrar", async () => {
+  const lib = shell.library;
+  const board = shell.board;
+
+  // v1: a cadeia de fábrica (Green OD VOL, Bog RedM Master, U-ban Volume…),
+  // que tem controle de saída — o lado B da comparação
+  await lib.saveAs("A/B sem nível");
+  await expect(lib.userRows()).toHaveCount(1);
+  await lib.userRowAt(0).getByRole("button").first().click();
+  await expect(shell.board.display()).toContainText("U01");
+
+  // desliga os TRÊS módulos com controle de saída ligados na cadeia: sem
+  // eles, sobra só Gain (ganho), banda do EQ e Mix (mistura não soma nível) —
+  // o índice do lado fica sem insumo, e é isso que a tela tem de dizer
+  for (const [n, fam] of [[2, "DST"], [3, "AMP"], [5, "CAB"]] as const) {
+    await board.slot(n, fam).getByRole("button", { name: "Desligar efeito" }).click();
+  }
+
+  // v2 (corrente): o lado A da comparação, sem controle de nível nenhum
+  await lib.saveAs("A/B sem nível");
+  await expect(lib.userRows()).toHaveCount(1); // continua UM patch, agora com 2 versões
+
+  const ab = await shell.openAb();
+
+  // o par padrão: A = corrente (v2, cadeia sem controle de saída), B =
+  // anterior (v1, fábrica: VOL 30 / Master 50 / Volume 72 → média 51.2)
+  await expect(ab.root.getByText("Lado A: —", { exact: true })).toBeVisible();
+  await expect(ab.root.getByText("Lado B: 51.2", { exact: true })).toBeVisible();
+
+  // a tela diz por quê em vez de inventar número — e não inventa delta
+  await expect(ab.root.getByText(/Um dos lados não tem controle de nível/)).toBeVisible();
+  await expect(ab.root.getByText(/Diferença de nível \(A − B\): —/)).toBeVisible();
+
+  // delta null → igualar fica indisponível (ainda que o lado B seja mensurável)
+  await expect(ab.root.getByRole("button", { name: "Igualar nível" })).toBeDisabled();
 
   await ab.close().click();
   await expect(ab.root).toHaveCount(0);
