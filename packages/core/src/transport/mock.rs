@@ -112,8 +112,8 @@ impl MockState {
             .ok_or_else(|| shape_err("preset no all.prst", "nenhum"))?;
         let current_pp = first
             .pp_id()
-            .and_then(|s| u16::from_str_radix(s, 16).ok())
-            .ok_or_else(|| shape_err("ppID hex no 1º preset", "ausente"))?;
+            .and_then(crate::preset::pp_id_decimal)
+            .ok_or_else(|| shape_err("ppID decimal no 1º preset", "ausente"))?;
         Ok(Self {
             preset_count: doc.presets().count(),
             current_pp,

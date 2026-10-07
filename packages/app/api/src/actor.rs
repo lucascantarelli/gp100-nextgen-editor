@@ -1121,6 +1121,12 @@ mod tests {
         fn recv_raw(&mut self, _t: std::time::Duration) -> Result<Vec<u8>, TransportError> {
             Err(TransportError::RecvTimeout { timeout_ms: 0 })
         }
+        /// O fake REPRESENTA o aparelho (é declarado `Backend::Real`), então
+        /// ele é aparelho para a trava de faixa do `pp` (#132) — sem isto o
+        /// caminho real do app não teria como ser testado sem hardware.
+        fn e_aparelho(&self) -> bool {
+            true
+        }
     }
 
     impl DeviceBackend for AparelhoFake {
@@ -1151,6 +1157,34 @@ mod tests {
             actor.set_param(3, 0x0700_006e, 0, 99.5).is_err(),
             "acima do teto"
         );
+        actor.shutdown();
+    }
+
+    /// **A trava de faixa do `pp` (#132) atravessa o actor no caminho REAL.**
+    /// O app não pode mandar um `select` que o aparelho não provou ter — o
+    /// frame do assert `PresetNum < TOTAL_PA` (`audio.c:912`) é recusado com
+    /// a faixa na mensagem, antes do fio. O lado "dentro da faixa sai" está
+    /// provado no core (`tests/pp_gate.rs`); aqui o que importa é a borda do
+    /// APP: o erro SOBE como string, com o endereço e a faixa legíveis.
+    #[test]
+    fn select_fora_do_inventario_e_recusado_no_caminho_real() {
+        let actor = DeviceActor::spawn(AparelhoFake { sent: Vec::new() }, Backend::Real);
+
+        let e = actor
+            .select_preset(0x00c5)
+            .expect_err("0x00c5 (197) não existe no aparelho");
+        assert!(e.contains("11/13010000"), "nomeia o frame: {e}");
+        assert!(e.contains("pp"), "nomeia o campo: {e}");
+        assert!(
+            e.contains("0x0000..0x0062") && e.contains("0x0100..0x0162"),
+            "diz até onde o aparelho vai: {e}"
+        );
+
+        // O MESMO número no mock segue passando — a trava é do aparelho
+        // ("no mock, comportamento atual").
+        let mock = DeviceActor::spawn(MockDevice::new().expect("mock"), Backend::Mock);
+        mock.select_preset(0x00c5).expect("mock sem trava");
+        mock.shutdown();
         actor.shutdown();
     }
 

@@ -81,8 +81,9 @@ fn o_relatorio_le_a_cadeia_inteira_na_ordem_do_sinal() {
 /// PRÓPRIO board.
 #[test]
 fn cada_numero_do_relatorio_vem_do_valor_e_da_faixa_do_board() {
-    // ppIDs reais do all.prst (a lista NÃO é 0..98 contígua: 0x0a não existe)
-    for pp in [0x00u16, 0x18, 0x19, 0x30] {
+    // ppIDs do all.prst: strings DECIMAIS `0..98` contíguas (#132/ADR-12 —
+    // a base é a mesma do aparelho; o hex antigo fazia `0x0a` "não existir")
+    for pp in [0u16, 18, 19, 30] {
         let b = board(pp);
         let r = relatorio(&b);
         let mut conferidos = 0;

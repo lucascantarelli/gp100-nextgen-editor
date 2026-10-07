@@ -34,9 +34,10 @@ const mocks = vi.hoisted(() => ({
   deviceBoard: vi.fn(),
   deviceSetParam: vi.fn(),
   deviceInfo: vi.fn(),
+  devicePresetLibrary: vi.fn(),
   onBootProgress: vi.fn(),
 }));
-// mock PARCIAL: o palco fala com o device por estes seis, mas a biblioteca
+// mock PARCIAL: o palco fala com o device por estes sete, mas a biblioteca
 // (#26) entra pela mesma porta e precisa de `semRetry` — um mock total
 // rebentaria no import antes de o teste rodar.
 vi.mock("../src/ipc/device", async (importOriginal) => ({
@@ -88,6 +89,11 @@ beforeAll(() => {
 
 beforeEach(() => {
   mocks.deviceSelectPreset.mockReset().mockResolvedValue(undefined);
+  // A abertura inicial pergunta o `current_pp` ao device (#132). O default
+  // é o do fallback (0), que é o que a maioria dos testes espera ver abrir.
+  mocks.devicePresetLibrary
+    .mockReset()
+    .mockResolvedValue({ entries: [], currentPp: 0 });
   // `deviceBoard` tem de DEVOLVER o pp pedido: `openPreset` tira o `pp` de
   // `b.pp` (o device é a fonte da verdade), então um board fixo em 0 fazia o
   // ciclo ◀ ▶ voltar ao passo anterior.
@@ -174,6 +180,17 @@ describe("useStage", () => {
     expect(stage!.pp).toBe(0);
     expect(stage!.presetName).toBe("PP-0");
     expect(stage!.openUserId).toBeNull();
+  });
+
+  // #132: o 0 fixo do mount era uma ADIVINHAÇÃO — no aparelho o corrente é
+  // o que o device reporta (`Request::Library → current_pp`), e é ele que a
+  // abertura automática tem de usar. Se o valor mudar, o alvo muda junto.
+  it("abre o current_pp que o device reporta, não o 0 fixo (#132)", async () => {
+    mocks.devicePresetLibrary.mockResolvedValue({ entries: [], currentPp: 42 });
+    await montarStage();
+    expect(mocks.deviceSelectPreset).toHaveBeenCalledWith(42);
+    expect(stage!.pp).toBe(42);
+    expect(stage!.presetName).toBe("PP-42");
   });
 
   // Regressão do LAÇO. Este teste é a raison d'être do `changedRef`: o App

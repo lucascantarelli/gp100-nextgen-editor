@@ -235,6 +235,12 @@ impl DeviceTransport for RealDevice {
         WRITE_VERIFIED
     }
 
+    /// O `RealDevice` É o aparelho: a trava de faixa do `pp` (#132) vale
+    /// para ele — e só para ele (o mock mantém o comportamento de sempre).
+    fn e_aparelho(&self) -> bool {
+        true
+    }
+
     /// Drena a fila de RX (FIFO global do D1) até `timeout` (ADR-3).
     fn recv_raw(&mut self, timeout: Duration) -> Result<Vec<u8>, TransportError> {
         let deadline = Instant::now() + timeout;
