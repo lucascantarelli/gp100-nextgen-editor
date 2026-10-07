@@ -167,11 +167,34 @@ pub struct Session<T: DeviceTransport> {
     transport: T,
     /// pp corrente (select do boot/scan; default 0x0100 = "01 00", §13.4).
     current_pp: u16,
-    /// Inventário de presets na ordem de scan (default 0..198). O replay da
-    /// S1 prova a ordem da captura; o device real tem o próprio.
+    /// Inventário de presets na ordem de scan. O default é o ESPAÇO BANCO/
+    /// SLOT capturado (`inventario_default`) — NÃO um intervalo linear: os
+    /// pps `0x0063..0x00C5` não existem no device e derrubam o firmware
+    /// (issue #148, campo 07/10). O replay da S1 prova a ordem da captura.
     pps: Option<Vec<u16>>,
     /// Backlog de IN não solicitado (D7), na ordem de chegada (hex cru).
     backlog: Vec<Vec<u8>>,
+}
+
+/// O espaço de presets no fio é BANCO/SLOT (§13.4): 198 pps em dois bancos
+/// de 99 — NÃO é um intervalo linear. As capturas (S1–S4, 796 selects)
+/// contêm exatamente `0000..=0062` e `0100..=0162`; os pps `0x0063..0x00C5`
+/// NÃO existem, e o firmware V2.1 morre no assert `PresetNum < TOTAL_PA`
+/// (`audio.c:912`) ao recebê-los — o scan do boot os mandava por suposição
+/// linear nunca conferida em campo (issue #148, campo 07/10).
+pub fn pp_e_valido(pp: u16) -> bool {
+    let banco = pp >> 8;
+    let slot = pp & 0x00FF;
+    slot <= 0x0062 && (banco == 0x00 || banco == 0x01)
+}
+
+/// O inventário DEFAULT do scan (T5): os 198 pps do espaço banco/slot, a
+/// MESMA lista de payloads das capturas. O override de `set_inventory`
+/// (replay dos fixtures) tem precedência sobre este default.
+pub fn inventario_default() -> Vec<u16> {
+    let mut pps: Vec<u16> = (0u16..=0x0062).collect();
+    pps.extend(0x0100u16..=0x0162);
+    pps
 }
 
 /// Um frame de escrita do `save` (§13.12) com o seu endereco — a forma que
@@ -242,7 +265,7 @@ impl<T: DeviceTransport> Session<T> {
 
     /// Referência ao inventário em uso (default 0..198).
     fn inventory(&self) -> Vec<u16> {
-        self.pps.clone().unwrap_or_else(|| (0u16..198).collect())
+        self.pps.clone().unwrap_or_else(inventario_default)
     }
 
     /// Boot + scan (§13.10) SEM progresso — a forma canônica do ADR-6
@@ -529,6 +552,15 @@ impl<T: DeviceTransport> Session<T> {
     /// push espontâneo do boot — D2 resolve pelo contexto do pedido, como
     /// no ciclo do scan provado pelo replay). Atualiza o pp corrente.
     pub fn select_preset(&mut self, pp: u16) -> Result<(), ProtocolError> {
+        // ADR-10: pp fora do espaço banco/slot NEM SAI DO CORE. O firmware
+        // V2.1 morre no assert `PresetNum < TOTAL_PA` (audio.c:912) com pp
+        // inexistente — o scan linear do boot mandava 99 deles (#148).
+        if !pp_e_valido(pp) {
+            return Err(ProtocolError::InvalidShape {
+                expected: "pp no espaço banco/slot: 0000..=0062 ou 0100..=0162 (§13.4)".into(),
+                got: format!("{pp:#06x}"),
+            });
+        }
         let golden = GoldenFile::embedded()?;
         let pp_be = pp.to_be_bytes();
         self.tx_req_in(

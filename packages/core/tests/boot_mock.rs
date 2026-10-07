@@ -9,8 +9,8 @@ use gp100_core::transport::mock::MockDevice;
 use gp100_core::transport::DeviceTransport;
 
 /// Boot completo sobre o MOCK (travessia do "device" simulado): com o
-/// inventário DA CAPTURA (198 pps começando no corrente 0x0100 — quirk
-/// §13.4 duplica select/open dele), o script fecha em 2299 transações
+/// inventário DEFAULT (o espaço banco/slot da captura — 198 pps; o quirk
+/// §13.4 duplica o corrente 0x0100), o script fecha em 2299 transações
 /// (= prova C do replay), sem Timeout/InvalidShape, e o scan deixa o pp
 /// no último do inventário.
 #[test]
@@ -18,17 +18,14 @@ fn boot_completo_sobre_o_mock() {
     let mut mock = MockDevice::new().expect("mock montado (R4 travado no build)");
     mock.open().expect("open do chamador (ADR-4)");
     let mut session = Session::new(&mut mock);
-    // Inventário da S1: o pp corrente PRIMEIRO + os demais 0..197.
-    let mut pps: Vec<u16> = vec![0x0100];
-    pps.extend(0u16..197);
-    session.set_inventory(pps);
-
+    // Inventário DEFAULT = o espaço banco/slot da captura (198 pps — #148);
+    // o 0x0100 está nele e o quirk §13.4 duplica o corrente → 2299.
     let report = session.boot().expect("boot completo contra o mock");
     assert_eq!(report.transactions, 2299);
     assert_eq!(
         session.current_pp(),
-        196,
-        "scan termina no último pp (0..197)"
+        0x0162,
+        "scan termina no último pp do espaço (0162)"
     );
 }
 
@@ -40,9 +37,6 @@ fn boot_com_progresso_beats_por_transacao() {
     let mut mock = MockDevice::new().expect("mock montado");
     mock.open().expect("open");
     let mut session = Session::new(&mut mock);
-    let mut pps: Vec<u16> = vec![0x0100];
-    pps.extend(0u16..197);
-    session.set_inventory(pps);
 
     let mut beats: Vec<(BootStage, usize, usize)> = Vec::new();
     let report = session
@@ -89,9 +83,6 @@ fn boot_com_progresso_none_equivalente() {
         let mut mock = MockDevice::new().expect("mock");
         mock.open().expect("open");
         let mut session = Session::new(&mut mock);
-        let mut pps: Vec<u16> = vec![0x0100];
-        pps.extend(0u16..197);
-        session.set_inventory(pps);
         let r = if use_progress {
             session.boot_with_progress(None).expect("boot sem callback")
         } else {
@@ -105,15 +96,12 @@ fn boot_com_progresso_none_equivalente() {
 
 /// O pp corrente no progresso acompanha o scan (a UI mostra o preset
 /// sendo levantado): na sonda e nas etapas finais o pp é o último do
-/// inventário (197), já que o scan acabou de percorrer 0..198.
+/// inventário (0x0162), já que o scan acabou de percorrer o espaço todo.
 #[test]
 fn progresso_carrega_pp_corrente() {
     let mut mock = MockDevice::new().expect("mock");
     mock.open().expect("open");
     let mut session = Session::new(&mut mock);
-    let mut pps: Vec<u16> = vec![0x0100];
-    pps.extend(0u16..197);
-    session.set_inventory(pps);
 
     let mut seen_probe: Option<BootProgress> = None;
     let mut seen_names: Option<BootProgress> = None;
@@ -130,7 +118,7 @@ fn progresso_carrega_pp_corrente() {
     assert_eq!(report.transactions, 2299);
 
     let probe = seen_probe.expect("há beats da sonda (T6)");
-    assert_eq!(probe.current_pp, 196);
+    assert_eq!(probe.current_pp, 0x0162);
     let names = seen_names.expect("há beats de nomes (T3)");
-    assert_eq!(names.current_pp, 196);
+    assert_eq!(names.current_pp, 0x0162);
 }
