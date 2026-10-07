@@ -21,7 +21,7 @@
 | **Escrever no device real (gate H2)** | `docs/H2_CHECKLIST.md` (3 fluxos, um por vez) + `docs/H2_REPORT.md` (relatório) — build com `--features real-device,write-verified` |
 | **Congelar a especificação depois do hardware (gate H3)** | `docs/H3_CHECKLIST.md` (4 sessões) + `docs/H3_REPORT.md` + [`PROTOCOL.md` §13.14](PROTOCOL.md) (a conta da baseline v1.1) + `analysis/baseline.py show` |
 | **Implementar o protocolo (gp100-core)** | `docs/protocol_golden.json` (especificação executável) + `docs/PROTOCOL.md` §13 (narrativa) |
-| **Decidir arquitetura/estrutura no core (M0)** | `docs/DECISIONS.md` (ADR-1..9 aceitos) |
+| **Decidir arquitetura/estrutura no core (M0)** | `docs/DECISIONS.md` (ADR-1..12 aceitos) |
 | **Saber onde o código novo do front vai morar** | `docs/ARCHITECTURE.md` (mapa de módulos + o que **não** entra em cada camada + orçamento de tamanho) |
 | **Saber onde a persistencia do app mora (M2)** | `docs/DECISIONS.md` ADR-9 (crate `gp100-library` no workspace gnu, nao no crate MSVC do Tauri) |
 | **Escrever/revisar código Rust (M0)** | `.agents/skills/rust-practices/SKILL.md` (gates fmt/clippy/test + estilo de docs) |
@@ -46,7 +46,7 @@
 | Números (testes, cobertura, datas dos marcos) | `docs/INDEX.md` §6 | repetir o número em README/ROADMAP/knowledge (#81) |
 | Estrutura do pipeline (jobs, tipos, ordem) | `.github/workflows/ci.yml` + `docs/CONTRIBUTING.md` §5 | workflows pré-#68 (`_validate.yml`/`release.yml`/`container.yml`) — #74 |
 | Mapa knob→fio | `analysis/knob_map.json` (regenerável) | — |
-| Decisões de implementação do core | `docs/DECISIONS.md` (ADR-1..8) | reabrir debate ad-hoc |
+| Decisões de implementação do core | `docs/DECISIONS.md` (ADR-1..12) | reabrir debate ad-hoc |
 | Armadilhas Windows/ambiente | `knowledge.md` | — |
 
 ## 3. Inventário de documentos
@@ -200,10 +200,10 @@ O Tauri não gera pacote Arch: a unidade de distribuição **é** a receita vers
 ### Contagem de testes (medido 06/10)
 | Suíte | Comando | Contagem |
 |---|---|---|
-| Unit do front | `pnpm exec vitest run` | **480** em **36** arquivos (480 passando) |
+| Unit do front | `pnpm exec vitest run` | **485** em **36** arquivos (485 passando) |
 | Cobertura do front | `pnpm run test:coverage` | **87,99%** stmts · **81,50%** branch · **87,20%** funcs · **90,34%** linhas |
 | E2E (Playwright) | `pnpm exec playwright test --list` | **87** testes em **11** arquivos · **96** baselines |
-| Rust (core + cli + library) | `cargo test --workspace` | **296** testes em **34** suítes (32 binários de teste + 2 suites de doc-test) |
+| Rust (core + cli + library) | `cargo test --workspace` | **309** testes em **36** suítes (34 binários de teste + 2 suites de doc-test) |
 | Spec (pytest) | `.venv/Scripts/python.exe -m pytest` | **92** |
 | Gates locais | `python scripts/gates.py` | **13** |
 

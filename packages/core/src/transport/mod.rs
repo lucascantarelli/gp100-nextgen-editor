@@ -214,6 +214,32 @@ pub trait DeviceTransport {
     fn permite_escrita(&self) -> bool {
         true
     }
+
+    /// Este transporte fala com o **aparelho físico**? — a pergunta que a
+    /// trava de faixa do `pp` (#132) faz antes de deixar um `select` sair.
+    ///
+    /// **Por que existe.** O espaço de `pp` do GP-100 é MEDIDO (captura S1:
+    /// `0x0000..=0x0062` + `0x0100..=0x0162`, 198 pps) e mandar um `select`
+    /// fora dele é o tipo de coisa que asserta o firmware
+    /// (`Drivers/audio/audio.c:912`, `PresetNum < TOTAL_PA` — issue #132).
+    /// O mock, em contrapartida, aceita qualquer `pp` por desenho: ele
+    /// DERIVA de `all.prst` e os testes varrem pps que o aparelho não tem.
+    /// Então a recusa é do aparelho — o mock mantém o comportamento de
+    /// sempre (mesma lógica da face A da #126, com o `select`).
+    ///
+    /// **Por que a pergunta vai ao transporte e não ao `cfg!(feature)`.**
+    /// Mesma razão de [`permite_escrita`](Self::permite_escrita): quem sabe
+    /// com quem a sessão conversa é o objeto que vai enviar o frame — o
+    /// `MockDevice` vive na MESMA build que o `RealDevice` (os testes do
+    /// app misturam os dois), e um falso-aparelho de teste precisa poder
+    /// dizer "sou aparelho" para exercitar a trava.
+    ///
+    /// `true` = [`Session::select_preset`](crate::session::Session::select_preset)
+    /// confere o `pp` no inventário ANTES do frame (#132/ADR-12); `false`
+    /// (default) = sem trava, como sempre.
+    fn e_aparelho(&self) -> bool {
+        false
+    }
 }
 
 /// `Box<dyn DeviceTransport>` também é um transporte (dispatch por trait
@@ -235,6 +261,9 @@ impl<T: DeviceTransport + ?Sized> DeviceTransport for Box<T> {
     fn permite_escrita(&self) -> bool {
         (**self).permite_escrita()
     }
+    fn e_aparelho(&self) -> bool {
+        (**self).e_aparelho()
+    }
 }
 
 /// `&mut T` também é um transporte (a Session toma empréstimo mutável;
@@ -254,6 +283,9 @@ impl<T: DeviceTransport + ?Sized> DeviceTransport for &mut T {
     }
     fn permite_escrita(&self) -> bool {
         (**self).permite_escrita()
+    }
+    fn e_aparelho(&self) -> bool {
+        (**self).e_aparelho()
     }
 }
 

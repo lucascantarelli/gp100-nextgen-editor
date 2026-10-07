@@ -689,3 +689,106 @@ existe. Correção de bug entra, divergência permanente não.
 **Revisão.** Quando a sessão de campo (#17) sair assinada pelo aparelho, a
 pergunta "o CLI ainda serve a alguém que não o app?" ganha resposta **medida** —
 e essa resposta, e não este ADR, decide o futuro do crate.
+
+> **Atualização 06/10 (#132/ADR-12):** das duas capacidades vermelhas do
+> contexto, `set_inventory` saiu da lista — o aparelho já nasce com o
+> inventário da captura por default. Continua vermelho só o `0x47` (falta
+> de protocolo).
+
+---
+
+## ADR-12 — Um espaço único de `pp`: inventário do aparelho, trava antes do fio, abertura pelo `current_pp` (#132)
+
+**Status:** Accepted · 06/10/2026 (critérios de aceite assinados na issue
+#132) · **Afeta:** `gp100-core` (`session`, `preset`, `pedalboard`,
+`transport`), `gp100-library` (seed), `DeviceActor`, `useStage`
+
+**Contexto.** Em 06/10/2026 o display do GP-100 mostrou uma assertiva NOVA —
+
+```text
+CODE:PresetNum <TOTAL_PA
+LINE: 912
+file: ..\..\Drivers\audio\audio.c
+```
+
+— e o pedal parou de responder até power-cycle físico (a mesma classe do
+assert do ADR-10, mas falando de **número de preset**, não de valor de
+parâmetro). A investigação (relatório `reports/assert-audio-912.md`, sem
+tráfego novo no aparelho) achou **quatro numerações de `pp` convivendo**:
+
+| onde | base | evidência |
+|---|---|---|
+| `files/patches/all.prst` | strings `"0".."98"` | o próprio arquivo |
+| `gp100-core` (board/documento) | o MESMO texto lido como **hex** → `0x00..0x98` espaçado | `preset.rs` (`from_str_radix(…, 16)`); `gain_staging.rs` ("0x0a não existe") |
+| `gp100-library` + artefato do front | **decimal** → `0..98` contíguo | `seed.rs`; `dump_preset_list.py` (ASSERTA `0..98`) |
+| **aparelho** | `0x0000..0x0062` + `0x0100..0x0162` (198 pps) | captura S1 (`boot.jsonl`) **e** sonda de campo `dump-preset 0x0100` |
+
+E **ninguém validava o `pp`**: o `select_preset` só checava shape, o app
+abria com `openPreset(0)` fixo, e o boot do aparelho usava o default
+`0..198` — que manda 99 selects fora do aparelho (`0x0063..0x00c5`) e nunca
+alcança o banco `0x01xx`, onde o pedal liga. `PresetNum < TOTAL_PA` é
+literalmente sobre isto.
+
+**Decisão — quatro camadas, uma por superfície.**
+
+1. **O espaço do fio é o da captura.** [`session::inventario_do_aparelho`]
+   devolve os 198 pps da S1 **na ordem da S1** (`0x0100..=0x0162` depois
+   `0x0000..=0x0062`). É o DEFAULT do `boot()` **quando o transporte é o
+   aparelho** (`DeviceTransport::e_aparelho`, a mesma pergunta por objeto do
+   `permite_escrita`); `set_inventory` continua prevalecendo — quem varre
+   define a faixa (é o caminho do R3 do `H1_CHECKLIST`, sem número de
+   parede: se o aparelho descobrir pps novos, quem varre descobre).
+   No mock, o default continua `0..198` e o comportamento é o de sempre.
+2. **A recusa é ANTES do frame.** `Session::select_preset` no aparelho
+   devolve `ProtocolError::ValueOutOfRange { addr: "11/13010000",
+   param: "pp", got, allowed }` — a **irmã da ADR-10**: mesma variante,
+   mesma semântica (conteúdo antes de existir byte), e a mensagem traz a
+   faixa legível (`0x0000..0x0062, 0x0100..0x0162`) porque o runbook de
+   campo precisa saber até onde o pedal vai. No mock não há trava.
+3. **`ppID` é DECIMAL numa base só.** `preset_list`, `board_view_for`,
+   `apenas_preset` e o `MockState` passaram a ler pelo helper
+   `preset::pp_id_decimal`, o MESMO que a semente da biblioteca usa. O hex
+   era um bug independente do aparelho: `board(24)` casava o bloco
+   `ppID="18"`, e a partir de 10 todo clique da lista (decimal) abria outro
+   bloco. Um pp do fio com byte de banco vira índice do documento pelo
+   `preset::indice_do_documento` (`0x01XX → XX`; byte alto fora de
+   `0x00`/`0x01` fica INTACTO, para o lookup falhar em vez de adivinhar).
+4. **A abertura automática não adivinha.** `useStage` abre o
+   `current_pp` que o backend reporta (`device_preset_library().currentPp`)
+   em vez do `0` fixo — no aparelho, o valor vem do que o boot varreu e a
+   trava do item 2 garante que só um pp provado sai daqui.
+
+**Alternativas rejeitadas.**
+- *Manter `0..198` como faixa do aparelho.* É o frame do assert: 99 selects
+  fora do banco e o banco real fora do scan. O `0..198` era um chute de
+  contagem ("199 presets"), não uma medição.
+- *Travar também o mock.* O espaço do mock é o do documento e os testes
+  varrem pps arbitrários (`0xffff`, replay com inventário próprio). A
+  trava é de APARELHO — igual à política de escrita, a identidade mora no
+  transporte (`e_aparelho`), não no `cfg!(feature)`.
+- *Unificar em HEX (a semente passar a ler hex).* A lista hex não existe no
+  aparelho: `"70".."98"` viraria `0x70..0x98`, fora dos dois bancos
+  provados, e deixaria de ser contígua — o `dump_preset_list.py` já
+  ASSERTA `0..98`. Decimal é a base que o aparelho usa.
+- *Ler o push `12/12000000` (primeiro IN da captura) como "corrente".* O
+  próprio golden o descreve como "status 2B no boot (§13.3)"; transformá-lo
+  em `current_pp` é outra medição, não esta correção.
+
+**Consequências.**
+- (+) O boot do aparelho reproduz a sequência do Suite: mesmo inventário =
+  mesma contagem (2299, provada contra a captura por `tests/pp_gate.rs`).
+  Mock e docs seguem 2297/2295 — nada muda para quem não tem aparelho.
+- (+) A trava cobre CLI e app no mesmo ponto (`Session::select_preset`),
+  antes do golden e do frame.
+- (−) Se uma unidade tiver pps fora da captura, a trava recusa até
+  `set_inventory` ser ligado ao que o boot descobrir (R3 do H1_CHECKLIST).
+  Aceito: recusar é o lado seguro — o outro lado é o power-cycle.
+- (−) `e_aparelho` precisa ser declarado com verdade por quem emula o
+  aparelho (`RealDevice` → `true`, `LoggingTransport` repassa, o
+  `AparelhoFake` dos testes declara). É o mesmo contrato de
+  `permite_escrita`.
+
+**Medição pendente (critério 5 da issue).** O teste de campo — UM `select`
+no pp que o scan devolveu, conferindo o display — continua sendo a porta
+para a retomada da sessão A/B (#116). Este ADR não fecha campo; fecha o
+que o código pode provar sozinho.

@@ -22,10 +22,14 @@
  *   apagado é a UI mentindo sobre o que existe.
  * - **Abrir preset fecha a edição ampliada** e solta o patch de usuário, para
  *   navbar, palco e modal nunca discordarem sobre o que está aberto.
+ * - **A abertura inicial não adivinha o pp.** O mount abre o `current_pp` que
+ *   o device reporta (issue #132) — no aparelho, um pp fora do inventário
+ *   provado é recusado ANTES do fio (trava de faixa, ADR-12), então "0 fixo"
+ *   deixou de ser uma hipótese segura e passou a ser uma escolha errada.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { BoardSlot, BoardView } from "../ipc/types";
-import { deviceBoard, deviceSelectPreset, deviceSetParam } from "../ipc/device";
+import { deviceBoard, devicePresetLibrary, deviceSelectPreset, deviceSetParam } from "../ipc/device";
 import { MSG } from "../i18n/messages";
 import { boardOfUserPatch, patchDeRegistro, registroDePatch, snapshotOf } from "../userPatches";
 import { useLibrary } from "./useLibrary";
@@ -281,9 +285,22 @@ export function useStage(onPresetChanged: () => void): Stage {
     );
   }, []);
 
-  // abertura INICIAL: o device é a fonte da verdade do preset corrente
+  // abertura INICIAL: o device é a fonte da verdade do preset corrente —
+  // o alvo é o `current_pp` que o backend JÁ reporta
+  // (`devicePresetLibrary().currentPp`), não o 0 fixo de antes. No aparelho
+  // o valor vem do que o boot varreu (e a trava de faixa da #132 recusaria
+  // qualquer pp fora do inventário provado, ANTES do frame).
+  //
+  // Falhou a pergunta? O palco não fica em branco: o pp 0 está dentro do
+  // inventário do aparelho (`0x0000..0x0062`) e, se o select em si falhar,
+  // o banner com retry (issue #20) aparece como sempre.
   useEffect(() => {
-    void openPreset(0);
+    void devicePresetLibrary()
+      .then((l) => openPreset(l.currentPp))
+      .catch((e: unknown) => {
+        console.error("device_preset_library indisponível; abrindo o pp 0:", e);
+        void openPreset(0);
+      });
   }, [openPreset]);
 
   const clearErr = useCallback(() => setErr(null), []);

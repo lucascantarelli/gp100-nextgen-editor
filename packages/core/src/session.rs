@@ -167,11 +167,80 @@ pub struct Session<T: DeviceTransport> {
     transport: T,
     /// pp corrente (select do boot/scan; default 0x0100 = "01 00", §13.4).
     current_pp: u16,
-    /// Inventário de presets na ordem de scan (default 0..198). O replay da
-    /// S1 prova a ordem da captura; o device real tem o próprio.
+    /// Inventário de presets na ordem de scan. Default = o inventário do
+    /// transporte: [`inventario_do_aparelho`] no aparelho (MEDIDO, captura
+    /// S1 — #132) e `0..198` no mock (comportamento histórico). O replay
+    /// da S1 prova a ordem da captura.
     pps: Option<Vec<u16>>,
     /// Backlog de IN não solicitado (D7), na ordem de chegada (hex cru).
     backlog: Vec<Vec<u8>>,
+}
+
+/// Os 198 `pp` que o **aparelho** tem, na ordem em que o Suite varre na
+/// captura S1 (`analysis/fixtures/boot.jsonl` — os mesmos 2299 OUTs que
+/// `tests/replay_fixtures.rs::replay_boot_byte_a_byte` reproduz).
+///
+/// **De onde o número vem (issue #132 — nada aqui é inventado).** A captura
+/// do próprio Suite escaneando o pedal manda, em `11/13010000`:
+///
+/// ```text
+/// 0100 0101 … 0162  0000 0001 … 0062
+/// ```
+///
+/// → **99 pps no banco `0x01xx` + 99 no banco `0x00xx`**, os 99 slots de
+/// `all.prst` (ppID `"0".."98"`) nos DOIS bancos, com o byte alto do banco
+/// no byte mais significativo. A sonda de campo de 06/10 corroborou o
+/// espaço (`dump-preset 0x0100` respondeu) e o `H1` já tinha lido
+/// `0x0000`/`0x0031`/`0x0062` no aparelho.
+///
+/// **Por que este é o default do APARELHO e não o `0..198` de sempre.**
+/// `0..197` manda 99 selects que o aparelho NÃO tem (`0x0063..0x00c5` — o
+/// `PresetNum < TOTAL_PA` do assert de `audio.c:912` é literalmente sobre
+/// isto) e NUNCA alcança o banco `0x01xx`, onde o pedal liga. O mock fica
+/// com o `0..198` de sempre (o espaço dele é o do documento, e os testes
+/// varrem pps arbitrários).
+///
+/// A ordem é a da captura (banco 1 primeiro) porque a ordem TAMBÉM é
+/// evidência: com este inventário o `boot()` de um aparelho recém-ligado
+/// reproduz a sequência do Suite.
+pub fn inventario_do_aparelho() -> Vec<u16> {
+    let mut pps: Vec<u16> = (0x0100u16..=0x0162).collect();
+    pps.extend(0x0000u16..=0x0062);
+    pps
+}
+
+/// O inventário escrito como faixas legíveis para o runbook de campo
+/// (`0x0000..0x0062, 0x0100..0x0162`) — a mensagem da recusa precisa dizer
+/// não só O QUE foi recusado, mas até onde o aparelho vai.
+fn faixa_legivel(pps: &[u16]) -> String {
+    let mut ordenados = pps.to_vec();
+    ordenados.sort_unstable();
+    ordenados.dedup();
+    let mut faixas: Vec<String> = Vec::new();
+    let mut inicio = match ordenados.first() {
+        Some(&p) => p,
+        None => return "(inventário vazio)".into(),
+    };
+    let mut anterior = inicio;
+    for &p in ordenados.iter().skip(1) {
+        if p == anterior + 1 {
+            anterior = p;
+            continue;
+        }
+        faixas.push(descreve_faixa(inicio, anterior));
+        inicio = p;
+        anterior = p;
+    }
+    faixas.push(descreve_faixa(inicio, anterior));
+    faixas.join(", ")
+}
+
+fn descreve_faixa(inicio: u16, fim: u16) -> String {
+    if inicio == fim {
+        format!("{inicio:#06x}")
+    } else {
+        format!("{inicio:#06x}..{fim:#06x}")
+    }
 }
 
 /// Um frame de escrita do `save` (§13.12) com o seu endereco — a forma que
@@ -235,14 +304,24 @@ impl<T: DeviceTransport> Session<T> {
     }
 
     /// Define o inventário de pps do scan (ordem = ordem de seleção do
-    /// boot; default 0..198). A ordem da S1 é provada pelo replay.
+    /// boot; default = [`inventario_do_aparelho`] no aparelho e `0..198` no
+    /// mock). A ordem da S1 é provada pelo replay.
     pub fn set_inventory(&mut self, pps: Vec<u16>) {
         self.pps = Some(pps);
     }
 
-    /// Referência ao inventário em uso (default 0..198).
+    /// O inventário em uso: o que [`Session::set_inventory`](Self::set_inventory)
+    /// fixou, ou o default do TRANSPORTE — [`inventario_do_aparelho`]
+    /// quando ele é o aparelho (é este conjunto que o `boot` varre E que a
+    /// trava de `select_preset` confere, #132), `0..198` no mock.
     fn inventory(&self) -> Vec<u16> {
-        self.pps.clone().unwrap_or_else(|| (0u16..198).collect())
+        self.pps.clone().unwrap_or_else(|| {
+            if self.transport.e_aparelho() {
+                inventario_do_aparelho()
+            } else {
+                (0u16..198).collect()
+            }
+        })
     }
 
     /// Boot + scan (§13.10) SEM progresso — a forma canônica do ADR-6
@@ -528,7 +607,32 @@ impl<T: DeviceTransport> Session<T> {
     /// esperando o meta6 push `12/13010001` (D1; o MESMO endpoint tem o
     /// push espontâneo do boot — D2 resolve pelo contexto do pedido, como
     /// no ciclo do scan provado pelo replay). Atualiza o pp corrente.
+    ///
+    /// **Trava de faixa no aparelho (#132/ADR-12 — a irmã da ADR-10).**
+    /// Quando o transporte É o aparelho, um `pp` fora do inventário é
+    /// recusado com [`ProtocolError::ValueOutOfRange`] **antes** de existirem
+    /// bytes: o espaço do pedal é o que a captura prova
+    /// ([`inventario_do_aparelho`]) e um `select` fora dele é o frame do
+    /// assert `PresetNum < TOTAL_PA` (`audio.c:912`) — que derruba o
+    /// firmware até o power-cycle. No mock nada muda: ele continua aceitando
+    /// qualquer `pp` (o espaço dele é o do documento, e os testes varrem pps
+    /// arbitrários).
+    ///
+    /// # Erros
+    /// [`ProtocolError::ValueOutOfRange`] (pp fora do inventário, no
+    /// aparelho) e os erros do fio de antes (timeout D6, shape D5, ack).
     pub fn select_preset(&mut self, pp: u16) -> Result<(), ProtocolError> {
+        if self.transport.e_aparelho() {
+            let inventario = self.inventory();
+            if !inventario.contains(&pp) {
+                return Err(ProtocolError::ValueOutOfRange {
+                    addr: "11/13010000".into(),
+                    param: "pp".into(),
+                    got: format!("{pp:#06x}"),
+                    allowed: faixa_legivel(&inventario),
+                });
+            }
+        }
         let golden = GoldenFile::embedded()?;
         let pp_be = pp.to_be_bytes();
         self.tx_req_in(
