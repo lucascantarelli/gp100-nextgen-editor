@@ -282,9 +282,32 @@ export function useStage(onPresetChanged: () => void): Stage {
   }, []);
 
   // abertura INICIAL: o device é a fonte da verdade do preset corrente
+  // O arranque CARREGA o que o aparelho está tocando: `device_board` com pp
+  // null = o CORRENTE no actor — LEITURA PURA, sem select forçado ao 0. O
+  // usuário decide a troca de preset; a UI não assume que o aparelho está
+  // no primeiro de fábrica (defeito 2 da #148, campo 07/10).
+  const carregaCorrente = useCallback(async () => {
+    try {
+      const b = await deviceBoard(); // undefined → null → corrente no actor
+      setPp(b.pp);
+      setPresetName(b.name);
+      setBoard(b);
+      setOpenUserId(null);
+      setErr(null);
+      changedRef.current();
+    } catch (e) {
+      console.error("board corrente falhou:", e);
+      setErr({
+        message: MSG.errOpenPreset,
+        retry: () => void carregaCorrenteRef.current(),
+      });
+    }
+  }, []);
+  const carregaCorrenteRef = useRef(carregaCorrente);
+  carregaCorrenteRef.current = carregaCorrente;
   useEffect(() => {
-    void openPreset(0);
-  }, [openPreset]);
+    void carregaCorrente();
+  }, [carregaCorrente]);
 
   const clearErr = useCallback(() => setErr(null), []);
 
