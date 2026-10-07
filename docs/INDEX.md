@@ -201,10 +201,10 @@ O Tauri não gera pacote Arch: a unidade de distribuição **é** a receita vers
 ### Contagem de testes (medido 06/10)
 | Suíte | Comando | Contagem |
 |---|---|---|
-| Unit do front | `pnpm exec vitest run` | **504** em **38** arquivos (504 passando) |
-| Cobertura do front | `pnpm run test:coverage` | **87,89%** stmts · **81,22%** branch · **87,30%** funcs · **90,39%** linhas |
-| E2E (Playwright) | `pnpm exec playwright test --list` | **89** testes em **12** arquivos · **96** baselines |
-| Rust (core + cli + library) | `cargo test --workspace` | **296** testes em **34** suítes (32 binários de teste + 2 suites de doc-test) |
+| Unit do front | `pnpm exec vitest run` | **485** em **36** arquivos (485 passando) |
+| Cobertura do front | `pnpm run test:coverage` | **87,99%** stmts · **81,50%** branch · **87,20%** funcs · **90,34%** linhas |
+| E2E (Playwright) | `pnpm exec playwright test --list` | **87** testes em **11** arquivos · **96** baselines |
+| Rust (core + cli + library) | `cargo test --workspace` | **309** testes em **36** suítes (34 binários de teste + 2 suites de doc-test) |
 | Spec (pytest) | `.venv/Scripts/python.exe -m pytest` | **92** |
 | Gates locais | `python scripts/gates.py` | **13** |
 
