@@ -48,7 +48,8 @@ Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia rev
   plataforma. **Pendências conhecidas:** `sha256sums=('SKIP')` bloqueia o AUR e o
   `build()` do PKGBUILD (#72); `.msi`/`.dmg` sem assinatura/notarização (#27);
   versão do bundle nunca bumpeada (#73).
-- 02/10 — **CI CONSOLIDADA (#68, PR #69)**: 6 workflows → **1 `ci.yml` com 25 jobs**;
+- 02/10 — **CI CONSOLIDADA (#68, PR #69)**: 6 workflows → **1 `ci.yml`** (a contagem de
+  jobs vive no `INDEX.md` §6 — regra #81);
   jobs renomeados por TIPO no padrão `Tipo · o que é` (sem prefixo numérico, pelo
   motivo registrado no cabeçalho do arquivo); `on.push` = `develop`/`main`/tags `v*`
   (branch de trabalho entra só por `pull_request` — antes `feature/**`+`hotfix/**`
