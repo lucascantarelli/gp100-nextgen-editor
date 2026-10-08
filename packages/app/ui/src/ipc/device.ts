@@ -20,11 +20,11 @@ import type {
   DeviceInfo,
   PresetLibrary,
 } from "./types";
-import { ARCHETYPE_OF } from "./types";
-import type { BoardSlot, ChainFamily } from "./types";
-import { FX_MODULES } from "../artifacts/fxData";
-import { FACTORY_PRESETS } from "../artifacts/presetData";
-import { PRESET_CHAINS } from "../artifacts/presetChains";
+import {
+  FIXTURE_NOME_TESTE,
+  localMockBoard,
+  localMockLibrary,
+} from "./fallbackData";
 
 /** Total de transações do script de boot real (inventário default 0..198). */
 const BOOT_TOTAL = 2297;
@@ -246,17 +246,15 @@ export function inTauri(): boolean {
   return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 }
 
-/** Fallback determinístico p/ dev-fora-do-tauri e testes (= MockDevice). */
 function localMockInfo(): DeviceInfo {
-  // O preset corrente vem do MESMO artefato da biblioteca (all.prst):
-  // nome/tipo reais, nunca transcritos à mão.
-  const current = FACTORY_PRESETS[0];
+  // pp 0 é o primeiro do inventário e o default do boot (§13.4).
   return {
     backend: "mock",
-    presetCount: FACTORY_PRESETS.length,
-    currentPp: current.pp,
-    currentName: current.name,
-    currentPpType: current.ppType,
+    detail: "",
+    presetCount: 99,
+    currentPp: 0,
+    currentName: FIXTURE_NOME_TESTE,
+    currentPpType: 0,
     irSlotsWithCrc: 20,
     // A tabela de IRs no browser e a MESMA forma que o device real devolve
     // (§13.12): 20 slots, nomes vazios ate a primeira importacao.
@@ -364,111 +362,30 @@ type ProgressListener = (p: BootProgress) => void;
 const listeners = new Set<ProgressListener>();
 const pushListeners = new Set<(hex: string) => void>();
 
-/* ─── Board/biblioteca (dados do pedalboard artístico) ─── */
-
 /**
- * Cadeia do fallback de DEV/TESTE — MESMA leitura do core Rust
- * (`pedalboard::board_view_for`): efeito, `effectCode` e `params_0..14`
- * REAIS do preset alvo, vindos de `presetChains.ts` (GERADO do all.prst).
- *
- * Antes desta fonte a cadeia era FIXA (COMP/Green OD/Bog RedM…): trocar de
- * preset mudava o nome do LED e os 9 pedais seguiam iguais — o preset não
- * aparecia no pedalboard. Agora cada preset abre a SUA cadeia, inclusive a
- * ordem real dos pedais (20 dos 99 têm a cadeia trocada: `@x` manda).
- *
- * O valor do knob vem de `params[pos]` (mesma ordem do dicionário) só quando
- * é plausível: dentro do range do controle, e nunca o sentinel 0xFFFF
- * (65535 = “não configurado”) — fora disso cai no default do dicionário.
- * Regra do core para algoritmo fora do dicionário: pedal SEM knobs (nunca
- * adivinhar controle).
+ * `device_conectar` — reconectar o aparelho (issue #150): o botão do aviso
+ * "não conectado" vem para cá; no aparelho real o backend re-enumera as
+ * portas MIDI e promove o estado de `Desligado` para `Real`.
  */
-function localMockBoard(pp?: number): BoardView {
-  const preset = FACTORY_PRESETS[pp ?? 0] ?? FACTORY_PRESETS[0];
-  const chain = PRESET_CHAINS.find((c) => c.pp === preset.pp) ?? PRESET_CHAINS[0];
-
-  const algFor = (family: ChainFamily, code: number, name: string) =>
-    FX_MODULES[family]?.find((a) => ((a.nibble << 24) | a.index) === code) ??
-    FX_MODULES[family]?.find((a) => a.name === name);
-
-  /** valor cru do preset → valor de knob (ou undefined = usa o default) */
-  const realValue = (
-    raw: string | null,
-    range: [number, number] | undefined,
-    options: string[],
-  ): string | undefined => {
-    if (raw == null) return undefined;
-    const n = Number(raw);
-    if (!Number.isFinite(n)) return undefined;
-    if (options.length > 0) {
-      // switch/combox: índice da lista (o que o dicionário usa como default)
-      return Number.isInteger(n) && n >= 0 && n < options.length ? String(n) : undefined;
-    }
-    if (n === 65535) return undefined; // sentinel 0xFFFF = não configurado
-    if (range && (n < Math.min(...range) || n > Math.max(...range))) return undefined;
-    return String(n);
-  };
-
-  const slots: BoardSlot[] = chain.slots.map((s) => {
-    const alg = algFor(s.family, s.code, s.name);
-    const knob = (
-      k: { name: string; pos: number; default?: string | null; min?: number | null; max?: number | null },
-      kind: "knob" | "switch" | "combox",
-      options: string[] = [],
-    ) => {
-      const range =
-        kind === "knob" && k.min != null && k.max != null ? ([k.min, k.max] as [number, number]) : undefined;
-      const dflt = k.default ?? undefined;
-      return {
-        name: k.name,
-        pos: k.pos,
-        kind,
-        range,
-        options,
-        value: realValue(s.params[k.pos], range, options) ?? dflt,
-        default: dflt,
-      };
-    };
-
-    return {
-      slot: s.slot,
-      family: s.family,
-      archetype: ARCHETYPE_OF[s.family],
-      name: s.name,
-      // algoritmo fora do dicionário: o pedal renderiza sem knobs (regra R1)
-      variant: alg?.variant ?? "generic",
-      state: s.state,
-      code: s.code,
-      knobs: alg
-        ? [
-            ...alg.knobs.map((k) => knob(k, "knob")),
-            ...alg.switches.map((k) => knob(k, "switch", k.options)),
-            ...alg.comboxes.map((k) => knob(k, "combox", k.options)),
-          ]
-        : [],
-    };
+export async function deviceConectar(): Promise<void> {
+  if (inTauri()) {
+    const { invoke } = await import("@tauri-apps/api/core");
+    // UMA tentativa: reconectar é a própria tentativa — repetir automático
+    // esconde o estado real do aparelho (ausente) atrás de backoff.
+    await runCommand(
+      "conectar",
+      semRetry("reconectar e a propria tentativa: repetir automático mascararia o aparelho ausente"),
+      () => invoke("device_conectar"),
+    );
+    return;
+  }
+  await runCommand("conectar", IDEMPOTENTE, async () => {
+    debugFail("conectar");
   });
-
-  return {
-    pp: preset.pp,
-    name: preset.name,
-    ppType: preset.ppType,
-    ppTypeName: preset.ppTypeName,
-    slots,
-    bank: "factory" as const,
-    ppLabel: `P${String(preset.pp + 1).padStart(2, "0")}`,
-  };
-}
-
-/** Biblioteca do fallback (as 99 REAIS do artefato gerado do all.prst). */
-function localMockLibrary(): PresetLibrary {
-  return { entries: [...FACTORY_PRESETS], currentPp: 0 };
 }
 
 /**
  * `device_board` — board do preset (pp null/ausente = corrente).
- * O fallback usa o MESMO artefato da biblioteca: nome/tipo do preset vêm
- * de presetData (histórico: o fallback ignorava o pp e a navbar/LED
- * congelavam em "It's GP100" — comportamento travado por unit e e2e).
  */
 export async function deviceBoard(pp?: number): Promise<BoardView> {
   if (inTauri()) {
@@ -484,7 +401,13 @@ export async function deviceBoard(pp?: number): Promise<BoardView> {
   });
 }
 
-/** `device_preset_library` — biblioteca completa + corrente. */
+/**
+ * `device_preset_library` — biblioteca completa + corrente.
+ *
+ * **(#150) a lista vem do APARELHO:** no shell real o backend devolve o
+ * inventário medido; sem aparelho o erro do invoke é o sinal para a UI
+ * mostrar o aviso de conexão (nunca uma lista falsa de fábrica).
+ */
 export async function devicePresetLibrary(): Promise<PresetLibrary> {
   if (inTauri()) {
     const { invoke } = await import("@tauri-apps/api/core");
@@ -492,8 +415,7 @@ export async function devicePresetLibrary(): Promise<PresetLibrary> {
       invoke<PresetLibrary>("device_preset_library"),
     );
   }
-  // A biblioteca vem de ARTEFATO local (nunca do fio) — sem gancho de falha;
-  // timeout/retry valem por uniformidade da porta única.
+  // Fallback de TESTE: inventário com nome vazio (mesma forma do real).
   return runCommand("library", IDEMPOTENTE, async () => localMockLibrary());
 }
 

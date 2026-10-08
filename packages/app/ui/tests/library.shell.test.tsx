@@ -191,18 +191,23 @@ async function monta(): Promise<void> {
 }
 
 describe("biblioteca no webview", () => {
-  it("vai ao shell, e não ao fallback em memória", async () => {
+  it("no SHELL a aba Patches NÃO consulta o banco (a lista é do aparelho, #150)", async () => {
     await monta();
-    expect(chamadas.map((c) => c.cmd)).toContain("library_search");
+    // **(#150)** a lista de slots vem do device (`device_preset_library`) —
+    // a busca SQLite de fábrica é da porta da aba do DONO; no shell ela nem
+    // dispara (sem consulta a dado que não é do aparelho).
+    expect(chamadas.filter((c) => c.cmd === "library_search")).toHaveLength(0);
+    // os números do ARQUIVO do dono continuam vindo do shell (esquema 2)
     expect(chamadas.map((c) => c.cmd)).toContain("library_stats");
-    expect(lib!.rows).toHaveLength(99);
-    // os números vêm do banco (esquema 2), não do fallback (esquema 0)
     expect(lib!.stats?.schema).toBe(2);
     expect(lib!.stats?.sqlite).toBe("3.46.0");
   });
 
-  it("o nome e o shape dos argumentos são os que o shell espera", async () => {
+  it("o nome e o shape dos argumentos são os que o shell espera (aba do dono)", async () => {
     await monta();
+    await act(async () => {
+      lib!.setBanco("user");
+    });
     await act(async () => {
       lib!.setTexto("blink");
     });
@@ -216,7 +221,7 @@ describe("biblioteca no webview", () => {
     expect(Object.keys(busca!.args).sort()).toEqual(["bank", "pp", "ppType", "text"]);
     expect(busca!.args.text).toBe("blink");
     expect(busca!.args.pp).toBeNull();
-    expect(busca!.args.bank).toBe("factory");
+    expect(busca!.args.bank).toBe("user");
   });
 
   it("a aba do dono busca no banco do dono (o `bank` desce no invoke)", async () => {
@@ -367,6 +372,11 @@ describe("biblioteca no webview", () => {
     // o efeito do retry seria invisível (o valor antes e depois é o mesmo).
     quebrado = "library_search";
     await monta();
+    // a busca que dispara é a da ABA DO DONO (#150: a de fábrica nem roda
+    // no shell — a lista de slots é do aparelho)
+    await act(async () => {
+      lib!.setBanco("user");
+    });
     await espera(() => lib!.err != null, "o banner da busca quebrada");
 
     const repetir = lib!.err!.retry;
@@ -379,12 +389,13 @@ describe("biblioteca no webview", () => {
     await espera(() => lib!.err != null, "o banner da repeticao que falhou");
     expect(lib!.err?.message).toBe(MSG.errLibrarySearch);
 
-    // destravado, a MESMA repetição limpa a tela
+    // destravado, a MESMA repetição limpa a tela (na aba do dono, sem patch
+    // semeado, a lista volta VAZIA — o importante é o banner sair)
     quebrado = null;
     await act(async () => {
       repetir();
     });
-    await espera(() => lib!.err == null && lib!.rows.length === 99, "a lista voltou");
+    await espera(() => lib!.err == null && lib!.rows.length === 0, "a lista voltou (vazia, sem erro)");
   });
 
   it("migração que falha NAO apaga a chave e oferece retry", async () => {

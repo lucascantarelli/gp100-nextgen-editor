@@ -33,12 +33,13 @@ async function settle() {
 }
 
 describe("App — casca (a11y e estados)", () => {
-  it("renderiza topbar, biblioteca de fábrica e os 9 lugares (COMP no PRE)", async () => {
+  it("renderiza topbar, o inventário do aparelho (#150) e os 9 lugares (COMP no PRE)", async () => {
     const { root, host } = mount(<App />);
     await settle();
 
-    // patch corrente no display LED e na navbar
-    expect(host.textContent).toContain("It's GP100");
+    // patch corrente no display LED e na navbar (nome = fixture rotulada do
+    // fallback de teste — o fallback de teste não serve nome de fábrica)
+    expect(host.textContent).toContain("Fixture de teste (não é aparelho)");
 
     // 9 lugares da cadeia com os nomes das famílias
     const slots = Array.from(host.querySelectorAll('[aria-label^="Slot "]'));
@@ -54,14 +55,14 @@ describe("App — casca (a11y e estados)", () => {
       "PRE/C-Wah renderizado",
     ).toBeTruthy();
 
-    // biblioteca: os 99 de fábrica aparecem (lista com role listbox)
+    // biblioteca: o INVENTÁRIO do aparelho (#150) — 198 slots endereçados
     const listbox = host.querySelector('[role="listbox"]');
     expect(listbox, "lista de presets acessível").not.toBeNull();
     const options = Array.from(listbox!.querySelectorAll('[role="option"]'));
-    expect(options.length).toBe(99);
-    // nomes reais do all.prst na lista
-    expect(host.textContent).toContain("Dirty Funk");
-    expect(host.textContent).toContain("Dreamy Aco");
+    expect(options.length).toBe(198);
+    // slots endereçados (o nome do slot é trabalho do decode #152)
+    expect(host.textContent).toContain("0x0100");
+    expect(host.textContent).toContain("0x0062");
 
     // ações globais com nome acessível
     const buttons = Array.from(host.querySelectorAll("button"));
@@ -171,24 +172,23 @@ describe("App — casca (a11y e estados)", () => {
     host.remove();
   });
 
-  it("seleciona preset na biblioteca (fallback local determinístico)", async () => {
+  it("seleciona patch na biblioteca pelo endereço (#150, fallback determinístico)", async () => {
     const { root, host } = mount(<App />);
     await settle();
 
-    const mist = Array.from(host.querySelectorAll('[role="option"]')).find((o) => o.textContent?.includes("Mist"));
-    expect(mist, "preset P25 Mist visível").toBeTruthy();
+    const slot24 = Array.from(host.querySelectorAll('[role="option"]')).find((o) => o.textContent?.includes("0x0018"));
+    expect(slot24, "slot 0x0018 visível").toBeTruthy();
     act(() => {
-      mist!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      slot24!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
     await settle();
 
-    // NOME do preset CLICADO aparece no LED e na navbar (o fallback do board
-    // já ignorou o pp e congelou o nome em "It's GP100" — agora nome/tipo vêm
-    // do mesmo artefato da biblioteca)
+    // O pp SELECIONADO aparece no LED e na navbar (pp 24 do banco baixo →
+    // rótulo 1-based P25, como o app oficial exibe; o nome é a fixture)
     const navbar = Array.from(host.querySelectorAll("strong")).find((s) => /^P\d{2}/.test(s.textContent ?? ""));
-    expect(navbar?.textContent).toBe("P25 Mist");
+    expect(navbar?.textContent).toBe("P25 Fixture de teste (não é aparelho)");
     const board = host.querySelector('[aria-label^="Pedalboard"]');
-    expect(board?.querySelector('[role="status"]')?.textContent).toContain("Mist");
+    expect(board?.querySelector('[role="status"]')?.textContent).toContain("P25");
 
     act(() => root.unmount());
     host.remove();

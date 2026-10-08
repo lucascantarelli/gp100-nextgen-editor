@@ -36,8 +36,13 @@ pub struct AppState {
 #[serde(rename_all = "camelCase")]
 pub struct DeviceInfo {
     /// Backend ativo: "mock" no build de desenvolvimento, "real" no build
-    /// de campo. **Nunca mais um literal** — ver `docs/REAL_DEVICE_GAP.md` §1.
+    /// de campo, "none" no app sem aparelho (issue #150). **Nunca mais um
+    /// literal** — ver `docs/REAL_DEVICE_GAP.md` §1.
     pub backend: &'static str,
+    /// Motivo humano quando `backend` é `"none"` (issue #150): "aparelho não
+    /// conectado via USB…" ou "build sem o transporte…". Vazio quando a
+    /// sessão está viva — preencher seria inventar aviso.
+    pub detail: String,
     /// Nº de presets. No mock, o do `all.prst`; no real, o inventário que
     /// o boot percorreu (que hoje é o default `0..198`, não uma contagem
     /// descoberta no aparelho — `REAL_DEVICE_GAP.md` §4.3).
@@ -68,6 +73,7 @@ impl DeviceInfo {
     pub fn from_snapshot(s: &DeviceSnapshot) -> Self {
         Self {
             backend: s.backend,
+            detail: s.detail.clone(),
             preset_count: s.preset_count,
             current_pp: s.current_pp,
             current_name: s.current_name.clone(),
@@ -159,6 +165,21 @@ pub struct IrTableDto {
 pub fn device_info(state: State<'_, AppState>) -> Result<DeviceInfo, String> {
     let snapshot = state.actor.info()?;
     Ok(DeviceInfo::from_snapshot(&snapshot))
+}
+
+/// `device_conectar` — refaz o `open` do transporte do actor (issue #150).
+///
+/// O app que subiu sem aparelho sobe no estado `Desligado` (`device_info`
+/// responde `backend: "none"` + motivo); o clique em "Reconectar" da UI vem
+/// para cá. No build de campo o transporte re-enumera as portas MIDI e, ao
+/// achar o aparelho, o estado sobe para `Real`; com a sessão viva é no-op
+/// (re-open por cima — device sumiu e voltou).
+///
+/// # Erros
+/// String com o motivo (aparelho ausente) ou morte do actor.
+#[tauri::command]
+pub fn device_conectar(state: State<'_, AppState>) -> Result<(), String> {
+    state.actor.conectar()
 }
 
 /// `device_board` — board do preset (dados do pedalboard da UI): slots da
@@ -554,6 +575,7 @@ mod tests {
     fn device_info_do_aparelho_real_nao_inventa_campo() {
         let info = DeviceInfo::from_snapshot(&crate::actor::DeviceSnapshot {
             backend: "real",
+            detail: String::new(),
             preset_count: 199,
             current_pp: 0x0000,
             // nome vazio: o layout da meta6 (13010001) ainda nao foi decifrado
@@ -571,6 +593,25 @@ mod tests {
         // A tabela de IRs, essa sim, veio do device.
         assert_eq!(info.ir_slots.len(), 1);
         assert_eq!(info.ir_slots[0].slot, 2);
+        assert!(
+            info.detail.is_empty(),
+            "sessão viva não inventa aviso de conexão"
+        );
+    }
+
+    /// **O estado DESLIGADO (#150) é honesto:** `backend: "none"`, motivo
+    /// legível, zero presets — e o `device_conectar` falha com o motivo (não
+    /// há aparelho para abrir).
+    #[test]
+    fn device_info_desligado_nao_inventa_aparelho() {
+        let actor = crate::actor::DeviceActor::desligado("Aparelho não conectado via USB");
+        let info = DeviceInfo::from_snapshot(&actor.info().expect("snapshot do desligado"));
+        assert_eq!(info.backend, "none");
+        assert_eq!(info.detail, "Aparelho não conectado via USB");
+        assert_eq!(info.preset_count, 0);
+        assert!(!info.write_verified, "estado desligado não promete escrita");
+        assert!(actor.conectar().is_err(), "sem aparelho não há o que abrir");
+        actor.shutdown();
     }
 
     /// O serde em camelCase é o CONTRATO do fio IPC (ui/src/ipc/types.ts):
@@ -589,6 +630,7 @@ mod tests {
         assert!(json.get("currentPpType").is_some());
         assert!(json.get("irSlotsWithCrc").is_some());
         assert!(json.get("backend").is_some());
+        assert!(json.get("detail").is_some(), "motivo do estado desligado");
         assert!(json.get("irSlots").is_some(), "contrato novo com o front");
         assert!(json.get("writeVerified").is_some(), "sinal de escrita");
         assert_eq!(json["currentPp"], 0);

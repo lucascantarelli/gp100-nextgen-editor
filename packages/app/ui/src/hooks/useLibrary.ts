@@ -25,6 +25,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  dentroDoShell,
   libraryDelete,
   libraryExport,
   libraryGet,
@@ -210,6 +211,14 @@ export function useLibrary(bancoInicial: Banco = "factory"): Library {
   // perdiam a corrida com o timer.
   const primeiroRef = useRef(true);
   useEffect(() => {
+    // **(#150) no SHELL a aba "Patches" é o APARELHO**, não o banco: a busca
+    // SQLite de fábrica não roda dentro do Tauri (a lista vem do device via
+    // `device_preset_library`/useStage). Fora do shell (testes/e2e) o caminho
+    // de sempre fica intacto.
+    if (dentroDoShell() && bancoVisivel === "factory") {
+      setRows([]);
+      return;
+    }
     const primeiro = primeiroRef.current;
     primeiroRef.current = false;
     if (primeiro) {

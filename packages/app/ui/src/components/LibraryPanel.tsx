@@ -30,8 +30,9 @@
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
-import { FACTORY_PRESETS } from "../artifacts/presetData";
 import { MSG } from "../i18n/messages";
+import { rotuloPp } from "../ipc/types";
+import type { PresetLibrary } from "../ipc/types";
 import type { Banco, Library } from "../hooks/useLibrary";
 import { useHistory } from "../hooks/useHistory";
 import { HistoryPanel } from "./HistoryPanel";
@@ -45,7 +46,13 @@ interface Props {
   currentUserId: string | null;
   /** estado da biblioteca (busca no banco, números, erros, migração) */
   lib: Library;
-  /** abre um preset de fábrica (o palco troca para o banco de fábrica) */
+  /**
+   * Biblioteca do APARELHO (#150): as entradas que o device reportou no
+   * load (app → device → app). `null` = sem aparelho — a aba "Patches"
+   * mostra o aviso de conexão, nunca uma lista de fábrica embutida.
+   */
+  deviceLib: PresetLibrary | null;
+  /** abre um preset do aparelho pelo pp (o palco select → device → app) */
   onOpenFactory: (pp: number) => void;
   /** abre um patch de usuário pelo id + posição na lista */
   onOpenUser: (id: string, index: number) => void;
@@ -189,17 +196,11 @@ const infoBanner: CSSProperties = {
 };
 
 /**
- * Os estilos disponíveis vêm do artefato de fábrica, não do banco: a lista pode
- * estar filtrada por "Bl", e um filtro que mostra só os estilos que sobraram é
- * um filtro que muda de conteúdo enquanto o dono digita.
+ * Os estilos vinham do artefato de fábrica (#150: REMOVIDO). O ppType de um
+ * slot do aparelho vive na família 13xx, ainda indecifrada (#152) — um
+ * filtro por estilo hoje seria um filtro sobre dado inventado. Volta quando
+ * o decode entregar os tipos reais.
  */
-const ESTILOS: ReadonlyArray<{ ppType: number; nome: string }> = (() => {
-  const vistos = new Map<number, string>();
-  for (const p of FACTORY_PRESETS) vistos.set(p.ppType, p.ppTypeName);
-  return [...vistos.entries()]
-    .map(([ppType, nome]) => ({ ppType, nome }))
-    .sort((a, b) => a.nome.localeCompare(b.nome));
-})();
 
 /** Grava o arquivo que o dono pediu (o input de arquivo é invisível por isso). */
 function baixa(nome: string, texto: string): void {
@@ -216,6 +217,7 @@ export function LibraryPanel({
   bankDoPalco,
   currentUserId,
   lib,
+  deviceLib,
   onOpenFactory,
   onOpenUser,
   onSave,
@@ -299,6 +301,20 @@ export function LibraryPanel({
   // é a forma de a tela e o arquivo discordarem sem nenhum sinal
   const lista = lib.rows;
 
+  // **(#150) a aba "Patches" é o que o APARELHO tem:** as entradas que o
+  // load trouxe do device (`device_preset_library`). O texto da caixa filtra
+  // localmente por nome (quando houver, pós-#152) e pelo ENDEREÇO do pp —
+  // o único rótulo honesto antes de medir o mapeamento LED P/F em campo.
+  const textoBusca = lib.texto.trim().toLowerCase();
+  const patches = (deviceLib?.entries ?? []).filter((p) => {
+    if (!textoBusca) return true;
+    return (
+      p.name.toLowerCase().includes(textoBusca) ||
+      rotuloPp(p.pp).toLowerCase().includes(textoBusca) ||
+      String(p.pp).includes(textoBusca)
+    );
+  });
+
   return (
     <aside className="gp-surface" style={panel} aria-label={MSG.libAria}>
       <div role="tablist" aria-label={MSG.libTabsAria} style={{ display: "flex", gap: "var(--space-4)" }}>
@@ -327,19 +343,13 @@ export function LibraryPanel({
       </div>
 
       {tabKind === "factory" ? (
-        <select
-          style={input}
-          value={lib.estilo ?? ""}
-          onChange={(e) => lib.setEstilo(e.target.value === "" ? null : Number(e.target.value))}
-          aria-label={MSG.libFilterAria}
-        >
-          <option value="">{MSG.libFilterAll}</option>
-          {ESTILOS.map((e) => (
-            <option key={e.ppType} value={e.ppType}>
-              {e.nome}
-            </option>
-          ))}
-        </select>
+        /* **(#150) sem filtro de estilo:** o ppType do slot vive na família
+           13xx, ainda indecifrada (#152) — o status diz de onde vem a lista. */
+        <p style={note} role="status">
+          {deviceLib != null
+            ? `${MSG.libListAria}: ${deviceLib.entries.length}`
+            : MSG.libEmptyDevice}
+        </p>
       ) : (
         /* salvar o patch CORRENTE: o retrato é a cadeia que está no palco
            agora (o que o dono ajusta é o que volta ao abrir) */
@@ -367,24 +377,32 @@ export function LibraryPanel({
       )}
 
       {tabKind === "factory" ? (
-        <div style={list} role="listbox" aria-label={`${MSG.libListAria} (${lib.stats?.factory ?? 0})`}>
-          {lista.length === 0 && (
-            <p style={empty}>{lib.texto.trim() ? MSG.libEmptySearch(lib.texto.trim()) : MSG.libEmpty}</p>
+        <div style={list} role="listbox" aria-label={`${MSG.libListAria} (${patches.length})`}>
+          {patches.length === 0 && (
+            <p style={empty}>
+              {deviceLib == null
+                ? MSG.libEmptyDevice
+                : lib.texto.trim()
+                  ? MSG.libEmptySearch(lib.texto.trim())
+                  : MSG.libEmpty}
+            </p>
           )}
-          {lista.map((p) => {
+          {patches.map((p) => {
             const on = bankDoPalco === "factory" && p.pp === currentPp;
             return (
               <button
-                key={p.id}
+                key={p.pp}
                 role="option"
                 aria-selected={on}
                 style={rowBtn(on)}
-                onClick={() => p.pp != null && onOpenFactory(p.pp)}
-                title={MSG.libRowTitle(p.name, p.ppTypeName)}
+                onClick={() => onOpenFactory(p.pp)}
+                title={p.name || rotuloPp(p.pp)}
               >
-                {/* oficial exibe 1-based (P25 Mist = ppID 24 do all.prst) */}
-                <span style={ppCell}>{p.pp != null ? MSG.libPp(p.pp) : ""}</span>
-                <span style={{ ...rowName, fontWeight: on ? 700 : 400 }}>{p.name}</span>
+                {/* **(#150)** slot SEM nome decodificado (#152) → o rótulo é o
+                    ENDEREÇO (`0x0100`), o único dado honesto hoje; com nome
+                    (fallback de teste hoje, decode amanhã) → rótulo 1-based */}
+                <span style={ppCell}>{p.name ? MSG.libPp(p.pp) : rotuloPp(p.pp)}</span>
+                <span style={{ ...rowName, fontWeight: on ? 700 : 400 }}>{p.name || "—"}</span>
                 <span style={styleBadge}>{p.ppTypeName}</span>
               </button>
             );

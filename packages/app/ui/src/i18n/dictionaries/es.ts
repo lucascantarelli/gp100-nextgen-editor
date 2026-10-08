@@ -96,6 +96,11 @@ export const ES: DictPatch = {
     keepalive: "Keepalive",
   },
   connBootError: "Falló el arranque del device — revisa la conexión e inténtalo de nuevo.",
+  connOffTitle: "Device no conectado",
+  connOffConnect: "Reconectar",
+  connOffRetryAria: "Reconectar el device (reabre el puerto MIDI)",
+  connOffLoadError: (m: string) =>
+    `${m} La biblioteca muestra lo que el DEVICE tiene — conéctalo para cargar los patches.`,
 
   /* ── board ── */
   boardAria: "Pedalboard (9 huecos de la cadena)",
@@ -108,11 +113,12 @@ export const ES: DictPatch = {
   stageOut: "OUT ⏻",
 
   /* ── biblioteca ── */
-  libAria: "Biblioteca de presets",
+  libAria: "Patches del device",
   libTabsAria: "Tipo de patch",
-  libTabFactory: "Factory Patch",
-  libTabUser: "User Patch",
-  libListAria: "Presets de fábrica",
+  libTabFactory: "Patches",
+  libTabUser: "Mis patches",
+  libListAria: "Patches del device",
+  libEmptyDevice: "Device no conectado — conecta el GP-100 para cargar los patches.",
   searchPlaceholder: "Buscar nombre, nº o estilo…",
   searchAria: "Buscar presets por nombre, número o estilo",
   searchEmpty: (q: string) => `Ningún preset para “${q}”. Consejo: busca por estilo (Rock, Funk…) o por número.`,

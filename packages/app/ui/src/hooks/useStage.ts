@@ -28,7 +28,7 @@
  *   deixou de ser uma hipótese segura e passou a ser uma escolha errada.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { BoardSlot, BoardView } from "../ipc/types";
+import type { BoardSlot, BoardView, PresetLibrary } from "../ipc/types";
 import { deviceBoard, devicePresetLibrary, deviceSelectPreset, deviceSetParam } from "../ipc/device";
 import { MSG } from "../i18n/messages";
 import { boardOfUserPatch, patchDeRegistro, registroDePatch, snapshotOf } from "../userPatches";
@@ -54,6 +54,12 @@ export interface Stage {
   openUserId: string | null;
   /** A biblioteca é o dono da lista (#26): busca no SQLite, números e erros. */
   lib: Library;
+  /**
+   * Biblioteca do APARELHO (#150): o inventário que o device reportou no
+   * load (app → device → app). `null` = sem aparelho conectado — a aba
+   * "Patches" mostra o aviso de conexão, nunca uma lista de fábrica.
+   */
+  deviceLib: PresetLibrary | null;
   err: StageError | null;
   clearErr: () => void;
   openPreset: (target: number) => Promise<void>;
@@ -91,6 +97,8 @@ export function useStage(onPresetChanged: () => void): Stage {
   /** Board REAL do preset (device_board): slots/knobs do dicionário. */
   const [board, setBoard] = useState<BoardView | null>(null);
   const [err, setErr] = useState<StageError | null>(null);
+  /** Biblioteca do APARELHO (#150): o que o load trouxe do device. */
+  const [deviceLib, setDeviceLib] = useState<PresetLibrary | null>(null);
   /** A biblioteca é o dono da lista (#26): busca no SQLite (o texto vai para o
    *  banco, não para um .filter), números no rodapé e a migração do
    *  localStorage. O `bank` é o banco ABERTO no palco — a aba da biblioteca
@@ -105,6 +113,10 @@ export function useStage(onPresetChanged: () => void): Stage {
     try {
       await deviceSelectPreset(target);
       selected = true;
+      // O device CONFIRMOU o select: o nº no palco já é a verdade do
+      // aparelho (app → hardware → app), mesmo que a leitura do board
+      // falhe depois (#150: no build real o palco depende do decode #152).
+      setPp(target);
       const b = await deviceBoard(target);
       setPp(b.pp);
       setPresetName(b.name);
@@ -214,12 +226,21 @@ export function useStage(onPresetChanged: () => void): Stage {
     [lib, openUserId, openPreset, pp],
   );
 
-  // ◀ ▶ reproduzem a coluna do patch do app oficial: 0..98 em ciclo.
+  // ◀ ▶ reproduzem a coluna do patch do app oficial. **No APARELHO (#150)**
+  // o passo anda pelo INVENTÁRIO que o device reportou (dois bancos,
+  // ADR-12) — os pps não são 0..98. Fora dele (fallback de teste), o ciclo
+  // 0..98 de sempre, sem depender do inventário.
   const stepPreset = useCallback(
     (delta: 1 | -1) => {
+      const inv = deviceLib?.entries.map((e) => e.pp);
+      if (inv && inv.length > 0 && inv.includes(pp)) {
+        const alvo = inv[(inv.indexOf(pp) + delta + inv.length) % inv.length];
+        void openPreset(alvo);
+        return;
+      }
       void openPreset((pp + delta + 99) % 99);
     },
-    [pp, openPreset],
+    [pp, openPreset, deviceLib],
   );
 
   // Knob do pedal (Fase 2 — U-3): aplica LOCAL (o valor aparece na hora) e
@@ -285,21 +306,19 @@ export function useStage(onPresetChanged: () => void): Stage {
     );
   }, []);
 
-  // abertura INICIAL: o device é a fonte da verdade do preset corrente —
-  // o alvo é o `current_pp` que o backend JÁ reporta
-  // (`devicePresetLibrary().currentPp`), não o 0 fixo de antes. No aparelho
-  // o valor vem do que o boot varreu (e a trava de faixa da #132 recusaria
-  // qualquer pp fora do inventário provado, ANTES do frame).
-  //
-  // Falhou a pergunta? O palco não fica em branco: o pp 0 está dentro do
-  // inventário do aparelho (`0x0000..0x0062`) e, se o select em si falhar,
-  // o banner com retry (issue #20) aparece como sempre.
+  // abertura INICIAL (#150): o load é um fluxo app → device → app —
+  // a biblioteca do APARELHO (`device_preset_library`) é que diz qual é o
+  // pp corrente, e é ele que o palco abre. Sem aparelho o invoke falha e
+  // o banner do App (backend "none" + motivo) instrui o dono — não há
+  // "abrir o pp 0" fingindo que é o estado do aparelho.
   useEffect(() => {
     void devicePresetLibrary()
-      .then((l) => openPreset(l.currentPp))
+      .then((l) => {
+        setDeviceLib(l);
+        return openPreset(l.currentPp);
+      })
       .catch((e: unknown) => {
-        console.error("device_preset_library indisponível; abrindo o pp 0:", e);
-        void openPreset(0);
+        console.error("device_preset_library indisponível (aparelho ausente?):", e);
       });
   }, [openPreset]);
 
@@ -311,6 +330,7 @@ export function useStage(onPresetChanged: () => void): Stage {
     board,
     openUserId,
     lib,
+    deviceLib,
     err,
     clearErr,
     openPreset,

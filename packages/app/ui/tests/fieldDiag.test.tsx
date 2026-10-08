@@ -59,6 +59,7 @@ beforeEach(() => {
 
 const REAL: DeviceInfo = {
   backend: "real",
+  detail: "",
   presetCount: 199,
   currentPp: 24,
   currentName: "Mist",

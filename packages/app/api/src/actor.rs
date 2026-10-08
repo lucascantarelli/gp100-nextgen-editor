@@ -29,10 +29,10 @@ use std::thread::JoinHandle;
 use gp100_core::model::Dictionary;
 use gp100_core::pedalboard::{board_view_for, embedded_document, preset_list, BoardView};
 use gp100_core::session::{
-    BootProgress, BootReport, IrUploadReport, Session, SnapToneUploadReport,
+    inventario_do_aparelho, BootProgress, BootReport, IrUploadReport, Session, SnapToneUploadReport,
 };
 use gp100_core::transport::mock::MockDevice;
-use gp100_core::transport::DeviceTransport;
+use gp100_core::transport::{DeviceTransport, TransportError, WireKind};
 use gp100_core::wire_log::LoggingTransport;
 
 /// Estado snapshot do mock (alias curto; o tipo vive no core).
@@ -45,48 +45,17 @@ fn hex(data: &[u8]) -> String {
     data.iter().map(|b| format!("{b:02X}")).collect()
 }
 
-/// **O tipo de transporte que este binário carrega**, escolhido por
-/// compilação.
+/// **O tipo de transporte que o build de campo carrega** (feature
+/// `real-device`): `Box<dyn DeviceBackend>` — a trait deste crate, que ja
+/// estende `DeviceTransport`, entao o `RealDevice` entra pela mesma fila do
+/// actor sem que nenhum tipo concrete precise conhecer o outro.
 ///
-/// No build comum e o `MockDevice` concreto. No build de campo
-/// (`--features real-device`) e `Box<dyn DeviceBackend>` — a trait deste
-/// crate, que ja estende `DeviceTransport`, entao o `RealDevice` entra pela
-/// mesma fila do actor sem que nenhum tipo concrete precise conhecer o
-/// outro.
-///
-/// Este alias é o que a [`como_app_device`] devolve nos dois builds, e não é
-/// decoração: é ele que faz a `abrir_backend` de `lib.rs` ter o MESMO corpo
-/// nos dois caminhos. Sem ele, o build padrão não teria consumidor nenhum do
-/// alias e o clippy acusaria código morto onde o desenho está certo.
-#[cfg(not(feature = "real-device"))]
-pub type AppDevice = MockDevice;
-
-/// Alias de transporte do build de campo (ver [`AppDevice`]).
+/// **(#150)** O app sem aparelho não monta transporte de mentira: o estado é
+/// [`Backend::Desligado`] com um transporte honesto — o [`DesconectadoDevice`]
+/// no build sem a feature, e o `ProcuraAparelho` (que re-enumera as portas a
+/// cada `device_conectar`) no build de campo.
 #[cfg(feature = "real-device")]
 pub type AppDevice = Box<dyn DeviceBackend + Send>;
-
-/// Converte o `MockDevice` no transporte que **este** build carrega.
-///
-/// Existe porque a conversão depende do alias e o alias depende da feature: no
-/// build comum o `AppDevice` **é** o `MockDevice` e a conversão é identidade;
-/// no build de campo ele é `Box<dyn DeviceBackend + Send>` e o mock precisa ir
-/// para o heap.
-///
-/// **Por que não uma anotação de tipo na chamada.** `let m: AppDevice = mock`
-/// NÃO faz essa conversão: a coerção sem tamanho acontece dentro do `Box::new`,
-/// não numa atribuição. A anotação compilava no build comum (onde o alias é o
-/// tipo concreto) e quebrava o build de campo com E0308 — foi exatamente o que
-/// a primeira run com `ui-rust` de verdade mostrou, nos dois SOs.
-#[cfg(not(feature = "real-device"))]
-pub fn como_app_device(mock: MockDevice) -> AppDevice {
-    mock
-}
-
-/// Ver [`como_app_device`].
-#[cfg(feature = "real-device")]
-pub fn como_app_device(mock: MockDevice) -> AppDevice {
-    Box::new(mock)
-}
 
 /// `WRITE_VERIFIED` **espelhado** do core (ADR-5).
 ///
@@ -108,6 +77,13 @@ const WRITE_VERIFIED: bool = cfg!(feature = "write-verified");
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Backend {
     /// `MockDevice` — estado local completo, sem tráfego de fio.
+    ///
+    /// **(#150) o runtime do app não monta mais mock** — quem constrói esta
+    /// variante são os TESTES (o actor genérico precisa de um backend real
+    /// para a fila) e nenhum caminho de produção. O `cfg_attr` é o mesmo da
+    /// variante `Real`: o build padrão acusaria "nunca construído" onde o
+    /// desenho tem construtor.
+    #[cfg_attr(not(all(test, not(feature = "real-device"))), allow(dead_code))]
     Mock,
     /// `RealDevice` (feature `real-device`) — o aparelho **não tem estado
     /// local**: o que ele mostra na tela, a app precisa ler do fio.
@@ -118,6 +94,13 @@ pub enum Backend {
     /// algo que tem construtor.
     #[cfg_attr(not(feature = "real-device"), allow(dead_code))]
     Real,
+    /// App **sem aparelho** (#150): nenhum transporte conectou. NÃO é mock —
+    /// não inventa preset, nome ou resposta; `device_info` responde
+    /// `backend: "none"` com um motivo legível e a UI mostra o aviso de
+    /// conexão. O `device_conectar` refaz o open (no build de campo o
+    /// `ProcuraAparelho` re-enumera as portas; ao conectar, o estado sobe
+    /// para `Real`).
+    Desligado,
 }
 
 impl Backend {
@@ -126,6 +109,7 @@ impl Backend {
         match self {
             Backend::Mock => "mock",
             Backend::Real => "real",
+            Backend::Desligado => "none",
         }
     }
 }
@@ -187,6 +171,122 @@ impl<T: DeviceBackend + ?Sized> DeviceBackend for Box<T> {
     }
 }
 
+/// Transporte do app **sem aparelho** (issue #150) para builds sem a feature
+/// `real-device`.
+///
+/// **Não é mock.** Ele não inventa preset, nome, cadeia ou resposta: toda
+/// operação de tráfego é recusada, porque não existe fio. Ele existe para o
+/// app subir com a janela viva e um estado HONESTO (`backend: "none"` +
+/// motivo legível) em vez de derrubar o binário — ou pior, montar o mock e
+/// fingir que é o aparelho. No build de campo quem assume este papel é o
+/// `ProcuraAparelho`, que tem ação real no reconectar.
+///
+/// `cfg_attr` de par com o `desligado`: construído só no build SEM a feature.
+#[cfg_attr(feature = "real-device", allow(dead_code))]
+#[derive(Debug)]
+pub struct DesconectadoDevice;
+
+impl DeviceTransport for DesconectadoDevice {
+    fn open(&mut self) -> Result<(), TransportError> {
+        // OpenFailed, e não DeviceGone: o aparelho está AUSENTE (nunca
+        // esteve na sessão) — é a semântica do erro no core.
+        Err(TransportError::OpenFailed {
+            why: "aparelho não conectado".into(),
+        })
+    }
+
+    fn close(&mut self) -> Result<(), TransportError> {
+        Ok(())
+    }
+
+    fn send_raw(&mut self, _data: &[u8], _kind: WireKind) -> Result<(), TransportError> {
+        Err(TransportError::Closed)
+    }
+
+    fn recv_raw(&mut self, _timeout: std::time::Duration) -> Result<Vec<u8>, TransportError> {
+        Err(TransportError::Closed)
+    }
+}
+
+impl DeviceBackend for DesconectadoDevice {
+    fn local_state(&self) -> Option<MockState> {
+        // Sem aparelho, sem estado local: o mesmo neutro do `RealDevice`.
+        None
+    }
+
+    fn drain_inbox(&mut self) -> Vec<Vec<u8>> {
+        Vec::new()
+    }
+}
+
+/// Transporte que **procura o aparelho a cada `open`** (issue #150, build de
+/// campo): o app que subiu sem USB mantém o botão "Reconectar" com ação real
+/// — o open re-enumera as portas MIDI e monta o `RealDevice` na hora, em vez
+/// de desistir para sempre.
+#[cfg(feature = "real-device")]
+#[derive(Debug, Default)]
+pub struct ProcuraAparelho {
+    /// O aparelho, quando um open já achou as portas.
+    device: Option<gp100_core::transport::real::RealDevice>,
+}
+
+#[cfg(feature = "real-device")]
+impl DeviceTransport for ProcuraAparelho {
+    fn open(&mut self) -> Result<(), TransportError> {
+        // Re-enumeração REAL a cada tentativa: ligar o aparelho DEPOIS de
+        // abrir o app tem que funcionar sem reiniciar o editor.
+        match gp100_core::transport::real::RealDevice::new() {
+            Ok(d) => {
+                self.device = Some(d);
+                Ok(())
+            }
+            Err(e) => {
+                self.device = None;
+                Err(e)
+            }
+        }
+    }
+
+    fn close(&mut self) -> Result<(), TransportError> {
+        self.device = None;
+        Ok(())
+    }
+
+    fn send_raw(&mut self, data: &[u8], kind: WireKind) -> Result<(), TransportError> {
+        match self.device.as_mut() {
+            Some(d) => d.send_raw(data, kind),
+            None => Err(TransportError::Closed),
+        }
+    }
+
+    fn recv_raw(&mut self, timeout: std::time::Duration) -> Result<Vec<u8>, TransportError> {
+        match self.device.as_mut() {
+            Some(d) => d.recv_raw(timeout),
+            None => Err(TransportError::Closed),
+        }
+    }
+
+    fn e_aparelho(&self) -> bool {
+        // Quando um open achou o aparelho, os frames saem para o REAL —
+        // e a trava de faixa do pp (#132) precisa valer.
+        self.device.as_ref().is_some()
+    }
+}
+
+#[cfg(feature = "real-device")]
+impl DeviceBackend for ProcuraAparelho {
+    fn local_state(&self) -> Option<MockState> {
+        None
+    }
+
+    fn drain_inbox(&mut self) -> Vec<Vec<u8>> {
+        match self.device.as_mut() {
+            Some(d) => d.drain_inbox(),
+            None => Vec::new(),
+        }
+    }
+}
+
 #[cfg(feature = "real-device")]
 impl DeviceBackend for gp100_core::transport::real::RealDevice {
     fn local_state(&self) -> Option<MockState> {
@@ -230,8 +330,12 @@ pub struct DumpReport {
 #[derive(Debug, Clone, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DeviceSnapshot {
-    /// Backend ativo ("mock" | "real") — nunca mais um literal.
+    /// Backend ativo ("mock" | "real" | "none") — nunca mais um literal.
     pub backend: &'static str,
+    /// Motivo humano quando `backend` é `"none"` (issue #150): "aparelho não
+    /// conectado…" ou "build sem o transporte…". Vazio nos outros backends —
+    /// preencher com sessão viva seria inventar aviso.
+    pub detail: String,
     /// Nº de presets. No mock, o do `all.prst`; no real, o **inventário que
     /// o boot percorreu** (ver `docs/REAL_DEVICE_GAP.md` §4.3 — hoje é o
     /// default 0..198, não uma contagem descoberta no aparelho).
@@ -257,6 +361,7 @@ impl DeviceSnapshot {
     fn empty(backend: Backend) -> Self {
         Self {
             backend: backend.as_str(),
+            detail: String::new(),
             preset_count: 0,
             current_pp: 0,
             current_name: String::new(),
@@ -295,6 +400,13 @@ enum Request {
     /// Snapshot do estado do device (command `device_info`).
     Info {
         reply: mpsc::Sender<Result<DeviceSnapshot, String>>,
+    },
+    /// Reconecta o transporte (issue #150 — command `device_conectar`):
+    /// `open` de novo no MESMO objeto (ADR-4 — o `RealDevice::open` após
+    /// falha/DeviceGone reabre as portas). Com sessão viva é re-open por cima;
+    /// sem sessão (app que subiu sem aparelho) é o primeiro open.
+    Conectar {
+        reply: mpsc::Sender<Result<(), String>>,
     },
     /// Board do preset: slots/arquétipos/knobs (projeção pura no core).
     Board {
@@ -422,6 +534,9 @@ fn device_snapshot<T: DeviceBackend>(
     *session = Some(s);
     DeviceSnapshot {
         backend: backend.as_str(),
+        // O motivo do Desligado é preenchido no braço do `Info` (quem o
+        // conhece é o spawn, não esta função).
+        detail: String::new(),
         preset_count: local.as_ref().map_or(0, |m| m.preset_count),
         current_pp: local.as_ref().map_or(current_pp, |m| m.current_pp),
         current_name: local
@@ -459,7 +574,46 @@ impl DeviceActor {
     ///
     /// Falha de pânico na thread (bug do core) vira erro de canal — nunca
     /// derruba o app.
+    ///
+    /// **(#150) no build padrão só os TESTES montam actor com device** (o
+    /// runtime sobe `desligado`); no build de campo é o `RealDevice` que
+    /// entra por aqui. Mesmo `cfg_attr` da variante `Mock`.
+    #[cfg_attr(not(all(test, not(feature = "real-device"))), allow(dead_code))]
     pub fn spawn<T: DeviceBackend + 'static>(device: T, backend: Backend) -> Self {
+        Self::spawn_com_motivo(device, backend, String::new())
+    }
+
+    /// Spawn do app **sem aparelho** (issue #150): estado [`Backend::Desligado`]
+    /// com o motivo que a UI mostra no aviso de conexão. Nenhum dado é servido
+    /// — `info` responde honesto e todo tráfego recusa.
+    ///
+    /// O build de campo usa o [`desligado_procurando`] (transporte que re-
+    /// enumera portas); este aqui existe para o build SEM a feature.
+    #[cfg_attr(feature = "real-device", allow(dead_code))]
+    pub fn desligado(motivo: impl Into<String>) -> Self {
+        Self::spawn_com_motivo(DesconectadoDevice, Backend::Desligado, motivo.into())
+    }
+
+    /// Spawn do build de campo **sem USB** (issue #150): o transporte procura
+    /// o aparelho a cada `device_conectar` — o "Reconectar" da UI tem ação
+    /// real (re-enumera as portas MIDI) em vez de desistir para sempre. Ao
+    /// conectar, o estado do actor sobe para [`Backend::Real`].
+    #[cfg(feature = "real-device")]
+    pub fn desligado_procurando(motivo: impl Into<String>) -> Self {
+        Self::spawn_com_motivo(
+            ProcuraAparelho::default(),
+            Backend::Desligado,
+            motivo.into(),
+        )
+    }
+
+    /// Corpo comum do spawn; `motivo` só é lido quando o backend é
+    /// [`Backend::Desligado`].
+    fn spawn_com_motivo<T: DeviceBackend + 'static>(
+        device: T,
+        backend: Backend,
+        motivo: String,
+    ) -> Self {
         let (tx, rx) = mpsc::channel::<Request>();
         let handle = std::thread::spawn(move || {
             // O transporte entra embrulhado no LoggingTransport desde o
@@ -468,11 +622,22 @@ impl DeviceActor {
             // sem que o app precise reiniciar o device nem reconstruir a
             // fila. O `drain_inbox` do backend mora por tras do wrapper.
             let mut logged = LoggingTransport::new(device);
-            if let Err(e) = logged.open() {
-                eprintln!("[device] open do backend {backend:?} falhou: {e}");
-                return;
+            // **O open que falha NÃO encerra a thread (#150).** O app segue no
+            // estado `Desligado` (aviso + Reconectar na tela) em vez de virar
+            // um actor morto cuja única resposta é "não está mais rodando".
+            // O `device_conectar` refaz o open no MESMO transporte (ADR-4).
+            let mut backend = backend;
+            let mut transporte: Option<LoggingTransport<T>> = None;
+            let mut session: Option<Session<LoggingTransport<T>>> = None;
+            match logged.open() {
+                Ok(()) => session = Some(Session::new(logged)),
+                Err(e) => {
+                    eprintln!(
+                        "[device] open do backend {backend:?} falhou: {e} — o app segue sem aparelho (reconectar refaz o open)"
+                    );
+                    transporte = Some(logged);
+                }
             }
-            let mut session = Some(Session::new(logged));
             // O caminho ATIVO do log — estado do actor, e nao do transporte: o
             // `WireLogger` guarda o arquivo, nao o nome dele, e quem pergunta e
             // a tela (`device_log_path`).
@@ -480,8 +645,47 @@ impl DeviceActor {
             while let Ok(req) = rx.recv() {
                 match req {
                     Request::Info { reply } => {
-                        let snap = device_snapshot(&mut session, backend);
+                        let mut snap = device_snapshot(&mut session, backend);
+                        if backend == Backend::Desligado {
+                            snap.detail = motivo.clone();
+                        }
                         let _ = reply.send(Ok(snap));
+                    }
+                    Request::Conectar { reply } => {
+                        // Reconexão no MESMO transporte (ADR-4): com sessão
+                        // viva o open é refeito por cima (device sumiu e
+                        // voltou — o backlog D7 é descartado, como no remount
+                        // do Info); sem sessão é o PRIMEIRO open (app que
+                        // subiu sem aparelho). No build de campo o
+                        // `ProcuraAparelho` re-enumera as portas — e, achando
+                        // o aparelho, o estado sobe de `Desligado` para `Real`
+                        // (o open do `RealDevice` SÓ sucede com o aparelho
+                        // presente, então a promoção é evidência, não chute).
+                        let mut t = match session.take() {
+                            Some(s) => s.into_transport(),
+                            None => match transporte.take() {
+                                Some(t) => t,
+                                None => {
+                                    let _ =
+                                        reply.send(Err("sem transporte para reconectar".into()));
+                                    continue;
+                                }
+                            },
+                        };
+                        match t.open() {
+                            Ok(()) => {
+                                if backend == Backend::Desligado {
+                                    backend = Backend::Real;
+                                    eprintln!("[device] aparelho conectado pelo device_conectar");
+                                }
+                                session = Some(Session::new(t));
+                                let _ = reply.send(Ok(()));
+                            }
+                            Err(e) => {
+                                transporte = Some(t);
+                                let _ = reply.send(Err(format!("aparelho não conectou: {e}")));
+                            }
+                        }
                     }
                     Request::Board { pp, reply } => {
                         // Projeção PURA (doc embedado + dicionário): não toca
@@ -489,6 +693,18 @@ impl DeviceActor {
                         // (o actor só é o caminho para reusar o Dictionary
                         // carregado do mock).
                         let r = (|| -> Result<BoardView, String> {
+                            // **No APARELHO o palco não vem do artefato (#150).**
+                            // A cadeia do dono vive nas páginas 13xx, cujo layout
+                            // ainda não foi decifrado (#152) — desenhar a cadeia
+                            // do all.prst seria mentir sobre o que está gravado
+                            // no preset do aparelho. O erro honesto é o que a UI
+                            // mostra até o decode existir.
+                            if backend == Backend::Real {
+                                return Err(
+                                    "palco do aparelho pendente do decode das páginas 13xx (issue #152)"
+                                        .into(),
+                                );
+                            }
                             let doc = embedded_document().map_err(|e| e.to_string())?;
                             let dict = Dictionary::from_json(gp100_core::model::DICTIONARY_JSON)
                                 .map_err(|e| e.to_string())?;
@@ -498,6 +714,32 @@ impl DeviceActor {
                     }
                     Request::Library { reply } => {
                         let r = (|| -> Result<PresetLibrary, String> {
+                            // App desligado (#150): a biblioteca NÃO é servida
+                            // do artefato — sem aparelho, o front mostra o aviso
+                            // de conexão, não uma lista falsa.
+                            if session.is_none() {
+                                return Err("session do actor ausente".into());
+                            }
+                            // **No APARELHO a biblioteca é o que ele tem (#150).**
+                            // O inventário é o MEDIDO (captura S1 — ADR-12). Os
+                            // NOMES dependem do decode da meta6 (#152): entradas
+                            // sem nome são honestidade — não o dicionário de
+                            // fábrica emprestado do all.prst, que não diz o que
+                            // está gravado no slot do dono.
+                            if backend == Backend::Real {
+                                let state = device_snapshot(&mut session, backend);
+                                return Ok(PresetLibrary {
+                                    entries: inventario_do_aparelho()
+                                        .into_iter()
+                                        .map(|pp| PresetEntry {
+                                            pp,
+                                            name: String::new(),
+                                            pp_type_name: String::new(),
+                                        })
+                                        .collect(),
+                                    current_pp: state.current_pp,
+                                });
+                            }
                             let doc = embedded_document().map_err(|e| e.to_string())?;
                             let state = device_snapshot(&mut session, backend); // corrente
                             Ok(PresetLibrary {
@@ -743,6 +985,20 @@ impl DeviceActor {
             .send(Request::Library { reply: tx })
             .map_err(|_| "actor de device não está mais rodando".to_string())?;
         rx.recv().map_err(|_| "actor morreu no Library")?
+    }
+
+    /// Reconecta o transporte do device (issue #150 — command
+    /// `device_conectar`): refaz o `open` no MESMO objeto; no build de campo
+    /// o `ProcuraAparelho` re-enumera as portas MIDI.
+    ///
+    /// # Erros
+    /// String com o motivo (aparelho ausente) ou morte da thread do actor.
+    pub fn conectar(&self) -> Result<(), String> {
+        let (tx, rx) = mpsc::channel();
+        self.tx
+            .send(Request::Conectar { reply: tx })
+            .map_err(|_| "actor de device não está mais rodando".to_string())?;
+        rx.recv().map_err(|_| "actor morreu no Conectar")?
     }
 
     /// Select de preset (§13.10 — write + meta6). Bloqueia até a FSM
@@ -1082,6 +1338,39 @@ mod tests {
             actor.log_path().expect("consulta"),
             None,
             "parado volta a nada"
+        );
+        actor.shutdown();
+    }
+
+    /// **App sem aparelho responde honesto (#150).** `backend: "none"` com o
+    /// motivo; a biblioteca NÃO é inventada e o reconectar falha com o motivo
+    /// — o oposto do mock fingindo ser aparelho.
+    #[test]
+    fn app_sem_aparelho_e_estado_honesto() {
+        let actor = DeviceActor::desligado("aparelho não conectado via USB");
+        let snap = actor.info().expect("info responde mesmo desligado");
+        assert_eq!(snap.backend, "none");
+        assert_eq!(snap.preset_count, 0);
+        assert_eq!(snap.detail, "aparelho não conectado via USB");
+        assert!(
+            actor.library().is_err(),
+            "sem aparelho, a biblioteca não é inventada"
+        );
+        let e = actor.conectar().expect_err("reconectar sem aparelho falha");
+        assert!(e.contains("aparelho não conectou"), "motivo legível: {e}");
+        actor.shutdown();
+    }
+
+    /// Reconectar com a sessão viva é no-op: o open é refeito por cima do
+    /// transporte que já responde, e a sessão continua funcionando.
+    #[test]
+    fn conectar_com_sessao_viva_e_no_op() {
+        let actor = DeviceActor::spawn(MockDevice::new().expect("mock montado"), Backend::Mock);
+        actor.conectar().expect("sessão viva: reconectar é no-op");
+        assert_eq!(
+            actor.info().expect("info após reconectar").backend,
+            "mock",
+            "a sessão sobreviveu ao re-open"
         );
         actor.shutdown();
     }
