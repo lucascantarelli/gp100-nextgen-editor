@@ -162,7 +162,11 @@ def main():
         "ack": "nenhum IN 10xx0002 observado",
     }, "slots": SLOTS, "edits": edits,
        "validation_errors": errs}
-    with open(os.path.join("analysis", "knob_map.json"), "w", encoding="utf8") as fh:
+    # newline="\n" explícito: sem ele, o modo texto do Windows traduz para CRLF e
+    # suja a árvore de trabalho a cada `pytest` (o repo normaliza para LF em
+    # .gitattributes: `* text=auto eol=lf`). Ver auditoria 07/10, F-12.
+    with open(os.path.join("analysis", "knob_map.json"), "w", encoding="utf8",
+              newline="\n") as fh:
         json.dump(out, fh, ensure_ascii=False, indent=2)
     print(f"\nknob_map.json salvo ({len(edits)} edits). erros: {len(errs)}")
     for e in errs:

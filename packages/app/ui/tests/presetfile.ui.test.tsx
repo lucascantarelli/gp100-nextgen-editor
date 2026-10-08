@@ -102,8 +102,13 @@ async function clique(el: Element): Promise<void> {
 async function espera(pred: () => boolean, ms = 6000): Promise<void> {
   const fim = Date.now() + ms;
   while (!pred() && Date.now() < fim) {
-    await flush();
-    await new Promise((r) => setTimeout(r, 20));
+    // O timer real tambem DENTRO do act: a promessa do shell resolve nesta
+    // janela, e o update de estado fora do act e o aviso "not wrapped in act"
+    // (o `waitFor` de `app.interactions.test.tsx` ja fazia assim — issue #142).
+    await act(async () => {
+      await flush();
+      await new Promise((r) => setTimeout(r, 20));
+    });
   }
   expect(pred(), "a tela nao chegou ao estado esperado").toBe(true);
 }
@@ -176,6 +181,13 @@ describe("PresetFilePanel — exportar", () => {
     await clique(c.host.querySelector('[role="alert"]')!.querySelector("button")!);
     await espera(() => baixados.length > 0);
     expect(baixados).toEqual([`gp100.preset.${MSG.libPp(0)}.json`]);
+    // `espera` volta ASSIM QUE o download aparece; o painel ainda limpa o
+    // banner depois disso. O flush final (macrotask + microtasks, dentro do
+    // `act`) da tempo a essa cadeia curta de resolver antes do `fecha()`.
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 20));
+    });
+    await flush();
     c.fecha();
   });
 });

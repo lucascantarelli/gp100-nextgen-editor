@@ -35,6 +35,20 @@ fonte de retrocesso (viola a regra R1).
    real antes de dar o fato por bom. A #68 mudou a arquitetura da CI e 6 documentos
    continuaram ensinando a anterior por semanas. Afeção do mesmo: a lista de
    skills desta pasta é ela própria parte do que este checklist sincroniza.
+   **Corolário (auditoria 07/10, F-03/F-04):** dívida já paga não pode continuar
+   anunciada — antes de manter um aviso "⚠️ #N pendente" num doc, abra a issue e
+   confira o artefato que ela acusa; aviso de dívida quitada contradiz o §6 e manda
+   o próximo agente procurar defeito que não existe.
+9. **Números têm baseline (develop)** — o §6 é medido em `develop`, não "aqui".
+   Numa branch de feature os números divergem **por construção** (a branch *adiciona*
+   testes). Antes de "corrigir" o §6, confirme em que branch você mediu; divergência
+   em branch não é erro do §6 (auditoria 07/10, F-11).
+10. **Gerador que emite arquivo versionado escreve LF explícito** — em Windows o
+    modo texto (`open(..., "w")`) traduz `\n`→`\r\n` e suja a árvore a cada suite,
+    contra o `* text=auto eol=lf` do `.gitattributes` (que já alerta que EOL quebrou
+    o golden e o round-trip). Use `newline="\n"` e, como critério de aceite de
+    qualquer gerador novo, rode a suite e exija **`git status` limpo** (auditoria
+    07/10, F-12).
 
 ## Regras
 - **Commit da docs-sync é PRÓPRIO e SEPARADO** do commit da mudança, na MESMA

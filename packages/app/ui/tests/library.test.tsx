@@ -327,7 +327,7 @@ describe("useLibrary (fora do shell; a migração e o invoke ficam em library.sh
     });
     expect(lib!.rows, "linhas no primeiro tick").toHaveLength(99);
     await act(async () => {
-      root.unmount();
+      act(() => root.unmount());
     });
     host.remove();
   });

@@ -21,6 +21,10 @@ export default defineConfig({
      * isso). Medição antes/depois no docs/INDEX.md §6. */
     pool: "vmThreads",
     include: ["tests/**/*.test.{ts,tsx}"],
+    /* GUARDA DO act(...) (#142): o setup falha o teste quando o React avisa
+     * que um update de estado aconteceu fora do act; o aviso e sintoma de
+     * corrida assincrona real, nao ruido para silenciar. */
+    setupFiles: ["tests/setup.ts"],
     /* 15s: sob instrumentação de coverage o mount do App (99 presets +
      * boot simulado em lotes) passa de 5s — piso para o gate não piscar. */
     testTimeout: 15_000,

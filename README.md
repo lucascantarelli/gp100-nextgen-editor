@@ -9,15 +9,14 @@ Aplicativo multiplataforma (Windows/Linux/macOS) para a pedaleira **Valeton GP-1
 construído por engenharia reversa para substituir o "Valeton Suite" oficial
 (Windows-only, shell CEF). **Núcleo em Rust (`gp100-core`) + UI em Tauri 2/React.**
 
-**Status atual (29/09):** a engenharia reversa está **concluída e validada em campo**
-(protocolo comprovado byte-a-byte contra 4 sessões de captura) e a **Fase M0
-está 100% concluída (8/8)**: model (M0.1), preset round-trip (M0.2), golden
-consumer (M0.3), codec de fio (M0.4), transporte + MockDevice (M0.5), FSM de
-sessão com **replay byte-a-byte das 4 fixtures** (M0.6), **gp100-cli com
-`--log` no schema P4** (M0.7) e documentação do core com exemplos que rodam
-(M0.8) — tudo no remoto com CI verde (78 testes Rust + pytest 10/10).
-Próximos: **M1** (UI, `docs/UI_PLAN.md`) e/ou o **gate H** de hardware
-(`docs/H1_CHECKLIST.md`). Planejamento issue-a-issue: `docs/ROADMAP.md`.
+**Status atual:** o panorama do que está entregue, **os números medidos** e o que está
+aberto vivem em **[`docs/INDEX.md`](docs/INDEX.md) §6** — a fonte única deste repo,
+que não repete contador (regra #81). Em resumo: a engenharia reversa está
+**concluída e validada em campo** (protocolo comprovado byte-a-byte contra as 4
+sessões de captura), **M0 (core), M1 (editor), o conteúdo de M2 e os entregues de M3
+estão prontos**, e o **gate H de hardware fechou em campo** (H1 leitura · H2 escrita ·
+H3 baseline congelada). Trabalho aberto vive nas **issues do GitHub** (milestone
+`v1.0.0`).
 
 > 🔒 **Política de segurança de hardware:** nenhum fluxo de escrita sai sem captura
 > validada (`WRITE_VERIFIED`), e **update de firmware está fora de escopo** (V2+, e só
@@ -102,7 +101,7 @@ boot/scan de presets (S1), upload de IRs mono+estéreo (S2), edição de knobs p
 │   ├── check_base_images.py   # tags de imagem base antes do build
 │   └── … (12 no total)
 ├── .venv/                     # Python do projeto (uv, VENV ÚNICO na raiz)
-├── .github/workflows/ci.yml   # ÚNICO workflow: 25 jobs por TIPO (#68)
+├── .github/workflows/ci.yml   # ÚNICO workflow, jobs por TIPO (#68; nº em INDEX §6)
 ├── knowledge.md               # memória operacional do agente (estado vivo, armadilhas)
 └── .agents/skills/            # workflows sob demanda (proxy-build, capture-analyze…)
 ```
@@ -194,10 +193,11 @@ Windows + Git Bash (desenvolvido em `D:\GP-100 app`). Requisitos:
   `scripts/add_cargo_path.ps1` (uma vez, como admin). Gates de código Rust:
   `.agents/skills/rust-practices/SKILL.md`
 - **CI (GitHub Actions):** os mesmos gates (`uv run pytest` + `cargo fmt/clippy/test`)
-  rodam num **único** workflow, o [`ci.yml`](.github/workflows/ci.yml), dividido em
-  11 tipos de job e 25 jobs de responsabilidade única (`Validação` · `Lint` ·
+  rodam num **único** workflow, o [`ci.yml`](.github/workflows/ci.yml), com jobs de
+  responsabilidade única agrupados em 11 tipos (`Validação` · `Lint` ·
   `Compilação` · `Testes` · `Cobertura` · `Segurança` · `Relatório` · `Infra` ·
-  `Release` · `Distribuição` · `Fechamento`). Os jobs de teste/cobertura/segurança
+  `Release` · `Distribuição` · `Fechamento`) — a **contagem de jobs** vive em
+  `docs/INDEX.md` §6 (regra #81). Os jobs de teste/cobertura/segurança
   são filtrados por caminho E por função de branch; a distribuição roda só na tag.
   Passos reutilizáveis em `.github/actions/*`; o fluxo completo está em
   `docs/CONTRIBUTING.md`.
@@ -318,20 +318,12 @@ cargo test --workspace
 - Descobertas de protocolo vão para o `PROTOCOL.md` com evidência — nunca só conversa
 - Não commite sem pedido; `analysis/nsis_app/` e `files/` são material de origem
 
-**Estado atual e boas primeiras tarefas (03/10):** o panorama completo — o que foi
-entregue, quantos testes existem e o que está aberto — está em
-**[`docs/INDEX.md`](docs/INDEX.md) §6**, que é a
-fonte única dos números. Em resumo:
-
-- **Entregue:** M0 (core, 100%) · M1.0–M1.3 + V-8 + i18n (editor completo em pt/en/es/zh) ·
-  CI consolidada em 1 workflow de 25 jobs (#68) · empacotamento Win/macOS/Linux/Arch
-  (#27/#28/#29).
-- **Aberto e sem bloqueio de hardware:** #24 (M2-IR), #25 (M2-NAM), #26 (M2-LIB,
-  biblioteca SQLite + busca avançada).
-- **Aberto e bloqueado:** gate H1/H2 em campo — `gp100-cli --real` com o roteiro do
-  [`docs/H1_CHECKLIST.md`](docs/H1_CHECKLIST.md) (requer a pedaleira + owner).
-- **Dívida de qualidade conhecida:** auditoria de 03/10 em #71–#83 (índice em #83);
-  comece por #71 (gate de empacotamento não ligado) e #74 (skills descrevendo a CI antiga).
+**Estado atual e boas primeiras tarefas:** o panorama completo — o que foi entregue,
+os números medidos e o que está aberto — está em
+**[`docs/INDEX.md`](docs/INDEX.md) §6**, a fonte única dos números (este README não
+repete contador). Trabalho aberto vive nas **issues do GitHub** (milestone `v1.0.0`);
+as dívidas de documentação/limpeza desta rodada estão na auditoria de 07/10,
+[`docs/audit_2026-10-07.md`](docs/audit_2026-10-07.md).
 
 ---
 

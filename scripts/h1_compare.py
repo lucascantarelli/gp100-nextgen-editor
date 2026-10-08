@@ -45,11 +45,21 @@ divergencia `bloqueia-H1` (PARAR e fluxo R3); 2 = erro de uso.
 from __future__ import annotations
 
 import argparse
-import io
 import json
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
+
+# O núcleo comum dos dois juízes (issue #141, auditoria 07/10 F-07): o Frame
+# do schema P4 e o parser vivem em `wirelog_compare.py`, uma única vez — as
+# cópias que existiam nos dois juízes nasceram byte-idênticas e eram
+# exatamente o tipo de duplicação que faz h1/h2 divergirem em silêncio.
+# Este arquivo é executado como SCRIPT (python3 scripts/h1_compare.py) e
+# carregado por importlib pelos testes — NENHUM dos dois coloca `scripts/`
+# no `sys.path`, então o import direto só funciona com o dir do próprio
+# arquivo garantido aqui. Idempotente e barato.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from wirelog_compare import Frame, encurta_hex, ler_log, rotulo_de_endpoint
 
 ROOT = Path(__file__).resolve().parent.parent
 REFERENCIA = ROOT / "analysis" / "h1_reference"
@@ -94,22 +104,6 @@ FORMAS_13: dict[tuple[str, str, str], tuple[int, ...]] = {
     ("out", "11", "12001002"): (1,),
     ("in", "12", "12001002"): (75,),
 }
-
-
-@dataclass(frozen=True)
-class Frame:
-    dir: str
-    func: str
-    addr: str
-    data: str
-
-    @property
-    def endpoint(self) -> tuple[str, str, str]:
-        return (self.dir, self.func, self.addr)
-
-    @property
-    def tamanho(self) -> int:
-        return len(self.data) // 2
 
 
 @dataclass
@@ -196,36 +190,11 @@ class Resultado:
 
 
 # ═══════════════════════════════════════════════════════════════ leitura
+# (Frame, ler_log, _rotulo e _encurta vivem em `wirelog_compare.py` — o
+# núcleo comum dos dois juízes, issue #141; importados no topo do arquivo.)
 
-def ler_log(caminho: Path) -> list[Frame]:
-    """Le um log P4 (`{"s","dir","func","addr","data"}`, 1 frame por linha)."""
-    frames: list[Frame] = []
-    with io.open(caminho, encoding="utf-8") as fh:
-        for linha in fh:
-            linha = linha.strip()
-            if not linha:
-                continue
-            try:
-                bruto = json.loads(linha)
-            except json.JSONDecodeError as exc:
-                raise ValueError(f"{caminho.name}: linha nao-JSON ({exc})") from exc
-            faltando = {"dir", "func", "addr", "data"} - bruto.keys()
-            if faltando:
-                raise ValueError(
-                    f"{caminho.name}: linha sem {sorted(faltando)} (schema P4)"
-                )
-            frames.append(
-                Frame(bruto["dir"], bruto["func"], bruto["addr"], bruto["data"])
-            )
-    return frames
-
-
-def _rotulo(endpoint: tuple[str, str, str]) -> str:
-    return f"{endpoint[1]}/{endpoint[2]}"
-
-
-def _encurta(hexa: str) -> str:
-    return hexa if len(hexa) <= 16 else hexa[:16] + "..."
+_rotulo = rotulo_de_endpoint
+_encurta = encurta_hex
 
 
 # ═══════════════════════════════════════════════════════ nivel 3 (formas)

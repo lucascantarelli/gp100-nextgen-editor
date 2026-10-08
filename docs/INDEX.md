@@ -44,7 +44,7 @@
 | Envelope do knob / save / IR no fio | §13.11 / §13.12 / §13.7 | leituras antigas do §13.4 (marcadas) |
 | Estado do projeto / próximos passos | `docs/BLOCKERS.md` + `knowledge.md` (estado vivo) | `docs/CAPTURE_PLAN.md` (histórico) |
 | Números (testes, cobertura, datas dos marcos) | `docs/INDEX.md` §6 | repetir o número em README/ROADMAP/knowledge (#81) |
-| Estrutura do pipeline (jobs, tipos, ordem) | `.github/workflows/ci.yml` + `docs/CONTRIBUTING.md` §5 | workflows pré-#68 (`_validate.yml`/`release.yml`/`container.yml`) — #74 |
+| Estrutura do pipeline (jobs, tipos, ordem) | `.github/workflows/ci.yml` + `docs/CONTRIBUTING.md` §5 | workflow pré-#68 (`_validate.yml`/`release.yml`/`container.yml`) — **consolidados no #68; não existem mais** |
 | Mapa knob→fio | `analysis/knob_map.json` (regenerável) | — |
 | Decisões de implementação do core | `docs/DECISIONS.md` (ADR-1..12) | reabrir debate ad-hoc |
 | Armadilhas Windows/ambiente | `knowledge.md` | — |
@@ -65,8 +65,8 @@
 | `CONTRIBUTING.md` | Fluxo de contribuição: GitFlow (develop como integração), conventional commits, gates locais por área (coverage 85% incluso), template de PR e fechamento automático de issue no merge em develop (job `Fechamento · issues` do ci.yml; a `main` só recebe o SHA de uma tag `v*`) | ✅ atual |
 | `UI_PLAN.md` | Planejamento issue-a-issue da Fase M1 (Editor UI Tauri/React): escopo, arquitetura DeviceActor, superfície IPC, telas, política de hardware, testes, riscos | 🔨 M1.0 ✅ (ADR-7) · M1.1 ✅ (actor + boot com barra) · M1.2/M1.3 ✅ (palco real + afinador) · V-8 ✅ (#20) · i18n ✅ (#30); M2 planejada (#24–#26) |
 | `UI_REFERENCE.md` | Referência da casca do front: papéis de tela, contratos de estado, **§8 = fonte de verdade do texto de usuário** (o lint de i18n aponta para cá) | ✅ atual (M1.3) |
-| `UI_TEST_PLAN.md` | **Fonte dos roteiros e2e** (declarada no `playwright.config.ts`): R1–R6 + drum/looper, matriz de viewports, política de baselines | ✅ atual · ⚠️ seção de CI cita o pipeline pré-#68 (#75) |
-| `MANUAL_COVERAGE.md` | Matriz de cobertura do manual oficial V1.8 → requisitos implementados (X1..Xn), com o gate que prova cada um | ✅ atual · ⚠️ seção de CI cita o pipeline pré-#68 (#75) |
+| `UI_TEST_PLAN.md` | **Fonte dos roteiros e2e** (declarada no `playwright.config.ts`): R1–R6 + drum/looper, matriz de viewports, política de baselines | ✅ atual |
+| `MANUAL_COVERAGE.md` | Matriz de cobertura do manual oficial V1.8 → requisitos implementados (X1..Xn), com o gate que prova cada um | ✅ atual |
 | `UI_DESIGN.md` | Design system da UI: paleta palco Valeton (âmbar/preto/vermelho/lavanda com rácios WCAG medidos), escala de Fibonacci, tipografia, motion, identidade "pedalboard ao vivo", checklist de review | ✅ atual (M1.0) |
 | `ARCHITECTURE.md` | **Estrutura do front** (#82): mapa de módulos (`ipc`/`hooks`/`components`/`design`/…), o que **não** entra em cada camada, árvore de decisão para código novo e o orçamento de tamanho cobrado pelo gate `check_module_size.py` | ✅ atual (#82) |
 | `H1_CHECKLIST.md` | Checklist operacional do gate H1 (primeiro contato real, só leitura): pré-requisitos, procedimento de campo, níveis de comparação (framing × estado × estrutural), log de divergência, fluxo R3 | ⏳ aguardando pedaleira + owner — RealDevice ✅, kit de campo ✅ e Fase C automatizada (`h1_compare.py`) |
@@ -77,6 +77,7 @@
 | `packages/library/` | **Biblioteca persistente** (#26, ADR-9): SQLite com migracoes versionadas (`PRAGMA user_version`), busca por nome/nº/estilo, import/export JSON versionado e seed dos 99 presets de fabrica do `all.prst`. Crate do workspace gnu, sem Tauri | ✅ novo (#26) |
 | `H3_CHECKLIST.md` | Checklist operacional do gate H3 (congelamento da especificação): as 4 sessões que tiram o golden do Suite e põem o golden do gp100-core, o que fazer quando o juiz acusa endereço fora da spec, e por que a prova de save foi de 77 para 14 | ⏳ aguardando pedaleira + owner — maquinaria ✅ (normalizador, juiz, baseline versionada, `--log` com relógio) |
 | `skills_audit_2026-09-29.md` | Auditoria das skills: regras que eram prática implícita, agora escritas (5 achados em core-dev/docs-sync/spec-baseline) | ✅ atual |
+| `audit_2026-10-07.md` | **Auditoria completa (07/10)**: code review + governança + arquitetura + limpeza em todo o repo, com números remediados, achados F-01…F-12 e backlog A-1…A-10 (desfecho na §10) | ✅ atual (desfecho 08/10) |
 | `INDEX.md` | Este índice | ✅ manter atualizado |
 | `analysis/wirelog.py` · `analysis/baseline.py` · `analysis/validate_core_capture.py` | O trilho do H3: normalizador dos dois schemas de log de fio · baseline versionada (versão + hash + motivo + histórico) · juiz frame a frame de uma captura do gp100-core contra a spec | ✅ (`analysis/baseline.py show`) |
 
@@ -118,7 +119,10 @@ Instaladores, firmware V2.1, manual, driver, DebugView, screenshots,
 | `make_sdist.py` | Tarball de fonte com o `ui/dist` embutido — insumo do PKGBUILD | `Distribuição · tarball de fonte` |
 | `sync_version.py` | Os 5 manifests de versão em sincronia (`--check` é o gate) | `Lint · contratos do pipeline` |
 | `check_deadcode.py` | Todo `export` de `src/` tem consumidor fora do arquivo — cobertura 100% não prova que o contrato é consumível (#78) | `Lint · UI` |
+| `check_module_size.py` | Orçamento de tamanho do front (`App.tsx` < 300 linhas; teto do §4 do `docs/ARCHITECTURE.md`) | gate local (`gates.py`) · `Lint · UI` |
 | `add_cargo_path.ps1` / `h1_field.sh` / `h1_compare.py` | Fix do PATH do cargo (HKLM) · runbook do gate H1 · juiz da Fase C do H1 (níveis 1/2/3 + tabela do §5; `--self-check` é gate na CI) | local / campo |
+| `h2_field.sh` / `h2_compare.py` | Runbook do gate H2 (escrita) · juiz da transcrição do H2 contra a referência de escrita (#22; é gate em `gates.py`) | local / campo |
+| `wirelog_compare.py` | **Núcleo comum dos juízes H1/H2** (#141): o `Frame` do schema P4, o parser e os helpers de tabela — uma implementação só para os dois juízes não divergirem em silêncio | importado pelos juízes + pytest |
 
 ### Raiz do repo — governança
 `LICENSE` (MIT — declarado no `Cargo.toml` e no `PKGBUILD`),
@@ -135,7 +139,11 @@ Instaladores, firmware V2.1, manual, driver, DebugView, screenshots,
 (`protocol-validate`, `proxy-build`, `capture-analyze`) · **governança**
 (`spec-baseline`, `docs-sync`).
 
-⚠️ As skills `rust-practices`, `ui-ux-practices`, `core-dev` e `github-flow` ainda descrevem o pipeline **pré-#68** (`_validate.yml`, `release.yml`, `container.yml`, `front-gate`, `close-linked`, label `ci-lite`) — issue #74 aberta. Tratar a skill como fonte de regra **e** conferir o `ci.yml` antes de agir.
+✅ As skills do pipeline já falam o **#68**: `rust-practices`, `ui-ux-practices`,
+`core-dev` e `github-flow` citam o `ci.yml`, e o `github-flow` menciona a label
+`ci-lite` só para registrar que foi **abolida**. A dívida apontada na auditoria de
+03/10 (#74) está **paga** — conferido na auditoria de 07/10
+([`audit_2026-10-07.md`](audit_2026-10-07.md) F-03).
 
 ### `packaging/` — recipes de pacote fora do Tauri
 `packaging/arch/PKGBUILD` + `packaging/arch/gp100-nextgen-editor.desktop` (#29 / REL-ARCH).
