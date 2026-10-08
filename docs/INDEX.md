@@ -118,7 +118,9 @@ Instaladores, firmware V2.1, manual, driver, DebugView, screenshots,
 | `make_sdist.py` | Tarball de fonte com o `ui/dist` embutido — insumo do PKGBUILD | `Distribuição · tarball de fonte` |
 | `sync_version.py` | Os 5 manifests de versão em sincronia (`--check` é o gate) | `Lint · contratos do pipeline` |
 | `check_deadcode.py` | Todo `export` de `src/` tem consumidor fora do arquivo — cobertura 100% não prova que o contrato é consumível (#78) | `Lint · UI` |
+| `check_module_size.py` | Orçamento de tamanho do front (`App.tsx` < 300 linhas; teto do §4 do `docs/ARCHITECTURE.md`) | gate local (`gates.py`) · `Lint · UI` |
 | `add_cargo_path.ps1` / `h1_field.sh` / `h1_compare.py` | Fix do PATH do cargo (HKLM) · runbook do gate H1 · juiz da Fase C do H1 (níveis 1/2/3 + tabela do §5; `--self-check` é gate na CI) | local / campo |
+| `h2_field.sh` / `h2_compare.py` | Runbook do gate H2 (escrita) · juiz da transcrição do H2 contra a referência de escrita (#22; é gate em `gates.py`) | local / campo |
 
 ### Raiz do repo — governança
 `LICENSE` (MIT — declarado no `Cargo.toml` e no `PKGBUILD`),
