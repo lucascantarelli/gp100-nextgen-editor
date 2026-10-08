@@ -194,10 +194,15 @@ fn shape_err(expected: &str, got: &str) -> ProtocolError {
 }
 
 /// Biblioteca de presets do arquivo (o flight case da UI).
+///
+/// **`ppID` é DECIMAL** (o índice 0-based do arquivo: `'0'..'98'`), o mesmo
+/// espaço do fio (banco/slot, `session::pp_e_valido`). Interpretá-lo como
+/// hex — como se fazia — só coincidia em `'0'..'9'`: o preset `"10"`
+/// saía como `0x10` e o fio não tem esse pp (issue #156).
 pub fn preset_list(doc: &Document) -> Vec<PresetEntry> {
     doc.presets()
         .filter_map(|p| {
-            let pp = p.pp_id().and_then(|s| u16::from_str_radix(s, 16).ok())?;
+            let pp = p.pp_id().and_then(|s| s.parse::<u16>().ok())?;
             Some(PresetEntry {
                 pp,
                 name: p.pp_name().unwrap_or("").to_string(),
@@ -224,7 +229,7 @@ pub fn board_view_for(
             .ok_or_else(|| shape_err("preset no arquivo", "nenhum"))?,
         Some(target) => doc
             .presets()
-            .find(|p| p.pp_id().and_then(|s| u16::from_str_radix(s, 16).ok()) == Some(target))
+            .find(|p| p.pp_id().and_then(|s| s.parse::<u16>().ok()) == Some(target))
             .ok_or_else(|| shape_err(&format!("preset {target:#06x}"), "não encontrado"))?,
     };
 
@@ -279,11 +284,7 @@ pub fn board_view_for(
     slots.sort_by_key(|s| s.slot);
 
     Ok(BoardView {
-        pp: pp.unwrap_or_else(|| {
-            pv.pp_id()
-                .and_then(|s| u16::from_str_radix(s, 16).ok())
-                .unwrap_or(0)
-        }),
+        pp: pp.unwrap_or_else(|| pv.pp_id().and_then(|s| s.parse::<u16>().ok()).unwrap_or(0)),
         name: pv.pp_name().unwrap_or("").to_string(),
         pp_type: pv.pp_type().and_then(|s| s.parse().ok()).unwrap_or(4),
         pp_type_name: pv.pp_type_name().unwrap_or("").to_string(),

@@ -86,7 +86,8 @@ pub struct MockState {
 
 impl MockState {
     /// Carrega o estado de `all.prst` (embedado). O pp corrente inicial é o
-    /// do 1º preset (`ppID` hex); os ppIRCRC de fábrica povoam os 20 slots.
+    /// do 1º preset (`ppID` decimal = índice 0-based, o mesmo espaço do
+    /// fio); os ppIRCRC de fábrica povoam os 20 slots.
     ///
     /// # Erros
     /// [`ProtocolError::InvalidShape`] se o `.prst` embedado não parseia ou
@@ -112,8 +113,8 @@ impl MockState {
             .ok_or_else(|| shape_err("preset no all.prst", "nenhum"))?;
         let current_pp = first
             .pp_id()
-            .and_then(|s| u16::from_str_radix(s, 16).ok())
-            .ok_or_else(|| shape_err("ppID hex no 1º preset", "ausente"))?;
+            .and_then(|s| s.parse::<u16>().ok())
+            .ok_or_else(|| shape_err("ppID numerico no 1º preset", "ausente"))?;
         Ok(Self {
             preset_count: doc.presets().count(),
             current_pp,
@@ -615,10 +616,13 @@ impl MockDevice {
                                 } else if i == 1 && count == 1 {
                                     vec![0] // PG 0 da abertura
                                 } else {
-                                    // vars de página não observadas no boot
-                                    // capturado — zeros (shape correto; o
-                                    // conteúdo não é evidência)
-                                    vec![0u8; count]
+                                    // O exemplo congelado do golden É o
+                                    // conteúdo real — é o mesmo caminho dos
+                                    // reqs de página. O corpo do `open` é a
+                                    // pg0, onde mora o NOME do preset (#155);
+                                    // zeros aqui deixavam `preset_pages::nome`
+                                    // sem o que ler e derrubavam o palco.
+                                    example_var(tpl_page, Some(196), i, count)
                                 }
                             })
                             .map_err(|e: ProtocolError| {

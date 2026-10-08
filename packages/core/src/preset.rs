@@ -587,16 +587,14 @@ impl Document {
                 c.name == "presets"
                     && match pp {
                         None => true,
-                        Some(t) => {
-                            c.attr("ppID").and_then(|s| u16::from_str_radix(s, 16).ok()) == Some(t)
-                        }
+                        Some(t) => c.attr("ppID").and_then(|s| s.parse::<u16>().ok()) == Some(t),
                     }
             })
             .ok_or_else(|| {
                 shape(
                     match pp {
                         None => "documento com pelo menos um <presets>".to_string(),
-                        Some(t) => format!("<presets> com ppID {t:#06x}"),
+                        Some(t) => format!("<presets> com ppID {t}"),
                     },
                     "nenhum bloco corresponde",
                 )

@@ -5,7 +5,7 @@
 //! byte real (`04 09` → `0x49` = `I`). A varredura que a #155 pedia — offsets
 //! crus 0..28 × comprimentos 6/10/12 — procura o nome em bytes que nunca
 //! foram o nome. Decodificado, o nome está na **pg0, offset 2, em 198/198**
-//! (`00 00 | nome[16, pad NUL] | …`).
+//! (`00 00 | nome[12, pad NUL] | …`).
 //!
 //! **Módulo puro, sem fio e sem `Session`** — é assim que o dataset inteiro
 //! (1.782 páginas de `analysis/fixtures/boot.jsonl`) é testado sem hardware,

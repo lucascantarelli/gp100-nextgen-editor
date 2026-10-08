@@ -333,17 +333,19 @@ fn mesmo_valor(a: &str, b: &str) -> bool {
 
 /// O `BoardView` produzido do ARTEFATO — o ground truth.
 ///
-/// **Por que a conversão:** `board_view_for` casa `pp` contra `ppID` com
-/// `u16::from_str_radix(s, 16)` (a mesma expressão de `apenas_preset`, ver
-/// `preset.rs:575`). O `ppID` do arquivo vem como string decimal do índice
-/// (`"0"`..`"98"`), então o alvo que ele entende NAO e o pp do aparelho: para
-/// o índice 10 o alvo e `from_str_radix("10", 16)` = `0x10`, e o pp do
-/// aparelho e `0x000a`. Reaproveito a expressao do proprio repo em vez de
-/// reimplementar a construcao do board — o que se compara aqui e o SLOT, nao
-/// o numero do preset.
+/// **Por que a conversão:** `board_view_for` casa `pp` contra o `ppID`
+/// interpretado como DECIMAL (`parse::<u16>()` — o índice 0-based do
+/// arquivo, o mesmo espaço do fio). A expressão é reaproveitada do próprio
+/// repo em vez de reimplementada, para o que se compara aqui ser o SLOT,
+/// não o número do preset. (Antes da correção do endereçamento, #156, ela
+/// era `from_str_radix(s, 16)` — e só assim a paridade fechava.)
 fn board_de_fabrica(doc: &Document, dict: &Dictionary, idx: usize) -> BoardView {
     let preset = doc.presets().nth(idx).expect("preset existe no all.prst");
-    let alvo = u16::from_str_radix(preset.pp_id().expect("ppID presente"), 16).expect("ppID hex");
+    let alvo = preset
+        .pp_id()
+        .expect("ppID presente")
+        .parse::<u16>()
+        .expect("ppID numérico");
     board_view_for(doc, dict, Some(alvo)).expect("board do all.prst")
 }
 
