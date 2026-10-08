@@ -16,6 +16,28 @@
 //! ímpar, de propósito — mascarar esconderia corrupção). Aqui só se valida a
 //! estrutura da família (tamanho e `PG`) e se traduz o erro para o
 //! diagnóstico com página/offset, que é o que o relatório de campo precisa.
+//!
+//! # Layout da pg0 (medido em 198/198, não inferido)
+//!
+//! Corpo decodificado, 96 bytes:
+//!
+//! | offset | tamanho | conteúdo |
+//!|---|---|---|
+//! | 0..2 | 2B | `pp` em **u16 LE** (0x0000..0x0062 / 0x0100..0x0162) |
+//! | **2..14** | **12B** | **nome ASCII, pad NUL** — [`NOME_LEN`] = 12 |
+//! | 14..32 | 18B | **9 × u16 LE** = cadeia (0 = slot vazio, 1..8 = efeito) |
+//!
+//! **Por que 12 e não 16:** a cadeia começa no offset 14, então um nome de
+//! 14 bytes invadiria os slots. Com 16 o teste estourava com `byte 0x01
+//! depois do NUL no offset 16` — o `01 00` de um preset cuja cadeia começa
+//! por um efeito em posição 0. Os 9 pares vêm **reordenados** por preset
+//! (`05 00 07 00 06 00` — a ordem real da cadeia), não sempre `01..08`.
+//!
+//! **Por que `escape_value` na comparação:** o fio traz `Dub&Vibe` (literal)
+//! e o `.prst` guarda `Dub&amp;Vibe` (o parser mantém o valor BRUTO, ver
+//! `preset.rs`). Comparar bruto contra escapado seria uma divergência
+//! falsa — então a comparação é feita no mesmo espaço com
+//! [`crate::preset::escape_value`], a inversa que o repo já define.
 
 use crate::codec::nibble_collapse;
 use crate::session::StatePage;
@@ -26,6 +48,11 @@ const CORPO_CRU_PG0_7: usize = 192;
 const CORPO_CRU_PG8: usize = 28;
 /// Tamanho do header: `[pp u16BE][00][PG]`.
 const HEADER: usize = 4;
+/// Bytes do nome na pg0 DEPOIS do decode (offset fixo, 198/198).
+const NOME_OFFSET: usize = 2;
+/// Espaço do nome na pg0 (offset 2..14). **12, não 16:** a cadeia de slots
+/// começa no offset 14 (medido em 198/198) — ver o layout no topo do módulo.
+const NOME_LEN: usize = 12;
 
 /// O que o decode recusou. Cada variante vira texto legível — um `Err` sem
 /// motivo não é diagnóstico para quem lê o relatório de campo.
@@ -189,5 +216,54 @@ pub fn decode(paginas: &[StatePage; 9]) -> Result<Paginas, DecodeError> {
     Ok(Paginas { corpos })
 }
 
-// `Paginas::nome()` entra na Task 2, com o teste que primeiro falha — o
-// TDD de cada task exige ver o teste cair antes de existir o método.
+impl Paginas {
+    /// O nome do preset: pg0, offset [`NOME_OFFSET`], [`NOME_LEN`] bytes.
+    ///
+    /// **A regra do pad é a prova.** Depois do primeiro NUL só pode vir NUL —
+    /// aceitar `"AB\0CD"` seria servir um nome truncado para a biblioteca e
+    /// para o DAW, e a falha seria invisível. Os [`NOME_LEN`] bytes têm de ser
+    /// ASCII imprimível (0x20..=0x7E) antes do NUL, e o nome não pode ser
+    /// vazio. O espaço tem 12 bytes porque a cadeia de slots ocupa 14..32 —
+    /// aceitar 16 seria ler os slots como se fossem nome.
+    ///
+    /// # Erros
+    /// [`DecodeError::NomeInvalido`] se o espaço do nome violar a regra.
+    pub fn nome(&self) -> Result<&str, DecodeError> {
+        let pg0 = &self.corpos[0];
+        let espaco = pg0
+            .get(NOME_OFFSET..NOME_OFFSET + NOME_LEN)
+            .ok_or_else(|| DecodeError::NomeInvalido {
+                detalhe: format!(
+                    "pg0 com {}B, nome precisaria de {}",
+                    pg0.len(),
+                    NOME_OFFSET + NOME_LEN
+                ),
+            })?;
+
+        let fim = espaco.iter().position(|&b| b == 0).unwrap_or(NOME_LEN);
+        if fim == 0 {
+            return Err(DecodeError::NomeInvalido {
+                detalhe: "nome vazio".into(),
+            });
+        }
+        for (i, &b) in espaco.iter().enumerate() {
+            if i >= fim {
+                if b != 0 {
+                    return Err(DecodeError::NomeInvalido {
+                        detalhe: format!(
+                            "byte {b:#04x} depois do NUL no offset {}",
+                            NOME_OFFSET + i
+                        ),
+                    });
+                }
+            } else if !(0x20..=0x7E).contains(&b) {
+                return Err(DecodeError::NomeInvalido {
+                    detalhe: format!("byte {b:#04x} nao imprimivel no offset {}", NOME_OFFSET + i),
+                });
+            }
+        }
+        std::str::from_utf8(&espaco[..fim]).map_err(|e| DecodeError::NomeInvalido {
+            detalhe: e.to_string(),
+        })
+    }
+}
