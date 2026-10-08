@@ -121,6 +121,7 @@ Instaladores, firmware V2.1, manual, driver, DebugView, screenshots,
 | `check_module_size.py` | Orçamento de tamanho do front (`App.tsx` < 300 linhas; teto do §4 do `docs/ARCHITECTURE.md`) | gate local (`gates.py`) · `Lint · UI` |
 | `add_cargo_path.ps1` / `h1_field.sh` / `h1_compare.py` | Fix do PATH do cargo (HKLM) · runbook do gate H1 · juiz da Fase C do H1 (níveis 1/2/3 + tabela do §5; `--self-check` é gate na CI) | local / campo |
 | `h2_field.sh` / `h2_compare.py` | Runbook do gate H2 (escrita) · juiz da transcrição do H2 contra a referência de escrita (#22; é gate em `gates.py`) | local / campo |
+| `wirelog_compare.py` | **Núcleo comum dos juízes H1/H2** (#141): o `Frame` do schema P4, o parser e os helpers de tabela — uma implementação só para os dois juízes não divergirem em silêncio | importado pelos juízes + pytest |
 
 ### Raiz do repo — governança
 `LICENSE` (MIT — declarado no `Cargo.toml` e no `PKGBUILD`),
