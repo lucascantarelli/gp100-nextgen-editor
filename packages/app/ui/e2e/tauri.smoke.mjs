@@ -1,7 +1,16 @@
 /**
  * Smoke e2e do shell TAURI REAL (tauri-driver + WebKitWebDriver no Linux CI).
  * Prova que a casca sobe no WEBVIEW (não só no browser): binário gp100-ui
- * debug (backend mock) → tauri-driver :4444 → Selenium.
+ * debug (build SEM aparelho — #150: o app nunca monta mock) → tauri-driver
+ * :4444 → Selenium.
+ *
+ * **(#150) o objeto do smoke é o estado HONESTO sem aparelho:** painéis no
+ * ar, aba "Patches" VAZIA com o aviso de conexão (nunca uma lista de fábrica
+ * embutida), falha de boot virando alerta amigável e o ⟳ recuperável. O
+ * cenário DeviceGone do #48 (device morto NO MEIO do boot via
+ * `GP100_DEBUG_FAULT`) não existe mais aqui: esse env só é lido pelo
+ * MockDevice, que deixou de ser montado pelo app — a mesma asserção de
+ * recuperação é exercida pela falha imediata de boot sem sessão.
  *
  * ⚠️ BUILD DEBUG CARREGA O `devUrl` (http://localhost:5173) — o dist embutido
  * só é usado em release. Por isso o job serve o dist de produção ali
@@ -15,15 +24,8 @@
  *
  * Uso local/CI (após `cargo build -p gp100-ui` em packages/app/api):
  *   APP_PATH=/caminho/gp100-ui node e2e/tauri.smoke.mjs
- * Saída: exit 0 = casca bootou no webview e renderizou os painéis.
- *
- * Cobre TAMBÉM o DeviceGone PONTA-A-PONTA (#48): o driver sobe com
- * `GP100_DEBUG_FAULT=die-after:60` (lido pelo backend MOCK do gp100-ui) — o
- * device MORRE na transação 61, no MEIO do boot do mount — e a UI tem que
- * mostrar o alerta amigável, derrubar o LED, sumir com a barra de progresso e
- * manter o retry (⟳) operável. O boot saudável (2297 transações) NÃO é
- * esperado aqui: no webview do CI os 2297 eventos de progresso levam ~65 s
- * (medição da run 36999196897) e o objeto do smoke é a recuperação.
+ * Saída: exit 0 = casca bootou no webview, renderizou os painéis e contou o
+ * estado sem aparelho com honestidade.
  */
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
@@ -95,16 +97,11 @@ async function waitForPort(port, tries = 40) {
 const application = resolveAppBinary();
 console.log(`▸ shell: ${application}`);
 
-/* #48 — cenário do USB removido NO MEIO da sessão (DeviceGone ponta-a-ponta).
- * O backend MOCK do gp100-ui lê `GP100_DEBUG_FAULT=die-after:<n>` no boot do
- * processo (packages/app/api/src/lib.rs): depois de n transmissões o
- * transporte "cai". `die-after:60` derruba o device na transação 61 (início
- * do scan do boot — 40 da tabela de IRs + 21) e o boot do mount morre no
- * meio. O app herda o env pelo tauri-driver (wrapper → WebKitWebDriver →
- * app); valor malformado = mock saudável e o transporte REAL nunca lê este
- * gancho (ADR-4/5 intocados). */
-const DEBUG_FAULT = "die-after:60";
-console.log(`▸ fault armado no mock: GP100_DEBUG_FAULT=${DEBUG_FAULT}`);
+/* #150 — build SEM aparelho: o app não monta mock, então o boot falha (actor
+ * sem sessão) e a UI tem que mostrar o alerta amigável, derrubar o LED, sumir
+ * com a barra de progresso e manter o retry (⟳) operável. O boot saudável
+ * (2297 transações) NÃO é esperado aqui: no webview do CI ele levaria ~65 s
+ * (medição da run 36999196897) e o objeto do smoke é a recuperação. */
 
 // tauri-driver (wrapper) — PATH primeiro (imagem de CI), ~/.cargo/bin como
 // fallback (cargo install do runner hospedado / host local).
@@ -112,7 +109,7 @@ const driverBin = resolveTauriDriver();
 console.log(`▸ driver: ${driverBin}`);
 const tauriDriver = spawn(driverBin, [], {
   stdio: ["ignore", "inherit", "inherit"],
-  env: { ...process.env, GP100_DEBUG_FAULT: DEBUG_FAULT },
+  env: process.env,
 });
 let exiting = false;
 tauriDriver.on("exit", (code) => {
@@ -163,25 +160,31 @@ try {
   for (const [label, sel] of [
     ["board", '[aria-label="Pedalboard (9 lugares da cadeia)"]'],
     ["looper", '[aria-label="Looper (máquina de fita)"]'],
-    ["biblioteca", '[aria-label="Biblioteca de presets"]'],
+    ["biblioteca", '[aria-label="Patches do aparelho"]'],
   ]) {
     await driver.findElement(By.css(sel)); // lança se não existir
     console.log(`  ✓ painel ${label} renderizado no webview`);
   }
 
-  // 4. biblioteca REAL (artefato do all.prst) chega inteira ao webview
+  // 4. (#150) sem aparelho o webview NÃO serve lista de fábrica: a aba
+  // "Patches" fica vazia e o aviso honesto de conexão assume o lugar.
   const options = await driver.findElements(By.css('[role="option"]'));
-  if (options.length !== 99) throw new Error(`biblioteca com ${options.length} opções (esperado 99)`);
-  console.log("  ✓ biblioteca com os 99 presets de fábrica");
+  if (options.length !== 0) {
+    throw new Error(`biblioteca com ${options.length} opções (esperado 0 — sem aparelho não há lista)`);
+  }
+  await driver.wait(
+    until.elementLocated(By.xpath('//*[contains(., "Aparelho não conectado")]')),
+    20_000,
+  );
+  console.log("  ✓ sem aparelho: lista vazia + aviso honesto no webview");
 
-  // 5. #48 — DeviceGone PONTA-A-PONTA: o device MORREU NO MEIO do boot do
-  // mount (die-after:60, ver topo). A UI tem que mostrar o alerta AMIGÁVEL
-  // (MSG.connBootError — nunca o detalhe técnico do transporte).
+  // 5. (#150) boot SEM aparelho falha → alerta AMIGÁVEL (MSG.connBootError —
+  // nunca o detalhe técnico do transporte Rust).
   const bootAlert = By.xpath('//*[@role="alert" and contains(., "Falha no boot do device")]');
   await driver.wait(until.elementLocated(bootAlert), 60_000);
-  console.log("  ✓ device morto no meio do boot: alerta amigável no webview");
+  console.log("  ✓ boot sem aparelho: alerta amigável no webview");
 
-  // XPath negativo: o alerta NÃO pode vazar o detalhe do MockFault/transporte
+  // XPath negativo: o alerta NÃO pode vazar o detalhe do transporte
   // (o texto técnico mora no Rust; a UI mostra só a mensagem do catálogo).
   const leak = By.xpath(
     '//*[@role="alert" and (contains(., "MockFault") or contains(., "die-after"))]',
