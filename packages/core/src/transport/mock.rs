@@ -540,6 +540,18 @@ impl MockDevice {
                         .map(|s| s.to_vec())
                         .unwrap_or_else(|| self.state.current_pp.to_be_bytes().to_vec());
                     let requested_pg = payload.get(3).copied();
+                    // A página 8 — resposta ao req PG 7 — mede 32B na
+                    // captura real (4B header + 28B de nibbles = 14
+                    // decodificados); as outras 8 medem 196B (4B + 192B).
+                    // O golden aceita os dois (`lens: [32, 196]` em
+                    // `13010003`), então servir 196B em tudo passava
+                    // silenciosamente: o shape batia por forma e só o
+                    // `decode` das páginas (§13.10) acusava, como 9 páginas
+                    // de 196B onde o aparelho manda 8+1.
+                    let desired = match requested_pg {
+                        Some(7) => Some(32),
+                        _ => desired,
+                    };
                     let is_page =
                         matches!(addr, [0x13, 0x01, 0x00, 0x04] | [0x13, 0x02, 0x00, 0x04]);
                     // PG 8 (§13.10): a resposta NÃO é página 196B — é 4B em

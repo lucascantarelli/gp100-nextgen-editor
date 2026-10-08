@@ -122,3 +122,61 @@ fn progresso_carrega_pp_corrente() {
     let names = seen_names.expect("há beats de nomes (T3)");
     assert_eq!(names.current_pp, 0x0162);
 }
+
+/// **Ponta a ponta pelo caminho REAL do boot: fio → cache → decode.**
+///
+/// O `boot()` tem de deixar as 9 páginas de cada pp no cache no SHAPE do
+/// fio (196B nas 8 primeiras, 32B na 8ª) e no ÍNDICE certo (`raw[3]` =
+/// 0..8), de modo que `preset_pages::decode` aceite as 198. É o contrato
+/// que a UI consome (`device_board`, `device_preset_library`, nome do pp
+/// corrente) — o teste `nome_bate_com_o_all_prst_em_198_de_198` prova o
+/// CONTEÚDO sobre a captura real; aqui prova-se o caminho.
+///
+/// Por que o conteúdo não é checado aqui: o `MockDevice` é simulador de
+/// SHAPE e não de conteúdo — o corpo do `open` é preenchido com zeros por
+/// design (`mock.rs`: "vars de página não observadas no boot capturado —
+/// zeros; o conteúdo não é evidência"). Checar o nome contra o `all.prst`
+/// sobre o mock seria esperar evidência que ele nem tenta servir.
+#[test]
+fn scan_preenche_cache_no_shape_do_fio_ponta_a_ponta() {
+    let mut mock = MockDevice::new().expect("mock");
+    mock.open().expect("open");
+    let mut session = Session::new(&mut mock);
+    session.boot().expect("boot completo");
+
+    let pps = session.cached_pps();
+    assert_eq!(pps.len(), 198, "as 198 páginas de cada pp do inventário");
+
+    let mut ok = 0usize;
+    for pp in &pps {
+        let pags = session
+            .preset_state(*pp)
+            .unwrap_or_else(|| panic!("pp {pp:#06x} sem cache após o boot"));
+
+        // SHAPE do fio: 8 páginas de 196B (4B header + 192B) e a 8ª de
+        // 32B (4B + 28B) — é o comprimento da captura real, §13.10.
+        for (i, p) in pags.iter().enumerate().take(8) {
+            assert_eq!(p.raw.len(), 196, "pp {pp:#06x} pg {i}");
+        }
+        assert_eq!(pags[8].raw.len(), 32, "pp {pp:#06x} pg 8 (32B)");
+
+        // ÍNDICE pelo payload: `raw[3]` é o número da página (§13.10),
+        // 0..8 — não a posição do pedido (o `open` entrega a 0).
+        for (i, p) in pags.iter().enumerate() {
+            assert_eq!(
+                p.raw[3], i as u8,
+                "pp {pp:#06x} slot {i}: raw[3] deve ser {i} (veio {})",
+                p.raw[3]
+            );
+        }
+
+        let dec =
+            gp100_core::preset_pages::decode(pags).unwrap_or_else(|e| panic!("pp {pp:#06x}: {e}"));
+        for i in 0..8usize {
+            assert_eq!(dec.corpo(i).len(), 96, "pp {pp:#06x} pg {i} decodificado");
+        }
+        assert_eq!(dec.corpo(8).len(), 14, "pp {pp:#06x} pg 8 decodificado");
+        ok += 1;
+    }
+    assert_eq!(ok, 198, "198/198 pelo caminho do boot");
+}
