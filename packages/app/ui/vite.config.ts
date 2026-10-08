@@ -12,6 +12,14 @@ export default defineConfig({
   build: { target: "es2022", outDir: "dist" },
   test: {
     environment: "jsdom",
+    /* POOL vmThreads (#145, F-10): o pool padrão pagava um processo novo por
+     * arquivo — a suíte de 38 arquivos criava o jsdom 38 vezes (113s de
+     * ambiente, 39% do tempo rastreado). vmThreads cria o ambiente UMA vez
+     * por worker reaproveitando o contexto V8, mantendo o ISOLAMENTO por
+     * arquivo (o vitest é quem recomenda esta rota; `isolate: false` também
+     * resolve o tempo mas dividi o ambiente entre arquivos — não quisemos
+     * isso). Medição antes/depois no docs/INDEX.md §6. */
+    pool: "vmThreads",
     include: ["tests/**/*.test.{ts,tsx}"],
     /* 15s: sob instrumentação de coverage o mount do App (99 presets +
      * boot simulado em lotes) passa de 5s — piso para o gate não piscar. */
