@@ -159,3 +159,151 @@ fn nome_bate_com_o_all_prst_em_198_de_198() {
     }
     assert_eq!(ok, 198, "todos os 198 pps decodificaram o nome certo");
 }
+
+// ---------------------------------------------------------------------------
+// Prova-negativa: o decode tem de RECUSAR onde não deve.
+//
+// Sem isto, os 3 testes acima só provam que o caminho feliz funciona. Um
+// parser que aceita qualquer coisa também passaria neles.
+// ---------------------------------------------------------------------------
+
+/// Monta um `StatePage` no formato real: 4B header `[pp][00][00][PG]` + corpo.
+fn pagina_sintetica(idx: u8, corpo_decodificado: &[u8]) -> StatePage {
+    let mut raw = vec![0x00, 0x00, 0x00, idx];
+    for &b in corpo_decodificado {
+        raw.push(b >> 4); // nibble-expande: o fio guarda pares
+        raw.push(b & 0x0F);
+    }
+    StatePage { raw }
+}
+
+/// 9 páginas estruturalmente válidas com corpos nos tamanhos REAIS
+/// (192B cru = 96B decodificados nas 0..7; 28B cru = 14B na 8).
+fn nove_paginas_validas() -> [StatePage; 9] {
+    std::array::from_fn(|i| {
+        let dec = vec![0u8; if i < 8 { 96 } else { 14 }];
+        pagina_sintetica(i as u8, &dec)
+    })
+}
+
+#[test]
+fn recusa_tamanho_errado() {
+    let mut pags = nove_paginas_validas();
+    pags[3].raw.pop();
+    let e = gp100_core::preset_pages::decode(&pags).expect_err("195B não é 196B");
+    assert!(
+        matches!(
+            e,
+            gp100_core::preset_pages::DecodeError::TamanhoInesperado { pagina: 3, .. }
+        ),
+        "{e}"
+    );
+}
+
+#[test]
+fn recusa_pagina_fora_de_ordem() {
+    let mut pags = nove_paginas_validas();
+    pags[5].raw[3] = 7; // o header diz 7, a posição é 5
+    let e = gp100_core::preset_pages::decode(&pags).expect_err("PG fora de ordem");
+    assert!(
+        matches!(
+            e,
+            gp100_core::preset_pages::DecodeError::PaginaForaDeOrdem {
+                esperada: 5,
+                achada: 7
+            }
+        ),
+        "{e}"
+    );
+}
+
+#[test]
+fn recusa_byte_que_nao_e_nibble() {
+    let mut pags = nove_paginas_validas();
+    pags[2].raw[4] = 0xA5; // primeiro byte do corpo cru
+    let e = gp100_core::preset_pages::decode(&pags).expect_err("0xA5 não é nibble");
+    assert!(
+        matches!(
+            e,
+            gp100_core::preset_pages::DecodeError::NibbleInvalido {
+                pagina: 2,
+                offset: 0,
+                got: 0xA5
+            }
+        ),
+        "{e}"
+    );
+}
+
+/// **Review Focus 2:** o nome não pode ser truncado no primeiro NUL.
+#[test]
+fn recusa_nome_com_nul_interno() {
+    // pg0 decodificada: pp 00 00 | "AB\0CD" + pad NUL | cadeia de zeros.
+    let mut dec = vec![0u8; 96];
+    dec[0] = 0;
+    dec[1] = 0;
+    dec[2] = b'A';
+    dec[3] = b'B';
+    dec[4] = 0; // primeiro NUL = fim do nome
+    dec[5] = b'C'; // ...mas tem lixo DEPOIS dele
+    dec[6] = b'D';
+
+    let mut pags = nove_paginas_validas();
+    pags[0] = pagina_sintetica(0, &dec);
+    let pag = gp100_core::preset_pages::decode(&pags).expect("estrutura válida");
+    let e = pag.nome().expect_err("tem NUL interno com lixo");
+    assert!(
+        matches!(
+            e,
+            gp100_core::preset_pages::DecodeError::NomeInvalido { .. }
+        ),
+        "{e}"
+    );
+}
+
+#[test]
+fn recusa_nome_vazio() {
+    let dec = vec![0u8; 96]; // pp 00 00, nome todo NUL
+    let mut pags = nove_paginas_validas();
+    pags[0] = pagina_sintetica(0, &dec);
+    let pag = gp100_core::preset_pages::decode(&pags).expect("estrutura válida");
+    let e = pag.nome().expect_err("nome vazio");
+    assert!(
+        matches!(
+            e,
+            gp100_core::preset_pages::DecodeError::NomeInvalido { .. }
+        ),
+        "{e}"
+    );
+}
+
+#[test]
+fn recusa_nome_com_byte_nao_imprimivel() {
+    let mut dec = vec![0u8; 96];
+    dec[2] = b'"'; // 0x22 é imprimível... use um que não é
+    dec[3] = 0x07; // BEL — não é 0x20..=0x7E
+    let mut pags = nove_paginas_validas();
+    pags[0] = pagina_sintetica(0, &dec);
+    let pag = gp100_core::preset_pages::decode(&pags).expect("estrutura válida");
+    let e = pag.nome().expect_err("0x07 não é imprimível");
+    assert!(
+        matches!(
+            e,
+            gp100_core::preset_pages::DecodeError::NomeInvalido { .. }
+        ),
+        "{e}"
+    );
+}
+
+#[test]
+fn aceita_nome_com_pad_nul_normal() {
+    let mut dec = vec![0u8; 96];
+    let nome = b"Blink OD";
+    dec[..2].copy_from_slice(&[0x01, 0x00]); // pp
+    dec[2..2 + nome.len()].copy_from_slice(nome);
+    // o resto de 2..14 já é NUL (pad) — e a cadeia 14..32 é zeros = vazia
+    let mut pags = nove_paginas_validas();
+    pags[0] = pagina_sintetica(0, &dec);
+    let pag = gp100_core::preset_pages::decode(&pags).expect("estrutura válida");
+    assert_eq!(pag.nome().expect("válido"), "Blink OD");
+}

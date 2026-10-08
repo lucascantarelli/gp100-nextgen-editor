@@ -90,13 +90,6 @@ pub enum DecodeError {
         got: u8,
     },
 
-    /// Corpo com número ímpar de bytes — não fecha em pares.
-    #[error("pagina {pagina}: corpo com tamanho ímpar")]
-    ParImpar {
-        /// Página 0..=8.
-        pagina: u8,
-    },
-
     /// O nome não é ASCII imprimível com pad NUL.
     #[error("nome invalido: {detalhe}")]
     NomeInvalido {
@@ -161,22 +154,30 @@ fn primeiro_byte_ruim(cru: &[u8]) -> Option<(usize, u8)> {
 /// Nibble-decodifica um corpo cru, reusando a primitiva strict do repo.
 ///
 /// # Erros
-/// [`DecodeError::ParImpar`] ou [`DecodeError::NibbleInvalido`] — com a
-/// página e o offset preenchidos, que é o que a primitiva não dá.
+/// [`DecodeError::NibbleInvalido`] com página e offset preenchidos — que é o
+/// que [`crate::codec::nibble_collapse`] não dá (ele devolve `InvalidShape`
+/// sem posição, e "par 06 a5" sem página/offset não serve para achar o que
+/// corrompeu).
+///
+/// **Não existe `ParImpar` aqui de propósito.** `decode` só chama esta função
+/// depois de validar `raw.len() == HEADER + 192` (ou `+ 28`) — ambos pares —
+/// então um corpo ímpar é inalcançável por esta API. Uma variante de erro que
+/// nenhum input alcança seria código que mente. Quem recusa comprimento ímpar
+/// é o `nibble_collapse` do repo, testado em `tests/codec_wire.rs`.
 fn decodifica_corpo(pagina: u8, cru: &[u8]) -> Result<Vec<u8>, DecodeError> {
-    if !cru.len().is_multiple_of(2) {
-        return Err(DecodeError::ParImpar { pagina });
-    }
-    nibble_collapse(cru).map_err(|e| match primeiro_byte_ruim(cru) {
+    nibble_collapse(cru).map_err(|_| match primeiro_byte_ruim(cru) {
         Some((offset, got)) => DecodeError::NibbleInvalido {
             pagina,
             offset,
             got,
         },
-        // Só pode ser a forma do erro mudar (o comprimento já foi checado):
-        // nesse caso o erro do repo é mais honesto do que inventar aqui.
-        None => DecodeError::NomeInvalido {
-            detalhe: e.to_string(),
+        // Só sobra comprimento ímpar (o único outro motivo do repo recusar).
+        // Inalcançável por `decode` — ver o doc acima — mas traduz o motivo em
+        // vez de engolir o erro num rótulo errado como antes (`NomeInvalido`).
+        None => DecodeError::TamanhoInesperado {
+            pagina,
+            esperado: cru.len().next_multiple_of(2),
+            got: cru.len(),
         },
     })
 }
@@ -184,8 +185,8 @@ fn decodifica_corpo(pagina: u8, cru: &[u8]) -> Result<Vec<u8>, DecodeError> {
 /// O caminho único entre 9 frames do fio e o domínio [`Paginas`].
 ///
 /// # Erros
-/// [`DecodeError`] — tamanho fora da família, `PG` fora de ordem, corpo que
-/// não fecha em pares ou byte que não é nibble. **Nenhuma dessas falhas é
+/// [`DecodeError`] — tamanho fora da família ou `PG` fora de ordem na
+/// estrutura; byte que não é nibble no corpo. **Nenhuma dessas falhas é
 /// "melhor esforço"**: entregar corpo sem decode seria entregar lixo.
 pub fn decode(paginas: &[StatePage; 9]) -> Result<Paginas, DecodeError> {
     let mut corpos: [Vec<u8>; 9] = Default::default();
