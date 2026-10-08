@@ -69,4 +69,9 @@ analysis/h2_scratch_test/
 packages/app/ui/node_modules/
 packages/app/ui/dist/
 packages/app/ui/coverage/
+# Saídas do Playwright (nascem na falha do e2e; nunca versionar). Já cobertas
+# por packages/app/ui/.gitignore dentro do pacote; a raiz aqui é defesa para
+# quem rodar a suíte de fora — #144 (F-08).
+packages/app/ui/test-results/
+packages/app/ui/playwright-report/
 *.tsbuildinfo
