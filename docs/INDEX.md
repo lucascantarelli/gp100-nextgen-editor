@@ -175,6 +175,10 @@ O Tauri não gera pacote Arch: a unidade de distribuição **é** a receita vers
 > Este bloco é a fonte; qualquer outro lugar aponta para cá em vez de repetir
 > o número (item novo da skill `docs-sync`, issue #81).
 >
+> **Baseline:** os números abaixo são **medidos em `develop`**. Numa branch de feature
+> eles divergem por construção (a branch *adiciona* testes) — divergência em branch **não**
+> é erro deste §6; re-meça em `develop` antes de corrigir (auditoria 07/10, F-11, #146).
+>
 > **Todos os números abaixo foram MEDIDOS em 06/10/2026**, com o comando da
 > própria linha. Nenhum foi herdado de uma revisão anterior — a revisão de 03/10
 > trazia 189 testes de front onde havia 399, e 10 de spec onde havia 81. Se um
@@ -198,15 +202,22 @@ O Tauri não gera pacote Arch: a unidade de distribuição **é** a receita vers
 | **#126** (release) | ✅ **face (A) de leitura**: o `dist-ui` constrói com `--features real-device` (caminho `../ui` corrigido — o step antigo morria antes de compilar, `libasound2-dev` no Linux), a **política de escrita está na tela** (`escritaLiberada()`: knob/IR/SnapTone desabilitados COM O MOTIVO, select liberado por ser `WireKind::Read`) e o **keepalive do boot é omitido com a trava fechada** (ADR-5 rev. 06/10) |
 | **M3** (#116) | ✅ **A/B com blind test** (parte sem aparelho): o par vem do histórico versionado (#113), a troca desenha no palco e manda só os knobs graváveis de slots de mesmo algoritmo (o `0x47` não tem formato capturado — BLOCKERS 10b, e a tela diz), o **nível é POSIÇÃO** com método e limitação impressos ao lado do número, a **calibração** iguala o lado alto ao baixo (medido: delta 40.0 → 0.0) e o **blind** esconde rótulo/versão/nível/relatório até o palpite (o teste de UI prova a AUSÊNCIA). **Medição em campo pendente de aparelho** |
 
-### Contagem de testes (medido 06/10)
+### Contagem de testes (front re-medido em `develop` 08/10; demais em 06/10)
 | Suíte | Comando | Contagem |
 |---|---|---|
-| Unit do front | `pnpm exec vitest run` | **485** em **36** arquivos (485 passando) |
-| Cobertura do front | `pnpm run test:coverage` | **87,99%** stmts · **81,50%** branch · **87,20%** funcs · **90,34%** linhas |
-| E2E (Playwright) | `pnpm exec playwright test --list` | **87** testes em **11** arquivos · **96** baselines |
+| Unit do front | `pnpm exec vitest run` | **513** em **38** arquivos (513 passando) · *08/10* |
+| Cobertura do front | `pnpm run test:coverage` | **87,62%** stmts · **81,25%** branch · **86,78%** funcs · **90,04%** linhas · *08/10* |
+| E2E (Playwright) | `pnpm exec playwright test --list` | **90** testes em **12** arquivos · **96** baselines · *08/10* |
 | Rust (core + cli + library) | `cargo test --workspace` | **309** testes em **36** suítes (34 binários de teste + 2 suites de doc-test) |
 | Spec (pytest) | `.venv/Scripts/python.exe -m pytest` | **92** |
 | Gates locais | `python scripts/gates.py` | **13** |
+
+> ✅ **Tempo da suíte do front (medido 08/10 na mesma base `develop`):**
+> `pnpm exec vitest run` caiu de **84,7s → 52,3s** com `pool: 'vmThreads'` (#145, F-10):
+> o jsdom deixou de ser criado **38× (113,4s = 39% do tempo rastreado)** e passou a ser
+> reaproveitado por worker, mantendo o isolamento por arquivo. Antes e depois com os
+> MESMOS **513 testes em 38 arquivos** (todos verdes) e a cobertura do gate intacta
+> (87,62% ≥ 85%).
 
 > ✅ **A cobertura voltou a imprimir número em 05/10.** Ela vinha sem valor desde
 > a revisão anterior, por uma falha intermitente de `testTimeout` que trocava de
