@@ -40,6 +40,8 @@
 //! [`crate::preset::escape_value`], a inversa que o repo já define.
 
 use crate::codec::nibble_collapse;
+use crate::model::{ControlKind, Dictionary};
+use crate::pedalboard::{archetype_of, family_of, slug, BoardView, KnobSpec, SlotSpec};
 use crate::session::StatePage;
 
 /// Tamanho do corpo ANTES do decode (o header de 4B já foi removido).
@@ -265,6 +267,301 @@ impl Paginas {
         }
         std::str::from_utf8(&espaco[..fim]).map_err(|e| DecodeError::NomeInvalido {
             detalhe: e.to_string(),
+        })
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Fase 2 — o BoardView, a partir do artefato de layout provado pela análise.
+//
+// O artefato NAO e um mapa de offsets por (slot, param): isso foi tentado e
+// nao funciona, porque os dados do fio sao indexados pela POSICAO na cadeia
+// (ha 11 cadeias distintas nas 198 pps) e os params formam um fluxo contiguo
+// que atravessa fronteiras de pagina. O artefato guarda a ESTRUTURA, e o
+// offset de cada valor e CALCULADO — nunca procurado. Ver
+// `analysis/map_state_pages.py` para a prova (26552/26554 em params,
+// 1782/1782 em code e state).
+// ---------------------------------------------------------------------------
+
+/// O artefato embutido no binário — mesmo regime de `model::DICTIONARY_JSON`.
+pub const OFFSETS_JSON: &str = include_str!("../../../analysis/state_pages_offsets.json");
+
+/// Bloco de tamanho fixo: `count` elementos de `width` bytes, a partir de
+/// `offset` na `page` (corpo já decodificado).
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct Bloco {
+    /// Página 0..=8.
+    pub page: u8,
+    /// Offset no corpo decodificado.
+    pub offset: usize,
+    /// Quantos elementos o bloco tem.
+    pub count: usize,
+    /// Largura de cada elemento em bytes.
+    pub width: u8,
+}
+
+/// O espaço do nome, em bytes.
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct EspacoNome {
+    /// Página (sempre 0).
+    pub page: u8,
+    /// Offset inicial.
+    pub offset: usize,
+    /// Tamanho em bytes.
+    pub length: usize,
+}
+
+/// Um trecho do fluxo de params: `count` f32 a partir de `offset`.
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct Faixa {
+    /// Página.
+    pub page: u8,
+    /// Offset inicial.
+    pub offset: usize,
+    /// Quantos f32 este trecho cobre.
+    pub count: usize,
+}
+
+/// O fluxo contíguo de params (135 f32 = 9 slots × 15).
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct Params {
+    /// Total de f32 no fluxo.
+    pub count: usize,
+    /// Params por slot (15).
+    pub per_slot: usize,
+    /// Largura (4).
+    pub width: u8,
+    /// É float32 LE?
+    pub float: bool,
+    /// Onde o fluxo mora, página a página (gerado do próprio cálculo).
+    pub span: Vec<Faixa>,
+}
+
+/// Os campos do layout que `slots()` consome.
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct Layout {
+    /// Espaço do nome na pg0.
+    pub nome: EspacoNome,
+    /// Cadeia (posição → `x` do XML) — usada pela análise, não por `slots()`.
+    pub cadeia: Bloco,
+    /// `effectCode` por posição, na pg0.
+    #[serde(rename = "effectCode")]
+    pub effect_code: Bloco,
+    /// `effectState` por posição, na pg6.
+    #[serde(rename = "effectState")]
+    pub effect_state: Bloco,
+    /// Fluxo contíguo dos valores de knob.
+    pub params: Params,
+}
+
+/// O artefato completo, na forma embutida.
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct Offsets {
+    /// Só `"nibble"`.
+    pub encoding: String,
+    /// Só o modelo determinístico — a votação foi o método fraco.
+    pub method: String,
+    /// O layout.
+    pub layout: Layout,
+}
+
+/// O método que a análise tem de ter usado (o gate também confere).
+const METODO_ESPERADO: &str = "modelo-deterministico (offset calculado pela estrutura)";
+
+impl Offsets {
+    /// O artefato embutido, validado. Produção e teste leem a MESMA fonte —
+    /// não existe caminho "só de teste".
+    ///
+    /// # Erros
+    /// [`DecodeError::ArtefatoInvalido`] se o JSON não parsear, se o encoding
+    /// não for `nibble` ou se o método não for o modelo determinístico (ou
+    /// seja, se alguém regenerou o artefato com a votação fraca).
+    pub fn carregado() -> Result<Self, DecodeError> {
+        let o: Offsets =
+            serde_json::from_str(OFFSETS_JSON).map_err(|e| DecodeError::ArtefatoInvalido {
+                detalhe: e.to_string(),
+            })?;
+        if o.encoding != "nibble" {
+            return Err(DecodeError::ArtefatoInvalido {
+                detalhe: format!("encoding={}", o.encoding),
+            });
+        }
+        if o.method != METODO_ESPERADO {
+            return Err(DecodeError::ArtefatoInvalido {
+                detalhe: format!("method={}", o.method),
+            });
+        }
+        Ok(o)
+    }
+}
+
+/// Lê `n` bytes LE em `corpo`, com o erro apontando a faixa que estourou.
+fn le(corpo: &[u8], offset: usize, n: usize) -> Result<&[u8], DecodeError> {
+    corpo
+        .get(offset..offset + n)
+        .ok_or(DecodeError::OffsetsNaoBatem {
+            achado: corpo.len(),
+            esperado: offset + n,
+        })
+}
+
+fn le_u16(corpo: &[u8], offset: usize) -> Result<u16, DecodeError> {
+    let b = le(corpo, offset, 2)?;
+    Ok(u16::from_le_bytes([b[0], b[1]]))
+}
+
+fn le_u32(corpo: &[u8], offset: usize) -> Result<u32, DecodeError> {
+    let b = le(corpo, offset, 4)?;
+    Ok(u32::from_le_bytes([b[0], b[1], b[2], b[3]]))
+}
+
+fn le_f32(corpo: &[u8], offset: usize) -> Result<f32, DecodeError> {
+    let b = le(corpo, offset, 4)?;
+    Ok(f32::from_le_bytes([b[0], b[1], b[2], b[3]]))
+}
+
+/// Índice global do fluxo → `(página, offset)`.
+///
+/// O fluxo é contíguo e atravessa fronteiras de página; o span vem do
+/// artefato (gerado pelo próprio cálculo na análise, nunca digitado à mão).
+fn localiza(span: &[Faixa], idx: usize) -> Option<(u8, usize)> {
+    let mut base = 0usize;
+    for f in span {
+        if idx < base + f.count {
+            return Some((f.page, f.offset + 4 * (idx - base)));
+        }
+        base += f.count;
+    }
+    None
+}
+
+/// Formata o f32 do fio como o `.prst` representa o valor.
+///
+/// Os valores do fio são inteiros armazenados em float (`50.0`, `65535.0`) e
+/// o XML guarda o inteiro (`"50"`). Sem isto a comparação de string falharia
+/// por forma e não por conteúdo.
+fn formata_valor(v: f32) -> String {
+    if v.is_finite() && v.fract() == 0.0 && v.abs() < 1e15 {
+        format!("{}", v as i64)
+    } else {
+        format!("{v}")
+    }
+}
+
+impl Paginas {
+    /// Os 9 slots do preset, reconstruídos do layout provado.
+    ///
+    /// Identidade visual (família, arquétipo, nome, variante) e knobs vêm do
+    /// **dicionário** (R1); as páginas trazem `effectCode`, `effectState` e os
+    /// valores atuais. É o mesmo caminho de `pedalboard::board_view_for`, só
+    /// que a fonte é o fio e não o arquivo.
+    ///
+    /// `pp_type`/`pp_type_name` ficam zerados de propósito: o `ppType` casa em
+    /// só 166/198 (spec §11.2), abaixo de prova, então não tem offset provado.
+    /// Ícone errado na biblioteca vale mais que um chute com cara de prova —
+    /// e a limitação está declarada, não escondida.
+    ///
+    /// # Erros
+    /// [`DecodeError::NomeInvalido`], [`DecodeError::OffsetsNaoBatem`] ou
+    /// [`DecodeError::EfeitoDesconhecido`]. **Nunca** devolve slot com `code`
+    /// inventado: `BoardView` errado é pior que erro, porque o palco desenha
+    /// e o usuário acredita.
+    pub fn slots(
+        &self,
+        pp: u16,
+        dict: &Dictionary,
+        off: &Offsets,
+    ) -> Result<BoardView, DecodeError> {
+        let nome = self.nome()?.to_string();
+        let lay = &off.layout;
+        let pg0 = &self.corpos[usize::from(lay.cadeia.page)];
+        let pg6 = &self.corpos[usize::from(lay.effect_state.page)];
+        let mut slots = Vec::with_capacity(9);
+
+        for pos in 0..lay.effect_code.count {
+            // A cadeia diz qual `x` do arquivo ocupa cada POSICAO do fio.
+            // Ela nao e cosmética: 40 das 198 pps tem cadeia trocada
+            // (`(1,0,2,...)` e `(0,1,...,7,6,8)`), e sem ela o `slot` sairia
+            // errado — o teste de paridade pegou exatamente isso.
+            let x = le_u16(pg0, lay.cadeia.offset + pos * usize::from(lay.cadeia.width))?;
+            // O effectCode esta POR POSICAO na pg0, nao por `x`.
+            let code = le_u32(
+                pg0,
+                lay.effect_code.offset + pos * usize::from(lay.effect_code.width),
+            )?;
+            let state = le_u16(
+                pg6,
+                lay.effect_state.offset + pos * usize::from(lay.effect_state.width),
+            )?;
+            let state = state != 0;
+
+            // A identidade vem do DICIONÁRIO (R1): o número do fio só vale
+            // se ele nomeia um efeito conhecido. Nada de slot sem identidade.
+            let nibble = ((code >> 24) & 0xFF) as u8;
+            let index = code & 0x00FF_FFFF;
+            let Some(algo) = dict.algorithm(nibble, index) else {
+                return Err(DecodeError::EfeitoDesconhecido { code });
+            };
+            let family = family_of(&algo.module);
+
+            // O VALOR e indexado pela POSICAO (o fluxo e contiguo na ordem do
+            // sinal), nao pelo `x` — por isso `pos` e nao `x` aqui.
+            let knobs = algo
+                .controls
+                .iter()
+                .map(|c| {
+                    let idx = pos * lay.params.per_slot + usize::from(c.pos);
+                    let (page, offset) =
+                        localiza(&lay.params.span, idx).ok_or(DecodeError::OffsetsNaoBatem {
+                            achado: idx,
+                            esperado: lay.params.count,
+                        })?;
+                    let corpo =
+                        self.corpos
+                            .get(usize::from(page))
+                            .ok_or(DecodeError::OffsetsNaoBatem {
+                                achado: usize::from(page),
+                                esperado: 9,
+                            })?;
+                    let valor = formata_valor(le_f32(corpo, offset)?);
+                    Ok::<KnobSpec, DecodeError>(KnobSpec {
+                        name: c.name.clone(),
+                        pos: c.pos,
+                        kind: match c.kind {
+                            ControlKind::Knob => "knob",
+                            ControlKind::Switch => "switch",
+                            ControlKind::Combox => "combox",
+                        }
+                        .to_string(),
+                        range: c.range(),
+                        options: c.options.clone(),
+                        value: Some(valor),
+                        default: c.default.clone(),
+                    })
+                })
+                .collect::<Result<Vec<_>, _>>()?;
+
+            slots.push(SlotSpec {
+                slot: x as u8,
+                family,
+                archetype: archetype_of(family),
+                name: algo.name.trim().to_string(),
+                variant: slug(&algo.name),
+                state,
+                code,
+                knobs,
+            });
+        }
+
+        // Mesmo contrato de `board_view_for`: ordenado por `slot` (x).
+        slots.sort_by_key(|s| s.slot);
+
+        Ok(BoardView {
+            pp,
+            name: nome,
+            pp_type: 0,
+            pp_type_name: String::new(),
+            slots,
         })
     }
 }

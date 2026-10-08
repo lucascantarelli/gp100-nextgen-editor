@@ -138,7 +138,7 @@ pub struct PresetEntry {
     pub pp_type_name: String,
 }
 
-fn family_of(module: &str) -> Family {
+pub(crate) fn family_of(module: &str) -> Family {
     match module {
         "DST" => Family::Dst,
         "AMP" => Family::Amp,
@@ -152,7 +152,7 @@ fn family_of(module: &str) -> Family {
     }
 }
 
-fn archetype_of(f: Family) -> Archetype {
+pub(crate) fn archetype_of(f: Family) -> Archetype {
     match f {
         Family::Pre => Archetype::Buffer,
         Family::Dst => Archetype::Distortion,
@@ -167,7 +167,7 @@ fn archetype_of(f: Family) -> Archetype {
 }
 
 /// Slug estável p/ `variant` (mesma regra do `dump_fx_map.py`).
-fn slug(name: &str) -> String {
+pub(crate) fn slug(name: &str) -> String {
     let s: String = name
         .chars()
         .map(|c| {

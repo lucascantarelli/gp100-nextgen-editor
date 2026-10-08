@@ -307,3 +307,151 @@ fn aceita_nome_com_pad_nul_normal() {
     let pag = gp100_core::preset_pages::decode(&pags).expect("estrutura válida");
     assert_eq!(pag.nome().expect("válido"), "Blink OD");
 }
+
+// ---------------------------------------------------------------------------
+// Fase 2: o BoardView reconstruído das páginas tem de ser o do artefato.
+// ---------------------------------------------------------------------------
+
+use gp100_core::model::Dictionary;
+use gp100_core::pedalboard::{board_view_for, BoardView};
+
+/// O mesmo valor em representações diferentes.
+///
+/// O `.prst` guarda a string como o gravador a escreveu (`"9.18355e-41"`) e o
+/// fio guarda o f32 (`0.0000…91835` em notação decimal). São o MESMO número:
+/// comparar string aqui marcaria divergência por forma, não por conteúdo — e
+/// seria um falso positivo escondendo os divergentes de verdade.
+///
+/// O que continua sendo pego: valores realmente diferentes (`48` vs `35`,
+/// `63` vs `50`), porque aí os dois parseiam e não são iguais.
+fn mesmo_valor(a: &str, b: &str) -> bool {
+    match (a.parse::<f32>(), b.parse::<f32>()) {
+        (Ok(x), Ok(y)) => x == y,
+        _ => a == b,
+    }
+}
+
+/// O `BoardView` produzido do ARTEFATO — o ground truth.
+///
+/// **Por que a conversão:** `board_view_for` casa `pp` contra `ppID` com
+/// `u16::from_str_radix(s, 16)` (a mesma expressão de `apenas_preset`, ver
+/// `preset.rs:575`). O `ppID` do arquivo vem como string decimal do índice
+/// (`"0"`..`"98"`), então o alvo que ele entende NAO e o pp do aparelho: para
+/// o índice 10 o alvo e `from_str_radix("10", 16)` = `0x10`, e o pp do
+/// aparelho e `0x000a`. Reaproveito a expressao do proprio repo em vez de
+/// reimplementar a construcao do board — o que se compara aqui e o SLOT, nao
+/// o numero do preset.
+fn board_de_fabrica(doc: &Document, dict: &Dictionary, idx: usize) -> BoardView {
+    let preset = doc.presets().nth(idx).expect("preset existe no all.prst");
+    let alvo = u16::from_str_radix(preset.pp_id().expect("ppID presente"), 16).expect("ppID hex");
+    board_view_for(doc, dict, Some(alvo)).expect("board do all.prst")
+}
+
+/// **Fase 2: paridade estrutural + prova de que o OFFSET está certo.**
+///
+/// O que este teste separa, e por quê:
+///
+/// * `slot`/`code`/`state`/identidade visual — tem de bater **198/198**.
+///   Se um offset estivesse errado, o `code` de um slot viraria o de outro e
+///   isto estouraria em massa.
+/// * `knobs[].value` — comparado como NÚMERO ([`mesmo_valor`]), não como
+///   string, porque o `.prst` e o fio usam formas diferentes para o mesmo f32.
+///   Medimos 26552/26554 (99.99%) na análise, e as 2 divergências são valores
+///   editados no hardware depois do dump (`48` no fio vs `35` no arquivo,
+///   `63` vs `50`), nos dois bancos. Exigir igualdade total seria exigir que
+///   o usuário nunca editasse. O número é fixado no assert — passar de 2
+///   significaria OFFSET errado, porque aí os valores errariam em massa.
+#[test]
+fn slots_das_paginas_batem_com_o_all_prst() {
+    let bytes = std::fs::read(all_prst()).expect("all.prst existe");
+    let doc = Document::parse(&bytes).expect("dialeto válido");
+    let dict =
+        Dictionary::from_json(gp100_core::model::DICTIONARY_JSON).expect("dicionário válido");
+    let off = gp100_core::preset_pages::Offsets::carregado().expect("artefato embutido");
+
+    let (mapa, _) = paginas_da_fixture();
+    let mut pps = 0;
+    let mut divergencias_de_valor = 0usize;
+    let mut detalhe: Vec<String> = Vec::new();
+
+    for (pp, pags) in &mapa {
+        let idx = usize::from(*pp & 0xFF);
+        let dec = gp100_core::preset_pages::decode(pags).expect("decode");
+        let lido = dec
+            .slots(*pp, &dict, &off)
+            .unwrap_or_else(|e| panic!("pp {pp:#06x}: {e}"));
+        let esp = board_de_fabrica(&doc, &dict, idx);
+
+        assert_eq!(
+            lido.slots.len(),
+            esp.slots.len(),
+            "pp {pp:#06x} nº de slots"
+        );
+        for (a, b) in lido.slots.iter().zip(esp.slots.iter()) {
+            assert_eq!(a.slot, b.slot, "pp {pp:#06x} posição do slot");
+            assert_eq!(
+                a.code, b.code,
+                "pp {pp:#06x} effectCode da posição {} — offset errado",
+                b.slot
+            );
+            assert_eq!(
+                a.state, b.state,
+                "pp {pp:#06x} effectState da posição {} — offset errado",
+                b.slot
+            );
+            assert_eq!(
+                a.family, b.family,
+                "pp {pp:#06x} família do slot {}",
+                b.slot
+            );
+            assert_eq!(
+                a.archetype, b.archetype,
+                "pp {pp:#06x} arquétipo do slot {}",
+                b.slot
+            );
+            assert_eq!(a.name, b.name, "pp {pp:#06x} nome do slot {}", b.slot);
+            assert_eq!(
+                a.variant, b.variant,
+                "pp {pp:#06x} variante do slot {}",
+                b.slot
+            );
+            assert_eq!(
+                a.knobs.len(),
+                b.knobs.len(),
+                "pp {pp:#06x} nº de knobs do slot {}",
+                b.slot
+            );
+            for (ka, kb) in a.knobs.iter().zip(b.knobs.iter()) {
+                assert_eq!(ka.name, kb.name, "pp {pp:#06x} nome do knob");
+                assert_eq!(ka.pos, kb.pos, "pp {pp:#06x} pos do knob");
+                assert_eq!(ka.kind, kb.kind, "pp {pp:#06x} kind do knob");
+                assert_eq!(ka.range, kb.range, "pp {pp:#06x} faixa do knob");
+                assert_eq!(ka.options, kb.options, "pp {pp:#06x} opções do knob");
+                match (&ka.value, &kb.value) {
+                    (Some(va), Some(vb)) if mesmo_valor(va, vb) => {}
+                    (Some(va), Some(vb)) => {
+                        divergencias_de_valor += 1;
+                        detalhe.push(format!(
+                            "pp {pp:#06x} pos {} knob {:?}: fio={va} arquivo={vb}",
+                            b.slot, kb.name
+                        ));
+                    }
+                    _ => panic!(
+                        "pp {pp:#06x} slot {} knob {}: value lido={:?} arquivo={:?}",
+                        b.slot, kb.name, ka.value, kb.value
+                    ),
+                }
+            }
+        }
+        pps += 1;
+    }
+
+    assert_eq!(pps, 198, "todos os pps comparados");
+    assert!(
+        divergencias_de_valor <= 2,
+        "{} valores divergentes (maximo 2 medidos) — \
+         mais que isso seria offset errado, nao valor editado no aparelho\n{}",
+        divergencias_de_valor,
+        detalhe.join("\n")
+    );
+}
