@@ -1,0 +1,123 @@
+{
+  "cadeias_distintas": 11,
+  "divergencias_valor": [
+    {
+      "fio": 48.0,
+      "offset": 68,
+      "page": 0,
+      "param": 0,
+      "pos": 0,
+      "pp": 2,
+      "x": 0,
+      "xml": 35
+    },
+    {
+      "fio": 63.0,
+      "offset": 76,
+      "page": 0,
+      "param": 2,
+      "pos": 0,
+      "pp": 6,
+      "x": 0,
+      "xml": 50
+    }
+  ],
+  "encoding": "nibble",
+  "generated_from": "analysis/captures/session1.jsonl",
+  "layout": {
+    "cadeia": {
+      "count": 9,
+      "endian": "le",
+      "meaning": "posicao -> x do Effect no all.prst",
+      "offset": 14,
+      "page": 0,
+      "width": 2
+    },
+    "effectCode": {
+      "count": 9,
+      "endian": "le",
+      "indexed_by": "posicao",
+      "offset": 32,
+      "page": 0,
+      "width": 4
+    },
+    "effectState": {
+      "count": 9,
+      "endian": "le",
+      "indexed_by": "posicao",
+      "offset": 32,
+      "page": 6,
+      "width": 2
+    },
+    "nome": {
+      "length": 12,
+      "offset": 2,
+      "page": 0
+    },
+    "params": {
+      "count": 135,
+      "endian": "le",
+      "float": true,
+      "indexed_by": "posicao",
+      "per_slot": 15,
+      "span": [
+        {
+          "count": 7,
+          "offset": 68,
+          "page": 0
+        },
+        {
+          "count": 24,
+          "offset": 0,
+          "page": 1
+        },
+        {
+          "count": 24,
+          "offset": 0,
+          "page": 2
+        },
+        {
+          "count": 24,
+          "offset": 0,
+          "page": 3
+        },
+        {
+          "count": 24,
+          "offset": 0,
+          "page": 4
+        },
+        {
+          "count": 24,
+          "offset": 0,
+          "page": 5
+        },
+        {
+          "count": 8,
+          "offset": 0,
+          "page": 6
+        }
+      ],
+      "width": 4
+    },
+    "pp": {
+      "endian": "le",
+      "offset": 0,
+      "page": 0,
+      "width": 2
+    }
+  },
+  "method": "modelo-deterministico (offset calculado pela estrutura)",
+  "presets": 198,
+  "provas": {
+    "cadeia_ok": 198,
+    "cadeia_tot": 198,
+    "code_ok": 1782,
+    "code_tot": 1782,
+    "params_ok": 26552,
+    "params_tot": 26554,
+    "state_ok": 1782,
+    "state_tot": 1782
+  },
+  "taxa_params": 0.999925,
+  "taxa_state": 1.0
+}
