@@ -368,7 +368,7 @@ describe("Knob — controle rotativo paramétrico", () => {
       const svg = h.host.querySelector('svg[role="slider"]')!;
       act(() => svg.dispatchEvent(new KeyboardEvent("keydown", { key, shiftKey: shift, bubbles: true })));
       expect(onChange).toHaveBeenLastCalledWith(2, expected);
-      h.root.unmount();
+      act(() => h.root.unmount());
       h.host.remove();
     };
     pressFrom("50", "ArrowUp", "51");
@@ -396,7 +396,7 @@ describe("Knob — controle rotativo paramétrico", () => {
     act(() => svg2.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true })));
     const v = onChange.mock.lastCall?.[1] as string;
     expect(v).toMatch(/^\d+\.\d$/); // 1 decimal em range fracionário
-    host2.root.unmount();
+    act(() => host2.root.unmount());
     host2.host.remove();
   });
 
@@ -412,7 +412,7 @@ describe("Knob — controle rotativo paramétrico", () => {
       const svg = h.host.querySelector('svg[role="button"][aria-label="Mode"]')!;
       act(() => svg.dispatchEvent(new MouseEvent("click", { bubbles: true })));
       expect(onChange).toHaveBeenLastCalledWith(1, expected);
-      h.root.unmount();
+      act(() => h.root.unmount());
       h.host.remove();
     };
     cycleStep("off", "on1");
@@ -426,7 +426,7 @@ describe("Knob — controle rotativo paramétrico", () => {
       const svg2 = h2.host.querySelector('svg[role="button"][aria-label="Type"]')!;
       act(() => svg2.dispatchEvent(new MouseEvent("click", { bubbles: true })));
       expect(onChange).toHaveBeenLastCalledWith(2, expected);
-      h2.root.unmount();
+      act(() => h2.root.unmount());
       h2.host.remove();
     };
     cycleCombox("A", "B");
@@ -438,7 +438,7 @@ describe("Knob — controle rotativo paramétrico", () => {
     const svg3 = h3.host.querySelector('svg[role="slider"]')!;
     act(() => svg3.dispatchEvent(new MouseEvent("click", { bubbles: true })));
     expect(onChange.mock.calls.length).toBe(before);
-    h3.root.unmount();
+    act(() => h3.root.unmount());
     h3.host.remove();
   });
 });

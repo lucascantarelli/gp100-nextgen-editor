@@ -39,6 +39,19 @@ interface CasoDeFalha {
 /** Command que a proxima invocacao deve recusar (simula o arquivo travado). */
 let quebrado: string | null = null;
 
+/**
+ * Roda uma chamada do shell DENTRO de `act`: o `invoke` resolve depois da
+ * leitura e o update de estado que vem dele, fora do `act`, vira o aviso
+ * "not wrapped in act" do React — ruido que mascara corrida real (issue #142).
+ */
+async function emAct<T>(fn: () => Promise<T>): Promise<T> {
+  let out!: T;
+  await act(async () => {
+    out = await fn();
+  });
+  return out;
+}
+
 async function invokeDoShell(cmd: string, args: Record<string, unknown> = {}): Promise<unknown> {
   chamadas.push({ cmd, args });
   if (quebrado === cmd) throw new Error(`falha simulada em ${cmd}`);
@@ -471,9 +484,9 @@ describe("biblioteca no webview", () => {
         payload: "[]",
       });
     });
-    const json = await lib!.exportar();
+    const json = await emAct(() => lib!.exportar());
     expect(json).not.toBeNull();
-    const rel = await lib!.importar(json!, false);
+    const rel = await emAct(() => lib!.importar(json!, false));
     expect(rel!.inserted).toBe(0);
     expect(rel!.skipped).toBe(100);
     expect(banco.size).toBe(100);
@@ -490,7 +503,7 @@ describe("biblioteca no webview", () => {
         { id: "u30", bank: "user", pp: null, name: "NOVO", ppType: 4, ppTypeName: "Rock", savedAt: "t", payload: null },
       ],
     });
-    const rel = await lib!.importar(envelope, true);
+    const rel = await emAct(() => lib!.importar(envelope, true));
     expect(rel!.inserted).toBe(1);
     expect(banco.get("u30")?.name).toBe("NOVO");
   });

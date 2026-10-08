@@ -112,7 +112,7 @@ describe("DrumPanel — os ramos que o App montado nunca pegava", () => {
 
   let atual: { unmount: () => void } | null = null;
   function reabre(d: DrumState) {
-    atual?.unmount();
+    act(() => atual?.unmount());
     atual = mount(
       <DrumPanel open drum={d} onChange={() => {}} onClose={() => {}} />,
     );
@@ -229,7 +229,7 @@ describe("DrumPanel — os ramos que o App montado nunca pegava", () => {
       setNative(porId<HTMLInputElement>(vista.host, "drum-bpm"), digitado);
       expect(mudou.at(-1)?.bpm, `digitado "${digitado}"`).toBe(esperado);
       expect(mudou.length, "o handler disparou").toBeGreaterThan(antes);
-      vista.unmount();
+      act(() => vista.unmount());
       atual = null;
     }
   });

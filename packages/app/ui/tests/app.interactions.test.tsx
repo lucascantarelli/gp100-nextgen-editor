@@ -100,8 +100,13 @@ function setInput(el: HTMLInputElement, value: string) {
     "value",
   )!.set!;
   setter.call(el, value);
-  el.dispatchEvent(new Event("input", { bubbles: true }));
-  el.dispatchEvent(new Event("change", { bubbles: true }));
+  // DENTRO de act: o dispatch roda o handler do React, e o update de estado
+  // que vem dele fora do act vira o aviso "not wrapped in act" — o mesmo
+  // motivo pelo qual os cliques deste arquivo ja sao envolvidos (issue #142).
+  act(() => {
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+    el.dispatchEvent(new Event("change", { bubbles: true }));
+  });
 }
 
 const byAria = (host: HTMLElement, aria: string) =>
