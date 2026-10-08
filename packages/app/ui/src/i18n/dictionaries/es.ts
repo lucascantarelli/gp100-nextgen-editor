@@ -585,6 +585,41 @@ export const ES: DictPatch = {
   irStats: (total: number, slots: number, usados: number) =>
     `${total} IRs · ${usados} de ${slots} slots en uso`,
 
+  /* A/B con prueba a ciegas (#116) */
+  abTitle: "A/B del patch",
+  abIntro:
+    "Compara dos versiones del MISMO patch: el escenario cambia al instante y los knobs que cambiaron van al aparato. El blind oculta qué lado suena hasta tu respuesta.",
+  abEmpty:
+    "Abre un patch de usuario con DOS versiones en el historial (guarda una vez con el patch abierto): el A/B compara el mismo patch en dos instantes, no dos patches cualquiera.",
+  abVersao: (seq: number) => `v${seq}`,
+  abLado: (q: string) => `Lado ${q}`,
+  abSoando: "sonando ahora",
+  abOuvir: (q: string) => `Escuchar el lado ${q}`,
+  abTrocar: "Cambiar de lado",
+  abPalpite: (q: string) => `Es el lado ${q}`,
+  abPergunta: "Escucha y elige: ¿qué lado está sonando?",
+  abResposta: (q: string, ok: boolean) =>
+    ok ? `Era el lado ${q} — acertaste.` : `Era el lado ${q} — esta vez no.`,
+  abBlind: "Prueba a ciegas (oculta el lado hasta la respuesta)",
+  abDeNovo: "Escuchar de nuevo",
+  abNivel: (q: string, n: string) => `Lado ${q}: ${n}`,
+  abDelta: (d: string) => `Diferencia de nivel (A − B): ${d} puntos`,
+  abNivelMetodo:
+    "Nivel = media de las posiciones de los controles de SALIDA de la cadena (0–100), la misma clasificación del asistente de gain. El aparato no expone dB por SysEx: el número dice qué tan abierto está el botón, no qué suena — por eso la calibración iguala botones, no ganancia.",
+  abNivelSemControle:
+    "Un lado no tiene control de nivel: no hay nada que calibrar, y la comparación solo vale si el volumen del amplificador queda igual.",
+  abCalibrar: "Igualar nivel",
+  abAlgoritmos: (n: number) =>
+    `${n} slot(s) con algoritmo cambiado no llegan al aparato (el change-effect 0x47 no tiene formato capturado) — el cambio vale en pantalla.`,
+  abErrLoad: "No se pudieron leer las versiones de este patch.",
+  abRelatoNada: "Los dos lados son idénticos: no hay nada que cambiar.",
+  abRelatoLocal: (n: number) =>
+    `${n} knob(s) cambiaron en el escenario; en esta build de solo lectura el aparato no los recibe (ADR-5).`,
+  abRelatoEnviado: (n: number) => `${n} knob(s) enviados al aparato.`,
+  abRelatoTempo: (ms: number) => `Petición→último frame: ${ms} ms (sin read-back en el hilo — el oído cierra la medición).`,
+  abRelatoCalibra: (n: number, antes: string, depois: string) =>
+    `${n} control(es) de nivel igualado(s): diferencia de ${antes} a ${depois} puntos.`,
+
   errRetry: "Reintentar",
   errRetryAria: "Reintentar la operación que falló",
 };

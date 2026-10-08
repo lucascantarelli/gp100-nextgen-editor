@@ -9,8 +9,10 @@
  * geometria intacta E diz a verdade: três telas levam conteúdo do pedal para um
  * ARQUIVO (o `.clo` convertido, o `.ir` do pedal, e o preset em JSON/folha) e a
  * quarta — o assistente de gain staging (#115) — não leva arquivo nenhum: ela
- * LÊ a cadeia e devolve um relatório. O rótulo do item é o TÍTULO da tela que
- * ele abre, e é isso que o dono lê nos dois lugares.
+ * LÊ a cadeia e devolve um relatório. A quinta — o A/B com blind (#116) —
+ * também não: compara duas versões do MESMO patch e troca uma pela outra. O
+ * rótulo do item é o TÍTULO da tela que ele abre, e é isso que o dono lê nos
+ * dois lugares.
  *
  * A navbar não é alternativa: ela tem ~11px de folga em 1280 e qualquer botão
  * novo a estoura (o achado da #25). O modal é o único lugar que cresce sem
@@ -67,11 +69,13 @@ interface Props {
   onPreset: () => void;
   /** Abre o assistente de gain staging (#115). */
   onGain: () => void;
+  /** Abre o A/B com blind test entre versões do patch (#116). */
+  onAb: () => void;
   /** Fecha este menu. */
   onClose: () => void;
 }
 
-export function ContentMenu({ onTones, onIrs, onPreset, onGain, onClose }: Props) {
+export function ContentMenu({ onTones, onIrs, onPreset, onGain, onAb, onClose }: Props) {
   return (
     <div style={box} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div role="dialog" aria-modal="true" aria-label={MSG.contentMenuTitle} style={sheet}>
@@ -88,6 +92,9 @@ export function ContentMenu({ onTones, onIrs, onPreset, onGain, onClose }: Props
         </button>
         <button style={item} onClick={onGain}>
           {MSG.gainTitle}
+        </button>
+        <button style={item} onClick={onAb}>
+          {MSG.abTitle}
         </button>
         <button style={fecha} onClick={onClose}>
           {MSG.contentMenuClose}

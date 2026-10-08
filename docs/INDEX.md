@@ -196,6 +196,7 @@ O Tauri não gera pacote Arch: a unidade de distribuição **é** a receita vers
 | **Auditoria 03/10** (#71–#83) | ✅ as 13 issues fechadas |
 | **H** (gate de hardware) | ✅ **os 3 gates fechados em campo**: H1 (#21, PR #109) · H2 (#22, PR #108) · H3 (#23, PR #96) |
 | **#126** (release) | ✅ **face (A) de leitura**: o `dist-ui` constrói com `--features real-device` (caminho `../ui` corrigido — o step antigo morria antes de compilar, `libasound2-dev` no Linux), a **política de escrita está na tela** (`escritaLiberada()`: knob/IR/SnapTone desabilitados COM O MOTIVO, select liberado por ser `WireKind::Read`) e o **keepalive do boot é omitido com a trava fechada** (ADR-5 rev. 06/10) |
+| **M3** (#116) | ✅ **A/B com blind test** (parte sem aparelho): o par vem do histórico versionado (#113), a troca desenha no palco e manda só os knobs graváveis de slots de mesmo algoritmo (o `0x47` não tem formato capturado — BLOCKERS 10b, e a tela diz), o **nível é POSIÇÃO** com método e limitação impressos ao lado do número, a **calibração** iguala o lado alto ao baixo (medido: delta 40.0 → 0.0) e o **blind** esconde rótulo/versão/nível/relatório até o palpite (o teste de UI prova a AUSÊNCIA). **Medição em campo pendente de aparelho** |
 
 ### Contagem de testes (medido 06/10)
 | Suíte | Comando | Contagem |
