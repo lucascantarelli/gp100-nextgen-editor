@@ -77,6 +77,7 @@
 | `packages/library/` | **Biblioteca persistente** (#26, ADR-9): SQLite com migracoes versionadas (`PRAGMA user_version`), busca por nome/nº/estilo, import/export JSON versionado e seed dos 99 presets de fabrica do `all.prst`. Crate do workspace gnu, sem Tauri | ✅ novo (#26) |
 | `H3_CHECKLIST.md` | Checklist operacional do gate H3 (congelamento da especificação): as 4 sessões que tiram o golden do Suite e põem o golden do gp100-core, o que fazer quando o juiz acusa endereço fora da spec, e por que a prova de save foi de 77 para 14 | ⏳ aguardando pedaleira + owner — maquinaria ✅ (normalizador, juiz, baseline versionada, `--log` com relógio) |
 | `skills_audit_2026-09-29.md` | Auditoria das skills: regras que eram prática implícita, agora escritas (5 achados em core-dev/docs-sync/spec-baseline) | ✅ atual |
+| `audit_2026-10-07.md` | **Auditoria completa (07/10)**: code review + governança + arquitetura + limpeza em todo o repo, com números remediados, achados F-01…F-12 e backlog A-1…A-10 (desfecho na §10) | ✅ atual (desfecho 08/10) |
 | `INDEX.md` | Este índice | ✅ manter atualizado |
 | `analysis/wirelog.py` · `analysis/baseline.py` · `analysis/validate_core_capture.py` | O trilho do H3: normalizador dos dois schemas de log de fio · baseline versionada (versão + hash + motivo + histórico) · juiz frame a frame de uma captura do gp100-core contra a spec | ✅ (`analysis/baseline.py show`) |
 
