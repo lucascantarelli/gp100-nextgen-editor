@@ -178,6 +178,10 @@ pub mod session;
 /// do app: arquétipos por família, knobs do dicionário, biblioteca).
 pub mod pedalboard;
 
+/// preset_pages — decode das páginas 13xx: nome real e palco vivo (#155).
+/// Puro (sem fio), testado contra o dataset inteiro da captura.
+pub mod preset_pages;
+
 /// gain — assistente de gain staging (#115): headroom e clipagem ESTIMADA por
 /// módulo, como função PURA sobre o board (sem device, sem byte).
 pub mod gain;
