@@ -107,11 +107,12 @@ export class ShellPage {
       .getByRole("button", { name: "Tentar novamente a operação que falhou" });
   }
 
-  /** patch corrente exibido na navbar: rótulo + nome. Rótulo = `Pnn` nos
-   *  patches de FÁBRICA (1-based, como no app oficial) ou `Unn` nos patches de
-   *  USUÁRIO (#11) — o prefixo do banco mora no rótulo, não no layout. */
+  /** patch corrente exibido na navbar: rótulo + nome. Rótulo = `Pnn` no
+   *  banco baixo (1-based, como no app oficial), `Unn` em patch de usuário
+   *  (#11) ou o ENDEREÇO `0x0162` no banco ALTO do aparelho (#150: o
+   *  mapeamento LED P/F ainda não foi medido — ADR-12). */
   patchLabel(): Locator {
-    return this.banner.getByText(/^[PU]\d{2}/);
+    return this.banner.getByText(/^(0x[0-9a-f]{4}|[PU]\d{2})/);
   }
 
   /** connection status curto (on/off) */
@@ -292,29 +293,26 @@ export class BrandPage {
   }
 }
 
-/* ── Biblioteca de presets (aside esquerdo) ── */
+/* ── Patches do aparelho (aside esquerdo, #150) ── */
 export class LibraryPage {
   readonly page: Page;
   readonly root: Locator;
 
   constructor(page: Page) {
     this.page = page;
-    this.root = page.getByRole("complementary", { name: "Biblioteca de presets" });
+    // o aside é o complementary; a listbox, a lista. O nome do aside é o
+    // MSG.libAria — a lista do APARELHO, nunca "biblioteca de presets".
+    this.root = page.getByRole("complementary", { name: "Patches do aparelho" });
   }
 
-  /** listbox dos 99 de fábrica (o aside é o complementary; a listbox, a lista) */
+  /** listbox do INVENTÁRIO do aparelho (198 slots, dois bancos — #150) */
   listbox(): Locator {
-    return this.page.getByRole("listbox", { name: /Presets de fábrica/ });
+    return this.page.getByRole("listbox", { name: /Patches do aparelho/ });
   }
 
   /** A busca da biblioteca (#26): o texto vai para o BANCO, com debounce. */
   search(): Locator {
     return this.page.getByRole("textbox", { name: /Buscar na biblioteca de presets/ });
-  }
-
-  /** Filtro de estilo (o caminho exato; a caixa de texto também aceita) */
-  styleFilter(): Locator {
-    return this.page.getByRole("combobox", { name: /Filtrar a biblioteca por estilo/ });
   }
 
   /** Botão de limpar a busca (o ✕ que só existe com texto na caixa) */
@@ -363,12 +361,13 @@ export class LibraryPage {
     return this.options().nth(index);
   }
 
+  /** aba "Patches" — `exact`, senão o substring pega também "Meus patches" */
   factoryTab(): Locator {
-    return this.page.getByRole("tab", { name: "Factory Patch" });
+    return this.page.getByRole("tab", { name: "Patches", exact: true });
   }
 
   userTab(): Locator {
-    return this.page.getByRole("tab", { name: /^User Patch/ });
+    return this.page.getByRole("tab", { name: /^Meus patches/ });
   }
 
   /** campo de nome do patch de usuário (aba User) */
@@ -400,7 +399,7 @@ export class LibraryPage {
     await this.saveUserPatch().click();
   }
 
-  /** seleciona pelo texto do accessible name (ex.: /P25 Mist Rock/) */
+  /** seleciona pelo texto do accessible name (ex.: /0x0162/) */
   async select(re: RegExp): Promise<Locator> {
     const opt = this.options().filter({ hasText: re }).first();
     await opt.click();

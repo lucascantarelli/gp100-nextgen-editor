@@ -313,6 +313,9 @@ describe("LibraryPanel — a biblioteca no banco (#26)", () => {
         currentPp={1}
         bankDoPalco="factory"
         currentUserId={null}
+        // #150: a aba "Patches" lê o deviceLib; o fallback do teste é o
+        // mesmo caminho (inventário com nome vazio — ver ipc/device.ts).
+        deviceLib={null}
         onOpenFactory={() => {}}
         onOpenUser={() => {}}
         onSave={() => {}}
@@ -335,17 +338,30 @@ describe("LibraryPanel — a biblioteca no banco (#26)", () => {
     });
   }
 
+  /** Inventário que o APARELHO reporta (#150): 198 slots (ADR-12), nome vazio. */
+  function deviceLibTeste(nomes: Record<number, string> = {}) {
+    const pps: number[] = [];
+    for (let pp = 0x0100; pp <= 0x0162; pp += 1) pps.push(pp);
+    for (let pp = 0x0000; pp <= 0x0062; pp += 1) pps.push(pp);
+    return {
+      entries: pps.map((pp) => ({ pp, name: nomes[pp] ?? "", ppTypeName: "" })),
+      currentPp: 0,
+    };
+  }
+
   async function abre(props: Partial<React.ComponentProps<typeof LibraryPanel>> = {}) {
     const m = mount(<Painel {...props} />);
     await assenta();
     return m;
   }
 
-  it("a busca é do banco: o texto digitado CHEGA ao SQLite", async () => {
-    // A prova de que a lista é do banco e não do artefato: filtrar aqui
-    // mostraria "It's GP100" para qualquer texto. No banco, o nome tem que
-    // casar — e o resultado tem que ser o do banco, não o do `FACTORY_PRESETS`.
-    const { host, unmount } = await abre();
+  it("a aba Patches filtra LOCALMENTE o que o aparelho reportou (#150)", async () => {
+    // A lista vem do DEVICE (`deviceLib`), e o texto filtra localmente por
+    // nome e pelo endereço do pp — a busca SQLite de fábrica saiu do painel
+    // (#150): o slot sem decode não tem nome de catálogo nem estilo.
+    const { host, unmount } = await abre({
+      deviceLib: deviceLibTeste({ 0x0001: "Blink OD" }),
+    });
     const busca = host.querySelector<HTMLInputElement>(`[aria-label="${MSG.libSearchAria}"]`)!;
     expect(busca.placeholder).toBe(MSG.libSearchPlaceholder);
     setNative(busca, "blink");
@@ -357,15 +373,22 @@ describe("LibraryPanel — a biblioteca no banco (#26)", () => {
   });
 
   it("estado vazio só aparece quando a busca não encontra nada", async () => {
-    const { host, unmount } = await abre();
+    const { host, unmount } = await abre({ deviceLib: deviceLibTeste() });
     setNative(host.querySelector<HTMLInputElement>(`[aria-label="${MSG.libSearchAria}"]`)!, "zzzzz");
     await assenta();
     expect(host.textContent).toContain(MSG.libEmptySearch("zzzzz"));
     unmount();
   });
 
-  it("limpar a busca volta o painel ao estado cheio", async () => {
-    const { host, unmount } = await abre();
+  it("sem aparelho a aba Patches mostra o aviso de conexão, nunca lista (#150)", async () => {
+    const { host, unmount } = await abre({ deviceLib: null });
+    expect(host.textContent).toContain(MSG.libEmptyDevice);
+    expect(host.querySelectorAll('[role="option"]').length).toBe(0);
+    unmount();
+  });
+
+  it("limpar a busca volta o painel ao estado cheio (o inventário do device)", async () => {
+    const { host, unmount } = await abre({ deviceLib: deviceLibTeste() });
     const busca = host.querySelector<HTMLInputElement>(`[aria-label="${MSG.libSearchAria}"]`)!;
     setNative(busca, "zzzzz");
     await assenta();
@@ -376,17 +399,16 @@ describe("LibraryPanel — a biblioteca no banco (#26)", () => {
     const x = host.querySelector<HTMLButtonElement>(`[aria-label="${MSG.libSearchClear}"]`)!;
     act(() => x.dispatchEvent(new MouseEvent("click", { bubbles: true })));
     await assenta();
-    expect(host.querySelectorAll('[role="option"]').length).toBe(99);
+    expect(host.querySelectorAll('[role="option"]').length).toBe(198);
     unmount();
   });
 
-  it("o filtro de estilo vai para o banco junto (não filtra a lista em memória)", async () => {
-    const { host, unmount } = await abre();
-    setNative(host.querySelector<HTMLSelectElement>(`[aria-label="${MSG.libFilterAria}"]`)!, "6");
-    await assenta();
-    const opcoes = Array.from(host.querySelectorAll('[role="option"]'));
-    expect(opcoes.length).toBeGreaterThan(0);
-    expect(opcoes.every((o) => o.textContent?.includes("Pop"))).toBe(true);
+  it("a aba Patches NÃO tem filtro de estilo (o ppType é do decode #152)", async () => {
+    // Um filtro por estilo hoje seria um filtro sobre DADO INVENTADO: o tipo
+    // do slot vive na família 13xx, ainda indecifrada. Se alguém reintroduzir
+    // o select sem o decode, este teste cobra a justificativa.
+    const { host, unmount } = await abre({ deviceLib: deviceLibTeste() });
+    expect(host.querySelector(`[aria-label="${MSG.libFilterAria}"]`)).toBeNull();
     unmount();
   });
 
@@ -430,24 +452,22 @@ describe("LibraryPanel — a biblioteca no banco (#26)", () => {
   });
 
   it("trocar de aba NAO mostra os registros do outro banco", async () => {
-    // O bug que este teste cobre: a busca do banco novo leva 180ms, e nesse
-    // intervalo a tela mostrava os 99 de fábrica com o rótulo do dono (U01…)
-    // — clicar num deles abria o patch errado sem erro nenhum.
-    // nasce NA aba de Fábrica: é a TRANSIçÃO que mostra os 99 (começar
-    // direto na aba do dono deixaria o bug passar: nunca haveria linhas velhas)
-    const { host, unmount } = await abre();
-    expect(host.querySelectorAll('[role="option"]').length).toBe(99);
+    // O bug que este teste cobre: a lista velha sobrevivia à troca de aba e
+    // aparecia rotulada de U01 — clicar nela abria o patch errado.
+    // nasce NA aba Patches (com o inventário do device): é a TRANSIÇÃO que
+    // mostra as linhas — começar direto na aba do dono esconderia o bug.
+    const { host, unmount } = await abre({ deviceLib: deviceLibTeste() });
+    expect(host.querySelectorAll('[role="option"]').length).toBe(198);
     const abaDono = Array.from(host.querySelectorAll('[role="tab"]')).find((t) =>
-      t.textContent?.includes("User Patch"),
+      t.textContent?.includes(MSG.libTabUser),
     )!;
     act(() => abaDono.dispatchEvent(new MouseEvent("click", { bubbles: true })));
-    // NO INSTANTE da troca, antes do debounce: é aqui que os 99 velhos
-    // apareceriam rotulados de U01. Depois de esperar a resposta do banco a
+    // NO INSTANTE da troca, antes do debounce: é aqui que as 198 linhas
+    // velhas apareceriam rotuladas de U01. Depois de esperar a resposta a
     // lista já estaria certa de qualquer jeito, e o bug passaria.
     expect(host.querySelectorAll('[role="listitem"], [role="option"]').length).toBe(0);
     await assenta();
     expect(host.textContent).toContain(MSG.userPatchEmpty);
-    expect(host.textContent, "nenhum preset de fábrica sobrou na aba do dono").not.toContain("Blink OD");
     unmount();
   });
 
@@ -517,7 +537,6 @@ describe("LibraryPanel — a biblioteca no banco (#26)", () => {
     });
     await assenta();
     expect(host.querySelector('[role="alert"]')).toBeNull();
-    expect(host.querySelectorAll('[role="option"]').length).toBe(99);
     spy.mockRestore();
     unmount();
   });

@@ -189,7 +189,11 @@ describe("PresetFilePanel — importar", () => {
     expect(board?.pp).toBe(1);
     expect(board?.slots).toHaveLength(9);
     const status = c.host.querySelector('[role="status"]')!;
-    expect(status.textContent).toContain(MSG.presetFileImported(MSG.libPp(1), nomeDe(1), 9));
+    // **(#150)** o relato carrega o nome que VEIO NO ARQUIVO — e o export do
+    // fallback de teste sai com a fixture rotulada (não é nome de fábrica).
+    expect(status.textContent).toContain(
+      MSG.presetFileImported(MSG.libPp(1), "Fixture de teste (não é aparelho)", 9),
+    );
     // e NADA foi para o aparelho: nenhum banner de erro sobrou
     expect(c.host.querySelector('[role="alert"]')).toBeNull();
     c.fecha();

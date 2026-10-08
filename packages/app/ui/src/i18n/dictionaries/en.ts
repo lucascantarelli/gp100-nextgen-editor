@@ -95,6 +95,11 @@ export const EN: DictPatch = {
     keepalive: "Keepalive",
   },
   connBootError: "Device boot failed — check the connection and try again.",
+  connOffTitle: "Device not connected",
+  connOffConnect: "Reconnect",
+  connOffRetryAria: "Reconnect the device (re-opens the MIDI port)",
+  connOffLoadError: (m: string) =>
+    `${m} The library shows what the DEVICE has — connect it to load the patches.`,
 
   /* ── board ── */
   boardAria: "Pedalboard (9 chain slots)",
@@ -107,11 +112,12 @@ export const EN: DictPatch = {
   stageOut: "OUT ⏻",
 
   /* ── library ── */
-  libAria: "Preset library",
+  libAria: "Device patches",
   libTabsAria: "Patch type",
-  libTabFactory: "Factory Patch",
-  libTabUser: "User Patch",
-  libListAria: "Factory presets",
+  libTabFactory: "Patches",
+  libTabUser: "My patches",
+  libListAria: "Device patches",
+  libEmptyDevice: "Device not connected — connect the GP-100 to load the patches.",
   searchPlaceholder: "Search name, number or style…",
   searchAria: "Search presets by name, number or style",
   searchEmpty: (q: string) => `No preset matches “${q}”. Tip: search by style (Rock, Funk…) or number.`,

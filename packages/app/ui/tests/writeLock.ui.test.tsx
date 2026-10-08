@@ -50,6 +50,7 @@ beforeEach(() => {
 
 const info = (writeVerified: boolean): DeviceInfo => ({
   backend: "real",
+  detail: "",
   presetCount: 99,
   currentPp: 0,
   currentName: "Teste",
