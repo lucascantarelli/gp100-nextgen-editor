@@ -99,7 +99,7 @@ beforeEach(() => {
   // ciclo ◀ ▶ voltar ao passo anterior.
   mocks.deviceBoard
     .mockReset()
-    .mockImplementation(async (target?: number) => boardDe(target ?? 0, `PP-${target ?? 0}`));
+    .mockImplementation(async (target: number) => boardDe(target, `PP-${target}`));
   mocks.deviceSetParam.mockReset().mockResolvedValue(undefined);
   mocks.deviceInfo.mockReset().mockResolvedValue(null);
   mocks.onBootProgress.mockReset().mockResolvedValue(() => {});
@@ -133,7 +133,7 @@ async function montarStage(opts: { onChanged?: () => void; strict?: boolean } = 
     const velha = raizAnterior;
     raizAnterior = null;
     await act(async () => {
-      act(() => velha.unmount());
+      velha.unmount();
     });
   }
   const host = document.createElement("div");
@@ -174,12 +174,9 @@ async function primeiroDoDono(): Promise<LibraryPreset> {
 }
 
 describe("useStage", () => {
-  it("carrega o preset CORRENTE no mount (leitura pura, sem select) (#148)", async () => {
+  it("abre o preset 0 no mount (o device é a fonte da verdade)", async () => {
     await montarStage();
-    // o arranque NÃO força select: lê o corrente (pp null no actor) — o
-    // device é a fonte da verdade, e o que ele está tocando é o que aparece
-    expect(mocks.deviceSelectPreset).not.toHaveBeenCalled();
-    expect(mocks.deviceBoard).toHaveBeenCalledWith();
+    expect(mocks.deviceSelectPreset).toHaveBeenCalledWith(0);
     expect(stage!.pp).toBe(0);
     expect(stage!.presetName).toBe("PP-0");
     expect(stage!.openUserId).toBeNull();
@@ -221,22 +218,14 @@ describe("useStage", () => {
     // effect de mount roda uma vez (o StrictMode de DEV duplica, e o app real
     // monta em StrictMode também): o que NÃO pode é o número crescer.
     expect(abertas.length).toBeLessThanOrEqual(2);
-    // o mount NÃO seleciona nada: quem troca preset é o usuário (#148)
-    expect(mocks.deviceSelectPreset.mock.calls.length).toBe(0);
-    expect(mocks.deviceBoard.mock.calls.length).toBeLessThanOrEqual(2);
+    expect(mocks.deviceSelectPreset.mock.calls.length).toBeLessThanOrEqual(2);
   });
 
-  it("NÃO é otimista: select que falha (ação do usuário) não muda pp nem board", async () => {
-    await montarStage(); // o mount carregou o corrente (leitura pura)
-    const boardDoCorrente = stage!.board;
+  it("NÃO é otimista: select que falha não muda pp nem board", async () => {
     mocks.deviceSelectPreset.mockRejectedValue(new Error("sem device"));
-    await act(async () => {
-      await stage!.openPreset(2);
-    });
-    // nada mudou no palco: o corrente continua em cena
-    expect(stage!.board).toBe(boardDoCorrente);
-    expect(stage!.pp).toBe(0);
-    expect(stage!.presetName).toBe("PP-0");
+    await montarStage();
+    expect(stage!.board).toBeNull();
+    expect(stage!.presetName).toBe("…");
     // e a falha virou banner COM ação de recuperação
     expect(stage!.err).not.toBeNull();
     expect(typeof stage!.err!.retry).toBe("function");
@@ -250,13 +239,10 @@ describe("useStage", () => {
   });
 
   it("o retry do banner reabre o preset que falhou", async () => {
-    // mount OK (leitura do corrente); a falha vem da AÇÃO do usuário: abrir
-    // o preset 7 com o select recusando. O retry reabre o MESMO alvo.
-    await montarStage();
+    // Rejeição PERMANENTE (não `Once`): o StrictMode monta o efeito duas vezes
+    // e o `Once` seria consumido na primeira, deixando o banner já limpo.
     mocks.deviceSelectPreset.mockRejectedValue(new Error("boom"));
-    await act(async () => {
-      await stage!.openPreset(7);
-    });
+    await montarStage();
     expect(stage!.err).not.toBeNull();
     mocks.deviceSelectPreset.mockResolvedValue(undefined);
     mocks.deviceBoard.mockResolvedValue(boardDe(7, "ACOUSTIC"));
@@ -370,9 +356,7 @@ describe("useStage", () => {
   });
 
   it("mexer no palco com board NULO (device não respondeu) não estoura", async () => {
-    // #148: o mount é LEITURA PURA do corrente — quem pode falhar no arranque
-    // é o board (device mudo), não um select. Board nulo → guardas em ação.
-    mocks.deviceBoard.mockRejectedValue(new Error("sem device"));
+    mocks.deviceSelectPreset.mockRejectedValue(new Error("sem device"));
     await montarStage();
     expect(stage!.board).toBeNull();
     const alg = FX_MODULES.PRE[0];
