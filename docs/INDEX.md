@@ -21,7 +21,7 @@
 | **Escrever no device real (gate H2)** | `docs/H2_CHECKLIST.md` (3 fluxos, um por vez) + `docs/H2_REPORT.md` (relatório) — build com `--features real-device,write-verified` |
 | **Congelar a especificação depois do hardware (gate H3)** | `docs/H3_CHECKLIST.md` (4 sessões) + `docs/H3_REPORT.md` + [`PROTOCOL.md` §13.14](PROTOCOL.md) (a conta da baseline v1.1) + `analysis/baseline.py show` |
 | **Implementar o protocolo (gp100-core)** | `docs/protocol_golden.json` (especificação executável) + `docs/PROTOCOL.md` §13 (narrativa) |
-| **Decidir arquitetura/estrutura no core (M0)** | `docs/DECISIONS.md` (ADR-1..9 aceitos) |
+| **Decidir arquitetura/estrutura no core (M0)** | `docs/DECISIONS.md` (ADR-1..12 aceitos) |
 | **Saber onde o código novo do front vai morar** | `docs/ARCHITECTURE.md` (mapa de módulos + o que **não** entra em cada camada + orçamento de tamanho) |
 | **Saber onde a persistencia do app mora (M2)** | `docs/DECISIONS.md` ADR-9 (crate `gp100-library` no workspace gnu, nao no crate MSVC do Tauri) |
 | **Escrever/revisar código Rust (M0)** | `.agents/skills/rust-practices/SKILL.md` (gates fmt/clippy/test + estilo de docs) |
@@ -44,9 +44,9 @@
 | Envelope do knob / save / IR no fio | §13.11 / §13.12 / §13.7 | leituras antigas do §13.4 (marcadas) |
 | Estado do projeto / próximos passos | `docs/BLOCKERS.md` + `knowledge.md` (estado vivo) | `docs/CAPTURE_PLAN.md` (histórico) |
 | Números (testes, cobertura, datas dos marcos) | `docs/INDEX.md` §6 | repetir o número em README/ROADMAP/knowledge (#81) |
-| Estrutura do pipeline (jobs, tipos, ordem) | `.github/workflows/ci.yml` + `docs/CONTRIBUTING.md` §5 | workflows pré-#68 (`_validate.yml`/`release.yml`/`container.yml`) — #74 |
+| Estrutura do pipeline (jobs, tipos, ordem) | `.github/workflows/ci.yml` + `docs/CONTRIBUTING.md` §5 | workflow pré-#68 (`_validate.yml`/`release.yml`/`container.yml`) — **consolidados no #68; não existem mais** |
 | Mapa knob→fio | `analysis/knob_map.json` (regenerável) | — |
-| Decisões de implementação do core | `docs/DECISIONS.md` (ADR-1..8) | reabrir debate ad-hoc |
+| Decisões de implementação do core | `docs/DECISIONS.md` (ADR-1..12) | reabrir debate ad-hoc |
 | Armadilhas Windows/ambiente | `knowledge.md` | — |
 
 ## 3. Inventário de documentos
@@ -65,8 +65,8 @@
 | `CONTRIBUTING.md` | Fluxo de contribuição: GitFlow (develop como integração), conventional commits, gates locais por área (coverage 85% incluso), template de PR e fechamento automático de issue no merge em develop (job `Fechamento · issues` do ci.yml; a `main` só recebe o SHA de uma tag `v*`) | ✅ atual |
 | `UI_PLAN.md` | Planejamento issue-a-issue da Fase M1 (Editor UI Tauri/React): escopo, arquitetura DeviceActor, superfície IPC, telas, política de hardware, testes, riscos | 🔨 M1.0 ✅ (ADR-7) · M1.1 ✅ (actor + boot com barra) · M1.2/M1.3 ✅ (palco real + afinador) · V-8 ✅ (#20) · i18n ✅ (#30); M2 planejada (#24–#26) |
 | `UI_REFERENCE.md` | Referência da casca do front: papéis de tela, contratos de estado, **§8 = fonte de verdade do texto de usuário** (o lint de i18n aponta para cá) | ✅ atual (M1.3) |
-| `UI_TEST_PLAN.md` | **Fonte dos roteiros e2e** (declarada no `playwright.config.ts`): R1–R6 + drum/looper, matriz de viewports, política de baselines | ✅ atual · ⚠️ seção de CI cita o pipeline pré-#68 (#75) |
-| `MANUAL_COVERAGE.md` | Matriz de cobertura do manual oficial V1.8 → requisitos implementados (X1..Xn), com o gate que prova cada um | ✅ atual · ⚠️ seção de CI cita o pipeline pré-#68 (#75) |
+| `UI_TEST_PLAN.md` | **Fonte dos roteiros e2e** (declarada no `playwright.config.ts`): R1–R6 + drum/looper, matriz de viewports, política de baselines | ✅ atual |
+| `MANUAL_COVERAGE.md` | Matriz de cobertura do manual oficial V1.8 → requisitos implementados (X1..Xn), com o gate que prova cada um | ✅ atual |
 | `UI_DESIGN.md` | Design system da UI: paleta palco Valeton (âmbar/preto/vermelho/lavanda com rácios WCAG medidos), escala de Fibonacci, tipografia, motion, identidade "pedalboard ao vivo", checklist de review | ✅ atual (M1.0) |
 | `ARCHITECTURE.md` | **Estrutura do front** (#82): mapa de módulos (`ipc`/`hooks`/`components`/`design`/…), o que **não** entra em cada camada, árvore de decisão para código novo e o orçamento de tamanho cobrado pelo gate `check_module_size.py` | ✅ atual (#82) |
 | `H1_CHECKLIST.md` | Checklist operacional do gate H1 (primeiro contato real, só leitura): pré-requisitos, procedimento de campo, níveis de comparação (framing × estado × estrutural), log de divergência, fluxo R3 | ⏳ aguardando pedaleira + owner — RealDevice ✅, kit de campo ✅ e Fase C automatizada (`h1_compare.py`) |
@@ -77,6 +77,7 @@
 | `packages/library/` | **Biblioteca persistente** (#26, ADR-9): SQLite com migracoes versionadas (`PRAGMA user_version`), busca por nome/nº/estilo, import/export JSON versionado e seed dos 99 presets de fabrica do `all.prst`. Crate do workspace gnu, sem Tauri | ✅ novo (#26) |
 | `H3_CHECKLIST.md` | Checklist operacional do gate H3 (congelamento da especificação): as 4 sessões que tiram o golden do Suite e põem o golden do gp100-core, o que fazer quando o juiz acusa endereço fora da spec, e por que a prova de save foi de 77 para 14 | ⏳ aguardando pedaleira + owner — maquinaria ✅ (normalizador, juiz, baseline versionada, `--log` com relógio) |
 | `skills_audit_2026-09-29.md` | Auditoria das skills: regras que eram prática implícita, agora escritas (5 achados em core-dev/docs-sync/spec-baseline) | ✅ atual |
+| `audit_2026-10-07.md` | **Auditoria completa (07/10)**: code review + governança + arquitetura + limpeza em todo o repo, com números remediados, achados F-01…F-12 e backlog A-1…A-10 (desfecho na §10) | ✅ atual (desfecho 08/10) |
 | `INDEX.md` | Este índice | ✅ manter atualizado |
 | `analysis/wirelog.py` · `analysis/baseline.py` · `analysis/validate_core_capture.py` | O trilho do H3: normalizador dos dois schemas de log de fio · baseline versionada (versão + hash + motivo + histórico) · juiz frame a frame de uma captura do gp100-core contra a spec | ✅ (`analysis/baseline.py show`) |
 
@@ -118,7 +119,10 @@ Instaladores, firmware V2.1, manual, driver, DebugView, screenshots,
 | `make_sdist.py` | Tarball de fonte com o `ui/dist` embutido — insumo do PKGBUILD | `Distribuição · tarball de fonte` |
 | `sync_version.py` | Os 5 manifests de versão em sincronia (`--check` é o gate) | `Lint · contratos do pipeline` |
 | `check_deadcode.py` | Todo `export` de `src/` tem consumidor fora do arquivo — cobertura 100% não prova que o contrato é consumível (#78) | `Lint · UI` |
+| `check_module_size.py` | Orçamento de tamanho do front (`App.tsx` < 300 linhas; teto do §4 do `docs/ARCHITECTURE.md`) | gate local (`gates.py`) · `Lint · UI` |
 | `add_cargo_path.ps1` / `h1_field.sh` / `h1_compare.py` | Fix do PATH do cargo (HKLM) · runbook do gate H1 · juiz da Fase C do H1 (níveis 1/2/3 + tabela do §5; `--self-check` é gate na CI) | local / campo |
+| `h2_field.sh` / `h2_compare.py` | Runbook do gate H2 (escrita) · juiz da transcrição do H2 contra a referência de escrita (#22; é gate em `gates.py`) | local / campo |
+| `wirelog_compare.py` | **Núcleo comum dos juízes H1/H2** (#141): o `Frame` do schema P4, o parser e os helpers de tabela — uma implementação só para os dois juízes não divergirem em silêncio | importado pelos juízes + pytest |
 
 ### Raiz do repo — governança
 `LICENSE` (MIT — declarado no `Cargo.toml` e no `PKGBUILD`),
@@ -135,7 +139,11 @@ Instaladores, firmware V2.1, manual, driver, DebugView, screenshots,
 (`protocol-validate`, `proxy-build`, `capture-analyze`) · **governança**
 (`spec-baseline`, `docs-sync`).
 
-⚠️ As skills `rust-practices`, `ui-ux-practices`, `core-dev` e `github-flow` ainda descrevem o pipeline **pré-#68** (`_validate.yml`, `release.yml`, `container.yml`, `front-gate`, `close-linked`, label `ci-lite`) — issue #74 aberta. Tratar a skill como fonte de regra **e** conferir o `ci.yml` antes de agir.
+✅ As skills do pipeline já falam o **#68**: `rust-practices`, `ui-ux-practices`,
+`core-dev` e `github-flow` citam o `ci.yml`, e o `github-flow` menciona a label
+`ci-lite` só para registrar que foi **abolida**. A dívida apontada na auditoria de
+03/10 (#74) está **paga** — conferido na auditoria de 07/10
+([`audit_2026-10-07.md`](audit_2026-10-07.md) F-03).
 
 ### `packaging/` — recipes de pacote fora do Tauri
 `packaging/arch/PKGBUILD` + `packaging/arch/gp100-nextgen-editor.desktop` (#29 / REL-ARCH).
@@ -175,6 +183,10 @@ O Tauri não gera pacote Arch: a unidade de distribuição **é** a receita vers
 > Este bloco é a fonte; qualquer outro lugar aponta para cá em vez de repetir
 > o número (item novo da skill `docs-sync`, issue #81).
 >
+> **Baseline:** os números abaixo são **medidos em `develop`**. Numa branch de feature
+> eles divergem por construção (a branch *adiciona* testes) — divergência em branch **não**
+> é erro deste §6; re-meça em `develop` antes de corrigir (auditoria 07/10, F-11, #146).
+>
 > **Todos os números abaixo foram MEDIDOS em 06/10/2026**, com o comando da
 > própria linha. Nenhum foi herdado de uma revisão anterior — a revisão de 03/10
 > trazia 189 testes de front onde havia 399, e 10 de spec onde havia 81. Se um
@@ -198,15 +210,22 @@ O Tauri não gera pacote Arch: a unidade de distribuição **é** a receita vers
 | **#126** (release) | ✅ **face (A) de leitura**: o `dist-ui` constrói com `--features real-device` (caminho `../ui` corrigido — o step antigo morria antes de compilar, `libasound2-dev` no Linux), a **política de escrita está na tela** (`escritaLiberada()`: knob/IR/SnapTone desabilitados COM O MOTIVO, select liberado por ser `WireKind::Read`) e o **keepalive do boot é omitido com a trava fechada** (ADR-5 rev. 06/10) |
 | **M3** (#116) | ✅ **A/B com blind test** (parte sem aparelho): o par vem do histórico versionado (#113), a troca desenha no palco e manda só os knobs graváveis de slots de mesmo algoritmo (o `0x47` não tem formato capturado — BLOCKERS 10b, e a tela diz), o **nível é POSIÇÃO** com método e limitação impressos ao lado do número, a **calibração** iguala o lado alto ao baixo (medido: delta 40.0 → 0.0) e o **blind** esconde rótulo/versão/nível/relatório até o palpite (o teste de UI prova a AUSÊNCIA). **Medição em campo pendente de aparelho** |
 
-### Contagem de testes (medido 06/10)
+### Contagem de testes (front re-medido em `develop` 08/10; demais em 06/10)
 | Suíte | Comando | Contagem |
 |---|---|---|
-| Unit do front | `pnpm exec vitest run` | **485** em **36** arquivos (485 passando) |
-| Cobertura do front | `pnpm run test:coverage` | **87,99%** stmts · **81,50%** branch · **87,20%** funcs · **90,34%** linhas |
-| E2E (Playwright) | `pnpm exec playwright test --list` | **87** testes em **11** arquivos · **96** baselines |
+| Unit do front | `pnpm exec vitest run` | **513** em **38** arquivos (513 passando) · *08/10* |
+| Cobertura do front | `pnpm run test:coverage` | **87,62%** stmts · **81,25%** branch · **86,78%** funcs · **90,04%** linhas · *08/10* |
+| E2E (Playwright) | `pnpm exec playwright test --list` | **90** testes em **12** arquivos · **96** baselines · *08/10* |
 | Rust (core + cli + library) | `cargo test --workspace` | **309** testes em **36** suítes (34 binários de teste + 2 suites de doc-test) |
 | Spec (pytest) | `.venv/Scripts/python.exe -m pytest` | **92** |
 | Gates locais | `python scripts/gates.py` | **13** |
+
+> ✅ **Tempo da suíte do front (medido 08/10 na mesma base `develop`):**
+> `pnpm exec vitest run` caiu de **84,7s → 52,3s** com `pool: 'vmThreads'` (#145, F-10):
+> o jsdom deixou de ser criado **38× (113,4s = 39% do tempo rastreado)** e passou a ser
+> reaproveitado por worker, mantendo o isolamento por arquivo. Antes e depois com os
+> MESMOS **513 testes em 38 arquivos** (todos verdes) e a cobertura do gate intacta
+> (87,62% ≥ 85%).
 
 > ✅ **A cobertura voltou a imprimir número em 05/10.** Ela vinha sem valor desde
 > a revisão anterior, por uma falha intermitente de `testTimeout` que trocava de

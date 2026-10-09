@@ -35,8 +35,8 @@ ser exercício da tela fora do hardware.
 
 | # | O que era | Evidência pré-campo | O que o campo desmentiu | Estado |
 |---|---|---|---|---|
-| 1 | Inventário do scan = intervalo linear `0..198` | `0u16..198` em `session.rs`; mock valida SHAPE (796 selects "batem" com qualquer pp) | assert `PresetNum < TOTAL_PA` (`audio.c:912`), reproduzido 2×; espaço real = banco/slot `0000..=0062` + `0100..=0162` (796 selects, 198 payloads distintos em S1–S4) | ✅ **fix em #149** (+ guarda ADR-10 e testes contra a captura) |
-| 2 | Palco força `openPreset(0)` no arranque (assumia fábrica) | `useStage.ts:285` | owner com preset débil tocando; boot já descobre o corrente (`current_pp`) | ✅ **fix em #149** (`deviceBoard()` com pp null = corrente; arranque leitura pura; select só por ação) |
+| 1 | Inventário do scan = intervalo linear `0..198` | `0u16..198` em `session.rs`; mock valida SHAPE (796 selects "batem" com qualquer pp) | assert `PresetNum < TOTAL_PA` (`audio.c:912`), reproduzido 2×; espaço real = banco/slot `0000..=0062` + `0100..=0162` (796 selects, 198 payloads distintos em S1–S4) | ✅ **fix em develop (#132/#137, a742ccf)** |
+| 2 | Palco força `openPreset(0)` no arranque (assumia fábrica) | `useStage.ts:285` | owner com preset débil tocando; boot já descobre o corrente (`current_pp`) | ✅ **fix em develop (#132/#137, a742ccf)**: `mount` abre o `current_pp` via `device_preset_library` |
 | 3 | A numeração de preset era suposição de label | LED real do aparelho | **P01–P99 = USER, F01–F99 = FÁBRICA (1-based)** — manual V1.8, "two patch banks" | 📋 **#150** (medir em campo o mapeamento banco↔P/F antes de trocar o label) |
 
 ---
@@ -105,7 +105,7 @@ ser exercício da tela fora do hardware.
 - **O dicionário de knobs (105 nomes, ranges)** é dado real e virou guarda (#110)
   — hoje o aparelho não derruba com valores fora (assert `audio.c:1828`).
 - **A guarda ADR-10** funcionou em campo pela entrega da #110; o mesmo padrão
-  acabou de cobrir pp (#149).
+  acaba de cobrir pp (#132/#137).
 - **O scan completo (2299 transações)** é o roteiro do Suite real, e agora é o
   boot do app.
 
@@ -145,6 +145,6 @@ ser exercício da tela fora do hardware.
 - `analysis/captures/session{1..4}.jsonl` (796 selects; payloads = 0000..0062, 0100..0162).
 - `analysis/manual_v18.txt` ("two patch banks: User P01–P99 / Factory F01–F99").
 - Valeton oficial (valeton.net/product/gp-100): "198 presets (99 user + 99 factory)".
-- Issues: #148 (pai), #149 (fix), #150 (biblioteca do aparelho), #116 (A/B), #110 (precedente knob).
+- Issues: #148 (duplicata consolidada em #132/#137), #150 (biblioteca do aparelho), #116 (A/B), #110 (precedente knob).
 - `packages/core/src/session.rs` (inventory/select_preset/pp_e_valido), `packages/app/ui/src/hooks/useStage.ts` (carregaCorrente).
 - Regras: `knowledge.md`, `docs/CONTRIBUTING.md`, `.agents/skills/docs-sync/SKILL.md`.

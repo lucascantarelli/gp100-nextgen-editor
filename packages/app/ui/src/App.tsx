@@ -35,8 +35,9 @@
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { DeviceInfo } from "./ipc/types";
+import { rotuloPp } from "./ipc/types";
 import { deviceInfo, escritaLiberada } from "./ipc/device";
-import { useBoot, BOOT_STAGE_LABEL } from "./hooks/useBoot";
+import { useBoot } from "./hooks/useBoot";
 import { usePushLog } from "./hooks/usePushLog";
 import { useGlobalShortcuts } from "./hooks/useGlobalShortcuts";
 import { useStage } from "./hooks/useStage";
@@ -45,8 +46,7 @@ import { useIrs } from "./hooks/useIrs";
 import { useContentMenu } from "./hooks/useContentMenu";
 import { usePrefs } from "./hooks/usePrefs";
 import { TopBar } from "./components/TopBar";
-import { BootProgressBar } from "./components/BootProgressBar";
-import { ErrorBanner } from "./components/ErrorBanner";
+import { BootBanners } from "./components/BootBanners";
 import { LibraryPanel } from "./components/LibraryPanel";
 import { Stage } from "./components/Stage";
 import { SettingsModal } from "./components/SettingsModal";
@@ -98,6 +98,7 @@ export default function App() {
     board,
     openUserId,
     lib,
+    deviceLib,
     err,
     openPreset,
     stepPreset,
@@ -110,13 +111,13 @@ export default function App() {
     onToggle,
   } = stage;
 
-  // info + biblioteca no mount
+  // info no mount (#150: o aviso "aparelho não conectado" nasce daqui —
+  // `backend: "none"` + o motivo que o backend declarou; a biblioteca do
+  // aparelho é o useStage que carrega no load: app → device → app)
   useEffect(() => {
     void deviceInfo()
       .then(setInfo)
       .catch(() => setInfo(null));
-    // Biblioteca de fábrica = artefato gerado do all.prst (presetData.ts).
-    // `device_preset_library` volta a alimentar esta lista na integração real.
   }, []);
 
   // Boot FALHOU = o device não respondeu: a UI não pode continuar exibindo
@@ -165,7 +166,9 @@ export default function App() {
     },
   });
 
-  const connected = info != null;
+  // **(#150) `backend: "none"` NÃO é conectado** — o LED "on" seria a UI
+  // mentindo sobre quem está na USB.
+  const connected = info != null && info.backend !== "none";
   // faixa de progresso só durante o boot (não ocupa layout permanente);
   // stage pode vir de um beat pendente após o fim — congelar em 100%/fim
   const stageNow = booting ? boot.stage : null;
@@ -191,7 +194,7 @@ export default function App() {
         <TopBar
           connected={connected}
           mock={info?.backend === "mock"}
-          presetLabel={`${board?.ppLabel ?? MSG.libPp(pp)} ${presetName}`}
+          presetLabel={`${board?.ppLabel ?? (info?.backend === "real" ? rotuloPp(pp) : MSG.libPp(pp))} ${presetName}`}
           masterVol={masterVol}
           drum={drum}
           drumOpen={drumOpen}
@@ -207,19 +210,14 @@ export default function App() {
         />
 
         {/* boot/erros: faixas transitórias coladas no topo (sempre visíveis) */}
-
-        {booting && boot.progress !== null && (
-          <BootProgressBar
-            progress={boot.progress}
-            stageLabel={stageNow ? BOOT_STAGE_LABEL[stageNow] : MSG.bootStarting}
-          />
-        )}
-        {boot.state.kind === "error" && (
-          <div role="alert" style={{ background: "color-mix(in srgb, var(--error) 12%, transparent)", border: "1px solid color-mix(in srgb, var(--error) 45%, transparent)", color: "var(--error)", borderRadius: "var(--space-8)", padding: "var(--space-8) var(--space-12)", fontSize: "var(--text-sm)" }}>
-            {MSG.connBootError}
-          </div>
-        )}
-        {err != null && <ErrorBanner message={err.message} onRetry={err.retry} />}
+        <BootBanners
+          progress={booting ? boot.progress : null}
+          stage={stageNow}
+          bootFailed={boot.state.kind === "error"}
+          offDetail={info?.backend === "none" ? info.detail : null}
+          err={err}
+          onReconnected={() => boot.startBoot("manual")}
+        />
       </div>
 
       {/* MEIO da mesa: looper no topo, pushes, biblioteca (248px, com a
@@ -247,6 +245,7 @@ export default function App() {
             currentPp={pp}
             bankDoPalco={board?.bank ?? "factory"}
             lib={lib}
+            deviceLib={deviceLib}
             currentUserId={openUserId}
             onOpenFactory={(target) => void openPreset(target)}
             onOpenUser={(id, index) => void openUserPatch(id, index)}

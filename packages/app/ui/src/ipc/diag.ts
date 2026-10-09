@@ -114,6 +114,55 @@ export async function deviceLogStop(): Promise<boolean> {
 }
 
 /**
+ * `device_log_path` — **em que arquivo o log de fio está gravando** (ou `null`).
+ *
+ * O caminho **não é do front**: no build de campo o backend liga o log sozinho
+ * na abertura, com o nome que ele escolhe (diretório de dados + carimbo do
+ * horário). A tela pergunta em vez de assumir — é o que deixa o operador ver o
+ * arquivo sem abrir o terminal, e o que impede o botão de oferecer "gravar" por
+ * cima de uma sessão que já está em disco.
+ *
+ * No fallback (browser) não existe backend gravando: a resposta honesta é
+ * `null`, e não um caminho inventado.
+ */
+export async function deviceLogPath(): Promise<string | null> {
+  if (inTauri()) {
+    const { invoke } = await import("@tauri-apps/api/core");
+    return runCommand("log_path", IDEMPOTENTE, () =>
+      invoke<string | null>("device_log_path"),
+    );
+  }
+  return runCommand("log_path", IDEMPOTENTE, async () => null);
+}
+
+/**
+ * `device_log_reveal` — **abre o gerenciador de arquivos com o log selecionado**.
+ *
+ * É o fim do fluxo de entrega da sessão de campo (#135): o painel já diz EM
+ * QUE arquivo a gravação está; este command leva o arquivo até o suporte, sem
+ * o operador caçar a pasta na mão.
+ *
+ * O caminho **não é argumento**: quem decide é o backend, que é o dono do log
+ * ativo — o front não manda o explorer para lugar nenhum.
+ *
+ * No fallback (browser) não existe desktop para abrir, e a operação é **dita**,
+ * não fingida: lança, o painel mostra a mensagem, e ninguém acredita que a
+ * pasta abriu.
+ */
+export async function deviceLogReveal(): Promise<void> {
+  if (inTauri()) {
+    const { invoke } = await import("@tauri-apps/api/core");
+    await runCommand("log_reveal", IDEMPOTENTE, () =>
+      invoke<void>("device_log_reveal"),
+    );
+    return;
+  }
+  return runCommand("log_reveal", IDEMPOTENTE, async () => {
+    throw new Error("abrir a pasta do log existe só no aplicativo desktop");
+  });
+}
+
+/**
  * `device_preview` — **o que o aparelho receberia, sem receber**.
  *
  * O hex vem do BACKEND, nunca montado aqui: a porta única proíbe o front de

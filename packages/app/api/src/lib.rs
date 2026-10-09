@@ -4,11 +4,12 @@
 //! [gp100-core]. O crate conhece commands, actor e DTOs; **toda regra de
 //! protocolo fica no core** (R1).
 //!
-//! **Backend por compilação (não por env).** O build comum fala com o
-//! `MockDevice` (política ADR-4/ADR-5 — nenhum byte sai para hardware sem o
-//! build de campo dizer que pode); o build `--features real-device` abre o
-//! `RealDevice` e cai no mock se o aparelho não estiver ligado. Ver
-//! [`abrir_backend`] e `docs/REAL_DEVICE_GAP.md`.
+//! **Backend por compilação (não por env).** O build de campo
+//! (`--features real-device`) abre o `RealDevice`; **(#150)** o app SEM
+//! aparelho sobe no estado `Desligado` — janela viva, aviso legível e botão
+//! "Reconectar" (`device_conectar`) refazendo o open — em vez de cair no
+//! mock fingindo ser o aparelho. O `MockDevice` segue vivo no core/CLI/testes,
+//! e nunca mais dentro do app. Ver [`abrir_backend`] e `docs/REAL_DEVICE_GAP.md`.
 //!
 //! **DeviceActor:** o actor é o dono ÚNICO da `Session` (D8 do
 //! ADR-6) — commands enfileiram requisições; o boot emite progresso via
@@ -27,38 +28,31 @@ mod ir_commands;
 mod library_commands;
 mod snap_tone_commands;
 
-use gp100_core::transport::mock::{MockDevice, MockFault};
 use tauri::Manager;
 
-/// Plano de falha do shell lido do ambiente — gancho de teste/e2e do #48.
+/// **O log de fio automático vale só no aparelho.**
 ///
-/// `GP100_DEBUG_FAULT=die-after:<n>`: o device MOCK "cai" depois de `n`
-/// transmissões (todo `send_raw`/`recv_raw`/`open` seguinte devolve
-/// [`TransportError::DeviceGone`](gp100_core::transport::TransportError)) —
-/// prova ponta-a-ponta o cenário de USB removido no meio da sessão: shell →
-/// actor → command → UI (o front, sozinho, só sabia simulá-lo por
-/// localStorage). Valor ausente/malformado = backend saudável (default).
-///
-/// **Exclusivo do backend MOCK:** o transporte real (`real-device`) não lê
-/// este env — a política de hardware (ADR-4/ADR-5) segue intocada.
-///
-/// [`TransportError::DeviceGone`]: gp100_core::transport::TransportError::DeviceGone
-fn debug_fault_from_env() -> Option<MockFault> {
-    let raw = std::env::var("GP100_DEBUG_FAULT").ok()?;
-    let fault = parse_debug_fault(&raw);
-    if fault.is_none() {
-        eprintln!("GP100_DEBUG_FAULT ignorado (esperado `die-after:<n>`): {raw}");
-    }
-    fault
+/// Sem aparelho não existe fio: o arquivo encheria com tráfego que não é do
+/// operador e enterraria o incidente real (assert do firmware) em ruído. A
+/// política de hardware do ADR-4/ADR-5 já diz que ali não há o que registrar.
+fn log_automatico(backend: actor::Backend) -> bool {
+    matches!(backend, actor::Backend::Real)
 }
 
-/// Parser puro do gancho de falha (testável sem mutar o ambiente global).
+/// Nome do arquivo do log de fio de UMA execução do app.
 ///
-/// Aceita `die-after:<n>` com espaços acidentais (trim); devolve `None` para
-/// qualquer outra forma (nunca pânico — env de debug não derruba o app).
-fn parse_debug_fault(raw: &str) -> Option<MockFault> {
-    let n = raw.trim().strip_prefix("die-after:")?;
-    n.trim().parse::<u32>().ok().map(MockFault::DieAfter)
+/// **Por que carimbo, e não nome fixo.** O `WireLogger` **trunca** o arquivo ao
+/// abrir. Com nome fixo, o primeiro boot depois de um incidente apagaria
+/// exatamente o log que interessa — e a recuperação de um aparelho assertado é
+/// um power-cycle, ou seja, o app É reiniciado no meio da investigação. Um
+/// arquivo por execução preserva a sessão que quebrou.
+///
+/// O carimbo sai do ISO só com dígitos (`2026-10-06T16:04:05Z` →
+/// `wire-20261006160405.jsonl`): `:` é inválido em nome de arquivo no Windows,
+/// e a ordem lexicográfica continua sendo a cronológica.
+fn nome_wire_log(agora_iso: &str) -> String {
+    let stamp: String = agora_iso.chars().filter(char::is_ascii_digit).collect();
+    format!("wire-{stamp}.jsonl")
 }
 
 /// Abre a biblioteca no diretorio de DADOS do app e semeia a fabrica na
@@ -103,11 +97,25 @@ fn seed_de_fabrica(lib: &gp100_library::Library) -> Result<usize, String> {
         .map_err(|e| e.to_string())
 }
 
-/// **O backend que este binário vai falar.** Escolha por COMPILAÇÃO, nao por
-/// runtime: o build comum e o `MockDevice` (política ADR-4/ADR-5 — nenhum
-/// byte sai para hardware sem o build de campo dizer que pode), e o build
-/// `--features real-device` tenta o aparelho primeiro e cai no mock se ele
-/// nao estiver ligado.
+/// Motivo humano do estado `Desligado` (#150), por build — é o texto que a UI
+/// mostra no aviso de conexão. Diferente por compilação porque a recusa é
+/// diferente: aparelho ausente na USB versus build sem o transporte.
+#[cfg(feature = "real-device")]
+const MOTIVO_DESLIGADO: &str =
+    "Aparelho não conectado via USB — conecte o GP-100 e clique em Reconectar.";
+
+/// Ver [`MOTIVO_DESLIGADO`].
+#[cfg(not(feature = "real-device"))]
+const MOTIVO_DESLIGADO: &str =
+    "Este build não tem o transporte de aparelho — compile com --features real-device.";
+
+/// **O backend que este binário vai falar: sempre o APARELHO (#150).**
+///
+/// O build de campo (`--features real-device`) abre o `RealDevice`. Se o
+/// aparelho não estiver na USB, o app sobe no estado [`actor::Backend::Desligado`]
+/// — janela viva, aviso com o motivo e o `device_conectar` refazendo o open —
+/// em vez de cair no mock fingindo ser o aparelho. O build sem a feature não
+/// tem transporte algum: mesmo estado, motivo diferente.
 ///
 /// **POR QUE O `GP100_BACKEND` NAO ESCOLHE.** Um env que troca mock por
 /// aparelho faria o build distribuível trocar de comportamento conforme a
@@ -115,10 +123,9 @@ fn seed_de_fabrica(lib: &gp100_library::Library) -> Result<usize, String> {
 /// que estiver na USB, sem ninguem pedir. O mock nao e um modo de depuracao
 /// e um **backend**: ele e o que garante que abrir o app nunca escreve no
 /// hardware de surpresa. O CLI ja faz a mesma escolha (`--real` exige
-/// `--i-know-what-im-doing`; ver `packages/cli/src/main.rs`).
-///
-/// O `GP100_DEBUG_FAULT` continua mock-only (e o `if` abaixo deixa isso
-/// explicito em vez de silencioso).
+/// `--i-know-what-im-doing`; ver `packages/cli/src/main.rs`). No app, a
+/// escolha equivalente é a feature de compilação — e a escrita continua
+/// exigindo `write-verified` (ADR-5).
 ///
 /// # Erros
 /// Falha de I/O na abertura do backend; o binário encerra em vez de abrir uma
@@ -134,35 +141,30 @@ fn abrir_backend() -> Result<abrir_backend::Escolha, Box<dyn std::error::Error>>
                         Box::new(real) as actor::AppDevice,
                         actor::Backend::Real,
                     ),
+                    backend: actor::Backend::Real,
                 });
             }
             Err(e) => {
-                eprintln!("[device] aparelho nao abriu ({e}); caindo no MOCK");
+                eprintln!("[device] aparelho não conectado ({e}); o app sobe DESLIGADO");
             }
         }
     }
     #[cfg(not(feature = "real-device"))]
     {
-        let _ = debug_fault_from_env();
+        eprintln!("[device] build sem --features real-device: nenhum aparelho será aberto");
     }
 
-    // O mock é montado TIPADO (é ele que arma a falha de debug, e `with_fault`
-    // é método do `MockDevice` concreto) e só DEPOIS convertido no transporte
-    // que este build carrega.
-    //
-    // A conversão é `actor::como_app_device`, e não uma anotação de tipo: anotar
-    // `AppDevice` aqui compila no build comum — onde o alias É o `MockDevice` —
-    // e quebra o build de campo, onde ele é `Box<dyn DeviceBackend + Send>` e o
-    // mock precisa ir para o heap. Uma anotação não faz essa coerção; foi o
-    // E0308 que a primeira run com `ui-rust` de verdade mostrou nos dois SOs.
-    let mut mock = MockDevice::new()?;
-    if let Some(fault) = debug_fault_from_env() {
-        eprintln!("GP100_DEBUG_FAULT armado: {fault:?} (backend mock)");
-        mock = mock.with_fault(fault);
-    }
-    let mock = actor::como_app_device(mock);
+    // Build de campo: o transporte PROCURA o aparelho a cada `device_conectar`
+    // — reconectar tem ação real. Sem a feature não há transporte nenhum para
+    // procurar: o estado segue `Desligado` com o motivo do build.
+    #[cfg(feature = "real-device")]
+    let actor_desligado = actor::DeviceActor::desligado_procurando(MOTIVO_DESLIGADO);
+    #[cfg(not(feature = "real-device"))]
+    let actor_desligado = actor::DeviceActor::desligado(MOTIVO_DESLIGADO);
+
     Ok(abrir_backend::Escolha {
-        actor: actor::DeviceActor::spawn(mock, actor::Backend::Mock),
+        actor: actor_desligado,
+        backend: actor::Backend::Desligado,
     })
 }
 
@@ -176,6 +178,10 @@ mod abrir_backend {
     pub(super) struct Escolha {
         /// Thread dona unica da `Session` (D8 do ADR-6).
         pub actor: DeviceActor,
+        /// Qual backend o actor possui — **declarado por quem o montou**, e não
+        /// deduzido depois. É o que decide se o log de fio automático vale: só
+        /// o aparelho tem fio para registrar.
+        pub backend: crate::actor::Backend,
     }
 }
 
@@ -185,7 +191,9 @@ mod abrir_backend {
 /// Propaga falha de setup/runtime do Tauri (janela/recursos/assets) — o
 /// binário encerra com exit ≠ 0.
 pub fn run() -> Result<(), Box<dyn std::error::Error>> {
-    let actor = abrir_backend()?.actor;
+    let escolha = abrir_backend()?;
+    let backend = escolha.backend;
+    let actor = escolha.actor;
 
     // `build` ANTES de `manage` porque o caminho do banco vem do proprio Tauri
     // (`app_data_dir`), que so existe depois que o app existe. Com
@@ -194,6 +202,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     let app = tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             commands::device_info,
+            commands::device_conectar,
             commands::device_board,
             commands::device_preset_library,
             commands::device_select_preset,
@@ -202,6 +211,8 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
             commands::device_dump_preset,
             commands::device_log_session,
             commands::device_log_stop,
+            commands::device_log_path,
+            commands::device_log_reveal,
             commands::device_preview,
             commands::device_boot,
             commands::list_user_irs,
@@ -261,6 +272,35 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
         library: std::sync::Mutex::new(library),
     });
 
+    // **LOG DE FIO AUTOMÁTICO NO CAMPO (06/10/2026).** Em 06/10 o app de campo
+    // assertou o firmware do GP-100 (`CODE:PresetNum < TOTAL_PA`,
+    // `Drivers/audio/audio.c:912`) e **não havia um único frame gravado**: o log
+    // só existia se o operador abrisse o painel de diagnóstico e clicasse o
+    // toggle — e ninguém clica num toggle durante um incidente. A causa acabou
+    // sendo atribuída por LEITURA DE CÓDIGO (dedução), não por registro do fio.
+    //
+    // Daqui em diante o build de campo grava sozinho, e este ponto é ANTES do
+    // primeiro command do front: o `select` da abertura automática
+    // (`useStage` → `openPreset(0)`) também entra no arquivo. Ligar o log aqui
+    // não reinicia o device (o `LoggingTransport` é decorador: `actor.rs`).
+    //
+    // Falha de log NÃO derruba a sessão — a policy é a mesma do
+    // `LoggingTransport`: a sessão vale mais que o log. O operador é avisado no
+    // `stderr` (e o caminho é impresso quando liga).
+    if log_automatico(backend) {
+        match app
+            .path()
+            .app_data_dir()
+            .map(|dir| dir.join(nome_wire_log(&library_commands::agora_iso())))
+        {
+            Ok(caminho) => match actor.log_session(caminho.to_string_lossy().as_ref()) {
+                Ok(_) => eprintln!("[log] wire log de campo: {}", caminho.display()),
+                Err(e) => eprintln!("[log] o log de fio nao ligou ({e}); sessao sem log"),
+            },
+            Err(e) => eprintln!("[log] sem diretorio de dados para o log de fio: {e}"),
+        }
+    }
+
     // Laço de eventos do Tauri. `Builder::run` era o atalho que fazia isto e
     // devolvia `Result`; aqui quem inicializa é `build`, e `App::run` não tem
     // o que devolver — o `build` acima ja é o ponto que falha.
@@ -275,36 +315,25 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
 mod tests {
     use super::*;
 
-    /// O gancho aceita a forma canônica (e tolera espaços do shell).
+    /// O carimbo do log tira o que o Windows recusa em nome de arquivo e
+    /// mantém a ordem cronológica na lexicográfica (precisa para achar "a
+    /// sessão que quebrou" numa pasta com várias).
     #[test]
-    fn parse_debug_fault_aceita_die_after() {
-        assert_eq!(
-            parse_debug_fault("die-after:0"),
-            Some(MockFault::DieAfter(0))
-        );
-        assert_eq!(
-            parse_debug_fault("die-after:300"),
-            Some(MockFault::DieAfter(300))
-        );
-        assert_eq!(
-            parse_debug_fault("  die-after:42  "),
-            Some(MockFault::DieAfter(42))
+    fn nome_do_log_de_fio_e_ordenavel_e_sem_dois_pontos() {
+        let n = nome_wire_log("2026-10-06T16:04:05Z");
+        assert_eq!(n, "wire-20261006160405.jsonl");
+        assert!(
+            !n.contains(':'),
+            "dois-pontos e invalido em nome no Windows"
         );
     }
 
-    /// Qualquer outra forma é ignorada (backend saudável) — env de debug
-    /// nunca derruba o app nem arma algo inesperado.
+    /// **O log automático é do aparelho, e só dele.** Sem aparelho (#150:
+    /// `Desligado`) não existe fio para registrar.
     #[test]
-    fn parse_debug_fault_rejeita_forma_desconhecida() {
-        for raw in [
-            "",
-            "die-after:",
-            "die-after:abc",
-            "die-after:-1",
-            "other:1",
-            "300",
-        ] {
-            assert_eq!(parse_debug_fault(raw), None, "raw={raw:?}");
-        }
+    fn log_automatico_so_no_backend_real() {
+        assert!(log_automatico(actor::Backend::Real));
+        assert!(!log_automatico(actor::Backend::Mock));
+        assert!(!log_automatico(actor::Backend::Desligado));
     }
 }

@@ -179,6 +179,13 @@ impl<T: DeviceTransport> DeviceTransport for LoggingTransport<T> {
         self.inner.permite_escrita()
     }
 
+    /// Idem para a identidade de aparelho (#132): a trava de faixa do `pp`
+    /// tem de valer por cima do logger, senão ligar o log mudaria a
+    /// política da sessão — e o build de campo liga o log sozinho (#130).
+    fn e_aparelho(&self) -> bool {
+        self.inner.e_aparelho()
+    }
+
     fn recv_raw(&mut self, timeout: Duration) -> Result<Vec<u8>, TransportError> {
         let msg = self.inner.recv_raw(timeout)?;
         if let Some(l) = self.logger.as_mut() {

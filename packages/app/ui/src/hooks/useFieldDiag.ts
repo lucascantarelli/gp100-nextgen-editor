@@ -27,6 +27,8 @@ import { useCallback, useEffect, useState } from "react";
 
 import {
   deviceDumpPreset,
+  deviceLogPath,
+  deviceLogReveal,
   deviceLogSession,
   deviceLogStop,
   devicePreview,
@@ -58,14 +60,19 @@ interface FieldDiag {
   dump: DumpReport | null;
   /** Frames do preview, ou `null` se ainda não pediu. */
   preview: PreviewFrame[] | null;
-  /** O log de fio está gravando? */
+  /**
+   * O log de fio está gravando?
+   *
+   * Inclui o log que o **build de campo liga sozinho** na abertura (#130): a
+   * tela pergunta ao backend em vez de assumir que começou desligado.
+   */
   logging: boolean;
   /** Caminho do log atual (para o operador saber onde vai o arquivo). */
   logPath: string | null;
   /** O preset foi gravado nesta sessão? (o botão não repete sozinho) */
   saved: boolean;
   /** Operação em voo — desabilita os botões em vez de duplicar clique. */
-  busy: null | "save" | "dump" | "log" | "preview";
+  busy: null | "save" | "dump" | "log" | "preview" | "reveal";
   /** Última mensagem de erro (a UI mostra e não engole). */
   error: string | null;
   /** Grava o preset no aparelho. Não tem retry: gravar duas vezes é pior. */
@@ -74,6 +81,13 @@ interface FieldDiag {
   dumpPreset: () => Promise<void>;
   /** Liga/desliga o log de fio da sessão. */
   toggleLog: () => Promise<void>;
+  /**
+   * Abre o gerenciador de arquivos com o LOG ATIVO selecionado (#135).
+   *
+   * O caminho é do backend: o front só clica — é o que impede este botão de
+   * levar o operador para um lugar qualquer do disco.
+   */
+  revealLog: () => Promise<void>;
   /** Pede os frames que o aparelho receberia, sem receber. */
   previa: () => Promise<void>;
   /** Limpa o dump e o preview (não mexe no log — desligar é explícito). */
@@ -109,6 +123,27 @@ export function useFieldDiag(info: DeviceInfo | null): FieldDiag {
     setName(info.currentName);
   }, [info]);
 
+  // **O log do build de campo já está ligado quando esta tela abre.** Desde a
+  // #130 o `run()` liga o log de fio sozinho no backend real, com o arquivo que
+  // ele escolhe. Perguntar é o que impede o painel de dizer "nenhum log" (e o
+  // botão de oferecer "gravar") por cima de uma sessão que já está em disco.
+  useEffect(() => {
+    let vivo = true;
+    void deviceLogPath()
+      .then((path) => {
+        if (!vivo || path == null) return;
+        setLogging(true);
+        setLogPath(path);
+      })
+      .catch(() => {
+        // Sem resposta do backend a tela fica no repouso: mostrar um arquivo que
+        // a sessão não está gravando seria pior que não mostrar arquivo nenhum.
+      });
+    return () => {
+      vivo = false;
+    };
+  }, []);
+
   const save = useCallback(async () => {
     setBusy("save");
     setError(null);
@@ -143,6 +178,9 @@ export function useFieldDiag(info: DeviceInfo | null): FieldDiag {
       if (logging) {
         await deviceLogStop();
         setLogging(false);
+        // Parou de gravar: o caminho na tela some junto (senão a tela diria
+        // "gravando em X" para um arquivo que parou de crescer).
+        setLogPath(null);
       } else {
         await deviceLogSession(logFile);
         setLogging(true);
@@ -155,8 +193,7 @@ export function useFieldDiag(info: DeviceInfo | null): FieldDiag {
     }
   }, [logging, logFile]);
 
-  const previa = useCallback(async () => {
-    setBusy("preview");
+  const previa = useCallback(async () => {    setBusy("preview");
     setError(null);
     try {
       setPreview(await devicePreview({ op: "save", pp, ppType, name }));
@@ -167,6 +204,20 @@ export function useFieldDiag(info: DeviceInfo | null): FieldDiag {
       setBusy(null);
     }
   }, [pp, ppType, name]);
+
+  const revealLog = useCallback(async () => {
+    setBusy("reveal");
+    setError(null);
+    try {
+      await deviceLogReveal();
+    } catch (e) {
+      // Sem desktop (browser) ou sem handler de arquivo, a operação é DITA —
+      // deixar o botão mudo seria o operador achando que a pasta abriu.
+      setError(msg(e));
+    } finally {
+      setBusy(null);
+    }
+  }, []);
 
   const clear = useCallback(() => {
     setDump(null);
@@ -192,6 +243,7 @@ export function useFieldDiag(info: DeviceInfo | null): FieldDiag {
     save,
     dumpPreset,
     toggleLog,
+    revealLog,
     previa,
     clear,
   };

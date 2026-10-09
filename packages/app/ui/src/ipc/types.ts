@@ -9,10 +9,16 @@
 export interface DeviceInfo {
   /**
    * Backend ativo: `mock` no build de desenvolvimento, `real` no build de
-   * campo (`--features real-device`). Nunca mais um literal do backend —
-   * ver `docs/REAL_DEVICE_GAP.md` §1.
+   * campo (`--features real-device`), `none` no app SEM aparelho (issue
+   * #150). Nunca mais um literal do backend — ver `docs/REAL_DEVICE_GAP.md` §1.
    */
-  backend: "mock" | "real";
+  backend: "mock" | "real" | "none";
+  /**
+   * Motivo humano quando `backend` é `"none"` (issue #150): "aparelho não
+   * conectado via USB…" ou "build sem o transporte…". Vazio com a sessão
+   * viva — a UI não inventa aviso onde o device responde.
+   */
+  detail: string;
   /**
    * Nº de presets. No mock, o do `all.prst` (99). No aparelho real, o
    * inventário que o boot percorreu — que hoje é o default `0..198`, não
@@ -193,10 +199,23 @@ interface PresetEntry {
   ppTypeName: string;
 }
 
-/** Biblioteca completa + corrente do mock. */
+/**
+ * Biblioteca completa + pp corrente. **No aparelho (#150)**: as entradas são
+ * o inventário medido (ADR-12) com nome vazio até o decode das páginas (#152)
+ * — vazio é "o app ainda não sabe", e não um preset sem nome.
+ */
 export interface PresetLibrary {
   entries: PresetEntry[];
   currentPp: number;
+}
+
+/**
+ * Rótulo honesto de um pp do APARELHO (ADR-12): até o mapeamento
+ * banco→LED (P/F) ser medido em campo, o rótulo é o ENDEREÇO (`0x0000`/
+ * `0x0100`) — dizer "P42" seria afirmar um banco que ninguém mediu ainda.
+ */
+export function rotuloPp(pp: number): string {
+  return `0x${pp.toString(16).padStart(4, "0")}`;
 }
 
 /** Entrada de log de pushes (evento `device://push` — log da UI). */

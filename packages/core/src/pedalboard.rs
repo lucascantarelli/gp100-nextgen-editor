@@ -195,14 +195,19 @@ fn shape_err(expected: &str, got: &str) -> ProtocolError {
 
 /// Biblioteca de presets do arquivo (o flight case da UI).
 ///
-/// **`ppID` é DECIMAL** (o índice 0-based do arquivo: `'0'..'98'`), o mesmo
-/// espaço do fio (banco/slot, `session::pp_e_valido`). Interpretá-lo como
-/// hex — como se fazia — só coincidia em `'0'..'9'`: o preset `"10"`
-/// saía como `0x10` e o fio não tem esse pp (issue #156).
+/// O `pp` é o `ppID` **decimal** — o mesmo número que a semente da
+/// biblioteca e o artefato do front usam, e o índice que vai ao fio como
+/// `u16 BE` no banco `0x00xx` (#132/ADR-12; ver
+/// [`crate::preset::pp_id_decimal`]).
+///
+/// Ler o `ppID` como HEX (`from_str_radix(s, 16)`) só coincidia em
+/// `'0'..'9'`: a partir de `"10"` o app endereçava um pp que o fio nem
+/// tem (36 dos 99 presets — issue #156). Todo ponto que lê `ppID` passa
+/// por `pp_id_decimal`: UM só caminho (R1).
 pub fn preset_list(doc: &Document) -> Vec<PresetEntry> {
     doc.presets()
         .filter_map(|p| {
-            let pp = p.pp_id().and_then(|s| s.parse::<u16>().ok())?;
+            let pp = p.pp_id().and_then(crate::preset::pp_id_decimal)?;
             Some(PresetEntry {
                 pp,
                 name: p.pp_name().unwrap_or("").to_string(),
@@ -214,6 +219,11 @@ pub fn preset_list(doc: &Document) -> Vec<PresetEntry> {
 
 /// Constrói a view de board do pp indicado (`None` = 1º preset do arquivo).
 ///
+/// O `pp` pode vir do fio com byte de banco (`0x0100` = índice 0 — a
+/// captura S1 varre os dois bancos); o documento só tem o índice
+/// ([`crate::preset::indice_do_documento`]), e a view devolve o `pp` do
+/// DOCUMENTO, que é o que a UI acende na lista (0..98).
+///
 /// # Erros
 /// [`ProtocolError::InvalidShape`] se o arquivo não tem preset ou o pp
 /// indicado não existe.
@@ -222,14 +232,15 @@ pub fn board_view_for(
     dict: &Dictionary,
     pp: Option<u16>,
 ) -> Result<BoardView, ProtocolError> {
-    let pv = match pp {
+    let alvo = pp.map(crate::preset::indice_do_documento);
+    let pv = match alvo {
         None => doc
             .presets()
             .next()
             .ok_or_else(|| shape_err("preset no arquivo", "nenhum"))?,
         Some(target) => doc
             .presets()
-            .find(|p| p.pp_id().and_then(|s| s.parse::<u16>().ok()) == Some(target))
+            .find(|p| p.pp_id().and_then(crate::preset::pp_id_decimal) == Some(target))
             .ok_or_else(|| shape_err(&format!("preset {target:#06x}"), "não encontrado"))?,
     };
 
@@ -284,7 +295,11 @@ pub fn board_view_for(
     slots.sort_by_key(|s| s.slot);
 
     Ok(BoardView {
-        pp: pp.unwrap_or_else(|| pv.pp_id().and_then(|s| s.parse::<u16>().ok()).unwrap_or(0)),
+        pp: alvo.unwrap_or_else(|| {
+            pv.pp_id()
+                .and_then(crate::preset::pp_id_decimal)
+                .unwrap_or(0)
+        }),
         name: pv.pp_name().unwrap_or("").to_string(),
         pp_type: pv.pp_type().and_then(|s| s.parse().ok()).unwrap_or(4),
         pp_type_name: pv.pp_type_name().unwrap_or("").to_string(),

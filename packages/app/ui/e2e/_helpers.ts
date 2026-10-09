@@ -34,7 +34,7 @@ export async function measureShell(page: Page): Promise<ShellMeasure> {
     const r1 = (n: number) => Math.round(n * 10) / 10;
 
     const boardEl = q('[aria-label="Pedalboard (9 lugares da cadeia)"]')!;
-    const libEl = q('[aria-label="Biblioteca de presets"]')!;
+    const libEl = q('[aria-label="Patches do aparelho"]')!;
     const looperEl = q('[aria-label="Looper (máquina de fita)"]')!;
     const board = rectOf(boardEl);
     const lib = rectOf(libEl);

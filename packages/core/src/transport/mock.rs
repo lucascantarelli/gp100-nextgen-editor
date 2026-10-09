@@ -48,6 +48,10 @@ use crate::{ProtocolError, SYSEX_EOX, SYSEX_HEADER};
 const ALL_PRST: &str = include_str!("../../../../files/patches/all.prst");
 const PARAMETERS: &str = include_str!("../../../../analysis/parameters.json");
 
+/// Semente fixa do LCG do jitter — dois devices novos percorrem a MESMA
+/// sequência (contrato de determinismo provado em `mod tests`; sem `rand`).
+const JITTER_SEED: u64 = 0x9E37_79B9_7F4A_7C15;
+
 /// O `.prst` embedado (all.prst) — acesso público para as projeções de
 /// board (`crate::pedalboard::embedded_document`): os dados vivem no core
 /// (R1); consumidores externos nunca reabrem o arquivo de disco.
@@ -113,8 +117,8 @@ impl MockState {
             .ok_or_else(|| shape_err("preset no all.prst", "nenhum"))?;
         let current_pp = first
             .pp_id()
-            .and_then(|s| s.parse::<u16>().ok())
-            .ok_or_else(|| shape_err("ppID numerico no 1º preset", "ausente"))?;
+            .and_then(crate::preset::pp_id_decimal)
+            .ok_or_else(|| shape_err("ppID decimal no 1º preset", "ausente"))?;
         Ok(Self {
             preset_count: doc.presets().count(),
             current_pp,
@@ -150,6 +154,28 @@ pub enum MockFault {
     /// `send_raw`/`recv_raw`/`open` seguinte devolve
     /// [`TransportError::DeviceGone`]. `0` = já saiu antes da 1ª transação.
     DieAfter(u32),
+
+    /// USB **instável** (intermitente): falhas que NÃO matam o device — o
+    /// outro lado do moeda do `DieAfter`. Tudo contra-contado, sem
+    /// aleatoriedade (mesma determinismo do golden).
+    ///
+    /// - `send_every`: a cada n-ésima `send_raw` o envio falha UMA vez com
+    ///   [`TransportError::SendFailed`] transitório — a tentativa seguinte
+    ///   passa (o contador saiu do múltiplo) e o device segue ABERTO. Como
+    ///   a falha precede o parse, o device "não recebeu os bytes": não há
+    ///   resposta a enfileirar. `0` desliga.
+    /// - `drop_every`: a cada n-ésima mensagem que sairia no `recv_raw` o
+    ///   mock a **perde no fio** — consome da fila e devolve
+    ///   [`TransportError::RecvTimeout`] com o device saudável (a mensagem
+    ///   não reaparece; a seguinte chega). `0` desliga.
+    UsbFlaky {
+        /// Período do envio: a cada n-ésima `send_raw` falha UMA vez
+        /// (múltiplos de n); `0` desliga.
+        send_every: u32,
+        /// Período da resposta: a cada n-ésima mensagem que sairia no
+        /// `recv_raw` o mock a perde no fio; `0` desliga.
+        drop_every: u32,
+    },
 }
 
 /// O device simulado (default do ADR-4/ADR-5: sempre permite writes).
@@ -165,6 +191,17 @@ pub struct MockDevice {
     fault: Option<MockFault>,
     /// Transmissões TENTADAS até agora (inclusive as que morreram).
     sent: u32,
+    /// Latência ida/volta (opt-in por [`MockDevice::with_latency`]): faixa
+    /// `[min, max)` do jitter. `None` = device rápido de teste — o DEFAULT,
+    /// em que nenhum `sleep` acontece (a suíte inteira depende disto).
+    latency: Option<(Duration, Duration)>,
+    /// Estado do LCG do jitter (semente fixa — reproduzível entre devices).
+    jitter: u64,
+    /// Falhas transitórias de USB já emitidas (diagnóstico de teste).
+    transient: u32,
+    /// Mensagens que SAÍRAM da fila (entregues ou perdidas) — base do
+    /// `drop_every`: a n-ésima saída é a que o fio leva.
+    popped: u32,
 }
 
 impl MockDevice {
@@ -180,6 +217,10 @@ impl MockDevice {
             inbox: HashMap::new(),
             fault: None,
             sent: 0,
+            latency: None,
+            jitter: JITTER_SEED,
+            transient: 0,
+            popped: 0,
         })
     }
 
@@ -196,6 +237,47 @@ impl MockDevice {
     /// Transmissões tentadas até agora (diagnóstico/asserções de teste).
     pub fn transactions(&self) -> u32 {
         self.sent
+    }
+
+    /// Falhas transitórias de USB emitidas até aqui ([`MockFault::UsbFlaky`]).
+    pub fn transient_failures(&self) -> u32 {
+        self.transient
+    }
+
+    /// Ativa a latência ida/volta com jitter na faixa `[min, max)` —
+    /// **opt-in**: fora daqui o mock continua instantâneo (default da suíte).
+    ///
+    /// - `send_raw` dorme o jitter ANTES de entregar os bytes (escrita +
+    ///   processamento no hardware); `Closed`/`DeviceGone` continuam
+    ///   precedendo;
+    /// - `recv_raw` com mensagem enfileirada dorme o jitter antes do pop
+    ///   (chegada ao host);
+    /// - `recv_raw` VAZIO espelha o `real.rs`: espera a JANELA inteira do
+    ///   `timeout` e só então acusa o silêncio — é o falso positivo de tempo
+    ///   (timeout instantâneo com janela de 3s) que este opt-in fecha.
+    ///
+    /// O jitter vem de um LCG semeado: determinístico, sem dep de `rand`.
+    /// Granularidade de milissegundo; `max <= min` devolve sempre `min`.
+    #[must_use]
+    pub fn with_latency(mut self, min: Duration, max: Duration) -> Self {
+        self.latency = Some((min, max));
+        self
+    }
+
+    /// Próximo valor do jitter (LCG de 64b, constantes MMIX): mesma semente,
+    /// mesma sequência, em qualquer máquina.
+    fn proximo_jitter(&mut self) -> Duration {
+        self.jitter = self
+            .jitter
+            .wrapping_mul(6364136223846793005)
+            .wrapping_add(1442695040888963407);
+        let (min, max) = self.latency.unwrap_or((Duration::ZERO, Duration::ZERO));
+        let span = max.as_millis().saturating_sub(min.as_millis()) as u64;
+        if span == 0 {
+            return min;
+        }
+        let pick = (self.jitter >> 33) % span;
+        Duration::from_millis(min.as_millis() as u64 + pick)
     }
 
     /// O device já caiu? (o plano `DieAfter` foi consumido)
@@ -720,6 +802,28 @@ impl DeviceTransport for MockDevice {
         if self.gone() {
             return Err(self.gone_err());
         }
+        // O USB instável precede o parse pelo MESMO motivo: o SO recusou o
+        // buffer e o device nunca viu os bytes — SendFailed TRANSITÓRIO,
+        // device vivo, e a tentativa seguinte passa (contador saiu do
+        // múltiplo). Nenhuma resposta nasce de um envio que não chegou.
+        if let Some(MockFault::UsbFlaky { send_every, .. }) = self.fault {
+            if send_every > 0 && self.sent.is_multiple_of(send_every) {
+                self.transient += 1;
+                return Err(TransportError::SendFailed {
+                    why: format!(
+                        "mock: USB instável — o envio {0} (múltiplo de {send_every}) \
+                         falhou de forma transitória (MockFault::UsbFlaky)",
+                        self.sent
+                    ),
+                });
+            }
+        }
+        // Latência de IDA (opt-in): os bytes chegam ao device depois do
+        // jitter. Sem `with_latency` não existe um único sleep neste mock.
+        if self.latency.is_some() {
+            let jitter = self.proximo_jitter();
+            std::thread::sleep(jitter);
+        }
         // O framing da FAMÍLIA (SnapTone/NAM, §5) vem antes do decode do
         // envelope: `F0` + nibbles + `F7` não tem o cabeçalho de 8B do
         // GP-100, então sem esta volta um bloco de SnapTone viraria
@@ -749,11 +853,44 @@ impl DeviceTransport for MockDevice {
             .map(|(k, _)| *k)
             .min();
         if let Some(k) = oldest {
-            if let Some(q) = self.inbox.get_mut(&k) {
-                if !q.is_empty() {
-                    return Ok(q.remove(0));
+            // sai da fila ANTES dos sleeps: o `&mut self` do próximo_jitter
+            // não pode conviver com o empréstimo do `inbox`.
+            let popped = match self.inbox.get_mut(&k) {
+                Some(q) if !q.is_empty() => Some(q.remove(0)),
+                _ => None,
+            };
+            if let Some(msg) = popped {
+                // Latência de VOLTA (opt-in): a mensagem passa pelo fio
+                // antes de chegar ao host.
+                if self.latency.is_some() {
+                    let jitter = self.proximo_jitter();
+                    std::thread::sleep(jitter);
                 }
+                // USB instável: a n-ésima mensagem que SAÍ da fila é
+                // PERDIDA no fio — consumida aqui (não reaparece) e o host
+                // vê RecvTimeout com o device saudável. Sem latência
+                // optada o retorno é imediato: a prova do drop é a fila
+                // encurtar (a seguinte entrega normalmente), não o relógio.
+                // O contador é de SAÍDAS, não de entregas — senão o segundo
+                // drop prenderia toda a fila restante.
+                self.popped += 1;
+                if let Some(MockFault::UsbFlaky { drop_every, .. }) = self.fault {
+                    if drop_every > 0 && self.popped.is_multiple_of(drop_every) {
+                        return Err(TransportError::RecvTimeout {
+                            timeout_ms: timeout.as_millis() as u64,
+                        });
+                    }
+                }
+                return Ok(msg);
             }
+        }
+        // Fila vazia: SEM latência o mock é o de sempre — RecvTimeout
+        // IMEDIATO (o default que a suíte inteira conhece). COM latência
+        // optada ele espelha o `real.rs`: respeita a JANELA da chamada e só
+        // então acusa o silêncio. Aqui morria o falso positivo de tempo
+        // (janela de 3s resolvida em microssegundos).
+        if self.latency.is_some() {
+            std::thread::sleep(timeout);
         }
         Err(TransportError::RecvTimeout {
             timeout_ms: timeout.as_millis() as u64,
@@ -871,6 +1008,35 @@ mod tests {
         assert!(
             st.ir_crcs.iter().any(|&c| c != 0),
             "ppIRCRC de fábrica presente em algum slot"
+        );
+    }
+
+    /// O jitter do `with_latency` é LCG de semente fixa: dOUS devices novos
+    /// percorrem a MESMA sequência — determinismo reproduzível em qualquer
+    /// máquina (a suíte não pode depender de `rand` nem de sorte de hardware)
+    /// — e a sequência varia de verdade dentro da faixa `[min, max)`.
+    #[test]
+    fn jitter_deterministico_reproduzivel_entre_devices() {
+        let min = Duration::from_millis(10);
+        let max = Duration::from_millis(40);
+        let mut a = MockDevice::new()
+            .expect("mock montado")
+            .with_latency(min, max);
+        let mut b = MockDevice::new()
+            .expect("mock montado")
+            .with_latency(min, max);
+
+        let seq_a: Vec<Duration> = (0..24).map(|_| a.proximo_jitter()).collect();
+        let seq_b: Vec<Duration> = (0..24).map(|_| b.proximo_jitter()).collect();
+
+        assert_eq!(seq_a, seq_b, "mesma semente => mesma sequência");
+        assert!(
+            seq_a.iter().all(|d| *d >= min && *d < max),
+            "faixa [min, max): {seq_a:?}"
+        );
+        assert!(
+            seq_a.iter().any(|d| *d != seq_a[0]),
+            "o jitter varia — não é um sleep constante disfarçado"
         );
     }
 

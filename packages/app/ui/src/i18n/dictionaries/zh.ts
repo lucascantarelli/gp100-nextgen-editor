@@ -96,6 +96,10 @@ export const ZH: DictPatch = {
     keepalive: "Keepalive",
   },
   connBootError: "设备启动失败 — 请检查连接后重试。",
+  connOffTitle: "设备未连接",
+  connOffConnect: "重新连接",
+  connOffRetryAria: "重新连接设备（重新打开 MIDI 端口）",
+  connOffLoadError: (m: string) => `${m} 音色库显示的是设备上的内容 — 请连接设备以加载音色。`,
 
   /* ── board ── */
   boardAria: "Pedalboard（信号链 9 个位置）",
@@ -108,11 +112,12 @@ export const ZH: DictPatch = {
   stageOut: "OUT ⏻",
 
   /* ── 音色库 ── */
-  libAria: "音色库",
+  libAria: "设备音色",
   libTabsAria: "音色类型",
-  libTabFactory: "Factory Patch",
-  libTabUser: "User Patch",
-  libListAria: "出厂音色",
+  libTabFactory: "音色",
+  libTabUser: "我的音色",
+  libListAria: "设备音色",
+  libEmptyDevice: "设备未连接 — 请连接 GP-100 以加载音色。",
   searchPlaceholder: "搜索名称、编号或风格…",
   searchAria: "按名称、编号或风格搜索音色",
   searchEmpty: (q: string) => `没有匹配“${q}”的音色。提示：可以按风格（Rock、Funk…）或编号搜索。`,

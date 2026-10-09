@@ -102,8 +102,8 @@ real · 🔴 ausente do app.
 
 | Capacidade | core (`Session`) | CLI de campo | app (actor + command) | app → aparelho real |
 |---|---|---|---|---|
-| Boot + scan §13.10 | ✅ `boot_with_progress` | ✅ `info`/boot | ✅ `device_boot` | 🟡 idem, mas com inventário fixo (§4) |
-| Select de preset §13.10 | ✅ `select_preset` | ✅ | ✅ `device_select_preset` | 🟡 idem |
+| Boot + scan §13.10 | ✅ `boot_with_progress` | ✅ `info`/boot | ✅ `device_boot` | 🟡 idem, mas com o inventário da captura (§4.3, ADR-12) |
+| Select de preset §13.10 | ✅ `select_preset` | ✅ | ✅ `device_select_preset` | 🟡 idem (+ trava de faixa do `pp`, ADR-12) |
 | **Knob** §13.11 | ✅ `set_param` | ✅ `set-param` | ✅ `device_set_param` | 🟡 idem (+ trava de faixa, ADR-10) |
 | Tabela de 20 User IRs §13.12 | ✅ `list_user_irs` | ✅ `list-user-irs` | ✅ `list_user_irs` | 🟡 idem (H1 provou as 20 respostas) |
 | Dump de preset (meta6 + páginas) §13.9 | ✅ `state_page`/`scan_state` | ✅ `dump-preset` | ✅ `device_dump_preset` (passo 4) | 🟡 idem |
@@ -113,7 +113,7 @@ real · 🔴 ausente do app.
 | Log de fio (schema P4) + prévia do envio | ✅ decorator | ✅ `--log` / `--dry-run` | ✅ `device_log_session` / `device_preview` (passo 4b) | 🟡 idem |
 | Pushes do device (D7) | ✅ `pending_pushes` | ✅ | ✅ `pending_pushes` | 🟡 idem |
 | Trocar o **efeito** do slot (`0x47`) | 🔴 sem formato validado | 🔴 | 🟡 prévia local | 🔴 (bloqueio do item `C2`, §5) |
-| Inventário de pps do scan | ✅ `set_inventory` | 🔴 não chama | 🔴 não chama | 🔴 (§4) |
+| Inventário de pps do scan | ✅ `set_inventory` + `inventario_do_aparelho` (ADR-12) | ✅ (o default do core vale no `--real`) | ✅ (o default do core vale no `real-device`) | 🟡 (§4.3) |
 
 **O que a coluna do meio mostra hoje (05/10): o app é um SUPERSETO ESTRITO do
 CLI.** O core tem 12 capacidades; o CLI expõe 9 e o app expõe essas 9 **mais o
@@ -123,10 +123,13 @@ SnapTone — dois subconjuntos diferentes do mesmo core. Os passos 4, 4b e 4c
 o app agora faz na mão do operador, e o `gp100-cli` deixou de ser dono de
 qualquer capacidade que o app não tenha.
 
-As **duas** capacidades que continuam 🔴 para o app — trocar o efeito do slot
-(`0x47`) e o inventário de pps (`set_inventory`) — **não** são dívida do
-desacoplamento: uma é falta de protocolo e a outra é falta de decisão de campo.
-Nenhuma das duas se resolve trazendo o CLI para dentro do app.
+As **duas** capacidades que continuavam 🔴 para o app — trocar o efeito do slot
+(`0x47`) e o inventário de pps (`set_inventory`) — **não** eram dívida do
+desacoplamento: uma é falta de protocolo e a outra é falta de decisão de
+campo. Nenhuma das duas se resolve trazendo o CLI para dentro do app. O
+inventário saiu da lista na #132 (ADR-12): quem fala com o aparelho já nasce
+com o inventário da captura, sem ninguém chamar `set_inventory` à mão — e o
+`0x47` continua sendo falta de protocolo.
 
 ## 3. O que já está pronto (e é mais do que parece)
 
@@ -202,45 +205,43 @@ mesmo código. Uma sessão de teste no aparelho é a única forma de medi-los:
    Consequências com o aparelho real: um preset de usuário (`U01`…) não existe no
    arquivo embutido; e o valor do knob que o palco mostra é o do arquivo, não o
    que o aparelho tem depois de um ajuste.
-3. **O boot assume um inventário fixo de 199 pps.** Nem o app nem o CLI chamam
-   `Session::set_inventory` — os dois usam o default `0..198` (2297 transações;
-   2295 num build de leitura, sem o keepalive — ADR-5 rev. 06/10). O
-   `H1_CHECKLIST` §B5 já sinalizou isso como R3 em aberto: *"Device real com pps
-   fora de `0..198` → boot() com inventário default diverge"*. O método já
-   existe; ninguém o chama.
+3. **O boot do aparelho varre o inventário da CAPTURA (#132/ADR-12).**
+   Antes desta issue o default era `0..198` para TODO transporte (2297
+   transações; 2295 sem keepalive — ADR-5) — um chute de contagem que manda
+   **99 selects que o aparelho não tem** (`0x0063..0x00c5`) e nunca alcança
+   o banco `0x01xx`, onde o pedal liga. A captura S1 prova o espaço real:
+   `0x0100..=0x0162` + `0x0000..=0x0062` = 198 pps.
 
-   > **DECISÃO PENDENTE — owner, 05/10: "marcar como pendente no doc".**
+   > **Estado 06/10 (#132/ADR-12): código feito, medição pendente.**
+   > `session::inventario_do_aparelho()` é o default **quando o transporte é
+   > o aparelho** (`DeviceTransport::e_aparelho`) — na ordem da S1, então o
+   > boot de campo reproduz a sequência do Suite (2299 = mesma conta do
+   > replay; provada contra a captura em `tests/pp_gate.rs`). O mock e o
+   > `0..198` de 2297 continuam intocados, e `set_inventory` continua
+   > prevalecendo: quem varre define a faixa.
    >
-   > Não se assume `0..198` nem se implementa a descoberta agora. O que está
-   > escrito aqui é o que a sessão de campo precisa **medir**, porque a resposta
-   > muda o comportamento do boot de três maneiras distintas:
-   >
-   > | O que o aparelho responder | O que o `boot()` faz depois | Consequência |
-   > |---|---|---|
-   > | pps **dentro** de `0..198` | igual ao de hoje | nada — o default acerta e o passo 5 é *documentação*, não código |
-   > | pps **acima** de `198` | o scan **não alcança** os que faltam | o app abre num patch que o aparelho não tem, e a biblioteca mostra 199 itens que não são do aparelho |
-   > | pps **fora dos dois lados** | idem, e o cursor de pp fica errado | o pior caso: o aparelho tem mais patches e nenhum caminho para eles |
-   >
-   > **Como medir (passo 7, no aparelho).** O `.jsonl` do painel de diagnóstico
-   > já traz a resposta sem código novo: no boot, um pp além do último que
-   > responder é um pp que o aparelho tem. Se a sequência `0..198` for
-   > completa e o pp 199 não responder, o default acerta.
-   >
-   > **O que fazer quando a resposta aparecer.** Se houver pps acima de `198`,
-   > a correção é chamar `set_inventory` com o que o boot descobriu — mas essa
-   > é escrita de código, e código esperando número medido é exatamente o
-   > que o ADR-10 (trava de faixa) existe para evitar: regra de parede com
-   > número inventado.
+   > **O que ainda precisa do aparelho (R3 do H1_CHECKLIST).** Se esta
+   > unidade tem pps FORA da captura, o `.jsonl` do painel de diagnóstico
+   > mostra sem código novo: um pp além do último que responder. Aí a
+   > correção é `set_inventory` com o descoberto — e a trava de `select`
+   > (item 4) acompanha o inventário, então o lado errado continua sendo a
+   > recusa, nunca o frame.
 4. **Escrita exige o destravamento — e a tela já sabe.** Com `--features
    real-device` **sem** `write-verified` (decisão do owner em 05/10/2026: leitura
    primeiro), as escritas do app — **knob, IR, SnapTone e `save_preset`** — são
    **recusadas com erro tipado** antes do driver.
 
    **O select NÃO é uma delas.** `Session::select_preset` envia
-   `WireKind::Read`: é o mesmo select com que o `boot()` varre os 199 presets
+   `WireKind::Read`: é o mesmo select com que o `boot()` varre os pps
    para LER, então a troca de preset segue funcionando no build de leitura.
    Medido em `tests/write_gate.rs`; decisão do owner em 06/10 ao ler a DoD da
    #126, que listava `select` entre os botões de escrita.
+
+   > **Mas o select ganhou uma trava de CONTEÚDO (#132/ADR-12).**
+   > `WireKind::Read` não é passe-livre: no aparelho, um `pp` fora do
+   > inventário da captura é recusado com `ValueOutOfRange` **antes** do
+   > frame (a irmã da ADR-10 — o frame do assert `PresetNum < TOTAL_PA`).
+   > No mock não há trava. Independente de `write-verified`.
 
    > **Estado 06/10 (#126 face (A)): feito.** `escritaLiberada(info)` (em
    > `src/ipc/device.ts`) é a ÚNICA leitura do `writeVerified` para decidir
@@ -280,9 +281,9 @@ deles precisa do aparelho para ser provado.
 | 2 | `DeviceInfo` com **fonte real** (e campos que não têm fonte, declarados) — **✅ feito** (05/10: `DeviceSnapshot` marca `current_name`/`current_pp_type`/`ir_slots_with_crc` como *só no mock*; `ir_slots` é lido do aparelho nos dois backends) | `commands.rs` | `DeviceInfo` sai do `BootReport`/tabela/meta6, não do `MockState` | não |
 | 3 | Botões de escrita cientes da política (`write-verified` → desabilitado + aviso) — **✅ feito** (06/10, #126 face (A)): `escritaLiberada()` é a única leitura do `writeVerified`; knob/IR/SnapTone nascem desabilitados com `MSG.writeLockedHint` e `FieldDiagPanel` usa a mesma função. O select fica de fora de propósito (é `WireKind::Read` no fio) | front (`device.ts` + PedalModal/IrLab/SnapTone) | e2e do botão desabilitado no build de leitura (`e2e/writeLock.spec.ts`) | não |
 | 4 | `save_preset` e `dump_preset` como commands — **✅ feito** (o que o CLI tinha e o app nao) | `actor.rs` + `commands.rs` | vetor de bytes igual ao do CLI | não |
-| 4b | **wire logger (schema P4) + dry-run no app** — **✅ feito**: `packages/core/src/wire_log.rs` (uma implementacao, CLI e app) + `device_log_session`/`device_preview`. O ciclo de campo agora fecha pelo app: sessao no editor → `.jsonl` → juiz | `wire_log.rs` + `commands.rs` | o `.jsonl` que o app grava passa no mesmo juiz que o do CLI | **sim** (para o veredito) |
+| 4b | **wire logger (schema P4) + dry-run no app** — **✅ feito**: `packages/core/src/wire_log.rs` (uma implementacao, CLI e app) + `device_log_session`/`device_preview`. O ciclo de campo agora fecha pelo app: sessao no editor → `.jsonl` → juiz. **06/10: o build de campo passou a ligar o log SOZINHO** (ver §4b.1) | `wire_log.rs` + `commands.rs` + `lib.rs` | o `.jsonl` que o app grava passa no mesmo juiz que o do CLI | **sim** (para o veredito) |
 | 4c | **A camada de UI do diagnóstico** — **✅ feito**: `FieldDiagPanel.tsx` + `useFieldDiag` + `ipc/diag.ts`. As quatro capacidades dos passos 4/4b viraram tela (gravar, ler o dump, ligar/desligar o log, ver o que sairia), com o badge de backend e o aviso de escrita travada na tela. Sem isto a sessao de campo continuava dependendo do binario de terminal | `components/FieldDiagPanel.tsx` · `hooks/useFieldDiag.ts` · `ipc/diag.ts` | o operador de campo nao precisa abrir terminal para dirigir o aparelho | **sim** (para o veredito) |
-| 5 | `set_inventory` ligado ao que o boot descobre (ou fixado em campo com justificativa) | `session.rs` + `lib.rs` | o total de transações do report muda conforme o inventário | **sim** |
+| 5 | `set_inventory` ligado ao que o boot descobre (ou fixado em campo com justificativa) — **código feito na #132 (ADR-12)**: o aparelho nasce com o inventário da captura (2299) e o `select` fora dele é recusado antes do frame; o mock segue com `0..198` (2297). Falta a **medição** (R3: esta unidade tem pps fora da captura?) | `session.rs` (inventario + trava) · `transport/mod.rs` (`e_aparelho`) · `useStage.ts` | o total de transações do report muda conforme o inventário (2299 no aparelho, 2297 no mock) | **sim** |
 | 6 | Build de campo **leitura** (`--features real-device`, sem `write-verified`) — **✅ feito** (compilação) e, em 06/10, **o `dist-ui` passou a usá-lo** (issue [#126](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/126): caminho `../ui` corrigido + `--features real-device` + `libasound2-dev` no Linux) | `.github/workflows/ci.yml` | CI compila o crate do Tauri com a feature (WinMM no job `ui-rust`; ALSA no container do webview) e o instalador sai com ela | não |
 | 6b | `ui-rust` na matriz **macOS** — fecha o buraco do CoreMIDI — **✅ feito** (05/10): a matriz do `ui-rust` tem Windows + macOS, e o ALSA segue no container | `scripts/ci_plan.py::matrices` | o backend do app com `real-device` compila para CoreMIDI | não |
 | 7 | **Sessão de campo no aparelho**: boot, lista de IRs, dump, e a §4 medida | o painel de diagnóstico (passo 4c) + relatório | relatório com os 4 desvios de §4 preenchidos, com o `.jsonl` gerado **pelo app** | **sim** |
@@ -291,6 +292,54 @@ deles precisa do aparelho para ser provado.
 Passos 1, 2, 3, 4, 4b, 4c, 6 e 6b são software e foram feitos. Ficam de pé
 **o passo 5** (uma decisão de campo) e **o passo 7** (uma sessão com o
 aparelho). **O passo 7 é o que a #17 exige, e a #17 não fecha antes dele.**
+
+### 4b.1 O log de fio automático no campo (06/10/2026)
+
+**Por que existe.** Em 06/10 o app de campo assertou o firmware do GP-100
+(`CODE:PresetNum < TOTAL_PA`, `Drivers/audio/audio.c:912`) e **não havia um
+único frame gravado**: o log dependia de o operador abrir o painel de
+diagnóstico e clicar o toggle. O `select` da abertura automática
+(`useStage` → `openPreset(0)`) foi a hipótese líder da causa — e ficou como
+**dedução lida do código**, porque o fio daquela sessão não foi registrado.
+
+**O que passou a valer.** Quando o backend ativo é o **aparelho**
+(`Backend::Real`), o `run()` liga o log de fio **antes do primeiro command do
+front** — o `select` da abertura entra no arquivo. No **mock** o log não liga:
+sem aparelho não há fio, e um arquivo ali seria ruído por cima do incidente
+real.
+
+| o quê | como fica |
+|---|---|
+| Onde | diretório de DADOS do app, ao lado do `biblioteca.sqlite` (no Windows: `%APPDATA%\com.gp100.nextgen.editor\`) |
+| Nome | `wire-<AAAAMMDDHHMMSS>.jsonl` — **um arquivo por execução** |
+| Rótulo da sessão | `s: "APP"` (`SESSION_APP` do core), o que separa o log do app do `H3` do CLI |
+| Schema | o MESMO P4 do `--log` do CLI (`s`/`t`/`dir`/`func`/`addr`/`data`) — passa nos juízes `h1_compare.py`/`h2_compare.py` |
+| Onde se descobre o caminho | impresso no `stderr` ao ligar: `[log] wire log de campo: <caminho>` |
+
+**Por que um arquivo por execução, e não um nome fixo.** O `WireLogger`
+**trunca** ao abrir. A recuperação de um aparelho assertado é um power-cycle —
+ou seja, o app é reiniciado justo durante a investigação. Com nome fixo, esse
+boot apagaria o log que interessa.
+
+**Interações conhecidas (declaradas, não escondidas).** (1) O toggle do
+`FieldDiagPanel` continua funcionando: ligar com outro caminho passa a gravar
+nesse outro arquivo (o automático para de crescer, nada é perdido); desligar
+para os dois. (2) A pasta acumula um arquivo por execução de campo — não há
+rotação; limpar é manual. (3) Falha ao criar o arquivo **não** derruba a
+sessão: avisa no `stderr` e o app segue (a sessão vale mais que o log, a mesma
+política do `LoggingTransport`). (4) **O painel pergunta ao backend** em que
+arquivo está gravando (`device_log_path`): o operador vê o caminho do log
+automático na própria tela — e o botão oferece **parar**, porque a sessão já
+está em disco — sem depender do `stderr` do processo. Isso é o que fecha a
+lacuna que a #133 abriu: o caminho é do backend (o `run()` o escolhe), não do
+front. (5) **Entregar a sessão é um clique** (#135): `device_log_reveal` abre o
+gerenciador do SO com o arquivo **selecionado** (`explorer /select` no Windows,
+`open -R` no macOS, `xdg-open` na pasta no Linux — sem "selecionar arquivo" no
+Linux, e a doc diz isso em vez de fingir) e um segundo botão copia o caminho
+para o clipboard. Os dois só aparecem com log **ativo**; o caminho não é
+argumento do front — quem decide é o backend, dono do log — e sem desktop
+(browser) a operação **lança e a tela mostra o motivo**, em vez de fingir que
+a pasta abriu.
 
 **O passo 4c é o que muda o formato do passo 7.** A sessão de campo deixa de ser um
 roteiro de terminal e passa a ser um relatório de tela: o operador abre o editor,

@@ -306,7 +306,7 @@ fn a_trava_segue_o_kind_nao_o_endereco() {
 ///
 /// O que este par de testes tranca: (1) com a trava fechada o boot passa,
 /// tudo que saiu é `Read` e o ping não foi sequer tentado; (2) com a trava
-/// aberta o ping sai e a contagem volta a 2299 — ou seja, a omissão é do
+/// aberta o ping sai e a contagem volta a 2297 — ou seja, a omissão é do
 /// TRANSPORTE, não um `if` morto que deixaria a sequência de boot sempre
 /// incompleta.
 #[test]
@@ -332,16 +332,18 @@ fn boot_com_a_trava_fechada_omite_o_keepalive_e_completa() {
             "o keepalive não pode sair com a trava fechada"
         );
     }
-    // E o relatório conta o que DE fato saiu no fio: 2299 menos os 2 do ping.
+    // E o relatório conta o que DE fato saiu no fio: 2297 menos os 2 do ping.
+    // 2297 = o script do MOCK (inventário `0..198`, #132) — o APARELHO é 2299
+    // e quem o prova é o `pp_gate.rs`.
     assert_eq!(
-        relatorio.transactions, 2297,
-        "o relatório é do que saiu no fio: 2299 - keepalive ×2"
+        relatorio.transactions, 2295,
+        "o relatório é do que saiu no fio: 2297 - keepalive ×2"
     );
     assert_eq!(relatorio.transactions, dev.kinds.len());
 }
 
 /// O outro lado da mesma moeda: com a trava ABERTA o ping sai (×2) e o boot
-/// volta a 2299. Sem este teste, a omissão acima poderia ser um `if` morto no
+/// volta a 2297. Sem este teste, a omissão acima poderia ser um `if` morto no
 /// `boot()` — a sequência do aparelho ficaria incompleta em TODO build.
 #[test]
 fn com_a_trava_aberta_o_keepalive_do_boot_sai() {
@@ -350,7 +352,7 @@ fn com_a_trava_aberta_o_keepalive_do_boot_sai() {
     let mut dev = Gate::new(mock, true);
     let mut s = Session::new(&mut dev);
     let relatorio = s.boot().expect("boot");
-    assert_eq!(relatorio.transactions, 2299, "o total do script com o ping");
+    assert_eq!(relatorio.transactions, 2297, "o total do script com o ping");
     assert_eq!(
         dev.kinds.iter().filter(|(a, _)| a == "00020001").count(),
         2,

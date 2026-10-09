@@ -86,6 +86,13 @@ export const PT_BR = {
     keepalive: "Keepalive",
   },
   connBootError: "Falha no boot do device — verifique a conexão e tente novamente.",
+  /* app sem aparelho (issue #150): o aviso é o motivo que o backend declarou
+     (detail), e a ação é o device_conectar — nunca uma lista de fábrica */
+  connOffTitle: "Aparelho não conectado",
+  connOffConnect: "Reconectar",
+  connOffRetryAria: "Reconectar o aparelho (refaz a abertura da porta MIDI)",
+  connOffLoadError: (m: string) =>
+    `${m} A biblioteca mostra o que o APARELHO tem — conecte-o para carregar os patches.`,
 
   /* ── board ── */
   boardAria: "Pedalboard (9 lugares da cadeia)",
@@ -98,11 +105,12 @@ export const PT_BR = {
   stageOut: "OUT ⏻",
 
   /* ── biblioteca ── */
-  libAria: "Biblioteca de presets",
+  libAria: "Patches do aparelho",
   libTabsAria: "Tipo de patch",
-  libTabFactory: "Factory Patch",
-  libTabUser: "User Patch",
-  libListAria: "Presets de fábrica",
+  libTabFactory: "Patches",
+  libTabUser: "Meus patches",
+  libListAria: "Patches do aparelho",
+  libEmptyDevice: "Aparelho não conectado — conecte o GP-100 para carregar os patches.",
   searchPlaceholder: "Buscar nome, nº ou estilo…",
   searchAria: "Buscar preset por nome, número ou estilo",
   searchEmpty: (q: string) => `Nenhum preset para “${q}”. Dica: busque por estilo (Rock, Funk…) ou nº.`,

@@ -9,29 +9,37 @@ use gp100_core::transport::mock::MockDevice;
 use gp100_core::transport::DeviceTransport;
 
 /// Boot completo sobre o MOCK (travessia do "device" simulado): com o
-/// inventário DEFAULT (o espaço banco/slot da captura — 198 pps; o quirk
-/// §13.4 duplica o corrente 0x0100), o script fecha em 2299 transações
-/// (= prova C do replay), sem Timeout/InvalidShape, e o scan deixa o pp
-/// no último do inventário.
+/// inventário DEFAULT do mock — `0..198`, o espaço do DOCUMENTO (#132: só o
+/// aparelho varre o banco/slot) — o script fecha em **2297** transações,
+/// sem Timeout/InvalidShape, e o scan deixa o pp no último do inventário
+/// (`0x00C5` = 197).
+///
+/// **Dois scripts, duas provas.** O APARELHO fecha em **2299** (banco
+/// `0x01xx` + o quirk §13.4 do corrente `0x0100` duplicado + keepalive ×2),
+/// e quem o prova é `tests/pp_gate.rs::o_boot_do_aparelho_varre_os_198_pps_da_captura`,
+/// pela contagem do replay da S1. Aqui o número é o do MOCK: `0..198` não
+/// contém o `0x0100`, então não há quirk — e o número não é decorativo:
+/// `40 + 198×11 + 11 + 5 + 61 + 2`.
 #[test]
 fn boot_completo_sobre_o_mock() {
     let mut mock = MockDevice::new().expect("mock montado (R4 travado no build)");
     mock.open().expect("open do chamador (ADR-4)");
     let mut session = Session::new(&mut mock);
-    // Inventário DEFAULT = o espaço banco/slot da captura (198 pps — #148);
-    // o 0x0100 está nele e o quirk §13.4 duplica o corrente → 2299.
     let report = session.boot().expect("boot completo contra o mock");
-    assert_eq!(report.transactions, 2299);
+    assert_eq!(report.transactions, 2297);
     assert_eq!(
         session.current_pp(),
-        0x0162,
-        "scan termina no último pp do espaço (0162)"
+        0x00C5,
+        "scan termina no último pp do inventário do mock (197 = 0x00C5)"
     );
 }
 
 /// O hook de progresso é OBSERVACIONAL: mesmo total do boot canônico,
 /// 1 beat por transação, monotônico sem buracos, stage na ordem §13.10
 /// e o último beat em Keepalive com done == total.
+///
+/// O número é o do MOCK (2297 — ver `boot_completo_sobre_o_mock`); o
+/// APARELHO é 2299 e quem o prova é o `pp_gate.rs`.
 #[test]
 fn boot_com_progresso_beats_por_transacao() {
     let mut mock = MockDevice::new().expect("mock montado");
@@ -45,10 +53,10 @@ fn boot_com_progresso_beats_por_transacao() {
         }))
         .expect("boot com progresso");
 
-    assert_eq!(report.transactions, 2299);
-    assert_eq!(beats.len(), 2299, "1 beat por transação");
+    assert_eq!(report.transactions, 2297);
+    assert_eq!(beats.len(), 2297, "1 beat por transação");
     for (i, (_, done, total)) in beats.iter().enumerate() {
-        assert_eq!(*total, 2299);
+        assert_eq!(*total, 2297);
         assert_eq!(*done, i + 1, "done cresce 1 a 1 sem buracos");
     }
     // stages só AVANÇAM na ordem do script (Tables → … → Keepalive)
@@ -91,12 +99,13 @@ fn boot_com_progresso_none_equivalente() {
         txs.push(r.transactions);
     }
     assert_eq!(txs[0], txs[1], "hook None não altera o script");
-    assert_eq!(txs[0], 2299);
+    assert_eq!(txs[0], 2297);
 }
 
 /// O pp corrente no progresso acompanha o scan (a UI mostra o preset
 /// sendo levantado): na sonda e nas etapas finais o pp é o último do
-/// inventário (0x0162), já que o scan acabou de percorrer o espaço todo.
+/// inventário — no MOCK, `0x00C5` (197); no aparelho seria `0x0162`, o
+/// mesmo fato provado no `pp_gate.rs`.
 #[test]
 fn progresso_carrega_pp_corrente() {
     let mut mock = MockDevice::new().expect("mock");
@@ -115,12 +124,12 @@ fn progresso_carrega_pp_corrente() {
             }
         }))
         .expect("boot com progresso");
-    assert_eq!(report.transactions, 2299);
+    assert_eq!(report.transactions, 2297);
 
     let probe = seen_probe.expect("há beats da sonda (T6)");
-    assert_eq!(probe.current_pp, 0x0162);
+    assert_eq!(probe.current_pp, 0x00C5);
     let names = seen_names.expect("há beats de nomes (T3)");
-    assert_eq!(names.current_pp, 0x0162);
+    assert_eq!(names.current_pp, 0x00C5);
 }
 
 /// **Ponta a ponta pelo caminho REAL do boot: fio → cache → decode.**

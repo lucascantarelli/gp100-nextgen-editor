@@ -61,6 +61,15 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
+# O núcleo comum dos dois juízes (issue #141, auditoria 07/10 F-07): o Frame
+# do schema P4 e o parser vivem em `wirelog_compare.py`, uma única vez — a
+# cópia que existia aqui nasceu byte-idêntica à do h1_compare e era exatamente
+# o tipo de duplicação que faz os dois juízes divergirem em silêncio.
+# Garantir o dir do próprio arquivo no sys.path (idem h1_compare): sob pytest
+# os testes carregam este script por importlib, sem scripts/ no sys.path.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from wirelog_compare import Frame, encurta_hex, ler_log, rotulo_de_endpoint
+
 ROOT = Path(__file__).resolve().parent.parent
 # A referencia dos 3 fluxos, gerada pelo `h2_field.sh rehearsal` contra o
 # `MockDevice` e versionada no repo. E o que ancora a `FORMAS_13` (ver
@@ -134,25 +143,12 @@ ORDEM_SAVE: tuple[str, ...] = (
 # Os 4 valores de op, na ordem em que saem: 0, 0, 1, 1 (BE, ADR-1).
 OPS_SAVE: tuple[int, ...] = (0, 0, 1, 1)
 
+# Frame, ler_log, _rotulo e _encurta vivem em `wirelog_compare.py` (issue
+# #141): o Frame compartilhado inclui `.bytes`, que aqui alimenta o
+# `desnibelar` e a leitura do f32 do set-param.
 
-@dataclass(frozen=True)
-class Frame:
-    dir: str
-    func: str
-    addr: str
-    data: str
-
-    @property
-    def endpoint(self) -> tuple[str, str, str]:
-        return (self.dir, self.func, self.addr)
-
-    @property
-    def tamanho(self) -> int:
-        return len(self.data) // 2
-
-    @property
-    def bytes(self) -> bytes:
-        return bytes.fromhex(self.data)
+_rotulo = rotulo_de_endpoint
+_encurta = encurta_hex
 
 
 def desnibelar(payload: bytes) -> bytes:
@@ -201,37 +197,7 @@ class Resultado:
 
 
 # ═══════════════════════════════════════════════════════════════ leitura
-
-def ler_log(caminho: Path) -> list[Frame]:
-    """Le um log P4 (`{"s","dir","func","addr","data"}`, 1 frame por linha)."""
-    frames: list[Frame] = []
-    with io.open(caminho, encoding="utf-8") as fh:
-        for linha in fh:
-            linha = linha.strip()
-            if not linha:
-                continue
-            try:
-                bruto = json.loads(linha)
-            except json.JSONDecodeError as exc:
-                raise ValueError(f"{caminho.name}: linha nao-JSON ({exc})") from exc
-            faltando = {"dir", "func", "addr", "data"} - bruto.keys()
-            if faltando:
-                raise ValueError(
-                    f"{caminho.name}: linha sem {sorted(faltando)} (schema P4)"
-                )
-            frames.append(
-                Frame(bruto["dir"], bruto["func"], bruto["addr"], bruto["data"])
-            )
-    return frames
-
-
-def _rotulo(endpoint: tuple[str, str, str]) -> str:
-    return f"{endpoint[1]}/{endpoint[2]}"
-
-
-def _encurta(hexa: str) -> str:
-    return hexa if len(hexa) <= 16 else hexa[:16] + "..."
-
+# (ler_log/_rotulo/_encurta importados de `wirelog_compare.py` — issue #141.)
 
 def _formas_de(f: Frame) -> tuple[int, ...] | None:
     """A forma aceita por um frame, resolvendo o endereco variavel do F1."""

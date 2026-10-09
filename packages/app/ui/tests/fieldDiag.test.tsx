@@ -34,6 +34,12 @@ const portas = vi.hoisted(() => ({
   })),
   deviceLogSession: vi.fn(async () => true),
   deviceLogStop: vi.fn(async () => true),
+  // Sem log ativo por padrão: é o que o backend responde quando NADA está
+  // gravando. Os testes que querem o log automático (#130) trocam o retorno.
+  deviceLogPath: vi.fn(async (): Promise<string | null> => null),
+  // Falha por padrão NÃO: é um clique do operador. O teste de recusa usa
+  // mockRejectedValueOnce.
+  deviceLogReveal: vi.fn(async () => {}),
   devicePreview: vi.fn(async (): Promise<PreviewFrame[]> => [
     { label: "13/1001F03", hex: "F021257F47502D64" },
     { label: "13/1001F04", hex: "F021257F47502D65" },
@@ -53,6 +59,7 @@ beforeEach(() => {
 
 const REAL: DeviceInfo = {
   backend: "real",
+  detail: "",
   presetCount: 199,
   currentPp: 24,
   currentName: "Mist",
@@ -137,6 +144,75 @@ describe("diagnóstico de campo — o que a tela diz antes de qualquer clique", 
     const { host, unmount } = mount(LEITURA);
     expect(botao(host, MSG.diagDump).disabled).toBe(false);
     expect(botao(host, MSG.diagPreviewBtn).disabled).toBe(false);
+    unmount();
+  });
+
+  it("o log que o build de campo liga sozinho aparece na tela, sem clique", async () => {
+    // O backend escolhe o arquivo na abertura (#130); a tela PERGUNTA em vez de
+    // assumir que começou desligada. Sem isto o operador acharia que nada está
+    // sendo gravado enquanto a sessão inteira já está em disco.
+    portas.deviceLogPath.mockResolvedValueOnce("/dados/wire-20261006160405.jsonl");
+    const { host, unmount } = mount(REAL);
+    await settle();
+
+    expect(host.textContent).toContain(MSG.diagLogOn("/dados/wire-20261006160405.jsonl"));
+    // E o botão diz o que o clique faz AGORA: parar. Oferecer "gravar" abriria
+    // outro arquivo por cima do que já está aberto.
+    expect(botao(host, MSG.diagLogStop)).toBeTruthy();
+    unmount();
+  });
+
+  it("sem log ativo: o painel fica no repouso (não inventa arquivo)", async () => {
+    // O fallback (browser) e o mock não têm backend gravando: a resposta é
+    // `null`, e a tela não pode mostrar caminho nenhum.
+    const { host, unmount } = mount(REAL);
+    await settle();
+    expect(host.textContent).toContain(MSG.diagLogHint);
+    expect(botao(host, MSG.diagLogStart)).toBeTruthy();
+    // E sem arquivo não há pasta para abrir nem caminho para copiar — os dois
+    // botões só existem com log ativo.
+    expect(host.textContent).not.toContain(MSG.diagLogReveal);
+    expect(host.textContent).not.toContain(MSG.diagLogCopyPath);
+    unmount();
+  });
+
+  it("log ativo: abrir a pasta leva o CAMINHO ao backend e copiar vai pro clipboard", async () => {
+    const caminho = "/dados/wire-20261006160405.jsonl";
+    portas.deviceLogPath.mockResolvedValueOnce(caminho);
+    const { host, unmount } = mount(REAL);
+    await settle();
+
+    // (1) Abrir a pasta: o front NÃO manda caminho — o backend é o dono do log
+    // ativo, e o button só pede.
+    await act(async () => void botao(host, MSG.diagLogReveal).click());
+    await settle();
+    expect(portas.deviceLogReveal).toHaveBeenCalledTimes(1);
+
+    // (2) Copiar o caminho: vai ao clipboard EXATO que a tela mostrou.
+    const texto = vi.fn(async () => {});
+    Object.defineProperty(navigator, "clipboard", {
+      value: { writeText: texto },
+      configurable: true,
+    });
+    await act(async () => void botao(host, MSG.diagLogCopyPath).click());
+    await settle();
+    expect(texto).toHaveBeenCalledWith(caminho);
+    // e o botão confirma como o da prévia já faz
+    expect(host.textContent).toContain(MSG.diagCopied);
+    unmount();
+  });
+
+  it("sem desktop (browser): abrir a pasta É DITA como indisponível", async () => {
+    // O fallback lança em vez de fingir que abriu — o operador vê o motivo.
+    portas.deviceLogReveal.mockRejectedValueOnce(
+      new Error("abrir a pasta do log existe só no aplicativo desktop"),
+    );
+    portas.deviceLogPath.mockResolvedValueOnce("/dados/wire.jsonl");
+    const { host, unmount } = mount(REAL);
+    await settle();
+    await act(async () => void botao(host, MSG.diagLogReveal).click());
+    await settle();
+    expect(host.textContent).toContain("só no aplicativo desktop");
     unmount();
   });
 });

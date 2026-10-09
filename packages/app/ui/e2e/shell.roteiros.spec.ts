@@ -9,6 +9,13 @@
 import { expect, test } from "@playwright/test";
 import { ShellPage } from "./pages/_pages";
 
+/**
+ * Nome do fallback de TESTE da porta (`ipc/fallbackData.ts`, #150): é uma
+ * fixture ROTULADA — não é nome de preset de fábrica embutido no app. O
+ * e2e roda fora do webview, então este é o nome que o palco mostra.
+ */
+const FIXTURE = "Fixture de teste (não é aparelho)";
+
 let shell: ShellPage;
 
 test.beforeEach(async ({ page }) => {
@@ -35,52 +42,57 @@ test("R1 topbar: logo, conexão, patch na navbar e foco de teclado", async ({ pa
   });
   expect(focused).not.toBeNull();
 
-  // ◀ ▶ navegam presets em ciclo (coluna do patch do app oficial) —
-  // navbar, display LED do board e biblioteca acompanhando juntos
+  // ◀ ▶ andam pelo INVENTÁRIO do APARELHO (#150: dois bancos, ADR-12) —
+  // navbar, display LED do palco e biblioteca acompanhando juntos
   const listbox = shell.library.listbox();
-  // O NOME precisa acompanhar o número nos 3 lugares (o fallback do board
-  // já ignorou o pp e congelou o nome — cenário permanente no e2e)
+  // de 0x0000 o anterior é 0x0162 (último slot do scan); o rótulo é o
+  // ENDEREÇO (mapeamento LED P/F ainda não medido) e o nome é a fixture
+  // do fallback — nunca um preset de fábrica que o app não leu do fio
   await shell.prevPatch();
-  await expect(shell.patchLabel()).toHaveText("P99 Dreamy Aco");
-  await expect(listbox.getByRole("option").last()).toHaveAttribute("aria-selected", "true");
-  await expect(listbox.getByRole("option").last()).toHaveAccessibleName(/Dreamy Aco/);
-  await expect(shell.board.display()).toContainText("Dreamy Aco");
+  await expect(shell.patchLabel()).toHaveText(`0x0162 ${FIXTURE}`);
+  await expect(listbox.getByRole("option").filter({ hasText: "0x0162" })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+  await expect(shell.board.display()).toContainText("Fixture de teste");
+  // ▶ de volta ao primeiro slot do banco baixo (0x0000 → P01)
   await shell.nextPatch();
-  await expect(shell.patchLabel()).toHaveText("P01 It's GP100");
-  await expect(listbox.getByRole("option").first()).toHaveAttribute("aria-selected", "true");
-  await expect(shell.board.display()).toContainText("It's GP100");
+  await expect(shell.patchLabel()).toHaveText(`P01 ${FIXTURE}`);
+  await expect(listbox.getByRole("option").filter({ hasText: "0x0000" })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+  await expect(shell.board.display()).toContainText("Fixture de teste");
 });
 
-/* ── R2. Biblioteca de fábrica (99) ── */
-test("R2 biblioteca: 99 presets reais, busca, seleção e empty state", async ({ page }) => {
+/* ── R2. Patches do aparelho (inventário de 198, dois bancos) ── */
+test("R2 biblioteca: 198 slots do aparelho, busca por endereço e empty state", async ({ page }) => {
   const lib = shell.library;
   await expect(lib.listbox()).toBeVisible();
-  await expect(lib.options()).toHaveCount(99);
-  await expect(lib.optionAt(0)).toContainText("It's GP100");
-  await expect(lib.options().last()).toContainText("Dreamy Aco");
+  // o status diz de onde a lista veio (#150): o APARELHO reportou 198 slots
+  await expect(page.getByText("Patches do aparelho: 198")).toBeVisible();
+  await expect(lib.options()).toHaveCount(198);
+  // nomes vazios até o decode da meta6 (#152): a linha mostra o ENDEREÇO
+  await expect(lib.optionAt(0)).toContainText("0x0100"); // banco alto vem primeiro
+  await expect(lib.options().last()).toContainText("0x0062");
 
-  await lib.searchFor("mist");
+  // busca filtra localmente pelo endereço (o único rótulo honesto hoje)
+  await lib.searchFor("0x0062");
   await expect(lib.options()).toHaveCount(1);
-  await expect(lib.optionAt(0)).toHaveAccessibleName(/P25 Mist Rock/);
+  await expect(lib.optionAt(0)).toContainText("0x0062");
 
-  // busca por estilo e vazio com dica
-  await lib.searchFor("acoustic");
-  const n = await lib.options().count();
-  expect(n).toBeGreaterThan(10);
   await lib.searchFor("zzzz");
   await expect(lib.options()).toHaveCount(0);
   await expect(page.getByText(/Nada encontrado para/)).toBeVisible();
 
-  // abrir preset (select real no shell; fallback dev troca o corrente)
-  await lib.searchFor("mist");
-  const mistOption = lib.optionAt(0);
-  await mistOption.click();
-  // seleção: accessible name é "P25 Mist Rock" (os spans não têm espaços no textContent)
-  await expect(mistOption).toHaveAccessibleName(/P25 Mist Rock/);
-  await expect(mistOption).toHaveAttribute("aria-selected", "true");
-  // nome COMPLETO na navbar e no LED (não só o nº — o fallback já congelou)
-  await expect(shell.patchLabel()).toHaveText("P25 Mist");
-  await expect(shell.board.display()).toContainText("Mist");
+  // abrir slot (select real no shell; fallback dev troca o corrente)
+  await lib.searchFor("0x0062");
+  const alvo = lib.optionAt(0);
+  await alvo.click();
+  await expect(alvo).toHaveAttribute("aria-selected", "true");
+  // rótulo 1-based no banco baixo (0x0062 = 98 → P99) + fixture no LED
+  await expect(shell.patchLabel()).toHaveText(`P99 ${FIXTURE}`);
+  await expect(shell.board.display()).toContainText("Fixture de teste");
 });
 
 /* ── R2b. User Patch: snapshot do palco, volta ao palco e exclusão (#11) ── */
@@ -111,8 +123,8 @@ test("R2b user patch: salvar a cadeia corrente, abrir de volta (U01) e excluir",
   // apagado continuaria no palco — a UI não mente sobre o que existe)
   await lib.deleteUserPatch("Meu clean").click();
   await expect(lib.userRows()).toHaveCount(0);
-  await expect(shell.patchLabel()).toHaveText("P01 It's GP100");
-  await expect(board.display()).toContainText("It's GP100");
+  await expect(shell.patchLabel()).toHaveText(`P01 ${FIXTURE}`);
+  await expect(board.display()).toContainText("Fixture de teste");
 });
 
 /* ── R3. Board (9 pedais reais — cadeia inteira numa fileira) + trava ⇄ mover ── */

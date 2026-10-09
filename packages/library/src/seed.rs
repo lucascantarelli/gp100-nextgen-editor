@@ -10,7 +10,7 @@
 //! boot: um app que sobe e acha a biblioteca com 198 presets porque "rodou o
 //! seed duas vezes" é um bug que a UI não consegue explicar.
 
-use gp100_core::preset::Document;
+use gp100_core::preset::{pp_id_decimal, Document};
 
 use crate::{Bank, Library, LibraryError, Preset};
 
@@ -29,7 +29,11 @@ impl Library {
             let Some(pp_txt) = preset.pp_id() else {
                 continue;
             };
-            let Ok(pp) = pp_txt.trim().parse::<u16>() else {
+            // Mesma base do core (`preset_list`, `board_view_for`) e do
+            // artefato do front: `ppID` DECIMAL — #132/ADR-12. A função é
+            // do core de propósito: se a base virar outra um dia, ela
+            // muda num lugar só e este teste cruzado (`seed.rs`) acusa.
+            let Some(pp) = pp_id_decimal(pp_txt) else {
                 return Err(LibraryError::Prst(format!("ppID nao numerico: {pp_txt:?}")));
             };
             let nome = preset.pp_name().unwrap_or("").trim().to_string();
