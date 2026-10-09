@@ -11,11 +11,11 @@
 //! * a UI — que já usava decimal nos seus artefatos (`presetData.ts`,
 //!   `pp: 10 = "Fat Plexi"`) — recebia um `pp` diferente do backend.
 //!
-//! Este teste trava os três lados: o espaço do fio, o inventário do boot e
-//! o caso que o hex destruía.
+//! Este teste trava os três lados: o espaço do fio, o inventário do boot
+//! (`session::inventario_do_aparelho`) e o caso que o hex destruía.
 
 use gp100_core::pedalboard::{embedded_document, preset_list};
-use gp100_core::session::{inventario_default, pp_e_valido};
+use gp100_core::session::{inventario_do_aparelho, pp_e_valido};
 
 /// Todo `pp` que a UI enxerga existe no fio e está no inventário do scan.
 #[test]
@@ -24,7 +24,7 @@ fn preset_list_vive_no_espaco_do_fio() {
     let lista = preset_list(&doc);
     assert_eq!(lista.len(), 99, "99 presets de fábrica");
 
-    let inventario = inventario_default();
+    let inventario = inventario_do_aparelho();
     for e in &lista {
         assert!(
             pp_e_valido(e.pp),

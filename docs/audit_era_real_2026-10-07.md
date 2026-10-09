@@ -146,5 +146,5 @@ ser exercício da tela fora do hardware.
 - `analysis/manual_v18.txt` ("two patch banks: User P01–P99 / Factory F01–F99").
 - Valeton oficial (valeton.net/product/gp-100): "198 presets (99 user + 99 factory)".
 - Issues: #148 (duplicata consolidada em #132/#137), #150 (biblioteca do aparelho), #116 (A/B), #110 (precedente knob).
-- `packages/core/src/session.rs` (inventory/select_preset/pp_e_valido), `packages/app/ui/src/hooks/useStage.ts` (carregaCorrente).
+- `packages/core/src/session.rs` (inventory/select_preset/pp_e_valido), `packages/app/ui/src/hooks/useStage.ts` (o mount abre o `current_pp` via `device_preset_library`).
 - Regras: `knowledge.md`, `docs/CONTRIBUTING.md`, `.agents/skills/docs-sync/SKILL.md`.

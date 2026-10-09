@@ -5,8 +5,8 @@
 //! firmware V2.1 morria no assert `PresetNum < TOTAL_PA` (audio.c:912),
 //! voltando só com power-cycle. As capturas (S1–S4: 796 selects, 198
 //! payloads distintos) mostram o espaço real: `0000..=0062` + `0100..=0162`.
-//! Estes testes travam o inventário default e a guarda de select ANTES do
-//! fio — o mesmo padrão da #110 para valores de knob (ADR-10).
+//! Estes testes travam o inventário do aparelho e a guarda de select ANTES
+//! do fio — o mesmo padrão da #110 para valores de knob (ADR-10).
 //!
 //! **A guarda é do APARELHO (#132/ADR-12).** O espaço do MOCK continua sendo
 //! o do documento (`0..198`, e o scan dele varre os 198 — ver
@@ -16,20 +16,25 @@
 
 use std::time::Duration;
 
-use gp100_core::session::{inventario_default, pp_e_valido, Session};
+use gp100_core::session::{inventario_do_aparelho, pp_e_valido, Session};
 use gp100_core::transport::mock::MockDevice;
 use gp100_core::transport::{DeviceTransport, TransportError, WireKind};
 
-/// O inventário default É a lista capturada: 198 pps nos dois bancos, sem
-/// NENHUM pp do intervalo linear inexistente (0x0063..0x00C5).
+/// O inventário do aparelho É a lista capturada: 198 pps nos dois bancos,
+/// sem NENHUM pp do intervalo linear inexistente (0x0063..0x00C5).
+///
+/// Os quatro limites são os do banco/slot e a ORDEM é a da S1 (banco
+/// `0x01xx` primeiro) — a ordem também é evidência: é ela que faz o boot do
+/// aparelho reproduzir a sequência do Suite. A igualdade `u16` a `u16` com
+/// o fixture está no `pp_gate.rs`.
 #[test]
-fn inventario_default_e_o_espaco_banco_slot_da_captura() {
-    let pps = inventario_default();
+fn inventario_do_aparelho_e_o_espaco_banco_slot_da_captura() {
+    let pps = inventario_do_aparelho();
     assert_eq!(pps.len(), 198, "198 presets = 2 bancos de 99");
-    assert_eq!(pps.first(), Some(&0x0000));
-    assert_eq!(pps[98], 0x0062, "fim do banco 00");
-    assert_eq!(pps[99], 0x0100, "início do banco 01");
-    assert_eq!(pps.last(), Some(&0x0162));
+    assert_eq!(pps.first(), Some(&0x0100), "início do banco 01");
+    assert_eq!(pps[98], 0x0162, "fim do banco 01");
+    assert_eq!(pps[99], 0x0000, "início do banco 00");
+    assert_eq!(pps.last(), Some(&0x0062), "fim do banco 00");
     // os pps lineares 0x0063..0x00C5 não podem aparecer NUNCA:
     for pp in 0x0063u16..=0x00C5 {
         assert!(

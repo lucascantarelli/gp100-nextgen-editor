@@ -199,22 +199,6 @@ pub fn pp_e_valido(pp: u16) -> bool {
     slot <= 0x0062 && (banco == 0x00 || banco == 0x01)
 }
 
-/// O inventário do scan na ordem HISTÓRICA do branch (#148): banco `0x00xx`
-/// primeiro, depois o `0x01xx`. É o MESMO CONJUNTO de
-/// [`inventario_do_aparelho`] — só a ordem difere.
-///
-/// Quem o boot varre é o inventário do TRANSPORTE (a ordem da S1, banco 1
-/// primeiro — `inventario_do_aparelho` no aparelho, `0..198` no mock), NÃO
-/// este: a ordem também é evidência do fio. Esta função é o predicado
-/// estático do espaço (ordem canônica do banco/slot), usado pelos testes
-/// do #148 — e está aqui, ao lado do irmão, para que os dois falhem juntos
-/// se o espaço mudar.
-pub fn inventario_default() -> Vec<u16> {
-    let mut pps: Vec<u16> = (0u16..=0x0062).collect();
-    pps.extend(0x0100u16..=0x0162);
-    pps
-}
-
 /// Os 198 `pp` que o **aparelho** tem, na ordem em que o Suite varre na
 /// captura S1 (`analysis/fixtures/boot.jsonl` — os mesmos 2299 OUTs que
 /// `tests/replay_fixtures.rs::replay_boot_byte_a_byte` reproduz).
@@ -242,6 +226,13 @@ pub fn inventario_default() -> Vec<u16> {
 /// A ordem é a da captura (banco 1 primeiro) porque a ordem TAMBÉM é
 /// evidência: com este inventário o `boot()` de um aparelho recém-ligado
 /// reproduz a sequência do Suite.
+///
+/// **É a ÚNICA fonte do espaço do aparelho.** O CONJUNTO (99 no banco
+/// `0x01xx` + 99 no `0x00xx`) e a ORDEM vivem aqui — não existe uma segunda
+/// lista do mesmo espaço, com outra ordem, para divergir desta. A ordem
+/// canônica do banco/slot (`0x00xx` primeiro) não tem consumidor: quem
+/// varre é a captura. `pp_e_valido` declara o MESMO espaço como predicado
+/// estático, e `pp_gate.rs` prende as duas no fixture da S1.
 pub fn inventario_do_aparelho() -> Vec<u16> {
     let mut pps: Vec<u16> = (0x0100u16..=0x0162).collect();
     pps.extend(0x0000u16..=0x0062);
