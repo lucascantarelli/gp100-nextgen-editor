@@ -90,7 +90,8 @@ pub struct MockState {
 
 impl MockState {
     /// Carrega o estado de `all.prst` (embedado). O pp corrente inicial é o
-    /// do 1º preset (`ppID` hex); os ppIRCRC de fábrica povoam os 20 slots.
+    /// do 1º preset (`ppID` decimal = índice 0-based, o mesmo espaço do
+    /// fio); os ppIRCRC de fábrica povoam os 20 slots.
     ///
     /// # Erros
     /// [`ProtocolError::InvalidShape`] se o `.prst` embedado não parseia ou
@@ -622,6 +623,18 @@ impl MockDevice {
                         .map(|s| s.to_vec())
                         .unwrap_or_else(|| self.state.current_pp.to_be_bytes().to_vec());
                     let requested_pg = payload.get(3).copied();
+                    // A página 8 — resposta ao req PG 7 — mede 32B na
+                    // captura real (4B header + 28B de nibbles = 14
+                    // decodificados); as outras 8 medem 196B (4B + 192B).
+                    // O golden aceita os dois (`lens: [32, 196]` em
+                    // `13010003`), então servir 196B em tudo passava
+                    // silenciosamente: o shape batia por forma e só o
+                    // `decode` das páginas (§13.10) acusava, como 9 páginas
+                    // de 196B onde o aparelho manda 8+1.
+                    let desired = match requested_pg {
+                        Some(7) => Some(32),
+                        _ => desired,
+                    };
                     let is_page =
                         matches!(addr, [0x13, 0x01, 0x00, 0x04] | [0x13, 0x02, 0x00, 0x04]);
                     // PG 8 (§13.10): a resposta NÃO é página 196B — é 4B em
@@ -685,10 +698,13 @@ impl MockDevice {
                                 } else if i == 1 && count == 1 {
                                     vec![0] // PG 0 da abertura
                                 } else {
-                                    // vars de página não observadas no boot
-                                    // capturado — zeros (shape correto; o
-                                    // conteúdo não é evidência)
-                                    vec![0u8; count]
+                                    // O exemplo congelado do golden É o
+                                    // conteúdo real — é o mesmo caminho dos
+                                    // reqs de página. O corpo do `open` é a
+                                    // pg0, onde mora o NOME do preset (#155);
+                                    // zeros aqui deixavam `preset_pages::nome`
+                                    // sem o que ler e derrubavam o palco.
+                                    example_var(tpl_page, Some(196), i, count)
                                 }
                             })
                             .map_err(|e: ProtocolError| {

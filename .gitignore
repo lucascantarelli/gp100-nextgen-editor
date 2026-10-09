@@ -75,3 +75,5 @@ packages/app/ui/coverage/
 packages/app/ui/test-results/
 packages/app/ui/playwright-report/
 *.tsbuildinfo
+# Spec/plano de execucao de issue (#155): registro LOCAL, nao artefato publico.
+docs/superpowers/

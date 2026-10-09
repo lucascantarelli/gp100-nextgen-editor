@@ -138,7 +138,7 @@ pub struct PresetEntry {
     pub pp_type_name: String,
 }
 
-fn family_of(module: &str) -> Family {
+pub(crate) fn family_of(module: &str) -> Family {
     match module {
         "DST" => Family::Dst,
         "AMP" => Family::Amp,
@@ -152,7 +152,7 @@ fn family_of(module: &str) -> Family {
     }
 }
 
-fn archetype_of(f: Family) -> Archetype {
+pub(crate) fn archetype_of(f: Family) -> Archetype {
     match f {
         Family::Pre => Archetype::Buffer,
         Family::Dst => Archetype::Distortion,
@@ -167,7 +167,7 @@ fn archetype_of(f: Family) -> Archetype {
 }
 
 /// Slug estável p/ `variant` (mesma regra do `dump_fx_map.py`).
-fn slug(name: &str) -> String {
+pub(crate) fn slug(name: &str) -> String {
     let s: String = name
         .chars()
         .map(|c| {
@@ -199,6 +199,11 @@ fn shape_err(expected: &str, got: &str) -> ProtocolError {
 /// biblioteca e o artefato do front usam, e o índice que vai ao fio como
 /// `u16 BE` no banco `0x00xx` (#132/ADR-12; ver
 /// [`crate::preset::pp_id_decimal`]).
+///
+/// Ler o `ppID` como HEX (`from_str_radix(s, 16)`) só coincidia em
+/// `'0'..'9'`: a partir de `"10"` o app endereçava um pp que o fio nem
+/// tem (36 dos 99 presets — issue #156). Todo ponto que lê `ppID` passa
+/// por `pp_id_decimal`: UM só caminho (R1).
 pub fn preset_list(doc: &Document) -> Vec<PresetEntry> {
     doc.presets()
         .filter_map(|p| {

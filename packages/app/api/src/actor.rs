@@ -23,6 +23,7 @@
 //! da captura (pp corrente primeiro + duplicação do 0x0100) é artefato de
 //! REPLAY — o app não reproduz quirks de captura, apenas o script.
 
+use std::collections::BTreeMap;
 use std::sync::mpsc;
 use std::thread::JoinHandle;
 
@@ -522,6 +523,7 @@ enum Request {
 fn device_snapshot<T: DeviceBackend>(
     session: &mut Option<Session<T>>,
     backend: Backend,
+    nomes: &BTreeMap<u16, String>,
 ) -> DeviceSnapshot {
     let Some(s) = session.take() else {
         return DeviceSnapshot::empty(backend);
@@ -532,16 +534,23 @@ fn device_snapshot<T: DeviceBackend>(
     let current_pp = s.current_pp();
     let ir_slots = s.list_user_irs().map(|t| t.slots).unwrap_or_default();
     *session = Some(s);
+    let pp_corrente = local.as_ref().map_or(current_pp, |m| m.current_pp);
     DeviceSnapshot {
         backend: backend.as_str(),
         // O motivo do Desligado é preenchido no braço do `Info` (quem o
         // conhece é o spawn, não esta função).
         detail: String::new(),
         preset_count: local.as_ref().map_or(0, |m| m.preset_count),
-        current_pp: local.as_ref().map_or(current_pp, |m| m.current_pp),
-        current_name: local
-            .as_ref()
-            .map_or_else(String::new, |m| m.current_name.clone()),
+        current_pp: pp_corrente,
+        // #155 §5.1: `current_name` vem do CACHE do scan (pg0 decodificada)
+        // — é o nome que o aparelho ESTÁ mostrando. O `local` (mock) fica
+        // de reserva para quando o boot não rodou; sem as duas fontes,
+        // vazio (nunca um nome inventado).
+        current_name: nomes
+            .get(&pp_corrente)
+            .cloned()
+            .or_else(|| local.as_ref().map(|m| m.current_name.clone()))
+            .unwrap_or_default(),
         current_pp_type: local.as_ref().map_or(0, |m| m.current_pp_type),
         ir_slots_with_crc: local
             .as_ref()
@@ -642,10 +651,18 @@ impl DeviceActor {
             // `WireLogger` guarda o arquivo, nao o nome dele, e quem pergunta e
             // a tela (`device_log_path`).
             let mut log_path: Option<String> = None;
+            // #155 §5.1/§5.2: (pp → nome) e (pp → BoardView) decodificados
+            // das páginas do scan. Moram AQUI, fora da `Session`, de
+            // propósito: `device_snapshot` reconstrói a Session por
+            // `into_transport` a cada `Info`/`Library` — e era aqui que os
+            // dados tinham de sobreviver (a spec manda "o actor grava em
+            // cache", não a Session).
+            let mut nomes: BTreeMap<u16, String> = BTreeMap::new();
+            let mut boards: BTreeMap<u16, BoardView> = BTreeMap::new();
             while let Ok(req) = rx.recv() {
                 match req {
                     Request::Info { reply } => {
-                        let mut snap = device_snapshot(&mut session, backend);
+                        let mut snap = device_snapshot(&mut session, backend, &nomes);
                         if backend == Backend::Desligado {
                             snap.detail = motivo.clone();
                         }
@@ -688,23 +705,51 @@ impl DeviceActor {
                         }
                     }
                     Request::Board { pp, reply } => {
-                        // Projeção PURA (doc embedado + dicionário): não toca
-                        // a Session nem o fio — pode rodar fora do device
-                        // (o actor só é o caminho para reusar o Dictionary
-                        // carregado do mock).
+                        // #155 §5.2: o palco vem do CACHE do scan, nunca de
+                        // um select novo — ler OUTRO pp não pode mudar o
+                        // preset que o pedal está mostrando.
+                        //
+                        // Sem cache (boot não rodou, ou pp fora do
+                        // inventário) cai na projeção pura do `all.prst`, o
+                        // caminho de sempre. Com cache mas sem decode, ERRO:
+                        // spec §6 — um `BoardView` com chute é pior que erro,
+                        // porque o palco desenha e o usuário acredita.
+                        let alvo = pp.or_else(|| session.as_ref().map(|s| s.current_pp()));
                         let r = (|| -> Result<BoardView, String> {
-                            // **No APARELHO o palco não vem do artefato (#150).**
-                            // A cadeia do dono vive nas páginas 13xx, cujo layout
-                            // ainda não foi decifrado (#152) — desenhar a cadeia
-                            // do all.prst seria mentir sobre o que está gravado
-                            // no preset do aparelho. O erro honesto é o que a UI
-                            // mostra até o decode existir.
+                            // **O palco vem do CACHE do scan (#155 §5.2)** — as
+                            // páginas que o boot já leu, decodificadas. Nunca
+                            // de um `select` novo: ler outro pp não pode mudar
+                            // o preset que o pedal está mostrando.
+                            if let Some(a) = alvo {
+                                if let Some(b) = boards.get(&a) {
+                                    return Ok(b.clone());
+                                }
+                                if let Some(pags) = session.as_ref().and_then(|s| s.preset_state(a))
+                                {
+                                    let dict =
+                                        Dictionary::from_json(gp100_core::model::DICTIONARY_JSON)
+                                            .map_err(|e| e.to_string())?;
+                                    let off = gp100_core::preset_pages::Offsets::carregado()
+                                        .map_err(|e| e.to_string())?;
+                                    let dec = gp100_core::preset_pages::decode(pags)
+                                        .map_err(|e| e.to_string())?;
+                                    let b = dec.slots(a, &dict, &off).map_err(|e| e.to_string())?;
+                                    boards.insert(a, b.clone());
+                                    return Ok(b);
+                                }
+                            }
+                            // Sem cache no APARELHO: erro honesto (#150 + spec
+                            // §6) — projetar o `all.prst` no palco do aparelho
+                            // desenharia uma cadeia que não está gravada nele.
                             if backend == Backend::Real {
                                 return Err(
-                                    "palco do aparelho pendente do decode das páginas 13xx (issue #152)"
+                                    "páginas deste pp não foram lidas no boot — refaça o boot \
+                                     (o palco do aparelho vem do cache, nunca do artefato)"
                                         .into(),
                                 );
                             }
+                            // Mock: projeção PURA do artefato (doc embedado +
+                            // dicionário) — não toca a Session nem o fio.
                             let doc = embedded_document().map_err(|e| e.to_string())?;
                             let dict = Dictionary::from_json(gp100_core::model::DICTIONARY_JSON)
                                 .map_err(|e| e.to_string())?;
@@ -721,19 +766,20 @@ impl DeviceActor {
                                 return Err("session do actor ausente".into());
                             }
                             // **No APARELHO a biblioteca é o que ele tem (#150).**
-                            // O inventário é o MEDIDO (captura S1 — ADR-12). Os
-                            // NOMES dependem do decode da meta6 (#152): entradas
-                            // sem nome são honestidade — não o dicionário de
-                            // fábrica emprestado do all.prst, que não diz o que
-                            // está gravado no slot do dono.
+                            // O inventário é o MEDIDO (captura S1 — ADR-12) e o
+                            // NOME vem do CACHE do scan (#155 §5.1 — pg0
+                            // decodificada, custo zero no fio). Sem cache, vazio:
+                            // honestidade — nunca o dicionário de fábrica
+                            // emprestado do all.prst, que não diz o que está
+                            // gravado no slot do dono.
                             if backend == Backend::Real {
-                                let state = device_snapshot(&mut session, backend);
+                                let state = device_snapshot(&mut session, backend, &nomes);
                                 return Ok(PresetLibrary {
                                     entries: inventario_do_aparelho()
                                         .into_iter()
                                         .map(|pp| PresetEntry {
                                             pp,
-                                            name: String::new(),
+                                            name: nomes.get(&pp).cloned().unwrap_or_default(),
                                             pp_type_name: String::new(),
                                         })
                                         .collect(),
@@ -741,13 +787,17 @@ impl DeviceActor {
                                 });
                             }
                             let doc = embedded_document().map_err(|e| e.to_string())?;
-                            let state = device_snapshot(&mut session, backend); // corrente
+                            let state = device_snapshot(&mut session, backend, &nomes); // corrente
                             Ok(PresetLibrary {
                                 entries: preset_list(&doc)
                                     .into_iter()
                                     .map(|e| PresetEntry {
                                         pp: e.pp,
-                                        name: e.name,
+                                        // #155 §5.1: o nome real do fio
+                                        // (pg0 decodificada) no lugar do do
+                                        // arquivo — o que muda é o user
+                                        // patch renomeado no aparelho.
+                                        name: nomes.get(&e.pp).cloned().unwrap_or(e.name),
                                         pp_type_name: e.pp_type_name,
                                     })
                                     .collect(),
@@ -798,6 +848,22 @@ impl DeviceActor {
                                 }
                                 None => s.boot_with_progress(None).map_err(|e| e.to_string()),
                             };
+                            // #155 §5.1: com o scan completo, decodifica a
+                            // pg0 de cada pp e grava (pp → nome). É custo
+                            // zero no fio — as páginas já vieram no scan.
+                            // O que não decodificar simplesmente não entra
+                            // (o `all.prst` continua de reserva).
+                            if r.is_ok() {
+                                for pp in s.cached_pps() {
+                                    if let Some(pags) = s.preset_state(pp) {
+                                        if let Ok(pg) = gp100_core::preset_pages::decode(pags) {
+                                            if let Ok(nome) = pg.nome() {
+                                                nomes.insert(pp, nome.to_string());
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                             let _ = reply.send(r);
                         }
                         None => {
@@ -945,7 +1011,7 @@ impl DeviceActor {
 
     /// Boot completo (§13.10) com progresso opcional pelo canal `progress`
     /// (1 [`BootProgress`] por transação). Bloqueia até o fim do script
-    /// (2297 transações no inventário default) — o command que chama é
+    /// (2297 transações no inventário default do MOCK) — o command que chama é
     /// síncrono e roda fora da main thread (ADR-3).
     ///
     /// # Erros
@@ -1221,13 +1287,23 @@ mod tests {
     use gp100_core::transport::mock::MockFault;
     use gp100_core::transport::{TransportError, WireKind};
 
-    /// Boot completo via actor (2297 transações no inventário default
-    /// 0..198) e o resultado chega ao chamador pelo canal de resposta.
+    /// Boot completo via actor: 2297 transações — o inventário default do
+    /// MOCK é `0..198` (#132/ADR-12), que NÃO contém o 0x0100 e por isso não
+    /// paga o quirk §13.4. O APARELHO é 2299 e quem o prova é o
+    /// `tests/pp_gate.rs` do core.
+    ///
+    /// O resultado chega ao chamador pelo canal de resposta.
     #[test]
     fn boot_via_actor_completa_e_responde() {
         let mock = MockDevice::new().expect("mock montado");
         let actor = DeviceActor::spawn(mock, Backend::Mock);
         let report = actor.boot(None).expect("boot contra o mock via actor");
+        // 2297 = o script do MOCK: o inventário default dele é `0..198`
+        // (#132/ADR-12), que NÃO contém o 0x0100 e não paga o quirk §13.4.
+        // O APARELHO é 2299 (a prova C do `validate_golden.py`, 2299/2299)
+        // e quem o prova é o `tests/pp_gate.rs` do core. Este crate fica
+        // FORA do workspace (`exclude` no Cargo.toml raiz), então
+        // `cargo test --workspace` não o alcança — rode-o aqui.
         assert_eq!(report.transactions, 2297);
         actor.shutdown();
     }
@@ -1446,6 +1522,122 @@ mod tests {
             actor.set_param(3, 0x0700_006e, 0, 99.5).is_err(),
             "acima do teto"
         );
+        actor.shutdown();
+    }
+
+    /// **#155 §5.2/§5.3: o palco vem do CACHE do scan, nunca de um select.**
+    ///
+    /// `board` para OUTRO pp tem de devolver sem tocar no fio — um `select`
+    /// mudaria o preset que o pedal está mostrando, inaceitável num editor
+    /// (spec §5.2). E com o boot feito o palco NÃO é mais recusado.
+    #[test]
+    fn board_vem_do_cache_sem_select() {
+        let actor = DeviceActor::spawn(MockDevice::new().expect("mock"), Backend::Mock);
+        actor.boot(None).expect("boot");
+        // 0x0000 é o PRIMEIRO pp do inventário — longe do corrente (0x0162,
+        // fim do scan): ler este só pode vir do cache.
+        let b = actor.board(Some(0x0000)).expect("board do cache");
+        assert_eq!(b.pp, 0x0000, "o palco é do pp pedido");
+        assert!(!b.slots.is_empty(), "a cadeia tem slots");
+        actor.shutdown();
+    }
+
+    /// **#155 §5.1: `current_name` vem da pg0 decodificada no scan.**
+    ///
+    /// Depois do boot o nome tem de estar lá (a pg0 de cada pp foi lida no
+    /// scan e decodificada); antes, a única fonte é o estado local do mock.
+    ///
+    /// **Limitação do harness declarada:** o `local_state` do mock e o
+    /// exemplo congelado do golden são o MESMO preset ("It's GP100"), então
+    /// aqui as duas fontes produzem o mesmo nome e não são distinguíveis
+    /// por valor. A prova de que o CACHE alimenta a UI é o teste ao lado,
+    /// onde elas são distinguíveis (99 nomes distintos do `all.prst` vs 1
+    /// do cache do mock).
+    #[test]
+    fn current_name_vem_do_cache_apos_o_boot() {
+        let actor = DeviceActor::spawn(MockDevice::new().expect("mock"), Backend::Mock);
+        let antes = actor.info().expect("info sem boot");
+        assert!(!antes.current_name.is_empty(), "estado local tem nome");
+
+        actor.boot(None).expect("boot");
+
+        let depois = actor.info().expect("info com boot");
+        assert!(
+            !depois.current_name.is_empty(),
+            "a pg0 decodificada no scan traz o nome do pp corrente"
+        );
+        assert_eq!(
+            depois.current_pp, 0x00C5,
+            "o boot termina o scan no último pp do inventário do MOCK (197); \
+             no APARELHO seria 0x0162 — provado no `pp_gate.rs`"
+        );
+        actor.shutdown();
+    }
+
+    /// **#155 §5.1: a biblioteca não devolve inventário sem nome.**
+    ///
+    /// A prova é DIFERENÇA, não presença: o `all.prst` tem 99 nomes
+    /// distintos, então entradas que saem com outro nome só podem ter vindo
+    /// do cache (pg0 decodificada no scan). Com o mock a distinção é nítida
+    /// — ele serve o MESMO preset para todos os pps do fio.
+    ///
+    /// O bug de endereçamento que limitava esta prova (#156) foi corrigido:
+    /// o `ppID` é DECIMAL e todo ponto do core passa por
+    /// `preset::pp_id_decimal` — os 99 da UI casam com o fio. Aqui se trava
+    /// o contrato do cache: nenhuma entrada sem nome, e o cache respondendo
+    /// por (quase) toda a lista.
+    #[test]
+    fn biblioteca_servida_dos_nomes_do_cache() {
+        let actor = DeviceActor::spawn(MockDevice::new().expect("mock"), Backend::Mock);
+        actor.boot(None).expect("boot");
+        let lib = actor.library().expect("biblioteca");
+        assert!(!lib.entries.is_empty(), "tem entradas");
+        assert!(
+            lib.entries.iter().all(|e| !e.name.is_empty()),
+            "nenhuma entrada sem nome — o cache alimenta a lista"
+        );
+
+        let doc = embedded_document().expect("doc");
+        let do_arquivo: BTreeMap<u16, String> = preset_list(&doc)
+            .into_iter()
+            .map(|e| (e.pp, e.name))
+            .collect();
+        let do_fio = lib
+            .entries
+            .iter()
+            .filter(|e| do_arquivo.get(&e.pp).map(String::as_str) != Some(e.name.as_str()))
+            .count();
+        // Com o cache ligado, o cache cobre os 98 pps restantes — o único
+        // que não "muda" é o índice 0, que o mock e o arquivo chamam igual
+        // ("It's GP100"). Sem o cache seria 0.
+        assert!(
+            do_fio >= 90,
+            "o cache alimenta quase toda a lista (medido: {do_fio}/99; sem \
+             cache seria 0)"
+        );
+        actor.shutdown();
+    }
+
+    /// **#156: os 99 presets são selecionáveis.**
+    ///
+    /// O bug de endereçamento fazia o app endereçar em HEX e o fio em
+    /// DECIMAL banco/slot: 36 dos 99 presets tinham um pp que o fio nem tem
+    /// (`select_preset` devolvia "esperado pp no espaço banco/slot:
+    /// 0000..=0062 ou 0100..=0162"). O teste falhava em 36 deles.
+    #[test]
+    fn todos_os_99_presets_sao_selecionaveis() {
+        let actor = DeviceActor::spawn(MockDevice::new().expect("mock"), Backend::Mock);
+        let doc = embedded_document().expect("doc");
+        let lista = preset_list(&doc);
+        assert_eq!(lista.len(), 99);
+        let mut ok = 0;
+        for e in &lista {
+            if let Err(err) = actor.select_preset(e.pp) {
+                panic!("pp {:#06x} ({}) recusado pelo fio: {err}", e.pp, e.name);
+            }
+            ok += 1;
+        }
+        assert_eq!(ok, 99, "os 99 selecionáveis");
         actor.shutdown();
     }
 

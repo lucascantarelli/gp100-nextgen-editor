@@ -123,15 +123,18 @@ fn sem_pp_pega_o_primeiro() {
 }
 
 /// Um pp inexistente é erro claro, não um recorte silencioso de outro preset.
+///
+/// O pp é DECIMAL (o mesmo espaço do fio — #156), então a mensagem tem de
+/// nomeá-lo nessa base: `32767` e não `7fff`.
 #[test]
 fn pp_inexistente_e_erro() {
     let doc = documento();
     let erro = doc
-        .apenas_preset(Some(0x7fff))
+        .apenas_preset(Some(32767))
         .expect_err("pp inexistente tem de recusar");
     let msg = erro.to_string();
     assert!(
-        msg.contains("7fff"),
+        msg.contains("32767"),
         "a mensagem tem de nomear o pp pedido: {msg}"
     );
 }

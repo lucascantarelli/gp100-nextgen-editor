@@ -634,7 +634,11 @@ impl Document {
                 shape(
                     match pp {
                         None => "documento com pelo menos um <presets>".to_string(),
-                        Some(t) => format!("<presets> com ppID {t:#06x}"),
+                        // As DUAS notações de propósito: o índice do arquivo
+                        // é DECIMAL (`"0".."98"`, #156) e o espaço do fio é
+                        // hex (banco/slot, §13.4) — a mensagem não pode deixar
+                        // dúvida sobre qual número não foi achado.
+                        Some(t) => format!("<presets> com ppID {t:#06x} ({t})"),
                     },
                     "nenhum bloco corresponde",
                 )

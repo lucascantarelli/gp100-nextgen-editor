@@ -6,7 +6,7 @@
 //! path.
 //!
 //! **D8:** nenhum command toca a `Session` direto — todos passam pela fila
-//! do [`crate::actor::DeviceActor`]. O `device_boot` é LONGO (2297
+//! do [`crate::actor::DeviceActor`]. O `device_boot` é LONGO (2299
 //! transações contra o mock) e síncrono (ADR-3): o Tauri o executa fora da
 //! main thread; o progresso sai por EVENTO (`device://progress`) — a UI
 //! mostra barra, nunca trava.

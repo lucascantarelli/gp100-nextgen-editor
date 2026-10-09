@@ -333,6 +333,8 @@ fn boot_com_a_trava_fechada_omite_o_keepalive_e_completa() {
         );
     }
     // E o relatório conta o que DE fato saiu no fio: 2297 menos os 2 do ping.
+    // 2297 = o script do MOCK (inventário `0..198`, #132) — o APARELHO é 2299
+    // e quem o prova é o `pp_gate.rs`.
     assert_eq!(
         relatorio.transactions, 2295,
         "o relatório é do que saiu no fio: 2297 - keepalive ×2"

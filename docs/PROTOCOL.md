@@ -502,6 +502,56 @@ pela UI usa writes semânticos diretos (ver §13.11), sem offsets de página.
 As páginas 13 01 00 03 servem para LER o estado (e foram a base do pareio
 por timeline da sessão 3).
 
+#### Layout da página (DECIFRADO 08/10/2026 — #155)
+
+O corpo, que chegava opaco, nibble-decodifica para **96 B** (pg 0..7) e
+**14 B** (pg 8):
+
+| | no fio | decodificado |
+|---|---|---|
+| pg 0..7 | 196 B = 4 B header + 192 B de nibbles | 4 B + 96 B |
+| pg 8 | 32 B = 4 B header + 28 B de nibbles | 4 B + 14 B |
+
+**Header (4 B, fora do nibble):** `[pp u16BE] [00] [PG]`. O `PG` é o
+**número da página** (0..8) e **não a posição do pedido**: o `open`
+`13 01 00 02` entrega a página 0, os reqs `13 01 00 04` com PG 0..7
+entregam as páginas 1..8, e o req PG 8 devolve só o ACK de 4 B em
+`13 01 00 05` — que **não é página**. Conta fechada: 1 open + 8 reqs = 9
+páginas = 1.782 mensagens de `13 01 00 03` na captura.
+
+**Corpo:** pares de nibbles expandidos (`codec::nibble_collapse`).
+
+**pg 0 decodificada (offsets provados):**
+
+| offset | o que |
+|---|---|
+| 0..2 | `pp` u16 LE |
+| 2..14 | **nome ASCII[12]** com pad NUL |
+| 14..32 | **cadeia** — 9 × u16 LE (posição → `x` do `<Effect>` no `.prst`) |
+| 32..68 | **`effectCode`** — 9 × u32 LE |
+| 68..96 | params ×7 (f32 LE) |
+
+Os params são 135 f32 LE (9 slots × 15) em bloco contíguo atravessando as
+páginas: pg0[68..96] + pg1..pg5 inteiros + pg6[0..32]. `effectState` mora
+em pg6 @32 (9 × u16 LE).
+
+**Provas** (gate `state_pages` — `analysis/validate_state_pages.py`,
+artefato `analysis/state_pages_offsets.json`, embutido no binário):
+
+| o quê | medido |
+|---|---|
+| cadeia (posição → `x`) | **198/198** — 40 pps têm a cadeia TROCADA no fio |
+| `effectCode` | **1782/1782** |
+| `effectState` | **1782/1782** |
+| params | **26552/26554** (as 2 divergências são valores editados no hardware depois do dump) |
+| nome | **198/198** + prova-negativa |
+
+**Consumo:** `gp100_core::preset_pages::{decode, Paginas::{nome, slots}}` —
+entram 9 `StatePage`, sai o domínio. O boot já baixa as 1.782 páginas e as
+guarda em `Session::preset_state(pp)`; o actor serve o palco e os nomes a
+partir delas, **nunca de um `select` novo** (ler outro pp não pode mudar o
+preset que o pedal mostra).
+
 ### 13.11 Writes de edição pela UI — envelope semântico do knob (sessão 3)
 
 Toda edição de knob pela UI do Suite emite um write SEMÂNTICO, independente

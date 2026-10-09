@@ -71,6 +71,11 @@ GATES: list[tuple[str, list[str], str]] = [
         "a trava de conteudo do knob (#110) bate com o dicionario e com as 92 amostras reais",
     ),
     (
+        "state_pages",
+        [sys.executable, "analysis/validate_state_pages.py"],
+        "o layout das paginas 13xx casa no modelo deterministico (#155) — o artefato e embutido no binario",
+    ),
+    (
         "h2_compare",
         [sys.executable, "scripts/h2_compare.py", "--self-check"],
         "a transcricao do gate H2 bate com a referencia de escrita (#22)",

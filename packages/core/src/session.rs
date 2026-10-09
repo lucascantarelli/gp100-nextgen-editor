@@ -26,6 +26,7 @@
 use crate::golden::GoldenFile;
 use crate::transport::{DeviceTransport, TransportError, WireKind};
 use crate::ProtocolError;
+use std::collections::BTreeMap;
 use std::time::Duration;
 
 /// Janela da transação (ADR-3): 3000 ms por request→resposta.
@@ -80,9 +81,14 @@ pub struct BootReport {
     pub transactions: usize,
 }
 
-/// Página de estado do pp corrente (família 13xx). **Opaca de propósito**:
-/// o layout byte-a-byte da 13xx não foi decifrado; carrega os
-/// bytes crus + as vars extraídas pelos templates do golden.
+/// Página de estado (família 13xx): o payload cru como veio no fio, mais
+/// as vars dos templates do golden.
+///
+/// O corpo **nibble-exp** é decifrado por [`crate::preset_pages::decode`]
+/// (2026-10-08): 4B de header `[pp u16BE][00][PG]` + 192B de nibbles →
+/// 96B por página. Aqui o `raw` segue cru de propósito — é o contrato do
+/// fio (R1: o formato da 13xx não vaza pra UI) e o golden valida esse
+/// shape.
 #[derive(Debug, Clone)]
 pub struct StatePage {
     /// Payload cru da página (nibble-exp, como veio no fio).
@@ -174,6 +180,23 @@ pub struct Session<T: DeviceTransport> {
     pps: Option<Vec<u16>>,
     /// Backlog de IN não solicitado (D7), na ordem de chegada (hex cru).
     backlog: Vec<Vec<u8>>,
+    /// As 9 páginas de cada pp escaneado, tal como saíram do fio
+    /// (`13010003` nas pg 0..7 e `13010005` na pg 8). O scan (T5) já lia
+    /// todas — guardá-las só faz o retorno deixar de ser descartado: o fio
+    /// é idêntico (D1–D8 intocados, prova C intacta). Vazio antes do boot.
+    pages: BTreeMap<u16, [StatePage; 9]>,
+}
+
+/// O espaço de presets no fio é BANCO/SLOT (§13.4): 198 pps em dois bancos
+/// de 99 — NÃO é um intervalo linear. As capturas (S1–S4, 796 selects)
+/// contêm exatamente `0000..=0062` e `0100..=0162`; os pps `0x0063..0x00C5`
+/// NÃO existem, e o firmware V2.1 morre no assert `PresetNum < TOTAL_PA`
+/// (`audio.c:912`) ao recebê-los — o scan do boot os mandava por suposição
+/// linear nunca conferida em campo (issue #148, campo 07/10).
+pub fn pp_e_valido(pp: u16) -> bool {
+    let banco = pp >> 8;
+    let slot = pp & 0x00FF;
+    slot <= 0x0062 && (banco == 0x00 || banco == 0x01)
 }
 
 /// Os 198 `pp` que o **aparelho** tem, na ordem em que o Suite varre na
@@ -203,6 +226,13 @@ pub struct Session<T: DeviceTransport> {
 /// A ordem é a da captura (banco 1 primeiro) porque a ordem TAMBÉM é
 /// evidência: com este inventário o `boot()` de um aparelho recém-ligado
 /// reproduz a sequência do Suite.
+///
+/// **É a ÚNICA fonte do espaço do aparelho.** O CONJUNTO (99 no banco
+/// `0x01xx` + 99 no `0x00xx`) e a ORDEM vivem aqui — não existe uma segunda
+/// lista do mesmo espaço, com outra ordem, para divergir desta. A ordem
+/// canônica do banco/slot (`0x00xx` primeiro) não tem consumidor: quem
+/// varre é a captura. `pp_e_valido` declara o MESMO espaço como predicado
+/// estático, e `pp_gate.rs` prende as duas no fixture da S1.
 pub fn inventario_do_aparelho() -> Vec<u16> {
     let mut pps: Vec<u16> = (0x0100u16..=0x0162).collect();
     pps.extend(0x0000u16..=0x0062);
@@ -289,6 +319,24 @@ pub fn save_frames(pp: u16, pp_type: u16, name: &str) -> Result<Vec<SaveFrame>, 
     Ok(out)
 }
 
+/// Alimenta o array de páginas de um pp com a resposta de uma transação.
+///
+/// O índice da página vem do **próprio payload** (`raw[3]`, 0..=8) — não da
+/// posição do pedido: o `open` `13010002` entrega a página 0, os reqs
+/// `13010004` PG 0..7 entregam as páginas 1..8, e o req PG 8 devolve um
+/// ACK de 4B em `13010005` que NÃO é página. Só o comprimento certifica:
+/// 196B (4B header + 192B) ou 32B (4B + 28B) é corpo de página.
+///
+/// Sem efeito no fio — só o VALOR, que já era esperado por `wait_for`.
+fn guarda_pagina(paginas: &mut [StatePage; 9], raw: Vec<u8>) {
+    if !matches!(raw.len(), 196 | 32) {
+        return; // ACK de 4B, push ou meta6 — não é corpo de página
+    }
+    if let Some(idx) = raw.get(3).copied().filter(|&i| i < 9) {
+        paginas[idx as usize] = StatePage { raw };
+    }
+}
+
 impl<T: DeviceTransport> Session<T> {
     /// Constrói a FSM sobre o transporte. NÃO abre o transporte (ciclo de
     /// vida é do chamador — ADR-4/ADR-6). O golden vem de
@@ -300,6 +348,7 @@ impl<T: DeviceTransport> Session<T> {
             current_pp: 0x0100,
             pps: None,
             backlog: Vec::new(),
+            pages: BTreeMap::new(),
         }
     }
 
@@ -432,7 +481,12 @@ impl<T: DeviceTransport> Session<T> {
             )?;
             tx += 1;
             beat!();
-            self.tx_req_in(
+            // O `open` entrega a página 0 (`raw[3] == 0`) — as 9 páginas
+            // do pp, capturadas sem mudar o fio: o scan já esperava cada
+            // resposta em `wait_for`; só o VALOR era descartado com `?`.
+            let mut paginas: [StatePage; 9] =
+                std::array::from_fn(|_| StatePage { raw: Vec::new() });
+            let abertura = self.tx_req_in(
                 golden,
                 0x12,
                 &[0x13, 0x01, 0x00, 0x02],
@@ -440,13 +494,14 @@ impl<T: DeviceTransport> Session<T> {
                 &[0x13, 0x01, 0x00, 0x03],
                 WireKind::Read,
             )?;
+            guarda_pagina(&mut paginas, abertura);
             tx += 1;
             beat!();
             if doubled {
                 // ...e open duplicado: a página 0 chega DE NOVO em
                 // `13010003` (captura S1 rows 89–93: open open → pág0 pág0;
                 // NÃO é meta6 — era este o desalinhamento do replay)
-                self.tx_req_in(
+                let abertura2 = self.tx_req_in(
                     golden,
                     0x12,
                     &[0x13, 0x01, 0x00, 0x02],
@@ -454,34 +509,34 @@ impl<T: DeviceTransport> Session<T> {
                     &[0x13, 0x01, 0x00, 0x03],
                     WireKind::Read,
                 )?;
+                guarda_pagina(&mut paginas, abertura2);
                 tx += 1;
                 beat!();
             }
             for pg in 0u16..9u16 {
                 // t8: var2 (pp) + const 00 + var1 (PG baixo) + const 01
                 let vars = [pp_be[0], pp_be[1], pg as u8];
-                if pg < 8 {
-                    self.tx_req_in(
-                        golden,
-                        0x12,
-                        &[0x13, 0x01, 0x00, 0x04],
-                        &vars,
-                        &[0x13, 0x01, 0x00, 0x03],
-                        WireKind::Read,
-                    )?;
+                let in_addr: &[u8; 4] = if pg < 8 {
+                    &[0x13, 0x01, 0x00, 0x03]
                 } else {
-                    self.tx_req_in(
-                        golden,
-                        0x12,
-                        &[0x13, 0x01, 0x00, 0x04],
-                        &vars,
-                        &[0x13, 0x01, 0x00, 0x05],
-                        WireKind::Read,
-                    )?;
-                }
+                    &[0x13, 0x01, 0x00, 0x05]
+                };
+                // PG 0..7 respondem em `13010003` com a página SEGUINTE
+                // (`raw[3] == pg+1`); PG 8 responde em `13010005` com um
+                // ACK de 4B — `guarda_pagina` distingue pelo comprimento.
+                let resposta = self.tx_req_in(
+                    golden,
+                    0x12,
+                    &[0x13, 0x01, 0x00, 0x04],
+                    &vars,
+                    in_addr,
+                    WireKind::Read,
+                )?;
+                guarda_pagina(&mut paginas, resposta);
                 tx += 1;
                 beat!();
             }
+            self.pages.insert(pp, paginas);
             self.current_pp = pp;
         }
         stage = BootStage::Probe;
@@ -681,6 +736,21 @@ impl<T: DeviceTransport> Session<T> {
     /// [`Session::state_page`]`(0)` — mantida para os contratos existentes).
     pub fn scan_state(&mut self) -> Result<StatePage, ProtocolError> {
         self.state_page(0)
+    }
+
+    /// As 9 páginas brutas de um pp, guardadas pelo scan (T5).
+    ///
+    /// `None` antes do boot (ou para pp fora do inventário escaneado) — é
+    /// a matéria-prima de [`crate::preset_pages::decode`]: o MESMO payload
+    /// que [`Session::state_page`] mandaria buscar agora, só que sem tocar
+    /// no fio (o boot já leu tudo).
+    pub fn preset_state(&self, pp: u16) -> Option<&[StatePage; 9]> {
+        self.pages.get(&pp)
+    }
+
+    /// Pps com cache de páginas, em ordem crescente (o escaneado no boot).
+    pub fn cached_pps(&self) -> Vec<u16> {
+        self.pages.keys().copied().collect()
     }
 
     /// Knob da UI (§13.11): `codec::set_param` fire-and-forget, SEM
