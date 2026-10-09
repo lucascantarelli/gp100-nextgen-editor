@@ -20,6 +20,7 @@
 | **Levar o gp100-core à pedaleira (gate H1)** | `docs/H1_CHECKLIST.md` (checklist) + `docs/H1_REPORT.md` (relatório/plano de backup) + `scripts/h1_field.sh` (runbook: rehearsal/field/refresh-reference) + `scripts/h1_compare.py` (juiz da Fase C: classifica a sessão nos 3 níveis e imprime a tabela do §5) |
 | **Escrever no device real (gate H2)** | `docs/H2_CHECKLIST.md` (3 fluxos, um por vez) + `docs/H2_REPORT.md` (relatório) — build com `--features real-device,write-verified` |
 | **Congelar a especificação depois do hardware (gate H3)** | `docs/H3_CHECKLIST.md` (4 sessões) + `docs/H3_REPORT.md` + [`PROTOCOL.md` §13.14](PROTOCOL.md) (a conta da baseline v1.1) + `analysis/baseline.py show` |
+| **Medir as páginas 13xx em campo (gate H4)** | `docs/H4_CHECKLIST.md` (é leitura — nada escreve no aparelho pelo app: as edições do roteiro são feitas no pedal) + `docs/H4_REPORT.md` (relatório) + `analysis/validate_state_pages.py` (gate do artefato de offsets) |
 | **Implementar o protocolo (gp100-core)** | `docs/protocol_golden.json` (especificação executável) + `docs/PROTOCOL.md` §13 (narrativa) |
 | **Decidir arquitetura/estrutura no core (M0)** | `docs/DECISIONS.md` (ADR-1..12 aceitos) |
 | **Saber onde o código novo do front vai morar** | `docs/ARCHITECTURE.md` (mapa de módulos + o que **não** entra em cada camada + orçamento de tamanho) |
