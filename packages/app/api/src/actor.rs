@@ -726,10 +726,9 @@ impl DeviceActor {
                                 }
                                 if let Some(pags) = session.as_ref().and_then(|s| s.preset_state(a))
                                 {
-                                    let dict = Dictionary::from_json(
-                                        gp100_core::model::DICTIONARY_JSON,
-                                    )
-                                    .map_err(|e| e.to_string())?;
+                                    let dict =
+                                        Dictionary::from_json(gp100_core::model::DICTIONARY_JSON)
+                                            .map_err(|e| e.to_string())?;
                                     let off = gp100_core::preset_pages::Offsets::carregado()
                                         .map_err(|e| e.to_string())?;
                                     let dec = gp100_core::preset_pages::decode(pags)
@@ -1012,7 +1011,7 @@ impl DeviceActor {
 
     /// Boot completo (§13.10) com progresso opcional pelo canal `progress`
     /// (1 [`BootProgress`] por transação). Bloqueia até o fim do script
-    /// (2299 transações no inventário default) — o command que chama é
+    /// (2297 transações no inventário default do MOCK) — o command que chama é
     /// síncrono e roda fora da main thread (ADR-3).
     ///
     /// # Erros
@@ -1288,21 +1287,24 @@ mod tests {
     use gp100_core::transport::mock::MockFault;
     use gp100_core::transport::{TransportError, WireKind};
 
-    /// Boot completo via actor (2299 transações no inventário default
-    /// 0..198 — o quirk §13.4 soma +2 pelo preset atual 0x0100) e o
-    /// resultado chega ao chamador pelo canal de resposta.
+    /// Boot completo via actor: 2297 transações — o inventário default do
+    /// MOCK é `0..198` (#132/ADR-12), que NÃO contém o 0x0100 e por isso não
+    /// paga o quirk §13.4. O APARELHO é 2299 e quem o prova é o
+    /// `tests/pp_gate.rs` do core.
+    ///
+    /// O resultado chega ao chamador pelo canal de resposta.
     #[test]
     fn boot_via_actor_completa_e_responde() {
         let mock = MockDevice::new().expect("mock montado");
         let actor = DeviceActor::spawn(mock, Backend::Mock);
         let report = actor.boot(None).expect("boot contra o mock via actor");
-        // 2299 = a prova C do core (`validate_golden.py`, 2299/2299). Os
-        // 2297 era o valor do inventário LINEAR anterior ao #148: desde que
-        // o default virou o espaço banco/slot (que CONTÉM o 0x0100, o pp
-        // atual), o quirk §13.4 soma +2. Estes testes ficaram para trás
-        // porque o crate fica FORA do workspace (`exclude` no Cargo.toml
-        // raiz) — `cargo test --workspace` nunca os alcançava.
-        assert_eq!(report.transactions, 2299);
+        // 2297 = o script do MOCK: o inventário default dele é `0..198`
+        // (#132/ADR-12), que NÃO contém o 0x0100 e não paga o quirk §13.4.
+        // O APARELHO é 2299 (a prova C do `validate_golden.py`, 2299/2299)
+        // e quem o prova é o `tests/pp_gate.rs` do core. Este crate fica
+        // FORA do workspace (`exclude` no Cargo.toml raiz), então
+        // `cargo test --workspace` não o alcança — rode-o aqui.
+        assert_eq!(report.transactions, 2297);
         actor.shutdown();
     }
 
@@ -1331,7 +1333,7 @@ mod tests {
         assert_eq!(st.preset_count, 99);
         assert_eq!(st.current_name, "It's GP100");
         let report = actor.boot(None).expect("boot após info");
-        assert_eq!(report.transactions, 2299);
+        assert_eq!(report.transactions, 2297);
         actor.shutdown();
     }
 
@@ -1564,9 +1566,10 @@ mod tests {
             !depois.current_name.is_empty(),
             "a pg0 decodificada no scan traz o nome do pp corrente"
         );
-        assert!(
-            depois.current_pp >= 0x0100,
-            "o boot termina o scan no último pp do inventário"
+        assert_eq!(
+            depois.current_pp, 0x00C5,
+            "o boot termina o scan no último pp do inventário do MOCK (197); \
+             no APARELHO seria 0x0162 — provado no `pp_gate.rs`"
         );
         actor.shutdown();
     }
@@ -1578,13 +1581,11 @@ mod tests {
     /// do cache (pg0 decodificada no scan). Com o mock a distinção é nítida
     /// — ele serve o MESMO preset para todos os pps do fio.
     ///
-    /// **Limite medido e declarado:** a UI endereça em HEX
-    /// (`from_str_radix(pp_id, 16)`, 6 pontos do core) e o fio em DECIMAL
-    /// banco/slot — só os `pp_id` `'0'..'9'` coincidem. Enquanto isso não
-    /// for resolvido, 36 das 99 entradas caem no arquivo e `select_preset`
-    /// recusa esses pps ("esperado pp no espaço banco/slot"). Aqui se trava
-    /// o que é verdadeiro hoje: nenhuma entrada sem nome, e o cache
-    /// respondendo por boa parte da lista.
+    /// O bug de endereçamento que limitava esta prova (#156) foi corrigido:
+    /// o `ppID` é DECIMAL e todo ponto do core passa por
+    /// `preset::pp_id_decimal` — os 99 da UI casam com o fio. Aqui se trava
+    /// o contrato do cache: nenhuma entrada sem nome, e o cache respondendo
+    /// por (quase) toda a lista.
     #[test]
     fn biblioteca_servida_dos_nomes_do_cache() {
         let actor = DeviceActor::spawn(MockDevice::new().expect("mock"), Backend::Mock);
@@ -1798,7 +1799,7 @@ mod tests {
         let _ = t1.join().expect("thread 1");
         let report = actor.boot(None).expect("boot após infos");
         assert_eq!(st.preset_count, 99);
-        assert_eq!(report.transactions, 2299);
+        assert_eq!(report.transactions, 2297);
         actor.shutdown();
     }
 
