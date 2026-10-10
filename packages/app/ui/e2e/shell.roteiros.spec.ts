@@ -327,6 +327,11 @@ test("R5 boot: roda sem erro, status segue conectado e pushes abre", async () =>
 
 /* ── R6. Acessibilidade (gate manual) ── */
 test("R6 a11y: alvos ≥32px, estado não só por cor, reduced-motion", async ({ page }) => {
+  // o gate de boot (#161) monta a casca só APÓS o boot validado: espera
+  // ela existir — os checks cobrem a casca inteira (e o live-dot da LED
+  // só nasce com `connected`, que exige o boot pronto).
+  await expect(shell.library.listbox()).toBeVisible();
+
   // alvos clicáveis ≥32px (altura) nos controles da casca
   const small = await page.evaluate(() => {
     const bad: string[] = [];

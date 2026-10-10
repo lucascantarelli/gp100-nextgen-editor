@@ -46,7 +46,8 @@ import { useIrs } from "./hooks/useIrs";
 import { useContentMenu } from "./hooks/useContentMenu";
 import { usePrefs } from "./hooks/usePrefs";
 import { TopBar } from "./components/TopBar";
-import { BootBanners } from "./components/BootBanners";
+import { BootGate } from "./components/BootGate";
+import { ErrorBanner } from "./components/ErrorBanner";
 import { LibraryPanel } from "./components/LibraryPanel";
 import { Stage } from "./components/Stage";
 import { SettingsModal } from "./components/SettingsModal";
@@ -120,15 +121,11 @@ export default function App() {
       .catch(() => setInfo(null));
   }, []);
 
-  // Boot FALHOU = o device não respondeu: a UI não pode continuar exibindo
-  // "on" (LED mentiroso). Boot OK → re-lê o device: a recuperação pelo ⟳
-  // devolve a conexão ao estado real (idem após um disconnect mid-boot).
+  // Boot FALHOU = o device não respondeu; boot OK → re-lê o device. #161:
+  // no ERRO o info é RE-LIDO (não anulado): o gate precisa do motivo do
+  // backend (backend "none" → detail + Reconectar do #150).
   useEffect(() => {
-    if (boot.state.kind === "error") {
-      setInfo(null);
-      return;
-    }
-    if (boot.state.kind === "ready") {
+    if (boot.state.kind === "error" || boot.state.kind === "ready") {
       void deviceInfo()
         .then(setInfo)
         .catch(() => setInfo(null));
@@ -166,12 +163,11 @@ export default function App() {
     },
   });
 
-  // **(#150) `backend: "none"` NÃO é conectado** — o LED "on" seria a UI
-  // mentindo sobre quem está na USB.
-  const connected = info != null && info.backend !== "none";
-  // faixa de progresso só durante o boot (não ocupa layout permanente);
-  // stage pode vir de um beat pendente após o fim — congelar em 100%/fim
-  const stageNow = booting ? boot.stage : null;
+  // **(#150/#161) "on" só com boot validado** — `backend: "none"` não é
+  // conectado (LED mentiroso sobre quem está na USB), e durante o boot ou
+  // no erro o LED fica off até o gate liberar a casca.
+  const pronto = boot.state.kind === "ready";
+  const connected = pronto && info != null && info.backend !== "none";
 
   // página FLUIDA: navbar → conteúdo → rodapé num só fluxo; a rolagem é a
   // natural da JANELA (nada de scroll interno no meio da página). O
@@ -209,20 +205,20 @@ export default function App() {
           onNextPatch={() => stepPreset(1)}
         />
 
-        {/* boot/erros: faixas transitórias coladas no topo (sempre visíveis) */}
-        <BootBanners
-          progress={booting ? boot.progress : null}
-          stage={stageNow}
-          bootFailed={boot.state.kind === "error"}
-          offDetail={info?.backend === "none" ? info.detail : null}
-          err={err}
-          onReconnected={() => boot.startBoot("manual")}
-        />
+        {/* gate de boot (#161): fora do ready a página é navbar + gate;
+            pronto, a única faixa transitória é o erro do palco */}
+        {pronto ? (
+          err != null && <ErrorBanner message={err.message} onRetry={err.retry} />
+        ) : (
+          <BootGate boot={boot} info={info} />
+        )}
       </div>
 
       {/* MEIO da mesa: looper no topo, pushes, biblioteca (248px, com a
           LISTA rolável por dentro) à esquerda e palco à direita — o meio
-          nunca tem scroll próprio: quem rola é a página inteira */}
+          nunca tem scroll próprio: quem rola é a página inteira.
+          #161: só existe com o boot validado (a casca monta em `ready`). */}
+      {pronto && (
       <div className="shell-content">
         <LooperPanel
           settings={looper}
@@ -268,9 +264,11 @@ export default function App() {
           />
         </div>
       </div>
+      )}
 
       {/* rodapé da pedaleira: ENTRADA · GP · SAÍDA (o chassi fecha a página;
           ⚙ voltou para a navbar — o drawer do drum cobre o rodapé) */}
+      {pronto && (
       <footer className="page-footer" role="contentinfo">
         <span className="pg-jack" aria-hidden="true">{MSG.stageIn}</span>
         <span className="pg-mark" aria-hidden="true">
@@ -279,7 +277,9 @@ export default function App() {
         </span>
         <span className="pg-jack" aria-hidden="true">{MSG.stageOut}</span>
       </footer>
+      )}
 
+      {pronto && (<>
       <SettingsModal open={settingsOpen} general={general} onChangeGeneral={onChangeGeneral} onClose={() => setSettingsOpen(false)} />
       {tones.aberto && <SnapTonePanel tones={tones} podeGravar={escritaLiberada(info)} />}
       {irs.aberto && <IrLabPanel irs={irs} podeGravar={escritaLiberada(info)} />}
@@ -294,6 +294,7 @@ export default function App() {
         onChangeEffect={onChangeEffect}
         onClose={() => setEditing(null)}
       />
+      </>)}
     </main>
   );
 }

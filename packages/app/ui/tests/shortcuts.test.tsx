@@ -33,6 +33,18 @@ async function settle() {
     await Promise.resolve();
     await Promise.resolve();
   });
+  // #161: o boot simulado corre em lotes via setTimeout(0) — microtasks
+  // não bastam; espera o gate resolver (casca pronta OU alerta de erro).
+  const inicio = Date.now();
+  while (
+    document.querySelector(".shell-content") === null &&
+    document.querySelector('[role="alert"]') === null &&
+    Date.now() - inicio < 8_000
+  ) {
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 50));
+    });
+  }
 }
 
 /** dispara um keydown real no alvo (default: body — chega ao listener global) */

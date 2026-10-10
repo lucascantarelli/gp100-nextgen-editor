@@ -1,16 +1,23 @@
 /**
- * useBoot — dispara o `device_boot` e consome `device://progress`
- * (barra de progresso; boot nunca trava a UI).
+ * useBoot — dispara o `device_boot`, VALIDA o relatório (#161) e consome
+ * `device://progress` (barra de progresso; boot nunca trava a UI).
  *
  * Estado canônico: o boot vive num ScreenState próprio; o
  * progresso é um NUMBER % (throttle a ~30 fps por rAF) — 2297 beats por
  * boot não podem renderizar 2297 vezes (ui-ux-practices: feedback <100 ms
  * e zero jank).
+ *
+ * **Gate do relatório (#161):** `ready` só nasce de um relatório que
+ * passa em [`validaRelatorioBoot`] — inventário e nomes coerentes com o
+ * catálogo. Falhou → `error` nomeando QUAL leitura falhou (a casca não
+ * monta com dado incoerente). O detalhe técnico vai pro console; a UI
+ * recebe só texto amigável (contrato do e2e: nada de "debug:" no alert).
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { deviceBoot, onBootProgress } from "../ipc/device";
 import type { BootProgress, BootReport, ScreenState } from "../ipc/types";
 import { MSG } from "../i18n/messages";
+import { PRESET_COUNT } from "../i18n/facts";
 
 /** Etapa em PT-BR para exibição (textos do catálogo central de mensagens). */
 export const BOOT_STAGE_LABEL: Record<BootProgress["stage"], string> = {
@@ -21,6 +28,64 @@ export const BOOT_STAGE_LABEL: Record<BootProgress["stage"], string> = {
   names: MSG.bootStages.names,
   keepalive: MSG.bootStages.keepalive,
 };
+
+/**
+ * Qual leitura do boot falhou na validação (#161) — o erro NOMEIA a
+ * leitura, não culpa "o device" genérico: progresso do script, inventário
+ * de presets ou nomes. Discriminante tipado: a UI decide o texto por ele.
+ * (Sem `export` de propósito — o consumidor é o próprio módulo; o gate
+ * de deadcode cobra o export sem uso externo.)
+ */
+type BootLeituraInvalida =
+  | { leitura: "progresso" }
+  | { leitura: "inventario"; lido: number; esperado: number }
+  | { leitura: "nomes"; lido: number; esperado: number };
+
+/** Teto sanidade: o script do aparelho é ~2299 transações — acima disso o
+ *  número não é leitura, é lixo (e `NaN`/float/negativo caem aqui também). */
+const TRANSACOES_MAX = 10_000;
+
+/** Inventário esperado do catálogo atual: 99 de fábrica + 99 de usuário. */
+export const INVENTARIO_ESPERADO = PRESET_COUNT * 2;
+
+/**
+ * Validação PURA do relatório do boot (#161) — função pura testável com
+ * vetores (válida / inválida / vazia). O contrato:
+ *
+ *   1. `transactions` inteiro em [1, 10_000] — o boot rodou de fato;
+ *   2. `presets` === catálogo atual (198) — o scan leu o inventário INTEIRO;
+ *   3. `names` === `presets` — todo pp tem nome lido (o "198/198").
+ *
+ * Qualquer violação devolve a leitura culpada (`null` = passou). Os
+ * números medidos são do PRÓPRIO relatório — nada é esperado em silêncio.
+ */
+export function validaRelatorioBoot(
+  report: BootReport | null | undefined,
+): BootLeituraInvalida | null {
+  const inteiro = (n: unknown): n is number => typeof n === "number" && Number.isInteger(n);
+  const t = report?.transactions;
+  if (!inteiro(t) || t < 1 || t > TRANSACOES_MAX) return { leitura: "progresso" };
+  const presets = report?.presets;
+  if (!inteiro(presets) || presets !== INVENTARIO_ESPERADO) {
+    return {
+      leitura: "inventario",
+      lido: inteiro(presets) ? presets : 0,
+      esperado: INVENTARIO_ESPERADO,
+    };
+  }
+  const names = report?.names;
+  if (!inteiro(names) || names !== presets) {
+    return { leitura: "nomes", lido: inteiro(names) ? names : 0, esperado: presets };
+  }
+  return null;
+}
+
+/** Texto amigável do problema, nomeando a leitura (§8: nada de jargão). */
+export function mensagemBootInvalido(p: BootLeituraInvalida): string {
+  if (p.leitura === "progresso") return MSG.bootInvalidoProgresso;
+  if (p.leitura === "inventario") return MSG.bootInvalidoInventario(p.lido, p.esperado);
+  return MSG.bootInvalidoNomes(p.lido, p.esperado);
+}
 
 export function useBoot() {
   const [state, setState] = useState<ScreenState<BootReport>>({ kind: "idle" });
@@ -78,15 +143,31 @@ export function useBoot() {
     deviceBoot()
       .then((report) => {
         if (!alive.current) return; // promessa resolveu após o unmount
+        // #161: relatório fora do contrato vira ERRO nomeando a leitura —
+        // a casca só monta com o aparelho LIDO (inventário e nomes coerentes).
+        const problema = validaRelatorioBoot(report);
+        if (problema != null) {
+          console.error("boot: relatório fora do contrato", problema, report);
+          setProgress(null);
+          setState({
+            kind: "error",
+            message: mensagemBootInvalido(problema),
+            retry: startBoot,
+          });
+          return;
+        }
         setProgress(100);
         setState({ kind: "ready", data: report });
       })
       .catch((e: unknown) => {
         if (!alive.current) return; // idem (evita update em componente morto)
+        // O detalhe técnico ("debug: …", erro cru do invoke) vai pro CONSOLE
+        // — a UI só vê texto amigável (contrato do e2e: nunca "debug:" no alert).
+        console.error("boot falhou", e);
         setProgress(null);
         setState({
           kind: "error",
-          message: e instanceof Error ? e.message : String(e),
+          message: MSG.connBootError,
           retry: startBoot,
         });
       });

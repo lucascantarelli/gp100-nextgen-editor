@@ -25,9 +25,14 @@ import {
   localMockBoard,
   localMockLibrary,
 } from "./fallbackData";
+import { PRESET_COUNT } from "../i18n/facts";
 
 /** Total de transações do script de boot real (inventário default 0..198). */
 const BOOT_TOTAL = 2297;
+/** Inventário do catálogo atual: 99 de fábrica + 99 de usuário (o gate da
+ *  #161 valida o relatório do boot contra ESTA conta — mesma fonte do
+ *  `PRESET_COUNT` que os dicionários usam: os números só mudam num lugar). */
+const BOOT_INVENTARIO = PRESET_COUNT * 2;
 
 /**
  * Gancho de teste/e2e — `localStorage[gp100.debug.failDevice]`:
@@ -351,7 +356,7 @@ export async function deviceBoot(): Promise<BootReport> {
         return;
       }
       if (si < stages.length) setTimeout(tick, 0);
-      else resolve({ transactions: BOOT_TOTAL });
+      else resolve({ transactions: BOOT_TOTAL, presets: BOOT_INVENTARIO, names: BOOT_INVENTARIO });
     };
     tick();
   });

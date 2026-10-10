@@ -189,3 +189,22 @@ fn scan_preenche_cache_no_shape_do_fio_ponta_a_ponta() {
     }
     assert_eq!(ok, 198, "198/198 pelo caminho do boot");
 }
+
+/// **#161 — o relatório carrega o inventário e os nomes lidos.** O gate
+/// do front só monta a casca com o aparelho LIDO ("198/198" do catálogo
+/// atual); aqui se prova que os números chegam VERDADEIROS pelo mesmo
+/// caminho do fio (scan → cache → decode da pg0), não que são esperados —
+/// a interpretação ("coerente com o catálogo") é do gate.
+#[test]
+fn relatorio_carrega_inventario_e_nomes_do_scan() {
+    let mut mock = MockDevice::new().expect("mock");
+    mock.open().expect("open");
+    let mut session = Session::new(&mut mock);
+    let rel = session.boot().expect("boot completo");
+    assert_eq!(rel.presets, 198, "inventário lido pelo scan (0..198, #132)");
+    assert_eq!(
+        rel.names, 198,
+        "198/198: toda pg0 do cache decodifica com nome pelo caminho do boot"
+    );
+    assert!(rel.transactions >= 2295, "transações do script de boot");
+}

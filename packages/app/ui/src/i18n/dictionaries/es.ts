@@ -96,6 +96,14 @@ export const ES: DictPatch = {
     keepalive: "Keepalive",
   },
   connBootError: "Falló el arranque del device — revisa la conexión e inténtalo de nuevo.",
+  bootPanelMsg: "Leyendo el dispositivo…",
+  bootRetry: "Repetir el arranque",
+  bootInvalidoProgresso:
+    "El arranque no terminó de leer el dispositivo — inténtalo de nuevo.",
+  bootInvalidoInventario: (lido: number, esperado: number) =>
+    `La lectura de los presets quedó incompleta: ${lido} de ${esperado}.`,
+  bootInvalidoNomes: (lido: number, esperado: number) =>
+    `La lectura de los nombres de los presets quedó incompleta: ${lido} de ${esperado}.`,
   connOffTitle: "Device no conectado",
   connOffConnect: "Reconectar",
   connOffRetryAria: "Reconectar el device (reabre el puerto MIDI)",

@@ -131,6 +131,12 @@ impl From<BootProgress> for BootProgressDto {
 pub struct BootReportDto {
     /// Nº de transações de boot+scan executadas com sucesso.
     pub transactions: usize,
+    /// Pps com cache de páginas após o scan (o inventário lido — 198 no
+    /// catálogo atual).
+    pub presets: usize,
+    /// Pps com nome decodificado da pg0 (o "198/198" que o gate da #161
+    /// valida antes de montar a casca).
+    pub names: usize,
 }
 
 /// DTO de um slot da tabela de User IRs (`list_user_irs`).
@@ -260,6 +266,8 @@ pub fn device_boot(
     }
     Ok(BootReportDto {
         transactions: report.transactions,
+        presets: report.presets,
+        names: report.names,
     })
 }
 

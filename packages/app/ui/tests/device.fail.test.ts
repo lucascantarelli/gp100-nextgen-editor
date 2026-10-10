@@ -10,6 +10,7 @@
  *   - "boot-mid" — progresso até ~40% e então REJEITA (disconnect mid-boot).
  */
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { PRESET_COUNT } from "../src/i18n/facts";
 import {
   deviceBoard,
   deviceBoot,
@@ -91,6 +92,10 @@ describe("ipc/device — disconnect mid-boot (boot-mid)", () => {
 
   it("boot normal segue completo quando a chave é outro valor", async () => {
     localStorage.setItem(KEY, "board");
-    await expect(deviceBoot()).resolves.toEqual({ transactions: 2297 });
+    await expect(deviceBoot()).resolves.toEqual({
+      transactions: 2297,
+      presets: PRESET_COUNT * 2,
+      names: PRESET_COUNT * 2,
+    });
   });
 });

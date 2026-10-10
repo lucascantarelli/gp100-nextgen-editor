@@ -86,6 +86,15 @@ export const PT_BR = {
     keepalive: "Keepalive",
   },
   connBootError: "Falha no boot do device — verifique a conexão e tente novamente.",
+  /* ── gate de boot (#161): a casca só monta com o aparelho LIDO ── */
+  bootPanelMsg: "Lendo o aparelho…",
+  bootRetry: "Refazer o boot",
+  bootInvalidoProgresso:
+    "O boot não terminou de ler o aparelho — tente novamente.",
+  bootInvalidoInventario: (lido: number, esperado: number) =>
+    `A leitura dos presets ficou incompleta: ${lido} de ${esperado}.`,
+  bootInvalidoNomes: (lido: number, esperado: number) =>
+    `A leitura dos nomes dos presets ficou incompleta: ${lido} de ${esperado}.`,
   /* app sem aparelho (issue #150): o aviso é o motivo que o backend declarou
      (detail), e a ação é o device_conectar — nunca uma lista de fábrica */
   connOffTitle: "Aparelho não conectado",

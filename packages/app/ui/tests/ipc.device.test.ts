@@ -21,6 +21,7 @@ import {
   onDevicePush,
 } from "../src/ipc/device";
 import { FX_MODULES } from "../src/artifacts/fxData";
+import { PRESET_COUNT } from "../src/i18n/facts";
 
 const KEY = "gp100.debug.failDevice";
 
@@ -79,7 +80,11 @@ describe("ipc/device — boot em lotes (a main thread nunca congela)", () => {
     const setTimeoutSpy = vi.spyOn(window, "setTimeout");
     const report = await deviceBoot();
 
-    expect(report).toEqual({ transactions: 2297 });
+    expect(report).toEqual({
+      transactions: 2297,
+      presets: PRESET_COUNT * 2,
+      names: PRESET_COUNT * 2,
+    });
     expect(beats.length).toBe(2297);
     // done é incrementado ANTES do emit: o beat 1 já anuncia currentPp 1
     expect(beats[0]).toMatchObject({ stage: "tables", done: 1, total: 2297, currentPp: 1 });

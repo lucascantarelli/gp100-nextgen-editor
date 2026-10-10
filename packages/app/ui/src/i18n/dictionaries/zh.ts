@@ -96,6 +96,13 @@ export const ZH: DictPatch = {
     keepalive: "Keepalive",
   },
   connBootError: "设备启动失败 — 请检查连接后重试。",
+  bootPanelMsg: "正在读取设备…",
+  bootRetry: "重新启动",
+  bootInvalidoProgresso: "启动未完成读取设备 — 请重试。",
+  bootInvalidoInventario: (lido: number, esperado: number) =>
+    `预设列表读取不完整：${lido} / ${esperado}。`,
+  bootInvalidoNomes: (lido: number, esperado: number) =>
+    `预设名称读取不完整：${lido} / ${esperado}。`,
   connOffTitle: "设备未连接",
   connOffConnect: "重新连接",
   connOffRetryAria: "重新连接设备（重新打开 MIDI 端口）",

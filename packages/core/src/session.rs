@@ -73,12 +73,21 @@ pub struct BootProgress {
 pub type BootProgressFn<'a> = dyn FnMut(BootProgress) + 'a;
 
 /// Relatório do boot+scan (§13.10): nasce MÍNIMO (deriva das vars que os
-/// templates extraem) e cresce só quando a UI pedir (ADR-6, YAGNI).
+/// templates extraem) e cresce só quando a UI pedir (ADR-6, YAGNI) — a
+/// #161 (gate de boot) pediu o inventário, para o front montar a casca
+/// só com o aparelho LIDO.
 #[derive(Debug, Clone)]
 pub struct BootReport {
     /// Nº de transações de boot+scan executadas com sucesso (replay da
     /// sequência capturada: 2299 OUT na S1).
     pub transactions: usize,
+    /// Pps com cache de páginas após o scan — o inventário lido (198 no
+    /// catálogo atual: 99 de fábrica + 99 de usuário).
+    pub presets: usize,
+    /// Pps do cache cuja pg0 decodifica com nome válido (#155) — o "198/198"
+    /// que o gate da #161 valida: nomes menos que presets = leitura pela
+    /// metade.
+    pub names: usize,
 }
 
 /// Página de estado (família 13xx): o payload cru como veio no fio, mais
@@ -649,7 +658,24 @@ impl<T: DeviceTransport> Session<T> {
                 beat!();
             }
         }
-        Ok(BootReport { transactions: tx })
+        // #161 — medição honesta do que saiu do fio: o inventário que o
+        // scan deixou no cache e quantos nomes a pg0 deles decodifica.
+        // Só conta; quem interpreta ("198/198 do catálogo") é o gate do
+        // front — aqui o relatório não mente nem inventa.
+        let presets = self.pages.len();
+        let mut names = 0usize;
+        for pags in self.pages.values() {
+            if let Ok(pg) = crate::preset_pages::decode(pags) {
+                if pg.nome().is_ok() {
+                    names += 1;
+                }
+            }
+        }
+        Ok(BootReport {
+            transactions: tx,
+            presets,
+            names,
+        })
     }
 
     /// O pp corrente (atualizado por [`Session::select_preset`] e pelo
