@@ -59,6 +59,7 @@ mesa, a fonte da verdade muda para o aparelho, e o repo precisa refletir isso po
 | [#163](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/163) | Dados canônicos fora das análises; dissolver `analysis/` com proveniência | F2 | — | `core-dev` |
 | [#164](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/164) | Sincronização bilateral em tempo real (device ↔ app) com trava anti-brick | F2 | #162, #163 | `core-dev` |
 | [#165](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/165) | Política de device: **real por default no dev**; `--mock-device` só em teste; limitação documentada | F1 | — | `core-dev` |
+| [#172](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/172) | Gate de campo H5: roteiro assinado (boot, modelo tipado, sync) — [`docs/H5_CHECKLIST.md`](H5_CHECKLIST.md) | Campo | #161, #162, #164, #165 | `core-dev` |
 | [#166](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/166) | Suíte de testes enxuta: triagem arquivo a arquivo, corte fundamentado, doc de testes | F3 | #163, #165 | `rust-practices` |
 | [#167](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/167) | Documentação oficial: `docs/` categorizada, `files/` triado, `SECURITY.md`, `.vscode` | F4 | #163, #168 | `docs-sync` |
 | [#168](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/168) | Dissolver `scripts/`: migrar o vivo, arquivar o RE, decidir onde os gates moram | F4 | — | `github-flow` |
