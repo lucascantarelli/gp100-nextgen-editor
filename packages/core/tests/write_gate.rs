@@ -462,6 +462,57 @@ fn boot_nao_tenta_escrita_mutante() {
     );
 }
 
+/// **#161 — anti-brick em inventário VARIANTE: o script não muda.**
+///
+/// O teste de cima prova o caminho 198/198 (catálogo). Este endurece o
+/// mesmo transporte punidor com um device SAUDÁVEL mas com um slot sem
+/// nome gravado (`with_slot_sem_nome`) — frota real varia, e é o cenário
+/// em que o relatório sai `198/197`. O que se prova aqui: o conteudo do
+/// inventário NENHUMA parte do boot reage com escrita — o scan continua
+/// só lendo, o keepalive continua sendo o ÚNICO write, e o relatório
+/// entrega a medição honesta que o gate do front vai barrar. Um boot que
+/// "consertasse" o slot (gravando o nome que faltou) quebraria este
+/// teste com uma violação registrada — quebraria EM CAMPO, não em revisão.
+#[test]
+fn boot_com_inventario_variante_nao_tenta_escrita_mutante() {
+    let mut mock = MockDevice::new().expect("mock");
+    mock.open().expect("open");
+    // 0x0042: um pp no MEIO do inventário 0..198 — o gate tem de barra-lo
+    // pela contagem, não por acaso de borda.
+    let mock = mock.with_slot_sem_nome(0x0042);
+    let mut dev = PuneMutacao {
+        inner: mock,
+        violacoes: Vec::new(),
+        keepalives: 0,
+    };
+    let mut s = Session::new(&mut dev);
+    let rel = s
+        .boot()
+        .expect("boot completa mesmo com slot sem nome: leitura não depende de nome gravado");
+
+    assert!(
+        dev.violacoes.is_empty(),
+        "o boot tentou escrita mutante num device variante: {:?}",
+        dev.violacoes
+    );
+    assert_eq!(
+        dev.keepalives, 2,
+        "o keepalive ×2 segue o ÚNICO write — o inventário variante não muda o script"
+    );
+    assert_eq!(
+        rel.transactions, 2297,
+        "mesmo total: variante de conteúdo não muda a FORMA do boot"
+    );
+    assert_eq!(
+        rel.presets, 198,
+        "inventário LIDO por inteiro (198 slots) — o slot sem nome existe"
+    );
+    assert_eq!(
+        rel.names, 197,
+        "197/198 medido: o slot sem nome não decodifica nome — honesto, sem inventar"
+    );
+}
+
 // ══════════════════════════════════════ a constante WRITE_VERIFIED
 
 /// A `WireKind` é o que o ADR-5 consome, e ela é pública na trait — se

@@ -202,6 +202,9 @@ pub struct MockDevice {
     /// Mensagens que SAÍRAM da fila (entregues ou perdidas) — base do
     /// `drop_every`: a n-ésima saída é a que o fio leva.
     popped: u32,
+    /// Pps com o slot PRESENTE mas SEM nome escrito (variante de frota,
+    /// #161). Ver [`MockDevice::with_slot_sem_nome`].
+    slots_sem_nome: Vec<u16>,
 }
 
 impl MockDevice {
@@ -221,6 +224,7 @@ impl MockDevice {
             jitter: JITTER_SEED,
             transient: 0,
             popped: 0,
+            slots_sem_nome: Vec::new(),
         })
     }
 
@@ -231,6 +235,23 @@ impl MockDevice {
     #[must_use]
     pub fn with_fault(mut self, fault: MockFault) -> Self {
         self.fault = Some(fault);
+        self
+    }
+
+    /// Variante de INVENTÁRIO (#161): o pp `pedido` tem o slot no
+    /// inventário, mas a pg0 vem com o CORPO ZERADO — o device não gravou
+    /// nome naquele slot (frota real varia; não é falha de transporte, é
+    /// um aparelho saudável com um slot vazio).
+    ///
+    /// O shape continua EXATO (mesmo template, mesmos tamanhos — o
+    /// `decode` aceita nibbles zero); só o conteúdo do nome some, e
+    /// `Paginas::nome` recusa "nome vazio". O `BootReport` do scan sai
+    /// `198 presets / 197 nomes` — é o cenário em que o gate da #161 tem
+    /// de barra a casca NOMEANDO a leitura `nomes`, em vez de aceitar
+    /// "198/198" que o aparelho não deu.
+    #[must_use]
+    pub fn with_slot_sem_nome(mut self, pp: u16) -> Self {
+        self.slots_sem_nome.push(pp);
         self
     }
 
@@ -680,6 +701,15 @@ impl MockDevice {
                             } else {
                                 [0x13, 0x01, 0x00, 0x03]
                             };
+                            // Variante #161: banco 01 (o scan que enche o
+                            // cache `self.pages`) com o pp pedido na lista
+                            // de slots sem nome → corpo da pg0 zerado. A
+                            // sonda 02 não vai ao cache, fica de fora.
+                            let sem_nome = addr[1] == 0x01
+                                && self
+                                    .slots_sem_nome
+                                    .iter()
+                                    .any(|&pp| echo_pp == pp.to_be_bytes());
                             let tpl_page = golden
                                 .templates()
                                 .iter()
@@ -697,6 +727,12 @@ impl MockDevice {
                                     echo_pp.clone()
                                 } else if i == 1 && count == 1 {
                                     vec![0] // PG 0 da abertura
+                                } else if sem_nome {
+                                    // Slot sem nome (#161): o corpo vem
+                                    // zerado — mesmos bytes de shape, zero
+                                    // de conteúdo. `decode` aceita, `nome`
+                                    // recusa "nome vazio".
+                                    vec![0; count]
                                 } else {
                                     // O exemplo congelado do golden É o
                                     // conteúdo real — é o mesmo caminho dos

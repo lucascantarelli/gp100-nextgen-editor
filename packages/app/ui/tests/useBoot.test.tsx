@@ -195,6 +195,37 @@ describe("useBoot — máquina de estados do boot", () => {
     spy.mockRestore();
   });
 
+  it("relatório VARIANTE do scan (#161): 198/197 → error NOMEANDO nomes; retry recupera", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    // Os números que o fio EMITE com um device saudável que tem um slot
+    // sem nome (prova rust: boot_mock::relatorio_mede_197_de_198 e o
+    // actor::boot_via_actor_entrega_relatorio_honesto — o DTO que o
+    // commands.rs devolve carrega exatamente isto). O gate não pode
+    // montar a casca sobre um aparelho pela metade, e o erro tem de
+    // NOMEAR a leitura errada (nomes, não inventário).
+    const variante = { transactions: 2297, presets: INVENTARIO_ESPERADO, names: 197 };
+    mocks.deviceBoot.mockResolvedValueOnce(variante).mockResolvedValueOnce(relatorioValido());
+
+    mountProbe();
+    await flush();
+    expect(captured!.state).toMatchObject({ kind: "error" });
+    const st = captured!.state;
+    if (st.kind !== "error") throw new Error("esperado estado error");
+    // O erro NOMEIA a leitura (nomes) com os números medidos no fio.
+    expect(st.message).toBe(MSG.bootInvalidoNomes(197, INVENTARIO_ESPERADO));
+    expect(spy).toHaveBeenCalledWith(
+      "boot: relatório fora do contrato",
+      { leitura: "nomes", lido: 197, esperado: INVENTARIO_ESPERADO },
+      variante,
+    );
+
+    act(() => st.retry());
+    await flush();
+    expect(mocks.deviceBoot).toHaveBeenCalledTimes(2);
+    expect(captured!.state).toMatchObject({ kind: "ready" });
+    spy.mockRestore();
+  });
+
   it("reset(): volta a idle e zera progresso/estágio", async () => {
     mountProbe();
     await flush();
