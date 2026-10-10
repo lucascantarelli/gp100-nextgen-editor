@@ -2,13 +2,24 @@
 
 > Mapa geral da documentação (o que consultar para cada assunto): **`docs/INDEX.md`**.
 
-Projeto: substituto do Valeton Suite para a pedaleira GP-100, por engenharia reversa
-(local, sem depender de hardware para ~95% do trabalho). Resposta ao usuário SEMPRE em PT-BR.
+Projeto: substituto do Valeton Suite para a pedaleira GP-100, **comandado pelo aparelho**.
+A partir de 09/10/2026 vale a **Era Hardware** (`docs/ROADMAP.md` · épico #171): o dado vem do
+GP-100, o que era análise vira dado canônico/histórico e a engenharia reversa deixa de ser
+fonte. Resposta ao usuário SEMPRE em PT-BR.
 
 ## Estado vivo (atualizar aqui a cada marco)
 
 > ⚠️ Os **contadores** (testes, cobertura) vivem em `docs/INDEX.md` §6 — não repita
 > o número aqui, aponte. Motivo: números repetidos em N docs divergem (achado #81).
+
+- 09/10 — **ERA HARDWARE ABERTA (épico #171, milestone v1.1.0)**: o roadmap foi reescrito
+  (`docs/ROADMAP.md`) e o antigo arquivado em `docs/arquivo/ROADMAP_era-RE_2026-09.md`; as 4
+  issues abertas foram avaliadas e fechadas (#159 absorvida; #117/#118 candidatas pós-núcleo;
+  #116 entregue no PR #129, medição de campo volta com o sync) e nasceram 10 issues com prompt
+  de agente pronto: boot gate (#161), FactoryPatch/UserPatch (#162), dados canônicos fora do
+  `analysis/` (#163), sync bilateral (#164), real-por-default no dev (#165), suíte enxuta
+  (#166), docs oficial (#167), scripts dissolvidos (#168), CI na ordem do dono (#169) e harness
+  do agente (#170). `.gitignore` ganhou `packages/test-results/` e `packages/app/api/*.jsonl`.
 
 - 03/10 — **AUDITORIA COMPLETA DE QUALIDADE (índice em #83, achados em #71–#82)**:
   passes com os **gates rodados local** (tsc/eslint/vitest+coverage 178 · cargo
