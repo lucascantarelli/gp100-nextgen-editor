@@ -71,7 +71,7 @@ const EXIT_PROTOCOL_ERROR: i32 = 3;
 
 /// Uso documentado (impresso por `--help` e por erro de uso).
 const USAGE: &str = "\
-gp100-cli — operação do GP-100 NextGen Editor (mock por default)
+gp100-cli — operação do GP-100 NextGen Editor (transporte MOCK por default)
 
 USO: gp100-cli [opções] <subcomando> [args]
 
@@ -90,12 +90,15 @@ OPÇÕES
   --real                      modo hardware (requer --i-know-what-im-doing
                               E o build com --features real-device)
   --i-know-what-im-doing      dupla confirmação do --real (não contorna o gate)
+  --mock-device               SELO do transporte mock (teste/offline; exclui --real)
   --help                      esta mensagem
 
 POLÍTICA DE HARDWARE (VISION §7)
   DUAS camadas: (1) --real exige --i-know-what-im-doing; (2) o build precisa
-  da feature `real-device` (default OFF). No build de campo, H1 = leitura
-  real (roteiro do docs/H1_CHECKLIST.md; NENHUMA escrita).
+  da feature `real-device` (default OFF NESTE crate; no APP ela é default ON
+  desde a #165 — o CLI é ferramenta de campo e segue explícito). No build de
+  campo, H1 = leitura real (roteiro do docs/H1_CHECKLIST.md; NENHUMA escrita).
+  O harness de teste DECLARA o mock com --mock-device (conflita com --real).
 
   ESCRITA REAL = gate H2, e ela é uma TERCEIRA camada, no TRANSPORTE
   (ADR-5): um frame mutante num device real só passa num binário compilado
@@ -155,6 +158,11 @@ struct Args {
     /// `--real` JÁ VALIDADO: exige `--i-know-what-im-doing` e um build com
     /// a feature `real-device` (recusas feitas no parser — política).
     real: bool,
+    /// `--mock-device`: SELO do transporte mock (teste/offline). É o caminho
+    /// default do CLI — a flag existe para o harness DECLARAR a intenção e
+    /// para impedir `--real` acidental num script (exclusão verificada no
+    /// parser). Não muda o comportamento do mock.
+    mock_device: bool,
 }
 
 /// Erro de parse (impresso com usage).
@@ -171,6 +179,7 @@ fn parse_args<I: Iterator<Item = String>>(args: I) -> Result<Args, UsageError> {
     let mut log: Option<PathBuf> = None;
     let mut real = false;
     let mut acknowledge = false;
+    let mut mock_device = false;
     let mut positional: Vec<String> = Vec::new();
     let mut it = args.into_iter().peekable();
     while let Some(a) = it.next() {
@@ -188,6 +197,7 @@ fn parse_args<I: Iterator<Item = String>>(args: I) -> Result<Args, UsageError> {
             }
             "--real" => real = true,
             "--i-know-what-im-doing" => acknowledge = true,
+            "--mock-device" => mock_device = true,
             _ => positional.push(a),
         }
     }
@@ -202,6 +212,13 @@ fn parse_args<I: Iterator<Item = String>>(args: I) -> Result<Args, UsageError> {
         return Err(UsageError(
             "modo --real exige também --i-know-what-im-doing (dupla confirmação; \
              política de hardware VISION §7)"
+                .into(),
+        ));
+    }
+    if real && mock_device {
+        return Err(UsageError(
+            "--real e --mock-device são exclusivos: um abre o APARELHO, o outro \
+             sela o MOCK (teste/offline)"
                 .into(),
         ));
     }
@@ -291,6 +308,7 @@ fn parse_args<I: Iterator<Item = String>>(args: I) -> Result<Args, UsageError> {
         dry_run,
         log,
         real,
+        mock_device,
     })
 }
 
@@ -357,8 +375,10 @@ fn main() {
         }
     };
 
-    // Passo 2 — transporte: MOCK por default (ADR-4/ADR-5) ou REAL com a
-    // feature + dupla confirmação (validadas no parser). Dispatch por trait
+    // Passo 2 — transporte: MOCK por default do CLI (motor de TESTE/offline;
+    // `--mock-device` sela essa escolha) ou REAL com a feature + dupla
+    // confirmação (validadas no parser). No APP o default é o aparelho
+    // (#165); aqui a ferramenta de campo segue explícita. Dispatch por trait
     // object (a Session continua dona única do stream, D8). O snapshot de
     // estado só existe no mock (o device real não tem estado local).
     #[cfg_attr(not(feature = "real-device"), allow(unused_mut))]
@@ -389,6 +409,9 @@ fn main() {
             unreachable!("--real sem feature é recusado no parser")
         }
     } else {
+        if args.mock_device {
+            eprintln!("[i] --mock-device: transporte MOCK declarado (teste/offline)");
+        }
         let mut mock = match MockDevice::new() {
             Ok(m) => m,
             Err(e) => {
@@ -788,6 +811,7 @@ mod tests {
             dry_run: false,
             log: None,
             real: false,
+            mock_device: false,
         }
     }
 
@@ -856,6 +880,7 @@ mod tests {
             dry_run: true,
             log: None,
             real: false,
+            mock_device: false,
         };
         assert_eq!(
             run_set_param(&mut s, 3, 0x0700_006e, 0, 99.5, &dry),
@@ -891,6 +916,7 @@ mod tests {
             dry_run: true,
             log: None,
             real: false,
+            mock_device: false,
         };
         let (t, (writes, _ultimos)) = Contador::new();
         let mut s = Session::new(t);
@@ -933,6 +959,28 @@ mod tests {
             parsed.is_ok(),
             "feature on: parser aceita (abertura é runtime)"
         );
+    }
+
+    /// `--mock-device` é o SELO do mock de teste (#165): passa no parser e
+    /// deixa `real` desligado — o harness declara a intenção sem depender do
+    /// default do crate.
+    #[test]
+    fn mock_device_sela_o_transporte() {
+        let parsed = parse_args(args(&["info", "--mock-device"]).into_iter()).expect("parse ok");
+        assert!(parsed.mock_device);
+        assert!(!parsed.real);
+    }
+
+    /// `--real` e `--mock-device` juntos são uso inválido: um abre o aparelho,
+    /// o outro sela o mock — aceitar os dois faria o script mentir sobre o
+    /// transporte. A recusa é do parser (exit 2), nunca do runtime.
+    #[test]
+    fn real_com_mock_device_e_recusado() {
+        let err = parse_args(
+            args(&["--real", "--i-know-what-im-doing", "--mock-device", "info"]).into_iter(),
+        )
+        .unwrap_err();
+        assert!(err.0.contains("exclusivos"), "mensagem: {}", err.0);
     }
 
     /// O parser ACEITA escrita sem --dry-run (o bloqueio é no `run`, com a
@@ -1001,6 +1049,7 @@ mod tests {
             "--log",
             "--real",
             "--i-know-what-im-doing",
+            "--mock-device",
             "info",
             "list-user-irs",
             "dump-preset",

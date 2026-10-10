@@ -139,6 +139,25 @@ Só a área que você tocou — o CI filtra o resto por caminhos.
 
 ---
 
+## 4a. Dev local — o APARELHO é o default (#165, Era Hardware)
+
+```bash
+# Janela nativa = default: fala com o GP-100 na USB (feature real-device é default)
+cd packages/app/api && tauri dev          # requer MSVC no host (ADR-7)
+# App SEM transporte nenhum (estado Desligado por compilação):
+cargo check -p gp100-ui --no-default-features
+# UI-only, sem aparelho — no NAVEGADOR não existe IPC do Tauri (limite por construção):
+pnpm --dir packages/app/ui dev            # o badge "Mock Device" declara o fallback
+# Testes (mock explícito):
+cargo test --workspace                    # MockDevice direto no harness
+cargo run -p gp100-cli -- info --mock-device   # selo de mock no CLI
+```
+
+A **escrita segue atrás de `write-verified`** (ADR-5): a inversão do default não
+destrava escrita. O **CLI não inverteu** (ferramenta de campo): `--real` segue
+exigindo `--i-know-what-im-doing` + build `real-device`, e `--mock-device` é o
+selo de teste que conflita com `--real`.
+
 ## 4b. Binários de campo (H1 leitura / H2 escrita)
 
 O CLI de campo tem **duas camadas**, e elas não são interchangeáveis:

@@ -7,7 +7,10 @@
 > **Resposta curta:** **não.** Toda a lógica de protocolo está implementada e
 > **validada contra o aparelho real** (gates H1/H2 em campo), e a **ligação já
 > existe** (05/10, `d4ad1e8`/`827cbe8`): o `abrir_backend()` escolhe `RealDevice` ou
-> mock conforme a feature de compilação. O que falta é do outro lado do mesmo
+> o estado `Desligado` conforme a feature de compilação — **e desde 09/10/2026
+> (#165) o default do app é o APARELHO** (`real-device` default ON: `tauri dev`
+> e `tauri build` abrem o GP-100 sem flag; `--no-default-features` gera o app
+> sem transporte). O que falta é do outro lado do mesmo
 > par: **o build distribuído já sai com a feature** (#126, 06/10: `dist-ui`
 > chama `tauri build --features real-device`, face de LEITURA — a escrita segue
 > travada pela ADR-5 e o motivo fica na tela) e **nenhuma sessão de campo saiu do
@@ -45,12 +48,21 @@ fn abrir_backend() -> Result<abrir_backend::Escolha, Box<dyn std::error::Error>>
                     actor::Backend::Real,
                 ),
             }),
-            Err(e) => { eprintln!("[device] aparelho nao abriu ({e}); caindo no MOCK"); }
+            Err(e) => { eprintln!("[device] aparelho nao abriu ({e}); o app sobe DESLIGADO"); }
         }
     }
     // …ramo do mock, com o MESMO corpo nos dois `cfg` — ver `como_app_device`
 }
 ```
+
+**Default invertido (#165, 09/10 — Era Hardware).** O crate do app passou a ter
+`default = ["real-device"]`: o shell nativo de dev (`tauri dev`) e o build falam
+com o aparelho sem flag nenhuma; `--no-default-features` é o único caminho para
+um app sem transporte (estado `Desligado`, motivo próprio). **Limitação real do
+dev local:** no *navegador* não existe IPC do Tauri — `pnpm dev` é UI-only e o
+fallback do front é DECLARADO pelo badge `Mock Device`; o dev com aparelho é a
+janela nativa (MSVC no host, ADR-7). O CLI seguiu explícito e ganhou
+`--mock-device` (#165) para o harness selar o mock.
 
 - **`AppDevice`** é um alias `cfg`: sem a feature é o próprio `MockDevice`; com
   ela, `Box<dyn DeviceBackend + Send>`. A coerção é a função `como_app_device()`

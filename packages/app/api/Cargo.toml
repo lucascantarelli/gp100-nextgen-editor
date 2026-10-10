@@ -33,15 +33,19 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
 [features]
-# Espelha a feature do core (RealDevice): default OFF — a UI de desenvolvimento
-# fala com o MOCK (ADR-4/ADR-5); o backend real é build de campo pós-H1.
+# **O aparelho é o default (Era Hardware, 09/10/2026 — issue #165).** O shell
+# nativo de dev (`tauri dev`) e o build saem com o RealDevice LIGADO: o dado
+# vem do GP-100, não de mock. Para um shell SEM transporte algum (backend
+# `Desligado` por compilação), use `--no-default-features`. O mock de UI é o
+# fallback do navegador (declarado, só fora do webview) e os testes usam o
+# `MockDevice` direto no harness.
+default = ["real-device"]
 # custom-protocol: ligada pelo `tauri build` (assets de produção em file://).
 custom-protocol = ["tauri/custom-protocol"]
 real-device = ["gp100-core/real-device"]
 # Espelha a do core: habilita a ESCRITA num device real (ADR-5). Fica separada
-# da `real-device` de propósito — a decisão do owner em 05/10/2026 foi
-# "leitura primeiro": o build de campo da sessão inicial é `real-device` SEM
-# esta, e qualquer escrita é recusada antes do driver.
+# da `real-device` de propósito — a inversão de default do app (#165) NÃO
+# abre escrita: sem esta feature, qualquer escrita é recusada antes do driver.
 write-verified = ["gp100-core/write-verified"]
 
 [lints.rust]

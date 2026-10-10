@@ -100,9 +100,13 @@ pub trait DeviceTransport {
 **Consequências.**
 - A trait trafega **bytes crus**: framing do SysEx (header/F7/trim), nibble e
   semântica moram no codec (M0.4), nunca no transporte.
-- Implementadores previstos: `MockDevice` (M0.5, default — responde conforme o
-  golden) e `RealDevice` (midir/WinMM/ALSA) **atrás da feature `real-device`**,
-  desabilitada por default (política de hardware, VISION §7).
+- Implementadores: `MockDevice` (M0.5 — transporte de TESTE: core, CLI e
+  harness, responde conforme o golden) e `RealDevice` (midir/WinMM/ALSA)
+  **atrás da feature `real-device`**. No **core/CLI** ela segue default OFF
+  (política de hardware, VISION §7). No **app** (`gp100-ui`) é **default ON
+  desde 09/10/2026 (#165, Era Hardware)**: `tauri dev`/`tauri build` abrem o
+  aparelho sem flag; `--no-default-features` gera o app sem transporte algum
+  (backend `Desligado`).
 - `Session` (M0.6) é genérica sobre `DeviceTransport` — replay das fixtures não
   conhece hardware.
 
@@ -112,8 +116,10 @@ pub trait DeviceTransport {
 
 **Status:** Accepted · **Pré-assinada:** 28/09 (owner) · **rev. 04/10** (feature
 `write-verified` + `WireKind` declarado pela `Session`) · **rev. 06/10** (keepalive
-do boot omitido com a trava fechada; select = `Read`) · **Afeta:** M0.5, Gate H
-(H2)
+do boot omitido com a trava fechada; select = `Read`) · **rev. 09/10/2026**
+(#165: o default do APP vira o aparelho — a trava de escrita NÃO muda:
+`write-verified` continua feature separada, default OFF; o CLI segue mock por
+default, com `--mock-device` explícito de teste) · **Afeta:** M0.5, Gate H (H2)
 
 **Decisão.** Escrita no device **real** é guardada por `WRITE_VERIFIED` — que
 virou, na revisão de 04/10 (H2), uma **feature de compilação** `write-verified`
@@ -694,6 +700,13 @@ e essa resposta, e não este ADR, decide o futuro do crate.
 > contexto, `set_inventory` saiu da lista — o aparelho já nasce com o
 > inventário da captura por default. Continua vermelho só o `0x47` (falta
 > de protocolo).
+
+> **Atualização 09/10/2026 (#165, Era Hardware):** exceção registrada — o CLI
+> ganha `--mock-device`, um **selo explícito do transporte mock** para
+> harness/teste (e antídoto contra `--real` acidental num script). Não é
+> capacidade nova: o default do CLI segue mock, a flag conflita com `--real` e
+> nada muda o comportamento do mock. O app inverteu o default (aparelho ligado
+> por padrão); o CLI **não** inverteu — congelamento preservado.
 
 ---
 

@@ -20,6 +20,10 @@ fonte. Resposta ao usuário SEMPRE em PT-BR.
   `analysis/` (#163), sync bilateral (#164), real-por-default no dev (#165), suíte enxuta
   (#166), docs oficial (#167), scripts dissolvidos (#168), CI na ordem do dono (#169) e harness
   do agente (#170). `.gitignore` ganhou `packages/test-results/` e `packages/app/api/*.jsonl`.
+- 09/10 — **#165 em execução (branch `feature/165-device-real-default`)**: o app sobe
+  com o APARELHO por default (`tauri dev`; `--no-default-features` = sem transporte), o CLI
+  ganha `--mock-device` (selo de teste) e o navegador fica declarado UI-only (badge Mock
+  Device). Escrita segue atrás de `write-verified` (ADR-5).
 
 - 03/10 — **AUDITORIA COMPLETA DE QUALIDADE (índice em #83, achados em #71–#82)**:
   passes com os **gates rodados local** (tsc/eslint/vitest+coverage 178 · cargo
