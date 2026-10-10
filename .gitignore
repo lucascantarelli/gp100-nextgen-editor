@@ -74,6 +74,12 @@ packages/app/ui/coverage/
 # quem rodar a suíte de fora — #144 (F-08).
 packages/app/ui/test-results/
 packages/app/ui/playwright-report/
+# Saídas de teste fora do pacote do front (nasceram do rodar de fora; #159).
+packages/test-results/
+# Log de fio do app de campo (transaction log local; o evidência versionada é
+# analysis/h2/ e docs/H2_REPORT.md — o log de UMA execução não é artefato).
+packages/app/api/*.jsonl
+packages/app/api/wire-*.jsonl
 *.tsbuildinfo
 # Spec/plano de execucao de issue (#155): registro LOCAL, nao artefato publico.
 docs/superpowers/

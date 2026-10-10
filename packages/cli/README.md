@@ -16,10 +16,16 @@ Binário de operação/demonstração sobre o [gp100-core](../core). Fala com o
 `--real` (USB-MIDI real via midir/WinMM/ALSA) exige build com a feature
 `real-device` **e** dupla confirmação — política de hardware da VISION §7.
 
+> **#165 (09/10/2026):** o **app** inverteu o default — `tauri dev`/`tauri build`
+> abrem o aparelho sem flag. O CLI **não** inverteu: é ferramenta de campo e
+> segue explícito. Para o harness de TESTE declarar o mock (e impedir `--real`
+> acidental num script), use o selo **`--mock-device`**.
+
 ## Uso
 
 ```bash
 cargo run -p gp100-cli -- info                        # estado do mock
+cargo run -p gp100-cli -- info --mock-device          # selo explícito de mock (teste)
 cargo run -p gp100-cli -- list-user-irs               # tabela dos 20 slots
 cargo run -p gp100-cli -- dump-preset 0x0007          # select + 9 páginas (hex)
 cargo run -p gp100-cli -- set-param 3 0x0700006e 0 15.0 --dry-run

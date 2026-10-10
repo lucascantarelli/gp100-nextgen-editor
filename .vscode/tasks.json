@@ -4,7 +4,7 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "app/ui: dev server (vite — UI no browser)",
+      "label": "app/ui: dev server (vite — UI-only, sem aparelho)",
       "type": "shell",
       "command": "pnpm",
       "args": ["dev"],
@@ -12,7 +12,7 @@
       "isBackground": true,
       "problemMatcher": [],
       "presentation": { "reveal": "always", "panel": "dedicated" },
-      "detail": "http://localhost:5173 — fallback mock: a UI roda SEM o shell Tauri (ipc/local). Melhor caminho para ver o visual da interface."
+      "detail": "http://localhost:5173 — UI-ONLY: no navegador não há IPC do Tauri (o aparelho é inalcançável por construção). O front usa o fallback de DEV/TESTE e o badge 'Mock Device' declara isso. Para o aparelho, use a task tauri: dev (#165)."
     },
     {
       "label": "app/ui: build (tsc + vite)",
@@ -73,7 +73,19 @@
       "detail": "Requer VS Build Tools (MSVC) no host — sem eles, use a CI/preview browser."
     },
     {
-      "label": "tauri: dev (shell nativo + hot reload)",
+      "label": "rust: gp100-ui — check SEM transporte (--no-default-features)",
+      "type": "shell",
+      "command": "cargo",
+      "args": ["check", "-p", "gp100-ui", "--no-default-features", "--all-targets"],
+      "options": {
+        "cwd": "${workspaceFolder}/packages/app/api",
+        "env": { "RUSTUP_TOOLCHAIN": "stable-x86_64-pc-windows-msvc" }
+      },
+      "problemMatcher": ["$rustc"],
+      "detail": "O app sem transporte nenhum (backend Desligado por compilação) — caminho de teste do default invertido (#165)."
+    },
+    {
+      "label": "tauri: dev — aparelho (default)",
       "type": "shell",
       "command": "${workspaceFolder}/packages/app/ui/node_modules/.bin/tauri.cmd",
       "args": ["dev"],
@@ -84,7 +96,7 @@
       "isBackground": true,
       "problemMatcher": [],
       "presentation": { "reveal": "always", "panel": "dedicated" },
-      "detail": "Sobe a janela desktop real (WebView2). Requer MSVC no host (ADR-7) — instala VS Build Tools; sem isso use a task vite + browser."
+      "detail": "DEFAULT (#165): janela nativa com o RealDevice ligado (feature default do crate). Requer MSVC no host (ADR-7) e o GP-100 na USB para o device_info responder real."
     },
     {
       "label": "cli: build de campo (real-device)",
@@ -93,7 +105,7 @@
       "args": ["build", "--release", "-p", "gp100-cli", "--features", "real-device"],
       "options": { "cwd": "${workspaceFolder}" },
       "problemMatcher": ["$rustc"],
-      "detail": "Binário de campo gnu: target/release/gp100-cli.exe (--real --i-know-what-im-doing)"
+      "detail": "Binário de campo gnu: target/release/gp100-cli.exe (--real --i-know-what-im-doing; mock de teste: --mock-device)"
     }
   ]
 }

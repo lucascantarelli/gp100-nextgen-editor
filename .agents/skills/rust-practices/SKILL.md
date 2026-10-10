@@ -93,8 +93,9 @@ Armadilhas mordidas — não reabrir:
 - Magic number de protocolo NUNCA inline: vira `const` documentada ou entra no
   golden (R1). Dados de protocolo vêm de `docs/protocol_golden.json`; replay
   usa `analysis/fixtures/` (P4) — nunca hardcode de captura.
-- Feature `real-device` default OFF; nada de I/O de device fora do módulo
-  `transport` (ADR-4). Mock é o caminho default de tudo.
+- Feature `real-device`: default **ON no app** (`gp100-ui`, #165 — `tauri dev`
+  fala com o aparelho) e **OFF no core/CLI/testes**; nada de I/O de device fora
+  do módulo `transport` (ADR-4). Nos testes o caminho default é o `MockDevice`.
 - Tipos novos quando baratos: newtype para ids (pp, slot, página) com métodos
   de conversão BE/LE concentrados no codec (ADR-1) — espalhar conversões é bug.
 

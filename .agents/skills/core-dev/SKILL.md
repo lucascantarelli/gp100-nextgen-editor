@@ -18,8 +18,11 @@ UMA por vez, na ordem — o ciclo issue→branch→PR→merge é a skill `github
    pelo core; mudar a spec é trabalho da skill `spec-baseline` + `capture-analyze`.
 3. **Round-trip sagrado (R4)**: o modelo `.prst` só está pronto quando os 3 arquivos
    de `files/patches/` regeneram byte-idênticos.
-4. **Mock por default**: `RealDevice` fica atrás de feature `real-device`;
-   o CLI exige `--real --i-know-what-im-doing` (política de hardware VISION §7).
+4. **Aparelho no app, mock no teste (#165)**: no `gp100-ui` a feature
+   `real-device` é **default** (`tauri dev` abre o GP-100; `--no-default-features`
+   = app sem transporte); o CLI segue mock por default e exige
+   `--real --i-know-what-im-doing` para hardware, com `--mock-device` de selo de
+   teste (política de hardware VISION §7).
 5. **Qualidade**: `cargo clippy -- -D warnings` + `cargo test` verdes a cada issue;
    teste novo sempre acompanha código novo (padrão de DoD da issue).
 6. **Encerramento inclui CI**: branch → commits → PR para `develop` → CI verde
@@ -33,10 +36,10 @@ UMA por vez, na ordem — o ciclo issue→branch→PR→merge é a skill `github
    Codebuff <noreply@codebuff.com>` (heredoc `git commit -m "$(cat <<'EOF' …)"`).
    O labelling antigo `M0.x: …` NÃO vale mais (o gate valida conventional).
 8. **Modo real não se adiciona fora do gate H**: `RealDevice` é bloqueado em DUAS
-   camadas (feature `real-device` default OFF e o CLI exigir `--real
-   --i-know-what-im-doing`; escrita real só pós-H2, `WRITE_VERIFIED`). Subcomando
-   novo que "precisaria" de device real = parar e registrar ADR/ROADMAP — nunca
-   feature flag ad-hoc nem bypass de camada.
+   camadas (feature `real-device` — default ON **no app** desde a #165, OFF no
+   core/CLI — e o CLI exigir `--real --i-know-what-im-doing`; escrita real só
+   pós-H2, `WRITE_VERIFIED`). Subcomando novo que "precisaria" de device real =
+   parar e registrar ADR/ROADMAP — nunca feature flag ad-hoc nem bypass de camada.
 
 ## Checklist por issue
 1. Ler a issue no GitHub (DoD define "pronto", não o feeling); branch/PR pela

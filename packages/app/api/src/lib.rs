@@ -4,12 +4,15 @@
 //! [gp100-core]. O crate conhece commands, actor e DTOs; **toda regra de
 //! protocolo fica no core** (R1).
 //!
-//! **Backend por compilação (não por env).** O build de campo
-//! (`--features real-device`) abre o `RealDevice`; **(#150)** o app SEM
-//! aparelho sobe no estado `Desligado` — janela viva, aviso legível e botão
-//! "Reconectar" (`device_conectar`) refazendo o open — em vez de cair no
-//! mock fingindo ser o aparelho. O `MockDevice` segue vivo no core/CLI/testes,
-//! e nunca mais dentro do app. Ver [`abrir_backend`] e `docs/REAL_DEVICE_GAP.md`.
+//! **Backend por compilação (não por env), com o APARELHO por default (#165).**
+//! `tauri dev`/`tauri build` saem com a feature `real-device` (default desde
+//! 09/10/2026) e abrem o `RealDevice`; sem aparelho na USB, o app sobe no
+//! estado `Desligado` — janela viva, aviso legível e botão "Reconectar"
+//! (`device_conectar`) refazendo o open — em vez de cair no mock fingindo ser
+//! o aparelho **(#150)**. Um build sem transporte algum existe por
+//! `--no-default-features` (mesmo estado `Desligado`, motivo diferente); o
+//! `MockDevice` segue vivo no core/CLI/testes e nunca dentro do app. Ver
+//! [`abrir_backend`] e `docs/REAL_DEVICE_GAP.md`.
 //!
 //! **DeviceActor:** o actor é o dono ÚNICO da `Session` (D8 do
 //! ADR-6) — commands enfileiram requisições; o boot emite progresso via
@@ -104,14 +107,16 @@ fn seed_de_fabrica(lib: &gp100_library::Library) -> Result<usize, String> {
 const MOTIVO_DESLIGADO: &str =
     "Aparelho não conectado via USB — conecte o GP-100 e clique em Reconectar.";
 
-/// Ver [`MOTIVO_DESLIGADO`].
+/// Ver [`MOTIVO_DESLIGADO`]. Desde a #165 o build COM transporte é o default;
+/// este texto só aparece em build `--no-default-features`.
 #[cfg(not(feature = "real-device"))]
 const MOTIVO_DESLIGADO: &str =
-    "Este build não tem o transporte de aparelho — compile com --features real-device.";
+    "Este build foi compilado SEM o transporte de aparelho (--no-default-features) — recompile com os defaults.";
 
-/// **O backend que este binário vai falar: sempre o APARELHO (#150).**
+/// **O backend que este binário vai falar: sempre o APARELHO (#150 · #165).**
 ///
-/// O build de campo (`--features real-device`) abre o `RealDevice`. Se o
+/// O default do crate liga `real-device` (#165): `tauri dev` abre o
+/// `RealDevice` sem flag nenhuma. Se o
 /// aparelho não estiver na USB, o app sobe no estado [`actor::Backend::Desligado`]
 /// — janela viva, aviso com o motivo e o `device_conectar` refazendo o open —
 /// em vez de cair no mock fingindo ser o aparelho. O build sem a feature não
@@ -122,10 +127,11 @@ const MOTIVO_DESLIGADO: &str =
 /// maquina — e um `.exe` que hoje responde 99 presets passaria a responder o
 /// que estiver na USB, sem ninguem pedir. O mock nao e um modo de depuracao
 /// e um **backend**: ele e o que garante que abrir o app nunca escreve no
-/// hardware de surpresa. O CLI ja faz a mesma escolha (`--real` exige
-/// `--i-know-what-im-doing`; ver `packages/cli/src/main.rs`). No app, a
-/// escolha equivalente é a feature de compilação — e a escrita continua
-/// exigindo `write-verified` (ADR-5).
+/// hardware de surpresa. O CLI mantém a política explícita (`--real` exige
+/// `--i-know-what-im-doing`; `--mock-device` sela o mock de teste — ver
+/// `packages/cli/src/main.rs`). No app, a escolha é a feature de compilação
+/// (default: aparelho, #165) — e a escrita continua exigindo `write-verified`
+/// (ADR-5).
 ///
 /// # Erros
 /// Falha de I/O na abertura do backend; o binário encerra em vez de abrir uma
@@ -151,12 +157,13 @@ fn abrir_backend() -> Result<abrir_backend::Escolha, Box<dyn std::error::Error>>
     }
     #[cfg(not(feature = "real-device"))]
     {
-        eprintln!("[device] build sem --features real-device: nenhum aparelho será aberto");
+        eprintln!("[device] build --no-default-features: nenhum aparelho será aberto");
     }
 
-    // Build de campo: o transporte PROCURA o aparelho a cada `device_conectar`
-    // — reconectar tem ação real. Sem a feature não há transporte nenhum para
-    // procurar: o estado segue `Desligado` com o motivo do build.
+    // Com o transporte (default, #165): ele PROCURA o aparelho a cada
+    // `device_conectar` — reconectar tem ação real. Sem a feature não há
+    // transporte nenhum para procurar: o estado segue `Desligado` com o
+    // motivo do build.
     #[cfg(feature = "real-device")]
     let actor_desligado = actor::DeviceActor::desligado_procurando(MOTIVO_DESLIGADO);
     #[cfg(not(feature = "real-device"))]
