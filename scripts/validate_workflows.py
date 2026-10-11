@@ -135,8 +135,9 @@ GRAFO_ESPERADO: dict[str, set[str]] = {
     # Compilação ← Lint
     "build-rust": {"plan", "lint-rust-fmt", "lint-rust-clippy"},
     "build-ui": {"plan", "lint-ui"},
-    # Segurança ← Compilação/Infra — ANTES dos testes (#169 moveu para cá)
-    "sec-audit": {"plan", "ci-images"},
+    # Segurança ← Compilação/Infra — ANTES dos testes (#169 moveu para cá; o
+    # `if: always()` do sec-audit é o que deixa os build-* skipped não bloquearem)
+    "sec-audit": {"plan", "ci-images", "build-rust", "build-ui"},
     # Testes ← Segurança (+ build da área, + imagem quando consomem)
     "test-rust": {"plan", "build-rust", "sec-audit"},
     "test-ui": {"plan", "build-ui", "sec-audit"},

@@ -708,7 +708,11 @@ jobs:
   # ═══════════════════════════════════════════════════════════════════════
   sec-audit:
     name: Segurança · auditorias de dependência
-    needs: [plan, ci-images]
+    # Segurança ← Compilação (#169): a política do dono coloca a auditoria
+    # DEPOIS da compilação e ANTES dos testes. O `always()` do `if` é o que
+    # faz isto funcionar quando um dos dois `build-*` foi skipped (PR de docs:
+    # sem escopo Rust/front) — `skipped` não bloqueia, `failure` sim.
+    needs: [plan, ci-images, build-rust, build-ui]
     if: always() && needs.plan.outputs.stage-security == 'true' && needs.ci-images.result != 'failure'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
