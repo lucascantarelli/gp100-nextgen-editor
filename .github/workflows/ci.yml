@@ -788,7 +788,14 @@ jobs:
     name: Testes · Rust (cargo test · ${{ matrix.project }} · ${{ matrix.os }})
     # Testes ← Segurança (#169): se a auditoria quebrou (falha de infra), o
     # teste não roda atrás — a run já está vermelha e o `Relatório` explica.
+    #
+    # O `always()` + guards EXPLÍCITOS não são estilo: sem eles o `success()`
+    # implícito pulava a fase de testes INTEIRA quando a cadeia tinha qualquer
+    # job skipped (run 38168716758: `sec-audit` verde e `test-rust`/`test-ui`
+    # skipped; actions/runner#2205). `skipped` de upstream não bloqueia aqui;
+    # `failure` bloqueia.
     needs: [plan, build-rust, sec-audit]
+    if: always() && needs.plan.outputs.scope-rust == 'true' && needs.plan.outputs.stage-test == 'true' && needs.build-rust.result != 'failure' && needs.sec-audit.result != 'failure'
     if: needs.plan.outputs.scope-rust == 'true' && needs.plan.outputs.stage-test == 'true'
     strategy:
       fail-fast: false
@@ -876,7 +883,10 @@ jobs:
 
   test-ui:
     name: Testes · UI (vitest)
+    # `always()` + guards explícitos: ver o comentário do `test-rust` — o
+    # `success()` implícito pulava este job quando a cadeia tinha skipped.
     needs: [plan, build-ui, sec-audit]
+    if: always() && needs.plan.outputs.scope-front == 'true' && needs.plan.outputs.stage-test == 'true' && needs.build-ui.result != 'failure' && needs.sec-audit.result != 'failure'
     if: needs.plan.outputs.scope-front == 'true' && needs.plan.outputs.stage-test == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -925,7 +935,9 @@ jobs:
 
   test-e2e:
     name: Testes · E2E shell (Chromium)
+    # `always()` + guards explícitos: ver o comentário do `test-rust`.
     needs: [plan, build-ui, sec-audit]
+    if: always() && needs.plan.outputs.scope-front == 'true' && needs.plan.outputs.stage-test == 'true' && needs.build-ui.result != 'failure' && needs.sec-audit.result != 'failure'
     if: needs.plan.outputs.scope-front == 'true' && needs.plan.outputs.stage-test == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 25
@@ -945,7 +957,9 @@ jobs:
 
   test-e2e-visual:
     name: Testes · E2E visual (baseline por plataforma)
+    # `always()` + guards explícitos: ver o comentário do `test-rust`.
     needs: [plan, build-ui, sec-audit]
+    if: always() && needs.plan.outputs.scope-front == 'true' && needs.plan.outputs.stage-test == 'true' && needs.build-ui.result != 'failure' && needs.sec-audit.result != 'failure'
     if: needs.plan.outputs.scope-front == 'true' && needs.plan.outputs.stage-test == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 25
@@ -1039,9 +1053,10 @@ jobs:
     name: Cobertura · UI (gate 85%)
     # Cobertura ← Testes (#169): a régua de 85% só faz sentido depois que os
     # testes de comportamento passaram — cobertura de teste quebrado é número
-    # bonito em cima de vermelho.
+    # bonito em cima de vermelho. `always()` + guards explícitos: ver o
+    # comentário do `test-rust` (o `success()` implícito pulava a fase).
     needs: [plan, build-ui, test-ui]
-    if: needs.plan.outputs.scope-front == 'true' && needs.plan.outputs.stage-coverage == 'true'
+    if: always() && needs.plan.outputs.scope-front == 'true' && needs.plan.outputs.stage-coverage == 'true' && needs.build-ui.result != 'failure' && needs.test-ui.result != 'failure'
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
