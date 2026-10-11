@@ -4,9 +4,11 @@
  * debug (build SEM aparelho — #150: o app nunca monta mock) → tauri-driver
  * :4444 → Selenium.
  *
- * **(#150) o objeto do smoke é o estado HONESTO sem aparelho:** painéis no
- * ar, aba "Patches" VAZIA com o aviso de conexão (nunca uma lista de fábrica
- * embutida), falha de boot virando alerta amigável e o ⟳ recuperável. O
+ * **(#150/#161) o objeto do smoke é o GATE de boot sem aparelho:** a
+ * casca NÃO monta com o boot falho — o webview mostra só a navbar + o
+ * painel de erro com o MOTIVO que o backend declarou (nunca uma lista de
+ * fábrica embutida), LED off, sem barra eterna, e as ações "Refazer o
+ * boot"/"Reconectar" recuperam até o boot falhar de novo. O
  * cenário DeviceGone do #48 (device morto NO MEIO do boot via
  * `GP100_DEBUG_FAULT`) não existe mais aqui: esse env só é lido pelo
  * MockDevice, que deixou de ser montado pelo app — a mesma asserção de
@@ -24,8 +26,8 @@
  *
  * Uso local/CI (após `cargo build -p gp100-ui` em packages/app/api):
  *   APP_PATH=/caminho/gp100-ui node e2e/tauri.smoke.mjs
- * Saída: exit 0 = casca bootou no webview, renderizou os painéis e contou o
- * estado sem aparelho com honestidade.
+ * Saída: exit 0 = o webview subiu, o gate de boot barrou a casca sem
+ * aparelho e provou motivo + ações + recuperação com honestidade.
  */
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
@@ -97,11 +99,12 @@ async function waitForPort(port, tries = 40) {
 const application = resolveAppBinary();
 console.log(`▸ shell: ${application}`);
 
-/* #150 — build SEM aparelho: o app não monta mock, então o boot falha (actor
- * sem sessão) e a UI tem que mostrar o alerta amigável, derrubar o LED, sumir
- * com a barra de progresso e manter o retry (⟳) operável. O boot saudável
- * (2297 transações) NÃO é esperado aqui: no webview do CI ele levaria ~65 s
- * (medição da run 36999196897) e o objeto do smoke é a recuperação. */
+/* #150/#161 — build SEM aparelho: o app não monta mock, o boot falha (actor
+ * sem sessão) e o GATE tem que mostrar o motivo do backend, derrubar o LED,
+ * sumir com a barra de progresso e manter as ações (Refazer o boot /
+ * Reconectar) operáveis. O boot saudável (2297 transações) NÃO é esperado
+ * aqui: no webview do CI ele levaria ~65 s (medição da run 36999196897) e o
+ * objeto do smoke é a recuperação. */
 
 // tauri-driver (wrapper) — PATH primeiro (imagem de CI), ~/.cargo/bin como
 // fallback (cargo install do runner hospedado / host local).
@@ -153,36 +156,49 @@ try {
   // existiu ali, e o smoke ficou vermelho desde que nasceu (issue #39).
   if (!banner.includes("GP-100")) throw new Error(`banner sem a marca (MSG.brand): ${banner}`);
 
-  // 2. device mock conectado (o smoke não precisa de hardware)
-  await driver.wait(until.elementLocated(By.css('[role="status"]')), 20_000);
+  // 2. cluster de conexão da navbar (o smoke não precisa de hardware)
+  await driver.wait(
+    until.elementLocated(By.css('[role="status"][aria-label="Conexão e boot"]')),
+    20_000,
+  );
 
-  // 3. os painéis existem no DOM do webview
+  // 3. (#161) o GATE de boot: sem aparelho o boot FALHA e a casca NÃO
+  // monta — nenhum painel, nenhuma lista (a casca só nasce com relatório
+  // validado).
   for (const [label, sel] of [
     ["board", '[aria-label="Pedalboard (9 lugares da cadeia)"]'],
     ["looper", '[aria-label="Looper (máquina de fita)"]'],
     ["biblioteca", '[aria-label="Patches do aparelho"]'],
   ]) {
-    await driver.findElement(By.css(sel)); // lança se não existir
-    console.log(`  ✓ painel ${label} renderizado no webview`);
+    if ((await driver.findElements(By.css(sel))).length > 0) {
+      throw new Error(`painel ${label} montado com o boot falho (o gate #161 deveria barrar)`);
+    }
   }
-
-  // 4. (#150) sem aparelho o webview NÃO serve lista de fábrica: a aba
-  // "Patches" fica vazia e o aviso honesto de conexão assume o lugar.
   const options = await driver.findElements(By.css('[role="option"]'));
   if (options.length !== 0) {
     throw new Error(`biblioteca com ${options.length} opções (esperado 0 — sem aparelho não há lista)`);
   }
+  console.log("  ✓ gate de boot: casca NÃO monta sem aparelho (sem painéis, sem lista)");
+
+  // 4. (#150/#161) o erro mostra o MOTIVO que o backend declarou + as duas
+  // ações: Refazer o boot (sempre) e Reconectar (backend "none").
+  await driver.wait(until.elementLocated(By.css('[role="alert"]')), 60_000);
   await driver.wait(
     until.elementLocated(By.xpath('//*[contains(., "Aparelho não conectado")]')),
     20_000,
   );
-  console.log("  ✓ sem aparelho: lista vazia + aviso honesto no webview");
+  await driver.findElement(
+    By.xpath('//*[@role="alert"]//button[contains(., "Refazer o boot")]'),
+  );
+  await driver.findElement(
+    By.xpath('//*[@role="alert"]//button[contains(., "Reconectar")]'),
+  );
+  console.log("  ✓ gate de boot: motivo do backend + ações Refazer o boot e Reconectar");
 
-  // 5. (#150) boot SEM aparelho falha → alerta AMIGÁVEL (MSG.connBootError —
-  // nunca o detalhe técnico do transporte Rust).
-  const bootAlert = By.xpath('//*[@role="alert" and contains(., "Falha no boot do device")]');
-  await driver.wait(until.elementLocated(bootAlert), 60_000);
-  console.log("  ✓ boot sem aparelho: alerta amigável no webview");
+  // 5. sem barra eterna com o boot falho (o trap do "spinner eterno" #48)
+  if ((await driver.findElements(By.css('[role="progressbar"]'))).length > 0) {
+    throw new Error("barra de progresso viva com o boot falho (spinner eterno)");
+  }
 
   // XPath negativo: o alerta NÃO pode vazar o detalhe do transporte
   // (o texto técnico mora no Rust; a UI mostra só a mensagem do catálogo).
@@ -193,17 +209,20 @@ try {
     throw new Error("detalhe técnico do transporte vazou no alerta do boot");
   }
 
-  // 6. Recuperação: o ⟳ reabilita (⟳ nunca fica preso em spinner) e um 2º
-  // boot falha igual — o device morto não ressuscita, mas o actor segue de pé
-  // e a UI responde. É esta 2ª falha que FIXA o estado observado: LED off
-  // (sem corrida com o device_info do mount), NENHUMA barra de progresso
-  // eterna e retry operável de novo. Se qualquer um faltar, o smoke falha —
-  // é exatamente o trap do "spinner eterno" que o #48 fecha.
+  // 6. Recuperação pela AÇÃO do gate: "Refazer o boot" roda um boot novo
+  // que falha igual — o device morto não ressuscita, mas o actor segue de
+  // pé e a UI responde. É esta 2ª falha que FIXA o estado observado: LED
+  // off (sem corrida com o device_info do mount), NENHUMA barra de
+  // progresso eterna, alerta de volta e o ⟳ da navbar habilitado. Se
+  // qualquer um faltar, o smoke falha — é o trap do "spinner eterno" (#48).
   const rescan = await driver.findElement(By.css('[aria-label="Reescanear device"]'));
   await driver.wait(async () => rescan.isEnabled(), 30_000);
-  await rescan.click();
+  const refazer = await driver.findElement(
+    By.xpath('//*[@role="alert"]//button[contains(., "Refazer o boot")]'),
+  );
+  await refazer.click();
   await driver.wait(async () => {
-    const alerta = (await driver.findElements(bootAlert)).length > 0;
+    const alerta = (await driver.findElements(By.css('[role="alert"]'))).length > 0;
     const habilitado = await rescan.isEnabled();
     const semBarra = (await driver.findElements(By.css('[role="progressbar"]'))).length === 0;
     const ledOff =
@@ -211,9 +230,9 @@ try {
         .length > 0;
     return alerta && habilitado && semBarra && ledOff;
   }, 30_000);
-  console.log("  ✓ pós-retry: LED off, sem barra eterna e retry (⟳) vivo de novo");
+  console.log("  ✓ pós-refazer: LED off, sem barra eterna e ⟳ da navbar vivo");
 
-  console.log("✅ SMOKE TAURI: casca completa no webview + DeviceGone provado ponta-a-ponta");
+  console.log("✅ SMOKE TAURI: webview no ar + gate de boot honesto sem aparelho (falha → motivo → ações → recuperação)");
 } catch (err) {
   console.error("✗ smoke tauri falhou:", err.message ?? err);
   // DIAGNÓSTICO (o smoke nunca esteve verde — job criado em 30/09):

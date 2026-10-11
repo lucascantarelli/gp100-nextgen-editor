@@ -88,6 +88,22 @@ async function waitFor(predicate: () => boolean, what: string, timeoutMs = 8_000
   expect(predicate(), `esperado: ${what}`).toBe(true);
 }
 
+/** #161 — a casca só monta depois do boot validado: espera o gate abrir
+ *  (shell) ou virar erro (alert). O boot simulado corre em lotes via
+ *  setTimeout(0), então microtasks (settle) não bastam. */
+async function esperaCasca(host: HTMLElement, timeoutMs = 8_000) {
+  const inicio = Date.now();
+  while (
+    host.querySelector(".shell-content") === null &&
+    host.querySelector('[role="alert"]') === null &&
+    Date.now() - inicio < timeoutMs
+  ) {
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 50));
+    });
+  }
+}
+
 /** Limpa e re-render: cada teste monta o App do zero. */
 function teardown(root: Root, host: HTMLElement) {
   act(() => root.unmount());
@@ -118,6 +134,7 @@ describe("Navegação de patch e master", () => {
   it("▶/◀ andam pelo INVENTÁRIO do aparelho (#150): 198 slots, hex no banco alto", async () => {
     const { root, host } = mount();
     await settle();
+    await esperaCasca(host);
 
     const label = () =>
       Array.from(host.querySelectorAll("strong")).find((s) => /^(P\d{2}|0x[0-9a-f]{4})/.test(s.textContent ?? ""))
@@ -143,6 +160,7 @@ describe("Navegação de patch e master", () => {
   it("slider do master aplica o valor (handler do estado + persistência)", async () => {
     const { root, host } = mount();
     await settle();
+    await esperaCasca(host);
 
     // 1º range do DOM = master VOL (TopBar vem primeiro)
     const slider = host.querySelector<HTMLInputElement>('input[type="range"]');
@@ -177,6 +195,7 @@ describe("Faixas de boot e erro", () => {
     localStorage.setItem("gp100.debug.failDevice", "boot");
     const { root, host } = mount();
     await settle();
+    await esperaCasca(host);
 
     const alert = host.querySelector('[role="alert"]');
     expect(alert, "faixa de erro do boot").toBeTruthy();
@@ -222,6 +241,7 @@ describe("Faixas de boot e erro", () => {
   it("falha de SELECT: a UI fica no preset REAL e o retry do banner aplica a intenção", async () => {
     const { root, host } = mount();
     await settle();
+    await esperaCasca(host);
     const label = () =>
       Array.from(host.querySelectorAll("strong")).find((s) => /^P\d{2}/.test(s.textContent ?? ""))
         ?.textContent ?? "";
@@ -254,6 +274,7 @@ describe("Looper — FSM completa por cliques", () => {
   it("REC grava → PLAY toca → DUB sobrepõe → STOP para (estados e fita)", async () => {
     const { root, host } = mount();
     await settle();
+    await esperaCasca(host);
 
     const rec = () => byAria(host, "Gravar loop (REC)") ?? byAria(host, "Sobrepor (overdub)") ?? byAria(host, "Parar gravação e tocar");
     const play = () => byAria(host, "Tocar loop (PLAY)");
@@ -287,6 +308,7 @@ describe("Looper — FSM completa por cliques", () => {
   it("REW zera o tempo e CLEAR pede confirmação antes de apagar a fita", async () => {
     const { root, host } = mount();
     await settle();
+    await esperaCasca(host);
 
     const status = () =>
       host.querySelector('[aria-label="Looper (máquina de fita)"] [role="status"]');
@@ -326,6 +348,7 @@ describe("Biblioteca — busca", () => {
   it("filtra pelo ENDEREÇO do slot (#150) e mostra estado vazio", async () => {
     const { root, host } = mount();
     await settle();
+    await esperaCasca(host);
 
     const search = host.querySelector<HTMLInputElement>("aside input");
     expect(search).toBeTruthy();
@@ -442,6 +465,7 @@ describe("Biblioteca — o patch aberto é o que o pedalboard mostra", () => {
   it("trocar de patch troca a CADEIA dos 9 pedais (inclusive a de ordem trocada)", async () => {
     const { root, host } = mount();
     await settle();
+    await esperaCasca(host);
 
     // P01: PRE/C-Wah, cadeia canônica
     const p01 = [...PRESET_CHAINS[0].slots].sort((a, b) => a.slot - b.slot);
@@ -466,6 +490,7 @@ describe("Biblioteca — o patch aberto é o que o pedalboard mostra", () => {
   it("User Patch: snapshot da cadeia salva volta ao palco e excluir devolve a fábrica", async () => {
     const { root, host } = mount();
     await settle();
+    await esperaCasca(host);
 
     // 1. abre o pp 5 (cadeia trocada: DST na frente) e salva essa cadeia
     await openPatch(host, "0x0005");
@@ -504,6 +529,7 @@ describe("Biblioteca — o patch aberto é o que o pedalboard mostra", () => {
   it("o patch salvo é um RETRATO: mexer no pedal depois não altera o guardado", async () => {
     const { root, host } = mount();
     await settle();
+    await esperaCasca(host);
 
     const stageValue = () =>
       host.querySelector('[aria-label="Slot 1: PRE"] [data-value]')!.getAttribute("data-value");
@@ -539,6 +565,7 @@ describe("Settings — as 6 abas", () => {
   it("General: persiste local (input level e language aplicam pelo handler)", async () => {
     const { root, host } = mount();
     await settle();
+    await esperaCasca(host);
 
     act(() => byAria(host, "Abrir configurações")!.dispatchEvent(new MouseEvent("click", { bubbles: true })));
     await settle();
@@ -561,6 +588,7 @@ describe("Settings — as 6 abas", () => {
   it("modo engenheiro: switch na aba General liga o tooltip addr/code/ctrl e persiste", async () => {
     const { root, host } = mount();
     await settle();
+    await esperaCasca(host);
 
     act(() => byAria(host, "Abrir configurações")!.dispatchEvent(new MouseEvent("click", { bubbles: true })));
     await settle();
@@ -593,6 +621,7 @@ describe("Settings — as 6 abas", () => {
   it("cada aba ativa e renderiza seu conteúdo (tabela onde aplicável)", async () => {
     const { root, host } = mount();
     await settle();
+    await esperaCasca(host);
 
     act(() => byAria(host, "Abrir configurações")!.dispatchEvent(new MouseEvent("click", { bubbles: true })));
     await settle();
@@ -615,6 +644,7 @@ describe("Push log — pushes do device", () => {
   it("push injetado aparece no summary, cap segura em 100 e clear limpa", async () => {
     const { root, host } = mount();
     await settle();
+    await esperaCasca(host);
 
     // callback registrado pelo App no mount (mock captura)
     const appCalls = vi.mocked(onDevicePush).mock.calls;
@@ -649,6 +679,7 @@ describe("Push log — pushes do device", () => {
   it("push INVÁLIDO é ignorado e repetição consecutiva vira contador (×N)", async () => {
     const { root, host } = mount();
     await settle();
+    await esperaCasca(host);
 
     const appPush = vi.mocked(onDevicePush).mock.calls[0][0];
     const summary = host.querySelector("details summary")!;
@@ -692,6 +723,7 @@ describe("Sliders do shell — drum (persistência local)", () => {
   it("volume e speed do drum aplicam pelo handler do estado", async () => {
     const { root, host } = mount();
     await settle();
+    await esperaCasca(host);
 
     // abre o modal de gestão do drum (chip na navbar)
     const chip = Array.from(host.querySelectorAll("button")).find((b) =>
@@ -715,6 +747,7 @@ describe("Sliders do shell — drum (persistência local)", () => {
   it("on/off e compasso do drum aplicam pelo handler (toggle da navbar)", async () => {
     const { root, host } = mount();
     await settle();
+    await esperaCasca(host);
 
     // play/stop vive na navbar (sem abrir o modal — UX da issue #10)
     const onOff = () =>
@@ -758,6 +791,7 @@ describe("Palco — afinador e drag-and-drop dos slots (Stage)", () => {
   it("afinador no cabeçalho está sempre visível e o drag de slots só com a trava destrancada", async () => {
     const { root, host } = mount();
     await settle();
+    await esperaCasca(host);
 
     // o afinador ocupa o lugar do antigo VU: display sempre visível,
     // nota em repouso, botões de monitor e demo alcançáveis
@@ -805,6 +839,7 @@ describe("Palco — o pedal REAL do PRE (U-3: pedais reais na cadeia inteira)", 
   it("palco: knobs travados com o valor em texto; o knob do MODAL manda device_set_param (slot do fio 1..9)", async () => {
     const { root, host } = mount();
     await settle();
+    await esperaCasca(host);
 
     // o board do mock traz o PRE REAL do P01: C-Wah, Range/Q/VOL = 50/50/50
     const pedal = host.querySelector('[aria-label="Slot 1: PRE"] svg[role="group"]');
@@ -858,6 +893,7 @@ describe("Palco — o pedal REAL do PRE (U-3: pedais reais na cadeia inteira)", 
   it("clique no PRE abre a edição ampliada; knob de lá ajusta o MESMO estado e Esc fecha", async () => {
     const { root, host } = mount();
     await settle();
+    await esperaCasca(host);
 
     const pedal = host.querySelector('[aria-label="Slot 1: PRE"] svg[role="group"]')!;
     act(() => pedal.dispatchEvent(new MouseEvent("click", { bubbles: true })));
@@ -887,6 +923,7 @@ describe("Palco — o pedal REAL do PRE (U-3: pedais reais na cadeia inteira)", 
   it("Effects List (#19): trocar o efeito no modal troca o pedal NO PALCO", async () => {
     const { root, host } = mount();
     await settle();
+    await esperaCasca(host);
 
     // abre o modal pelo pedal do palco (o PRE do P01 = C-Wah)
     const pedal = host.querySelector('[aria-label="Slot 1: PRE"] svg[role="group"]')!;
@@ -941,6 +978,7 @@ describe("Palco — o pedal REAL do PRE (U-3: pedais reais na cadeia inteira)", 
   it("o efeito trocado entra no patch de usuário (o retrato do palco, não do preset)", async () => {
     const { root, host } = mount();
     await settle();
+    await esperaCasca(host);
 
     // troca o PRE para COMP e SALVA como patch de usuário
     act(() =>
@@ -972,6 +1010,7 @@ describe("Palco — o pedal REAL do PRE (U-3: pedais reais na cadeia inteira)", 
   it("footswitch alterna LOCAL (LED verde → vermelho), sem comando de toggle no protocolo", async () => {
     const { root, host } = mount();
     await settle();
+    await esperaCasca(host);
 
     // o PRE do P01 vem DESLIGADO no all.prst (`state` do .prst, não palpite)
     const slot = host.querySelector('[aria-label="Slot 1: PRE"]')!;
@@ -991,6 +1030,7 @@ describe("Looper — rota PRE/POST e ▶", () => {
   it("alterna PRE⇄POST e ▶ para o transporte", async () => {
     const { root, host } = mount();
     await settle();
+    await esperaCasca(host);
 
     const rec = () =>
       byAria(host, "Gravar loop (REC)") ?? byAria(host, "Parar gravação e tocar");

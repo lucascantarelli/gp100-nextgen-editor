@@ -238,6 +238,18 @@ describe("i18n — o seletor em Settings", () => {
       await Promise.resolve();
       await Promise.resolve();
     });
+    // #161: espera o gate de boot resolver (casca pronta OU alerta) —
+    // microtasks não bastam (o boot simulado roda em lotes de setTimeout).
+    const inicio = Date.now();
+    while (
+      document.querySelector(".shell-content") === null &&
+      document.querySelector('[role="alert"]') === null &&
+      Date.now() - inicio < 8_000
+    ) {
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 50));
+      });
+    }
   }
   function setSelect(el: HTMLSelectElement, value: string) {
     const setter = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, "value")!.set!;

@@ -235,30 +235,46 @@ fn recusa_byte_que_nao_e_nibble() {
     );
 }
 
-/// **Review Focus 2:** o nome não pode ser truncado no primeiro NUL.
+/// #177 / H4 — o nome termina no primeiro NUL; o device NÃO zera o rabo ao
+/// renomear (medido 2026-10-09: pp 0x0000 foi de `It's GP100` para
+/// `H2 TESTE\0` e o `'0'` 0x30 final do nome antigo ficou stale). O objeto
+/// preset é o prefixo; os bytes após o NUL pertencem ao nome antigo e são
+/// ignorados. Antes esta regra punia o rabo stale com `NomeInvalido`
+/// (suposição de fábrica tratada como lei) e derrubaria o gate 197/198.
 #[test]
-fn recusa_nome_com_nul_interno() {
-    // pg0 decodificada: pp 00 00 | "AB\0CD" + pad NUL | cadeia de zeros.
+fn aceita_nome_com_rabo_stale_apos_nul() {
+    // pg0 decodificada: pp 00 00 | "AB\0" + rabo stale "CD" (device legítimo).
     let mut dec = vec![0u8; 96];
     dec[0] = 0;
     dec[1] = 0;
     dec[2] = b'A';
     dec[3] = b'B';
-    dec[4] = 0; // primeiro NUL = fim do nome
-    dec[5] = b'C'; // ...mas tem lixo DEPOIS dele
+    dec[4] = 0; // primeiro NUL = fim do objeto preset
+    dec[5] = b'C'; // rabo stale do nome antigo (device não zera)
     dec[6] = b'D';
 
     let mut pags = nove_paginas_validas();
     pags[0] = pagina_sintetica(0, &dec);
     let pag = gp100_core::preset_pages::decode(&pags).expect("estrutura válida");
-    let e = pag.nome().expect_err("tem NUL interno com lixo");
-    assert!(
-        matches!(
-            e,
-            gp100_core::preset_pages::DecodeError::NomeInvalido { .. }
-        ),
-        "{e}"
-    );
+    assert_eq!(pag.nome().expect("rabo stale é legítimo"), "AB");
+}
+
+/// #177 / H4 — o caso medido em campo: rename H2 deixou o '0' (0x30) do
+/// nome antigo "It's GP100" stale na posição 9. O objeto é "H2 TESTE".
+#[test]
+fn nome_medido_h4_renomeado_com_rabo_stale() {
+    let mut dec = vec![0u8; 96];
+    dec[0] = 0;
+    dec[1] = 0;
+    // "H2 TESTE" (8B) + NUL
+    dec[2..10].copy_from_slice(b"H2 TESTE");
+    dec[10] = 0;
+    dec[11] = b'0'; // 0x30: o '0' final de "It's GP100" (stale, medido)
+
+    let mut pags = nove_paginas_validas();
+    pags[0] = pagina_sintetica(0, &dec);
+    let pag = gp100_core::preset_pages::decode(&pags).expect("estrutura válida");
+    assert_eq!(pag.nome().expect("rename legítimo"), "H2 TESTE");
 }
 
 #[test]

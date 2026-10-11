@@ -6,8 +6,11 @@
  *
  * Contrato de UI (rodada de error states):
  *  - device_info falha  → app segue de pé, sem conexão (sem crash);
- *  - device_boot falha  → banner role="alert" amigável
- *    (MSG.connBootError); o detalhe técnico nunca vaza ao usuário;
+ *  - device_boot falha  → o GATE de boot (#161): só navbar +
+ *    `role="alert"` amigável (MSG.connBootError) — a casca NÃO monta;
+ *    o detalhe técnico nunca vaza ao usuário e a ação "Refazer o boot"
+ *    recupera até a casca montar (ciclo falha → OK = cenário e2e de
+ *    boot do DoD);
  *  - device_board falha → banner role="alert" amigável (MSG.errOpenPreset).
  *
  * Refactor POM (V-7): seletores encapsulados em e2e/pages/_pages.ts —
@@ -60,18 +63,25 @@ test("device_board falha: banner de erro amigável ao abrir preset", async () =>
   await expect(shell.library.listbox()).toBeVisible();
 });
 
-/* ── "all": qualquer operação falha — a casca não pode travar ── */
-test("failDevice=all: casca segue viva com todos os fluxos falhando", async () => {
+/* ── "all": com o boot falho o GATE não monta a casca (#161) ── */
+test("failDevice=all: gate de boot — sem casca, erro amigável; refazer o boot recupera", async () => {
   await shell.failDevice("all");
   await shell.reload();
 
   await expect(shell.banner).toContainText("off");
-  // boot falha com alerta amigável…
-  await shell.rescanButton.click();
-  await expect(shell.alerts.filter({ hasText: "Falha no boot do device" })).toBeVisible();
-  // …e abrir preset falha com o banner amigável, sem crash. Com "all" o
-  // PRIMEIRO command a falhar é o select — a mensagem é a do select (a do
-  // board só aparece quando o select passa; caso coberto no spec abaixo).
+  // boot falhou → só navbar + alert (a casca NÃO existe no DOM)
+  const alert = shell.alerts.filter({ hasText: "Falha no boot do device" });
+  await expect(alert).toBeVisible();
+  await expect(alert).not.toContainText("debug:");
+  await expect(shell.library.listbox()).toHaveCount(0);
+
+  // recuperação: limpa o gancho (boot volta a funcionar), armar só o
+  // select e usar a AÇÃO do gate — validado, a casca monta; aí o select
+  // falha com o banner amigável, sem crash.
+  await shell.clearFailDevice();
+  await shell.armFailDevice("select");
+  await alert.getByRole("button", { name: "Refazer o boot" }).click();
+  await expect(shell.library.listbox()).toBeVisible(); // casca montou
   await shell.library.optionAt(0).click();
   await expect(shell.alerts.filter({ hasText: "não aceitou a troca de preset" })).toBeVisible();
   await expect(shell.alertRetry()).toBeVisible(); // ação de recuperação

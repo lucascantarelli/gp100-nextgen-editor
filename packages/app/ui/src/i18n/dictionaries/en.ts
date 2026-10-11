@@ -90,11 +90,19 @@ export const EN: DictPatch = {
     tables: "IR tables",
     scan: "Preset scan",
     probe: "Bank 02 probe",
-    setlist: "Setlist",
+    state5: "State table",
     names: "Names",
     keepalive: "Keepalive",
   },
   connBootError: "Device boot failed — check the connection and try again.",
+  bootPanelMsg: "Reading the device…",
+  bootRetry: "Restart boot",
+  bootInvalidoProgresso:
+    "The boot didn't finish reading the device — try again.",
+  bootInvalidoInventario: (lido: number, esperado: number) =>
+    `Preset list read came back incomplete: ${lido} of ${esperado}.`,
+  bootInvalidoNomes: (lido: number, esperado: number) =>
+    `Preset names read came back incomplete: ${lido} of ${esperado}.`,
   connOffTitle: "Device not connected",
   connOffConnect: "Reconnect",
   connOffRetryAria: "Reconnect the device (re-opens the MIDI port)",

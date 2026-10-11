@@ -78,6 +78,9 @@ USO: gp100-cli [opções] <subcomando> [args]
 SUBCOMANDOS
   info                        estado do mock (pp, nome, tipo, nº de presets)
   list-user-irs               tabela dos 20 User IRs (nome por slot)
+  read-state5                 as 5 leituras cruas de 11/12001012 (estado;
+                              era chamado de setlist, mas a GP-100 não tem
+                              setlist — PROTOCOL §13.3 / GP100_DEVICE §5#1)
   dump-preset <pp>            select + 9 páginas de estado do preset (hex)
   set-param <slot> <code> <ctrl> <value>
                               knob da cadeia (§13.11) — exige --dry-run
@@ -119,6 +122,9 @@ POLÍTICA DE HARDWARE (VISION §7)
 enum Command {
     Info,
     ListUserIrs,
+    /// As 5 leituras cruas de `11/12001012` (T2 do boot; semântica não
+    /// decifrada — medição de campo, PROTOCOL §13.3).
+    ReadState5,
     DumpPreset {
         /// pp do preset (u16 BE no fio; hex `0x0100` ou decimal).
         pp: u16,
@@ -241,6 +247,7 @@ fn parse_args<I: Iterator<Item = String>>(args: I) -> Result<Args, UsageError> {
     let command = match sub.as_str() {
         "info" => Command::Info,
         "list-user-irs" => Command::ListUserIrs,
+        "read-state5" => Command::ReadState5,
         "dump-preset" => {
             let pp_raw = pos
                 .pop()
@@ -492,6 +499,23 @@ fn run<T: DeviceTransport>(
                         "{slot:4}  {}",
                         if name.is_empty() { "(vazio)" } else { name }
                     );
+                }
+                0
+            }
+            Err(e) => fail(&e),
+        },
+        Command::ReadState5 => match session.read_state5() {
+            // HEX CRU de propósito: a semântica de 12001012 ainda não é
+            // decode, é medição (R1: não inventar layout). O `--log` guarda
+            // a captura para o `build_golden`/juiz.
+            Ok(entradas) => {
+                println!(
+                    "12001012 — {} entradas (44B esperado cada):",
+                    entradas.len()
+                );
+                for (i, p) in entradas.iter().enumerate() {
+                    let hex: String = p.iter().map(|b| format!("{b:02x}")).collect();
+                    println!("  [{i}] {}B: {hex}", p.len());
                 }
                 0
             }
@@ -930,6 +954,14 @@ mod tests {
         assert_eq!(writes.get(), 0, "save em dry-run nao grava nada");
     }
 
+    /// `read-state5` é LEITURA pura: parseia sozinho (sem travas de escrita) —
+    /// o gate de hardware (camada 2, `--real`+feature) é do TRANSPORTE.
+    #[test]
+    fn read_state5_parseia_como_leitura() {
+        let parsed = parse_args(args(&["read-state5"]).into_iter()).expect("parse ok");
+        assert!(matches!(parsed.command, Command::ReadState5));
+    }
+
     /// Camada 1 da política: `--real` sem `--i-know-what-im-doing` é recusado
     /// SEMPRE (dupla confirmação é pré-condição, feature ou não).
     #[test]
@@ -1052,6 +1084,7 @@ mod tests {
             "--mock-device",
             "info",
             "list-user-irs",
+            "read-state5",
             "dump-preset",
             "set-param",
             "save",

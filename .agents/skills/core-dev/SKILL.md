@@ -14,6 +14,16 @@ UMA por vez, na ordem — o ciclo issue→branch→PR→merge é a skill `github
 1. **Nunca adivinhar protocolo**: todo byte vem de `docs/protocol_golden.json`
    (baseline com hash no §13 do PROTOCOL.md) e das narrativas §13.10–13.12.
    Premissa ausente? Parar e registrar a dúvida — nunca "resolver" com palpite.
+   **O aparelho real está ligado e é consultável a qualquer sessão** (CLI de
+   campo `--real --i-know-what-im-doing`, leitura pura; ver `knowledge.md`): antes
+   de deduzir comportamento do mock ou perguntar ao owner, MEÇA no hardware.
+1a. **Fonte dinâmica vs. snapshot (ADR-13)**: em runtime o app valida CONTEÚDO
+   contra o schema dos objetos (`preset_pages`, `codec`) — nunca contra bytes do
+   golden ou do `all.prst` (isso é snapshot de análise, só serve em teste). O
+   `wait_for` valida só a FORMA (`match_shape`: endereço + comprimento/by-len);
+   o nome do preset termina no primeiro NUL (rabo stale após o NUL é legítimo).
+   Toda regra de "padrão" nasce de byte OBSERVADO no aparelho, não de suposição
+   de fábrica — o H4 (#177) cobrou caro exatamente isso.
 2. **Golden é insumo, não produto**: `docs/protocol_golden.json` é lido/embedado
    pelo core; mudar a spec é trabalho da skill `spec-baseline` + `capture-analyze`.
 3. **Round-trip sagrado (R4)**: o modelo `.prst` só está pronto quando os 3 arquivos

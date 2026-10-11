@@ -153,7 +153,7 @@ fn replay_t1_tabelas_isolado() {
 }
 
 /// Replay do BOOT/scan (prova C, 2299/2299): o script completo do `boot()`
-/// (T1 tabelas → scan 198 pp → sonda 1302 → setlist → nomes → keepalives)
+/// (T1 tabelas → scan 198 pp → sonda 1302 → estado5 → nomes → keepalives)
 /// com os pps na ordem da captura tem de reproduzir TODOS os 2299 OUTs da
 /// S1 byte a byte (divergências de framing = falha com diff hex).
 #[test]

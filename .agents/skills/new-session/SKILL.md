@@ -10,6 +10,13 @@ metadata:
 Use quando o usuário pedir para capturar tráfego novo (sessão N).
 
 ## Preparação (agente, antes de instruir o usuário)
+0. **Se o aparelho está ligado nesta máquina, consulte-o ANTES de qualquer
+   captura** (é o caminho mais barato e sempre disponível): a leitura pura pelo
+   CLI de campo `--real --i-know-what-im-doing` responde a dúvida de comportamento
+   sem precisar de sessão nova. O `knowledge.md` tem o port name, as armadilhas de
+   occupancy/reenumeração e o efeito visível (toda varredura troca o patch no
+   display — avisar o owner). Só monte sessão de captura para o que o aparelho
+   sozinho NÃO responde (sequência temporal, save, upload).
 1. Confirmar proxy atualizado: `md5sum analysis/winmm.dll analysis/suite_local/winmm.dll` (iguais?).
 2. Limpar log antigo: `rm -f "$LOCALAPPDATA/Temp/midi_trace.jsonl"`.
 3. Salvar captura anterior em `analysis/captures/` se ainda não estiver.

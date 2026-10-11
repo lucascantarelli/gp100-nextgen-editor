@@ -39,11 +39,12 @@ idioma) e qualquer seta que faça o core Rust depender do front.
 
 ```
 src/
-├── App.tsx (300)          casca: boot, atalhos, modais abertos e o JSX
+├── App.tsx (300)          casca (gate de boot #161): navbar + gate, atalhos,
+│                          modais abertos e o JSX — a casca só monta em `ready`
 ├── main.tsx (11)          monta o React
 │
 ├── ipc/                   ── a PORTA ──────────────────────────
-│   ├── device.ts (570)    device_select_preset, device_board, … + retry declarativo
+│   ├── device.ts (497)    device_select_preset, device_board, … + retry declarativo
 │   │                      e a POLÍTICA de escrita da tela: `escritaLiberada()`
 │   │                      é a ÚNICA leitura de `writeVerified` para decidir
 │   │                      botão (#126 — knob/IR/SnapTone nascem travados)
@@ -68,7 +69,7 @@ src/
 │   │                      `packages/core/src/gain.rs` (a mesma regra, duas
 │   │                      cópias, e o preço de divergirem está no cabeçalho)
 │   ├── ir.ts (394) · tones.ts (388)   os laboratórios de IR e de tones (#24/#25)
-│   └── types.ts (218)     BoardSlot/BoardView/DeviceInfo — o contrato do palco
+│   └── types.ts (241)     BoardSlot/BoardView/DeviceInfo — o contrato do palco
 │
 ├── hooks/                 ── ESTADO DE SESSÃO ───────────────────
 │   ├── useStage.ts (310)  o que está NO PALCO: abrir/salvar/apagar preset e
@@ -82,7 +83,9 @@ src/
 │   ├── useIrs.ts (248) · useTones.ts (267)  os laboratórios (#24/#25)
 │   ├── usePrefs.ts (142)  o que SOBREVIVE à janela: master, drum, tuner,
 │   │                      looper, settings/idioma
-│   ├── useBoot.ts (113)   a sequência de boot e seu progresso
+│   ├── useBoot.ts (192)   a sequência de boot, seu progresso e a VALIDAÇÃO
+│   │                      do relatório (#161: inventário/nomes coerentes
+│   │                      com o catálogo — falhou, o gate vira erro)
 │   ├── usePushLog.ts (38) o ring buffer de pushes
 │   ├── useFieldDiag.ts (197) o alvo (patch/nome) e o que voltou do diagnóstico
 │   ├── useGlobalShortcuts.ts (96)
@@ -117,6 +120,10 @@ src/
 │   ├── DrumPanel.tsx (196) · PushLog.tsx (104) · ContentMenu.tsx (105)
 │   ├── FieldDiagPanel.tsx (351) o diagnóstico de campo em tela (carrega o
 │   │                      próprio <details>, para o App ganhar 1 linha)
+│   ├── BootGate.tsx (122) o GATE de boot (#161): fora do ready a página é
+│   │                      navbar + este componente — progresso (loading) ou
+│   │                      motivo + ações "Refazer o boot"/"Reconectar" (erro,
+│   │                      role=alert com foco)
 │   └── BootProgressBar.tsx (64) · ErrorBanner.tsx (57)
 │
 ├── design/                ── PURO, SEM REACT ────────────────────
@@ -144,8 +151,9 @@ e um patch de usuário são a mesma coisa vista de dois lugares* — ambos são 
 um único estado**, e foram para o `useStage` juntos. Preferências de menu, drum,
 tuner e looper não têm nada a ver com o palco e foram para o `usePrefs`.
 
-O que ficou no `App` é o que só ele tem: boot, log de pushes, atalhos globais,
-quais modais estão abertos e o JSX.
+O que ficou no `App` é o que só ele tem: o gate do boot (#161 — fora do
+`ready` a página é navbar + `BootGate`), log de pushes, atalhos globais, quais
+modais estão abertos e o JSX.
 
 **A porta do histórico (#113) é o contraexemplo que fixa a regra.** `library.ts`
 e `history.ts` parecem o mesmo assunto e viraram dois arquivos assim mesmo: o

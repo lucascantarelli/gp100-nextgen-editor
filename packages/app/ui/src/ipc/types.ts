@@ -104,7 +104,7 @@ type BootStage =
   | "tables"
   | "scan"
   | "probe"
-  | "setlist"
+  | "state5"
   | "names"
   | "keepalive";
 
@@ -124,6 +124,10 @@ export interface BootProgress {
 export interface BootReport {
   /** Nº de transações de boot+scan executadas (fallback dev: total simulado). */
   transactions: number;
+  /** Pps do inventário lidos no scan (198 = 99 de fábrica + 99 de usuário). */
+  presets: number;
+  /** Pps do inventário com nome decodificado da pg0 (o "198/198" do gate). */
+  names: number;
 }
 
 /** Um knob do pedal (spec do dicionário + valor do preset). */

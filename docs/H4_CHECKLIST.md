@@ -82,6 +82,13 @@ do `all.prst`.
 - [ ] Se algum nome vier **vazio**: é o comportamento honesto (sem cache = vazio,
       nunca o dicionário de fábrica emprestado) e significa que **aquele** pp não
       entrou no scan. Anote o pp.
+      **Cenário variante (#177, medido no H4):** o device real pode ter slot
+      **sem nome** (pg0 zerada) ou com **rabo stale após o NUL** (o device não
+      zera o resto do nome antigo ao renomear). O decode aceita os dois: nome
+      vazio = slot honesto em branco; rabo stale = nome legítimo até o primeiro
+      NUL (não é erro). Só recusa byte não-imprimível ANTES do NUL. Se vir esses
+      casos, ANOTE o pp — são o teste real de que o app lê o hardware, não o
+      `all.prst`.
 
 ### Sessão 2 — o nome vive nas páginas, não na meta6 (a prova em campo)
 
@@ -89,6 +96,9 @@ do `all.prst`.
 
 - [ ] No pedal, **renomeie** o patch descartável para um nome que **não existe**
       em nenhum lugar do `all.prst` (evita coincidência). Anote o antes e o depois.
+      Se o nome novo for MAIS CURTO que o antigo, o display/app pode mostrar um
+      **rabo stale** (byte do nome antigo após o NUL) — é comportamento medido do
+      device (#177), não bug; o nome legítimo é o prefixo até o primeiro NUL.
 - [ ] Confirme no display do pedal que o nome gravou (SAVE persistiu).
 - [ ] **Reinicie o app** (novo boot = novo scan = novo cache) e abra o pp.
       - [ ] O app mostra o **nome novo**? → critério §10 da #155 **fechado**.

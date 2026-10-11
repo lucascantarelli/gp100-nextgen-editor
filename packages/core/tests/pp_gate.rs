@@ -184,7 +184,7 @@ fn a_trava_usa_o_inventario_fixado_nao_um_assumo_proprio() {
 
 /// **O boot do aparelho varre os 198 pps provados.** 2299 = a mesma conta
 /// do replay da captura (40 tabelas + 198×11 + 2 do 0x0100 duplicado +
-/// sonda 11 + setlist 5 + nomes 61 + keepalive 2) — ou seja, o aparelho
+/// sonda 11 + estado5 5 + nomes 61 + keepalive 2) — ou seja, o aparelho
 /// recebe a sequência do Suite, e não o `0..198` que mandava 99 selects
 /// fora do aparelho.
 #[test]

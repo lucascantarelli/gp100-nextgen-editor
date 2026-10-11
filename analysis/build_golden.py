@@ -274,8 +274,8 @@ def main():
         "10xx0002": "OUT: SET de parametro: 20B nibble-exp [effectCode u32 LE][ctrl][00][f32 LE] (§13.11)",
         "10050001": "OUT: BEGIN/reserva de upload de IR: 8B cru `00 [slot] 00 00 01 00 00 0a`, "
                     "emitido ANTES do burst de chunks (não é commit; fim = último chunk duplicado) (§13.7)",
-        "12001002": "READ/IN 75B nibble-exp: tabela de TIPOS de preset (20 paginas, §13.3)",
-        "12001012": "READ/IN 44B nibble-exp: 5 entradas (setlist/loja) (§13.3)",
+        "12001002": "READ/IN 75B nibble-exp: tabela dos 20 User IRs (§13.12 — nao e de tipos)",
+        "12001012": "READ/IN 44B nibble-exp: 5 entradas de estado (semantica nao decifrada; a GP-100 nao tem setlist — GP100_DEVICE.md §5#1) (§13.3)",
         "11000008": "READ/IN 14B: tabela de nomes por chave 2B; slots 0x0000-0x000F = fabrica (§13.12)",
         "11000000": "OUT write: metadados do preset atual: 8B zeros + nome ASCII [8..17] (§13.12)",
         "11000004": "OUT write: metadados 20B zeros (autor/notas?) (§13.12)",

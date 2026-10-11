@@ -625,7 +625,27 @@ OUT 11 12001002 [pág]      → IN 12 75B nibble-exp., d[0]=pág (0..0x13);
                               — layout decifrado: [0]=slot cru; [1..74]
                               nibble-exp = 37B reais = nome 32B + tag 5B
 OUT 11 12001012 [i]        → IN 12 44B nibble-exp. `12 10 2c 00 [i] 00 01 …`
-                              (5 entradas, provavelmente setlist/loja)
+                              (5 entradas de estado; SEMÂNTICA NÃO DECIFRADA —
+                              o repo a chama(va) de "setlist", mas a GP-100
+                              NÃO tem função setlist no manual; ver
+                              `GP100_DEVICE.md` §5#1. Não expor como produto.)
+                              **Layout MEDIADO em campo (10/10, aparelho real,
+                              `analysis/field/2026-10-10/state5.jsonl`):**
+                              `[0]=0x12` (eco do func IN) · `[1..3]=10 2c 00`
+                              (constante; 0x2c=44=B do payload) · `[4]=i` (índice
+                              ecoado) · `[5..6]=00 01` · `[7..43]=00` (defaults).
+                              Neste aparelho as 5 entradas estão zeradas =
+                              defaults de fábrica. O prefixo casa com a captura
+                              S1.
+                              **PROVA NEGATIVA (10/10, mesmo aparelho):** diff
+                              controlado com o dono alterando o **BPM do drum
+                              125→145** no pedal: `read-state5` antes/depois →
+                              **0 bytes divergentes** nas 5 entradas
+                              (`state5_before_bpm.jsonl` ×
+                              `state5_after_bpm145.jsonl`). State5 **NÃO** é a
+                              família de globals do drum. O endereço do drum
+                              segue desconhecido (captura G3–G6 via Suite é o
+                              caminho).
 OUT 11 11000008 [hi][lo] 00 00   (61 leituras, chave de 2B)
                              → IN 12 14B: [0..3]=chave ecoada, [4..13]=nome
                                ASCII do slot. 0x0000..0x000F = slots de
@@ -785,3 +805,195 @@ byte-a-byte e continua provado. O lado **IN** (resync `11000008`, resync
    core (só aceitava `out_long`/`in_long` + `hex`). `analysis/wirelog.py`
    normaliza os dois formatos, e `analysis/validate_core_capture.py` julga a
    sessão frame a frame.
+
+### 13.13 Bloco de registros `0000xxxx/0001xxxx/0002xxxx` + CCs curtos (G3–G5, sessão 11/10)
+
+**Fonte:** `analysis/captures/sessionG3-G6.jsonl` (Suite oficial + proxy winmm,
+5322 frames SysEx + 3 CCs, 292 s; o dono operou a UI do Suite). Tudo abaixo é
+**medido**, sem semântica inventada (ADR-13): endereço e forma são fato;
+"o que o controla" fica para o diff de ação→endereço (§13.13.4).
+
+**13.13.1 — O bloco `000200xx` (o que o golden não tinha):**
+
+```
+READ   11/00020003..0002000b   → IN 12/…  payload 4B (`00XX0000`) ou 8B
+READ   11/00020011..0002001f   → IN 12/…  payload 8B (`080f0c020305030f`)
+WRITE  12/00020003..0002001f   (edições do usuário)
+PUSH   12/00020003..0002001f   device→host — TODOS os 22 endereços fazem
+                                push em bloco (×3 na sincronização de +39s e
+                                novamente em +261s)
+```
+
+- O Suite **sincroniza em bloco**: lê `00020003..0b` num passo (~61 frames)
+  e o device **empurra** o bloco `00020003..1f` de volta — o push existe e o
+  Suite o usa como confirmação (write seguido de re-push).
+- Formas medidas: 4B com padrão `00XX0000` (contador/selector arrastável —
+  observado 0→13→0) e `0f0f0f0f` (= "off/max", aparece ao cruzar o mínimo);
+  8B = 4 pares nibble (`080f0c020305030f`).
+- `00020009` tem write mas **não** aparece no push IN (exceção medida).
+
+**13.13.2 — `00010203` / `00010204` (slider duplo de 4B):** 59 + 113 writes
+numa interação de 11,9 s; payload `XX YY 00 00` arrastado em passos de +3
+com wrap de nibble (low nibble estoura em 16 → carry no byte alto). Os DOIS
+endereços mudam juntos, sempre no mesmo segmento de tempo.
+
+**13.13.3 — `0000xxxx` pontuais e CCs:**
+- `12/00000000` 4B: `0f0f0f0f` → `00010000` (toggle medido)
+- `12/00000005` 4B (`00030000`); `12/00001000` 16B estruturado
+  (`0f0f0f0f000…` → `00000000000800000000000500000000`)
+- `12/10010001` 16B com um nibble flag 0→1 — família próxima de
+  `10xx0002` (set_param §13.11), formato NÃO é o do knob
+- **CCs curtos (fora de SysEx):** `B1 30 05` · `B1 31 7F` · `B1 30 7F` —
+  CC 48/49 no canal 2 (host→device). É por aí que anda EXP/footswitch (G5).
+
+**13.13.4 — Mapa ação→endereço (diff CONTROLADO, 11/10 — `sessionMap.jsonl`):**
+segunda sessão com protocolo de ordem fixa (uma ação por passo, pausa ≥10 s;
+segmentação por gap ≥6 s = ação por construção, sem depender de memória):
+
+| Passo (ordem fixa) | Endereço ÚNICO que mudou | Payload medido |
+|---|---|---|
+| 1. **drum BPM** (+5) | `12/00010203` ×15 | contador nibble +3 com carry (`080b→080e→0901→…→0b03`) |
+| 2. **Input Level** | `12/00020004` ×21 | byte1 conta 6→f→0… (`0f0f0f0f` = máx; envolve p/ `0000`) |
+| 3. **Global EQ** (1 banda) | `12/00020012` ×42 | reg. 8B `00000000 XX YY 04 01`, nibble-pair +8 (`0a08→0b00→…`) |
+| 4. **FS ×2 + varredura EXP** | CC out `B1 30 05` + re-push do bloco IN | **EXP: 0 eventos no fio** (prova negativa) |
+
+Consequências medidas:
+- **`00010203` = registrador do drum BPM** (ação isolada, único endereço).
+  `00010204` (§13.13.2) **NÃO** é BPM — na sessão de mapeamento não mudou;
+  na sessão G3–G6 os dois mudaram juntos. **Fechado por RE do binário do
+  Suite (§13.13.7): `00010204` = `drumVolume`** (par na mesma função do BPM).
+- **`00020004` = Input Level** (reg. 4B; `0f0f0f0f` = saturação máx).
+- **`00020012` (e a família 8B `00020011..1f`) = Global EQ** — um registrador
+  por banda/parâmetro.
+- **EXP não streameia** com o Suite aberto (varredura completa = 0 frames);
+  o único CC foi host→device (`B1 30 05`), não device→host.
+- Passo 5 ("outro ajuste") não produziu tráfego — ou não executado, ou
+  controle sem MIDI. **Restantes `0000xxxx`/`00020003/05/06/09` foram
+  nomeados pela RE do binário do Suite (§13.13.7)** — pareamento por código,
+  nunca por dedução (ADR-13); o diff de ação isolada continua sendo a prova
+  de fio para o que cada registrador *faz no device*.
+
+**13.13.5 — G7 segue aberto:** o `in 12/13000000` desta sessão veio
+**TRUNCADO** de novo (corte de 256 B do proxy) — confirma que o caminho do
+dump completo é o `--log` do `gp100-cli`, não o proxy.
+
+**13.13.6 — RE do firmware V2.1: a tabela de acessadores corrobora as famílias
+(`files/firmware/GP-100 Firmware V2.1.bin`, 3.424.316 B, ARM Cortex-M7 sem
+criptografia):** a região 96k–108k contém as funções mínimas de acesso a
+registrador (épilogo `bd08` = `pop {r3,pc}` seguido do literal do endereço).
+Literais de registrador encontrados, em ordem de firmware:
+
+```
+0x00010205 · 0x00010203 (BPM, medido) · 0x00010201 · 0x00010204 ·
+0x00010104 · 0x00010103                       → família DRUM (000102xx/000101xx)
+0x00020004 (Input Level, medido) · 0x00020003 · 0x00020009 · 0x00020006 ·
+0x00020005 · 0x00020001                       → família SYSTEM (000200xx)
+```
+
+- `0x00010204` é **vizinho direto** do BPM no firmware — reforça (com a
+  co-ocorrência da sessão G3–G6) que é o 2º registrador do drum. **NOME
+  FECHADO por rótulo no binário do Suite (§13.13.7): `drumVolume`.**
+- A família do EQ (`00020011..1f`, 8B) não tem accessor literal nesta região
+  (acesso indexado/genérico) — permanece com o nome de campo (§13.13.4).
+- Método repetível: scan de words LE `0x00000100..0x0003FFFF` após `bd08` na
+  seção de acessadores; nenhum byte foi alterado (só leitura).
+
+**13.13.7 — RE do Suite oficial: mapa completo chave→registrador (11/10, só
+leitura):** o binário do Suite (`C:/Program Files/Valeton/GP-100/GP-100.exe`,
+MSVC/Qt — referência legítima de RE, VISION §10.1) contém o pareamento
+**explícito**: cada handler carrega a chave QString de settings e chama o
+writer com o registrador imediato. Três classes de prova, nenhuma dedução:
+
+- **A — bloco de código:** chave carregada → `mov edx, <reg>` → `call 0x44f580`
+  (writer SysEx: edx = endereço 4B, byte0 = família, buf+len nos outros
+  regs; 38 sites). Wrapper `0x587d20` = write(reg, buf, len) (21 sites).
+- **B — cadeia+vetor:** o dispatcher `0x569d80(key)→índice` devolve índice
+  explícito por ramo; o writer `0x569ac0` grava `B[índice]`, com B =
+  `{00020004,00020007,00020008,00020000,00020005,00020006,00020003,00020006,0002000a,0002000b}`
+  (`.rdata` 0x1a54ca0/0x1a54cc0+0x2c/0x28). **Duas âncoras independentes
+  validam o vetor:** `gInput→00020004` (bate com o diff medido §13.13.4) e
+  `gVolume→00020003` (bate com a classe A).
+- **C — rótulos de UI:** strings `.rdata` dos dialogs (`stompmode_on/off`,
+  `Update Firmware will delete user preset…`, `The firmware file is not
+  compatible…`).
+
+*Família DRUM `000102xx`:*
+
+| reg | chave do Suite | prova |
+|---|---|---|
+| `00010201` | `drumPlayStyle` | A (refs 0x49cc11/cc8f → write 0x49cd74) |
+| `00010203` | `drumBpm` | A (bloco 0x49d1xx) **+ wire ✓** |
+| `00010204` | **`drumVolume`** ★ | A (key@116B → write 0x49d1d6, mesma função do BPM) |
+| `00010205` | `drumState` | A (dois writes 0x49bb3d/0x49bcfd) |
+
+★ = o “2º registrador do drum” que §13.13.4 deixou em aberto: é **volume**
+(não BPM). `00010103`/`00010104` (só no firmware, §13.13.6): **0 ocorrências**
+em `.text`/`.rdata` do Suite em qualquer forma (mov/push/lea/add) — o Suite
+não os usa; rótulo exige outro diff ou RE mais funda do firmware.
+
+*Família SYSTEM `0002xxxx` — o menu GLOBAL inteiro:*
+
+| reg | chave | significado | prova |
+|---|---|---|---|
+| `00020000` | `gPatch` | preset/patch atual | B (índice 3) |
+| `00020001` | `gWorkMode` | **stomp mode** (labels `stompmode_on/off`) | A (0x5e8bd3) + C |
+| `00020003` | `gVolume` | volume master | A (key@57B → 0x5dc892) + B (índice 6) |
+| `00020004` | `gInput` | **Input Level** | **wire ✓** + B (índice 0) |
+| `00020005` | `gUsbGain` | ganho USB | B (índice 4) |
+| `00020006` | `gUsbMonitorVol` | volume monitor USB | B (índice 7) |
+| `00020007` | `gUsbAudioLeft` | saída USB L | B (índice 1) |
+| `00020008` | `gUsbAudioRight` | saída USB R | B (índice 2) |
+| `00020009` | `gTapTempoSetting` | alvo do tap tempo (PRE/DLY/MOD…) | A (0x5a9495) |
+| `0002000a` | `gNoCabLeft` | no-cab L | B (índice 8) |
+| `0002000b` | `gNoCabRight` | no-cab R | B (índice 9) |
+| `00020011` | — | **enable do Global EQ** (bool→float, 2 sites 0x57d7c3/0x57ea5d) | A |
+| `00020012..1f` | — | **EQ por banda** (família 8B medida §13.13.4) | wire ✓ + C |
+
+Obs.: o calculador `0x2000e + 3·i + p` com casos i=0→`00020012`, i=7→
+`00020013` existe em 2 funções **sem chamadores** (código morto); o caminho
+vivo usa o reg pré-computado em `obj+0x164` e o cache `00020011..14`.
+
+*`0000xxxx` — ppCtrl e EXP (os que faltavam do diff):*
+
+| reg | chave | prova |
+|---|---|---|
+| `00000000`..`00000005` | `c11,c12,c13,c21,c22,c23` | A (alternância chave→write na função 0x55a930; `00000005` tem `push 5` explícito em 0x55b7ad) **+ `00000005` wire ✓** |
+| `00001000` | bloco de config do **EXP** (16B) | A (write 0x575ce6 len=16; chaves `ppEXP1/expMId/expIndex/expCode`) **+ wire ✓** |
+| `00001009` | `expVolumeMin` | A (key@114B → 0x56240a) |
+| `0000100a` | `expVolumeMax` | A (key@114B → 0x56228a; min<max confere) |
+| `0000100e` | `expVolume` | A (key@121B → 0x55f092) |
+| `00001001..08` | parâmetros EXP (família) | A — mesmos blocos de função (`ppEXP1`), 8 writes 4B: 1001/1002/1004/1005/1007/1008 + 1003/1006; **sub-rótulo individual pendente** |
+
+`0000100b..0d` não aparecem nem no Suite nem no fio. Os ppCtrl `c11..c23` são
+os slots de parâmetro das duas linhas (é o que o Suite grava em `0000xxxx`);
+o que o *device faz* com cada um continua para diff de ação isolada.
+
+*Outros endereços nomeados no caminho:*
+
+- `0011000001` = escrito da **página de efeitos** (2 sites: 0x5db47f após a
+  cadeia PRE..RVB, stub 0x570f4a) — nome exato pendente.
+- `0011000002` = **`ppBPM`** (bloco `ppBPM`→write 0x5dc689) — irmão novo do
+  save (golden tem `11000000/04/05/07/08`). `0011000005` = `ppType`
+  (corrobora golden §13.12 pelo bloco).
+- `0012000002` = fecho de metadados (golden §13.12; bloco
+  `ppAuthor/ppType→write` corrobora).
+- `0012001001` = bloco com lookup `AMP`/`CAB` (0x5dccc3) — irmão de
+  `12001002` (tabela lida §13.3); nome pendente.
+- `0012002000` = **fluxo de firmware update** (4 writes; labels C acima).
+  (Não tocamos em update — política G6.)
+- Slots de parâmetro: **`10 <slot01..09> 00 01`** e **`10 <slot01..09> 00 02`**
+  = 18 setters stub em 0x570d2f..0x570f2d (`10xx0002` = SET de param §13.11
+  ✓ medido) + `11000001` no mesmo bloco de stubs.
+
+*CC (fora de SysEx):* `0x44f1c0` monta **`B1 <cc> <val>`** (byte0 = 0xb1;
+imediatos 0x14..0x38). Sites: cc `0x30..0x38` (48..56) × {0x00,0x7f} na
+página de efeitos e cc `07` no fluxo de save; wrapper `0x587c70(cc,val)`
+emite o valor dinâmico. **Bate com os CCs medidos** `B1 30 7F`/`B1 31 7F`
+(G5). O `B1 30 05` medido (valor dinâmico) sai do wrapper. Significado de
+CC48/49 no device segue para diff de ação.
+
+*O que continua SEM nome (honestidade ADR-13):* sub-rótulos de
+`00001001..08`; `00010103`/`00010104` (ausentes do Suite); semântica fina de
+`0011000001`/`0012001001`; ação de UI→endereço para os ppCtrl; banda×
+parâmetro do Global EQ (0x20012..1f — um diff por banda fecha). **Nenhum byte
+do Suite/firmware foi alterado (só leitura).**

@@ -49,18 +49,40 @@
   log do `gp100-core` (P4: `out` + `func`/`addr`/`data`).
 - **Resolvido pela maquinaria** (`wirelog.py`, `--log` com `t`,
   `validate_core_capture.py`, `baseline.py`). **Falta a sessão de campo** que
-  produz a captura e o bump para v1.2.
-
-## G3. Banco/BIOS/global — pouco explorado
-- Trocar de banco (se houver), abrir settings globais (drum/BPM/tuner), mudar BPM da UI
-- Identifica endereços fora do bloco 13xx
-
-## G4. Live/physical controls
-- MEXER knob FÍSICO com o Suite aberto (1 knob, swing lento) → descobrir se há
-  notificação device→host (na sessão 1 não houve, confirmar com scan parado)
-
-## G5. Footswitch/EXP
-- Acionar footswitch e mexer expression pedal com o Suite aberto → eventos em tempo real?
+  produz a captura e o bump para v1.2.## G3. Banco/BIOS/global — ✅ ENDEREÇOS MEDIDOS (11/10, sessão G3–G6)
+- Sessão com o Suite + proxy: `analysis/captures/sessionG3-G6.jsonl` (5322 frames).
+- **Bloco de registros `00020003..0002001f`** (READ 11/… + WRITE 12/… + PUSH
+  IN device→host dos 22 endereços) = o estado global sincronizado em bloco.
+  Mais `00000000`/`00000005`/`00001000` e o slider duplo `00010203/04`.
+  Detalhe de forma em `docs/PROTOCOL.md` §13.13.
+- **Mapa ação→endereço FECHADO (11/10, diff controlado — `sessionMap.jsonl`):**
+  `00010203` = **drum BPM** · `00020004` = **Input Level** · `00020012` (família
+  8B `00020011..1f`) = **Global EQ** por banda. Detalhe em PROTOCOL §13.13.4.
+- **Nomes FECHADOS por RE do binário do Suite (11/10, só leitura —
+  `docs/PROTOCOL.md` §13.13.7, prova A/B/C):** `00010204`=`drumVolume` ·
+  `00000000..05`=ppCtrl `c11..c23` · `00001000`=bloco de config EXP (16B) ·
+  `00020003`=`gVolume` · `00020005`=`gUsbGain` · `00020006`=`gUsbMonitorVol` ·
+  `00020009`=`gTapTempoSetting`; família `0002xxxx` inteira nomeada
+  (dispatcher `0x569d80` + vetor B, 2 âncoras independentes: wire + bloco
+  de código). **Restam:** sub-rótulos `00001001..08` (família EXP provada,
+  item individual pendente) · `00010103/04` (0 ocorrências no Suite — só
+  firmware) · banda×parâmetro do EQ · ação de UI→endereço para ppCtrl
+  (diff de ação isolada continua sendo a prova de fio; nunca dedução).
+## G4. Live/physical controls — ✅ EXISTE notificação device→host (11/10)
+- O device FAZ push em bloco do bloco `000200xx` (×3 na sync de +39s e de
+  +261s) — resposta medida: sim, há canal device→host, e o Suite o usa como
+  confirmação de write.
+- Knob FÍSICO da master ainda não isolado (exigiria mexer knob com Suite
+  parado; a sessão de 11/10 foi toda pela UI do Suite).
+## G5. Footswitch/EXP — ✅ PARCIAL (11/10) + emissor identificado por RE
+- 3 CCs curtos capturados: `B1 30 05` · `B1 31 7F` · `B1 30 7F` (CC 48/49,
+  canal 2, host→device).
+- **Emissor achado no Suite (§13.13.7):** `0x44f1c0` monta `B1 <cc> <val>`
+  (imediatos 0x14..0x38); sites = cc 48..56 × {0,127} na página de efeitos +
+  cc 7 no save; wrapper `0x587c70(cc,val)` = o valor dinâmico (o `… 05`).
+  **Resta:** o que CC48/49 *significam* no device (EXP? FS?) — diff de ação.
+- Nota: EXP **não streameia** com Suite aberto (0 events na varredura).
+  Bloco de config `00001000` (16B) já é nomeado (§13.13.7).
 
 ## G6. Firmware/dados de fábrica
 - Ler tela de info de firmware no Suite (se expuser SysEx de versão)

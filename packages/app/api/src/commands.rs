@@ -96,8 +96,10 @@ impl DeviceInfo {
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct BootProgressDto {
-    /// Etapa do script (§13.10): "tables" | "scan" | "probe" | "setlist" |
-    /// "names" | "keepalive" — literal estável para o front.
+    /// Etapa do script (§13.10): "tables" | "scan" | "probe" | "state5" |
+    /// "names" | "keepalive" — literal estável para o front. (`state5` = as 5
+    /// leituras de `12001012`; era "setlist", mas a GP-100 não tem setlist —
+    /// `docs/GP100_DEVICE.md` §5#1.)
     pub stage: &'static str,
     /// Transações completas até agora.
     pub done: usize,
@@ -114,7 +116,7 @@ impl From<BootProgress> for BootProgressDto {
                 BootStage::Tables => "tables",
                 BootStage::Scan => "scan",
                 BootStage::Probe => "probe",
-                BootStage::Setlist => "setlist",
+                BootStage::State5 => "state5",
                 BootStage::Names => "names",
                 BootStage::Keepalive => "keepalive",
             },
@@ -131,6 +133,12 @@ impl From<BootProgress> for BootProgressDto {
 pub struct BootReportDto {
     /// Nº de transações de boot+scan executadas com sucesso.
     pub transactions: usize,
+    /// Pps com cache de páginas após o scan (o inventário lido — 198 no
+    /// catálogo atual).
+    pub presets: usize,
+    /// Pps com nome decodificado da pg0 (o "198/198" que o gate da #161
+    /// valida antes de montar a casca).
+    pub names: usize,
 }
 
 /// DTO de um slot da tabela de User IRs (`list_user_irs`).
@@ -260,6 +268,8 @@ pub fn device_boot(
     }
     Ok(BootReportDto {
         transactions: report.transactions,
+        presets: report.presets,
+        names: report.names,
     })
 }
 

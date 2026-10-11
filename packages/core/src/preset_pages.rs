@@ -222,15 +222,23 @@ pub fn decode(paginas: &[StatePage; 9]) -> Result<Paginas, DecodeError> {
 impl Paginas {
     /// O nome do preset: pg0, offset [`NOME_OFFSET`], [`NOME_LEN`] bytes.
     ///
-    /// **A regra do pad é a prova.** Depois do primeiro NUL só pode vir NUL —
-    /// aceitar `"AB\0CD"` seria servir um nome truncado para a biblioteca e
-    /// para o DAW, e a falha seria invisível. Os [`NOME_LEN`] bytes têm de ser
-    /// ASCII imprimível (0x20..=0x7E) antes do NUL, e o nome não pode ser
-    /// vazio. O espaço tem 12 bytes porque a cadeia de slots ocupa 14..32 —
+    /// **O nome termina no primeiro NUL — e o rabo é do device, não é
+    /// nosso.** Medido em campo (H4/2026-10-09): o aparelho ao renomear
+    /// sobrescreve só até o terminator e NÃO zera o resto — pp 0x0000 foi
+    /// de `It's GP100` para `H2 TESTE\0` e o `'0'` (0x30) final do nome
+    /// antigo ficou stale na posição 9. A regra portanto é a do objeto
+    /// `preset`: ASCII imprimível (0x20..=0x7E) antes do primeiro NUL,
+    /// nome não-vazio, e bytes após o NUL são **ignorados** (pertencem ao
+    /// nome antigo, não ao objeto). Antes a regra punia o rabo stale com
+    /// `NomeInvalido` — uma suposição de fábrica (nomes de fábrica são
+    /// 198/198 zerados) tratada como lei, derrubando 197/198 no gate.
+    ///
+    /// O espaço tem 12 bytes porque a cadeia de slots ocupa 14..32 —
     /// aceitar 16 seria ler os slots como se fossem nome.
     ///
     /// # Erros
-    /// [`DecodeError::NomeInvalido`] se o espaço do nome violar a regra.
+    /// [`DecodeError::NomeInvalido`] se o espaço do nome violar a regra
+    /// (vazio ou byte não-imprimível ANTES do NUL).
     pub fn nome(&self) -> Result<&str, DecodeError> {
         let pg0 = &self.corpos[0];
         let espaco = pg0
@@ -243,23 +251,17 @@ impl Paginas {
                 ),
             })?;
 
+        // O objeto preset termina no primeiro NUL; o que vem depois é o
+        // nome antigo que o device não zerou (medido — não é lixo nosso
+        // para rejeitar, é estado legítimo do hardware).
         let fim = espaco.iter().position(|&b| b == 0).unwrap_or(NOME_LEN);
         if fim == 0 {
             return Err(DecodeError::NomeInvalido {
                 detalhe: "nome vazio".into(),
             });
         }
-        for (i, &b) in espaco.iter().enumerate() {
-            if i >= fim {
-                if b != 0 {
-                    return Err(DecodeError::NomeInvalido {
-                        detalhe: format!(
-                            "byte {b:#04x} depois do NUL no offset {}",
-                            NOME_OFFSET + i
-                        ),
-                    });
-                }
-            } else if !(0x20..=0x7E).contains(&b) {
+        for (i, &b) in espaco[..fim].iter().enumerate() {
+            if !(0x20..=0x7E).contains(&b) {
                 return Err(DecodeError::NomeInvalido {
                     detalhe: format!("byte {b:#04x} nao imprimivel no offset {}", NOME_OFFSET + i),
                 });

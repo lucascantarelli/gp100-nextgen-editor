@@ -1,6 +1,6 @@
 # 📜 DECISIONS — Decisões de design pré-assinadas (ADR-lite)
 
-> **Banner:** ✅ atual · **Última revisão:** 2026-09-29 · **Origem:** ROADMAP P5 (ADR-1..5) + pré-desenho M0.6 (ADR-6)
+> **Banner:** ✅ atual · **Última revisão:** 2026-10-10 · **Origem:** ROADMAP P5 (ADR-1..5) + pré-desenho M0.6 (ADR-6) · **Campo:** ADR-12/13 vindos do gate H4 (#177)
 >
 > Registra as decisões estruturais do `gp100-core` **antes** de cada bloco de
 > implementação (ADR-1..5 pré-assinados antes do M0; ADR-6 sancionado antes do
@@ -805,3 +805,53 @@ literalmente sobre isto.
 no pp que o scan devolveu, conferindo o display — continua sendo a porta
 para a retomada da sessão A/B (#116). Este ADR não fecha campo; fecha o
 que o código pode provar sozinho.
+
+## ADR-13 — Fonte dinâmica vs. snapshot de análise: validar conteúdo contra o schema, nunca contra bytes capturados (#177)
+
+> **Status:** ✅ pré-assinado (10/10, retroativo ao fix `4fe9a5f`) · **Origem:**
+> achado de campo do H4 (issue #177) · **Afeta:** `gp100-core`
+> (`golden::Pattern::matches_shape`, `session::wait_for`, `preset_pages::nome`)
+> · **Vincula:** ADR-12 (inventário do aparelho), ADR R2/R3 (golden = baseline
+> congelada das capturas 1–4)
+
+**Contexto.** O boot do H4 morreu em 6/6 no MESMO ponto, sem timeout (gap máx.
+14 ms). Duas causas, a mesma doença: comparar **dado vivo do hardware** contra
+**snapshot de análise**. (1) A sonda T6 (`12|13020003`) tem resposta `mixed` com
+um segmento `const` de 144B que congela o **nome** do preset; o owner renomeou o
+pp e `match_response` rejeitou a resposta VERDADEIRA do aparelho. (2) A regra de
+pad do nome punia o device por não zerar o rabo ao renomear (medido: `H2 TESTE\0`
++ `'0'` 0x30 stale de "It's GP100") — suposição de fábrica tratada como lei,
+derrubaria o gate em 197/198.
+
+**Decisão.**
+- **Schema vs. snapshot.** O `golden` (`protocol_golden.json`, baseline R2/R3)
+  é a especificação das **formas**: endereço, comprimento, `by-len`, nº de vars,
+  `var_count`. NÃO é autoridade sobre **conteúdo** — os segmentos `const` são o
+  estado de fábrica do aparelho ANALISADO, e cada dono editou o seu.
+- **`wait_for` valida só a forma** (`match_shape`: endereço + comprimento/by-len).
+  O conteúdo cai no DECODE dos objetos (`preset_pages`, `codec`), que conhecem o
+  schema dos dados (nome ASCII, faixa de knob, nibble). Despacho 4B/75B por
+  comprimento (D1) é forma e permanece.
+- **Nome = objeto que termina no primeiro NUL.** Byte após o NUL pertence ao nome
+  antigo que o device não zerou; é ignorado, não rejeitado. Não-imprimível ANTES
+  do NUL continua recusando (é corrupção de objeto, não stale de device).
+- **Fonte dinâmica é o hardware.** Presets, palco, User IRs saem do scan/cache
+  (`Session::pages`), nunca do `all.prst`. O `all.prst` e o golden são insumo de
+  ANÁLISE e de teste — nunca validam resposta em runtime.
+
+**Consequências.**
+- (+) Um aparelho com pp renomeado / slot editado / lista de IR própria monta a
+  casca. O app passa a refletir o hardware do dono, não o aparelho da captura.
+- (+) O gate de boot deixa de morrer por conteúdo legítimo; falha só por forma
+  (timeout / comprimento errado / device gone) — que é o que o erro tipado
+  (ADR-2) já distingue.
+- (−) Perdemos a detecção de "conteúdo fora do esperado" no `wait_for`. Aceito:
+  essa detecção nunca foi confiável (snapshot ≠ hardware) e o decode por schema
+  é o juiz honesto. Quem quer provar conteúdo usa o `match_response` COMPLETO em
+  teste, não em runtime.
+
+**Consulte o aparelho, sempre.** O device real está ligado nesta máquina e é
+consultável a qualquer sessão (CLI de campo `--real`, leitura pura). Antes de
+deduzir comportamento do mock ou perguntar ao owner, MEÇA no aparelho. Toda
+regra de "padrão" tem de nascer de byte observado, nunca de suposição de fábrica
+— foi exatamente isso que o H4 cobrou caro.
