@@ -22,7 +22,7 @@
 | **Congelar a especificação depois do hardware (gate H3)** | `docs/H3_CHECKLIST.md` (4 sessões) + `docs/H3_REPORT.md` + [`PROTOCOL.md` §13.14](PROTOCOL.md) (a conta da baseline v1.1) + `analysis/baseline.py show` |
 | **Medir as páginas 13xx em campo (gate H4)** | `docs/H4_CHECKLIST.md` (é leitura — nada escreve no aparelho pelo app: as edições do roteiro são feitas no pedal) + `docs/H4_REPORT.md` (relatório) + `analysis/validate_state_pages.py` (gate do artefato de offsets) |
 | **Implementar o protocolo (gp100-core)** | `docs/protocol_golden.json` (especificação executável) + `docs/PROTOCOL.md` §13 (narrativa) |
-| **Decidir arquitetura/estrutura no core (M0)** | `docs/DECISIONS.md` (ADR-1..12 aceitos) |
+| **Decidir arquitetura/estrutura no core (M0)** | `docs/DECISIONS.md` (ADR-1..13 aceitos) |
 | **Saber onde o código novo do front vai morar** | `docs/ARCHITECTURE.md` (mapa de módulos + o que **não** entra em cada camada + orçamento de tamanho) |
 | **Saber onde a persistencia do app mora (M2)** | `docs/DECISIONS.md` ADR-9 (crate `gp100-library` no workspace gnu, nao no crate MSVC do Tauri) |
 | **Escrever/revisar código Rust (M0)** | `.agents/skills/rust-practices/SKILL.md` (gates fmt/clippy/test + estilo de docs) |
@@ -47,7 +47,7 @@
 | Números (testes, cobertura, datas dos marcos) | `docs/INDEX.md` §6 | repetir o número em README/ROADMAP/knowledge (#81) |
 | Estrutura do pipeline (jobs, tipos, ordem) | `.github/workflows/ci.yml` + `docs/CONTRIBUTING.md` §5 | workflow pré-#68 (`_validate.yml`/`release.yml`/`container.yml`) — **consolidados no #68; não existem mais** |
 | Mapa knob→fio | `analysis/knob_map.json` (regenerável) | — |
-| Decisões de implementação do core | `docs/DECISIONS.md` (ADR-1..12) | reabrir debate ad-hoc |
+| Decisões de implementação do core | `docs/DECISIONS.md` (ADR-1..13) | reabrir debate ad-hoc |
 | Armadilhas Windows/ambiente | `knowledge.md` | — |
 
 ## 3. Inventário de documentos
@@ -68,6 +68,7 @@
 | `UI_REFERENCE.md` | Referência da casca do front: papéis de tela, contratos de estado, **§8 = fonte de verdade do texto de usuário** (o lint de i18n aponta para cá) | ✅ atual (M1.3) |
 | `UI_TEST_PLAN.md` | **Fonte dos roteiros e2e** (declarada no `playwright.config.ts`): R1–R6 + drum/looper, matriz de viewports, política de baselines | ✅ atual |
 | `MANUAL_COVERAGE.md` | Matriz de cobertura do manual oficial V1.8 → requisitos implementados (X1..Xn), com o gate que prova cada um | ✅ atual |
+| `GP100_DEVICE.md` | **Contexto canônico da pedaleira real**: funcionalidades, comportamentos, vocabulário (User Patch × User IR × Setlist-inexistente), menu GLOBAL, lacunas de leitura do hardware e divergências expostas pela pesquisa de 10/10. Skill `device-reference` aponta pra cá | ✅ atual (10/10) |
 | `UI_DESIGN.md` | Design system da UI: paleta palco Valeton (âmbar/preto/vermelho/lavanda com rácios WCAG medidos), escala de Fibonacci, tipografia, motion, identidade "pedalboard ao vivo", checklist de review | ✅ atual (M1.0) |
 | `ARCHITECTURE.md` | **Estrutura do front** (#82): mapa de módulos (`ipc`/`hooks`/`components`/`design`/…), o que **não** entra em cada camada, árvore de decisão para código novo e o orçamento de tamanho cobrado pelo gate `check_module_size.py` | ✅ atual (#82) |
 | `H1_CHECKLIST.md` | Checklist operacional do gate H1 (primeiro contato real, só leitura): pré-requisitos, procedimento de campo, níveis de comparação (framing × estado × estrutural), log de divergência, fluxo R3 | ⏳ aguardando pedaleira + owner — RealDevice ✅, kit de campo ✅ e Fase C automatizada (`h1_compare.py`) |
@@ -134,11 +135,12 @@ Instaladores, firmware V2.1, manual, driver, DebugView, screenshots,
 
 ### Infra do agente
 `knowledge.md` (estado vivo + armadilhas), `.codebuffignore`,
-`.agents/skills/{proxy-build,capture-analyze,new-session,spec-baseline,protocol-validate,core-dev,docs-sync,rust-practices,ui-ux-practices,github-flow}/SKILL.md`
-— 10 skills: **fluxo de trabalho** (`github-flow`, `new-session`) · **desenvolvimento**
+`.agents/skills/{proxy-build,capture-analyze,new-session,spec-baseline,protocol-validate,core-dev,docs-sync,rust-practices,ui-ux-practices,github-flow,device-reference}/SKILL.md`
+— 11 skills: **fluxo de trabalho** (`github-flow`, `new-session`) · **desenvolvimento**
 (`core-dev`, `rust-practices`, `ui-ux-practices`) · **qualidade/infra**
 (`protocol-validate`, `proxy-build`, `capture-analyze`) · **governança**
-(`spec-baseline`, `docs-sync`).
+(`spec-baseline`, `docs-sync`) · **conhecimento do device** (`device-reference` →
+`docs/GP100_DEVICE.md`).
 
 ✅ As skills do pipeline já falam o **#68**: `rust-practices`, `ui-ux-practices`,
 `core-dev` e `github-flow` citam o `ci.yml`, e o `github-flow` menciona a label

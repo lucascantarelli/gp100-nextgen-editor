@@ -1337,6 +1337,33 @@ mod tests {
         actor.shutdown();
     }
 
+    /// **#161 — o relatório HONESTO atravessa o actor com inventário
+    /// VARIANTE.** O caminho scan → `BootReport` → DTO é o que a UI consome
+    /// (o `commands.rs` copia os 3 campos para o `BootReportDto`): aqui se
+    /// prova o boundary do APP com um device saudável que tem um slot sem
+    /// nome gravado. O relatório que sai daqui — e que a UI recebe — tem de
+    /// ser `198/197`: inventário lido por inteiro, nome só onde o fio
+    /// entregou. Se o relatório mentisse 198/198 (contando slot por
+    /// inventário em vez de por nome lido), o gate da #161 não teria o que
+    /// barrar e a casca montaria sobre um aparelho pela metade.
+    #[test]
+    fn boot_via_actor_entrega_relatorio_honesto_com_slot_sem_nome() {
+        let mock = MockDevice::new()
+            .expect("mock montado")
+            .with_slot_sem_nome(0x0042);
+        let actor = DeviceActor::spawn(mock, Backend::Mock);
+        let report = actor.boot(None).expect("boot com slot sem nome");
+        assert_eq!(
+            report.presets, 198,
+            "inventário lido por inteiro — o slot sem nome existe no fio"
+        );
+        assert_eq!(
+            report.names, 197,
+            "197/198 honesto pelo actor: o DTO que a UI recebe carrega a medição do scan"
+        );
+        actor.shutdown();
+    }
+
     /// **O log de fio do app grava o fio de verdade.** É o que faz um incidente
     /// de campo ser ATRIBUÍVEL em vez de dedutivo: o arquivo tem o frame que
     /// saiu, com `func`/`addr`/`data`. No incidente de 06/10 não havia log

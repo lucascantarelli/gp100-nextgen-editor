@@ -383,6 +383,136 @@ fn com_a_flag_o_boot_completo_passa() {
     );
 }
 
+/// Transporte que PUNE escrita **mutante** durante o boot: qualquer
+/// `WireKind::Write` que não seja o keepalive `00020001` (ping — ADR-5
+/// rev., o único write legítimo do script de boot) é registrado como
+/// VIOLAÇÃO e recusado. Se o boot ainda assim completa, é porque o
+/// script não tem um único frame que altere estado do device.
+struct PuneMutacao<T> {
+    inner: T,
+    /// Endereços de escrita mutante tentados (tem de ficar vazio).
+    violacoes: Vec<String>,
+    /// Pings `00020001` aceitos (o ÚNICO write permitido no boot).
+    keepalives: usize,
+}
+
+impl<T: DeviceTransport> DeviceTransport for PuneMutacao<T> {
+    fn open(&mut self) -> Result<(), TransportError> {
+        self.inner.open()
+    }
+    fn close(&mut self) -> Result<(), TransportError> {
+        self.inner.close()
+    }
+    fn send_raw(&mut self, data: &[u8], kind: WireKind) -> Result<(), TransportError> {
+        if kind == WireKind::Write {
+            let addr = addr_de(data);
+            if addr != "00020001" {
+                self.violacoes.push(addr.clone());
+                return Err(TransportError::WriteBlocked { op: addr });
+            }
+            self.keepalives += 1;
+        }
+        self.inner.send_raw(data, kind)
+    }
+    fn recv_raw(&mut self, timeout: Duration) -> Result<Vec<u8>, TransportError> {
+        self.inner.recv_raw(timeout)
+    }
+    fn permite_escrita(&self) -> bool {
+        self.inner.permite_escrita()
+    }
+}
+
+/// **#161 — anti-brick: o boot não tenta nenhuma escrita mutante.**
+///
+/// O DoD da #161 pede "nenhuma escrita no caminho de boot (transporte que
+/// pune write)". O que "pune" aqui é a MUTAÇÃO — `set_param`, `save`,
+/// upload de IR: qualquer `Write` fora do keepalive vira `WriteBlocked` e
+/// derrubaria o boot. O ping `00020001` continua permitido (é a face A da
+/// #126/ADR-5 rev.: omitido com a trava fechada, mas não é mutação).
+///
+/// O teste passa = o script inteiro do boot saiu no fio sem um único
+/// frame que alterasse o device — um `set_param`/`save` escondido no
+/// boot quebraria este teste em campo, não em revisão.
+#[test]
+fn boot_nao_tenta_escrita_mutante() {
+    let mut mock = MockDevice::new().expect("mock");
+    mock.open().expect("open");
+    let mut dev = PuneMutacao {
+        inner: mock,
+        violacoes: Vec::new(),
+        keepalives: 0,
+    };
+    let mut s = Session::new(&mut dev);
+    let rel = s
+        .boot()
+        .expect("boot completa: o script não precisa de escrita mutante");
+
+    assert!(
+        dev.violacoes.is_empty(),
+        "o boot tentou escrita mutante: {:?}",
+        dev.violacoes
+    );
+    assert_eq!(
+        dev.keepalives, 2,
+        "o keepalive ×2 (D4) é o ÚNICO write do boot — ping, não mutação"
+    );
+    assert_eq!(
+        rel.transactions, 2297,
+        "2295 do scan + keepalive ×2: o relatório conta o que saiu no fio"
+    );
+}
+
+/// **#161 — anti-brick em inventário VARIANTE: o script não muda.**
+///
+/// O teste de cima prova o caminho 198/198 (catálogo). Este endurece o
+/// mesmo transporte punidor com um device SAUDÁVEL mas com um slot sem
+/// nome gravado (`with_slot_sem_nome`) — frota real varia, e é o cenário
+/// em que o relatório sai `198/197`. O que se prova aqui: o conteudo do
+/// inventário NENHUMA parte do boot reage com escrita — o scan continua
+/// só lendo, o keepalive continua sendo o ÚNICO write, e o relatório
+/// entrega a medição honesta que o gate do front vai barrar. Um boot que
+/// "consertasse" o slot (gravando o nome que faltou) quebraria este
+/// teste com uma violação registrada — quebraria EM CAMPO, não em revisão.
+#[test]
+fn boot_com_inventario_variante_nao_tenta_escrita_mutante() {
+    let mut mock = MockDevice::new().expect("mock");
+    mock.open().expect("open");
+    // 0x0042: um pp no MEIO do inventário 0..198 — o gate tem de barra-lo
+    // pela contagem, não por acaso de borda.
+    let mock = mock.with_slot_sem_nome(0x0042);
+    let mut dev = PuneMutacao {
+        inner: mock,
+        violacoes: Vec::new(),
+        keepalives: 0,
+    };
+    let mut s = Session::new(&mut dev);
+    let rel = s
+        .boot()
+        .expect("boot completa mesmo com slot sem nome: leitura não depende de nome gravado");
+
+    assert!(
+        dev.violacoes.is_empty(),
+        "o boot tentou escrita mutante num device variante: {:?}",
+        dev.violacoes
+    );
+    assert_eq!(
+        dev.keepalives, 2,
+        "o keepalive ×2 segue o ÚNICO write — o inventário variante não muda o script"
+    );
+    assert_eq!(
+        rel.transactions, 2297,
+        "mesmo total: variante de conteúdo não muda a FORMA do boot"
+    );
+    assert_eq!(
+        rel.presets, 198,
+        "inventário LIDO por inteiro (198 slots) — o slot sem nome existe"
+    );
+    assert_eq!(
+        rel.names, 197,
+        "197/198 medido: o slot sem nome não decodifica nome — honesto, sem inventar"
+    );
+}
+
 // ══════════════════════════════════════ a constante WRITE_VERIFIED
 
 /// A `WireKind` é o que o ADR-5 consome, e ela é pública na trait — se

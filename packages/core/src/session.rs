@@ -5,8 +5,10 @@
 //!
 //! Regras de dispatch — resumo (FONTE ÚNICA = ADR-6, não reabrir aqui):
 //! - **D1** a transação é dona do endpoint: quem pediu interpreta a PRÓXIMA
-//!   msg do `(func, addr)` via `GoldenFile::match_response` (by-len resolve
-//!   `12001002`: ACK 4B × tabela 75B);
+//!   msg do `(func, addr)` via `GoldenFile::match_shape` (by-len resolve
+//!   `12001002`: ACK 4B × tabela 75B). **FORMA só** (#177): o conteúdo da
+//!   resposta é do hardware e passa pelo decode dos objetos — nunca é
+//!   comparado com os bytes `const` do golden (snapshot de análise);
 //! - **D2** push é classificado pelo CONTEXTO da operação, não pela msg
 //!   (`13010001` push×req têm os MESMOS 6 bytes — ordem do arquivo só
 //!   desempata FORMA);
@@ -33,7 +35,7 @@ use std::time::Duration;
 const TX_TIMEOUT_MS: u64 = 3000;
 
 /// Ordem REAL do script de boot (prova C do replay):
-/// Tables → Scan → Probe → Setlist → Names → Keepalive.
+/// Tables → Scan → Probe → State5 → Names → Keepalive.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BootStage {
     /// T1 — tabelas de User IRs `11/12001002` (20 páginas ×2 leituras).
@@ -43,8 +45,12 @@ pub enum BootStage {
     Scan,
     /// T6 — sonda do banco 02 (select const + open + 9 páginas).
     Probe,
-    /// T2 — setlist `11/12001012` (5 leituras).
-    Setlist,
+    /// T2 — 5 leituras de `11/12001012` (44B cada). O repo a chama(va) de
+    /// "setlist", mas a GP-100 **não tem função setlist** no manual
+    /// (`docs/GP100_DEVICE.md` §5#1). Renomeado para `State5` (5 entradas de
+    /// estado) até a semântica fina ser decifrada em campo — não expor como
+    /// produto.
+    State5,
     /// T3 — nomes `11/11000008` (fire-and-forget, D4; 61 leituras).
     Names,
     /// T4 — keepalives `12/00020001` ×2 (D4).
@@ -73,12 +79,21 @@ pub struct BootProgress {
 pub type BootProgressFn<'a> = dyn FnMut(BootProgress) + 'a;
 
 /// Relatório do boot+scan (§13.10): nasce MÍNIMO (deriva das vars que os
-/// templates extraem) e cresce só quando a UI pedir (ADR-6, YAGNI).
+/// templates extraem) e cresce só quando a UI pedir (ADR-6, YAGNI) — a
+/// #161 (gate de boot) pediu o inventário, para o front montar a casca
+/// só com o aparelho LIDO.
 #[derive(Debug, Clone)]
 pub struct BootReport {
     /// Nº de transações de boot+scan executadas com sucesso (replay da
     /// sequência capturada: 2299 OUT na S1).
     pub transactions: usize,
+    /// Pps com cache de páginas após o scan — o inventário lido (198 no
+    /// catálogo atual: 99 de fábrica + 99 de usuário).
+    pub presets: usize,
+    /// Pps do cache cuja pg0 decodifica com nome válido (#155) — o "198/198"
+    /// que o gate da #161 valida: nomes menos que presets = leitura pela
+    /// metade.
+    pub names: usize,
 }
 
 /// Página de estado (família 13xx): o payload cru como veio no fio, mais
@@ -96,7 +111,7 @@ pub struct StatePage {
 }
 
 /// Resultado de `list_user_irs`: a TABELA dos 20 User IRs (§13.12), já
-/// distinguida do ACK 4B pelo by-len de `match_response` (D1).
+/// distinguida do ACK 4B pelo by-len de `match_shape` (D1).
 #[derive(Debug, Clone)]
 pub struct UserIrTable {
     /// Slots decodificáveis: (slot u8, nome ASCII até 32B). CRC de slot
@@ -411,7 +426,7 @@ impl<T: DeviceTransport> Session<T> {
     ///
     /// INTERLEAVE (D2): cada transação espera a PRÓPRIA resposta (D1) e
     /// pushes de boot não solicitados (dump 13000000, meta6 13010001,
-    /// páginas 13010003, setlist 12001012, nomes 11000008) vão para o
+    /// páginas 13010003, estado 12001012, nomes 11000008) vão para o
     /// BACKLOG (D7), não confundem as transações. `progress` é
     /// observacional: um `beat!` por transação, nada no fio.
     fn boot_inner(
@@ -421,7 +436,7 @@ impl<T: DeviceTransport> Session<T> {
         let golden = GoldenFile::embedded()?;
         let mut tx = 0usize;
         // Total esperado: T1(40) + scan(11/pp +2 se pp corrente duplicado)
-        // + sonda(11) + setlist(5) + nomes(61) + keepalive(2). O replay da
+        // + sonda(11) + estado5(5) + nomes(61) + keepalive(2). O replay da
         // captura (198 pps, 0x0100 duplicado) fecha em 2299 = prova C.
         let pps = self.inventory();
         let doubled = pps.iter().filter(|&&p| p == 0x0100).count();
@@ -441,7 +456,7 @@ impl<T: DeviceTransport> Session<T> {
         }
 
         // ORDEM REAL do boot S1 (prova C / replay): T1 → scan (T5) →
-        // sonda 1302 (T6) → setlist (T2) → nomes (T3) → keepalives ×2.
+        // sonda 1302 (T6) → estado5 (T2) → nomes (T3) → keepalives ×2.
         // T1: 20 páginas ×2 (regra da prova C)
         for p in 0u8..0x14 {
             for _ in 0..2 {
@@ -588,8 +603,8 @@ impl<T: DeviceTransport> Session<T> {
             tx += 1;
             beat!();
         }
-        stage = BootStage::Setlist;
-        // T2: setlist 5 entradas
+        stage = BootStage::State5;
+        // T2: 5 entradas de `12001012` (estado; não é setlist — GP100_DEVICE §5#1)
         for i in 0u8..5 {
             self.tx_req(golden, 0x11, &[0x12, 0x00, 0x10, 0x12], &[i])?;
             tx += 1;
@@ -649,7 +664,24 @@ impl<T: DeviceTransport> Session<T> {
                 beat!();
             }
         }
-        Ok(BootReport { transactions: tx })
+        // #161 — medição honesta do que saiu do fio: o inventário que o
+        // scan deixou no cache e quantos nomes a pg0 deles decodifica.
+        // Só conta; quem interpreta ("198/198 do catálogo") é o gate do
+        // front — aqui o relatório não mente nem inventa.
+        let presets = self.pages.len();
+        let mut names = 0usize;
+        for pags in self.pages.values() {
+            if let Ok(pg) = crate::preset_pages::decode(pags) {
+                if pg.nome().is_ok() {
+                    names += 1;
+                }
+            }
+        }
+        Ok(BootReport {
+            transactions: tx,
+            presets,
+            names,
+        })
     }
 
     /// O pp corrente (atualizado por [`Session::select_preset`] e pelo
@@ -990,8 +1022,9 @@ impl<T: DeviceTransport> Session<T> {
     }
 
     /// Tabela dos 20 User IRs: req em `12001002`; o by-len de
-    /// `match_response` garante que a resposta lida é a TABELA (75B
-    /// nibble-exp), não um ACK (4B) — D1.
+    /// `match_shape` garante que a resposta lida é a TABELA (75B
+    /// nibble-exp), não um ACK (4B) — D1. Os nomes vêm do hardware
+    /// (nibble-collapse do payload), sem comparação com golden.
     pub fn list_user_irs(&mut self) -> Result<UserIrTable, ProtocolError> {
         let mut slots = Vec::new();
         for page in 0u8..0x14 {
@@ -1015,6 +1048,26 @@ impl<T: DeviceTransport> Session<T> {
             slots.push((payload[0], s));
         }
         Ok(UserIrTable { slots })
+    }
+
+    /// As 5 leituras de `11/12001012` do boot (T2), devolvidas CRUAS.
+    ///
+    /// É a etapa que o repo chamava de "setlist" e agora se chama
+    /// [`BootStage::State5`]: a GP-100 **não tem função setlist** no manual
+    /// (`docs/GP100_DEVICE.md` §5#1). O payload é 44B nibble-exp com cara de
+    /// `12 10 2c 00 [i] 00 01 …` (PROTOCOL §13.3) — a semântica fina ainda NÃO
+    /// está decifrada; este método existe justamente para medir em campo
+    /// (CLI `read-state5 --log`) sem inventar decode.
+    ///
+    /// Leitura pura: não seleciona preset, não muda estado (o mesmo req T2 do
+    /// boot, provado pelo replay).
+    pub fn read_state5(&mut self) -> Result<Vec<Vec<u8>>, ProtocolError> {
+        let golden = GoldenFile::embedded()?;
+        let mut entradas = Vec::with_capacity(5);
+        for i in 0u8..5 {
+            entradas.push(self.tx_req(golden, 0x11, &[0x12, 0x00, 0x10, 0x12], &[i])?);
+        }
+        Ok(entradas)
     }
 
     /// Pushes de IN não solicitado acumulados no backlog (D7), para
@@ -1101,10 +1154,19 @@ impl<T: DeviceTransport> Session<T> {
                 );
             }
             if f == func && a == *addr {
+                // FORMA só (#177): endereço + comprimento (by-len) são
+                // schema; os bytes `const` do golden são o estado de fábrica
+                // do aparelho ANALISADO, e o dono editou o dele (renomear um
+                // pp muda pg0 — medido no boot do H4). O conteúdo é validado
+                // pelo decode dos objetos (`preset_pages`, `codec`), que
+                // conhecem o schema dos dados.
                 GoldenFile::embedded()?
-                    .match_response(f, &a, payload)
+                    .match_shape(f, &a, payload)
                     .ok_or_else(|| ProtocolError::InvalidShape {
-                        expected: format!("resposta do golden em {f:02x}/{}", addr_hex(&a)),
+                        expected: format!(
+                            "forma de resposta do golden em {f:02x}/{}",
+                            addr_hex(&a)
+                        ),
                         got: hex_short(payload),
                     })?;
                 return Ok(payload.to_vec());

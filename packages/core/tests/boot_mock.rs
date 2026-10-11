@@ -64,7 +64,7 @@ fn boot_com_progresso_beats_por_transacao() {
         BootStage::Tables,
         BootStage::Scan,
         BootStage::Probe,
-        BootStage::Setlist,
+        BootStage::State5,
         BootStage::Names,
         BootStage::Keepalive,
     ];
@@ -188,4 +188,51 @@ fn scan_preenche_cache_no_shape_do_fio_ponta_a_ponta() {
         ok += 1;
     }
     assert_eq!(ok, 198, "198/198 pelo caminho do boot");
+}
+
+/// **#161 — o relatório carrega o inventário e os nomes lidos.** O gate
+/// do front só monta a casca com o aparelho LIDO ("198/198" do catálogo
+/// atual); aqui se prova que os números chegam VERDADEIROS pelo mesmo
+/// caminho do fio (scan → cache → decode da pg0), não que são esperados —
+/// a interpretação ("coerente com o catálogo") é do gate.
+#[test]
+fn relatorio_carrega_inventario_e_nomes_do_scan() {
+    let mut mock = MockDevice::new().expect("mock");
+    mock.open().expect("open");
+    let mut session = Session::new(&mut mock);
+    let rel = session.boot().expect("boot completo");
+    assert_eq!(rel.presets, 198, "inventário lido pelo scan (0..198, #132)");
+    assert_eq!(
+        rel.names, 198,
+        "198/198: toda pg0 do cache decodifica com nome pelo caminho do boot"
+    );
+    assert!(rel.transactions >= 2295, "transações do script de boot");
+}
+
+/// **#161 — inventário VARIANTE: o relatório mede, não inventa.** O
+/// teste de cima trava o caminho 198/198 (catálogo). Este prova o outro
+/// lado da medição honesta: um device saudável com um slot sem nome
+/// gravado (`with_slot_sem_nome`) entrega `198 presets / 197 nomes` — o
+/// scan leu os DOIS números certos, e é essa contagem que o gate do
+/// front usa para barra a casca nomeando a leitura `nomes`. Se o
+/// relatório mentisse 198/198 (contando slot por inventário, não por
+/// nome lido) ou caísse pra 0/0 (decode falho derrubando tudo), este
+/// teste falharia — e o gate deixaria de ter o que barrar.
+#[test]
+fn relatorio_mede_197_de_198_com_slot_sem_nome() {
+    let mut mock = MockDevice::new().expect("mock");
+    mock.open().expect("open");
+    // 0x0042 no MEIO do inventário: a contagem é por pp, não por borda.
+    let mut mock = mock.with_slot_sem_nome(0x0042);
+    let mut session = Session::new(&mut mock);
+    let rel = session.boot().expect("boot completo com slot sem nome");
+    assert_eq!(
+        rel.presets, 198,
+        "inventário lido por inteiro: o slot sem nome EXISTE no fio"
+    );
+    assert_eq!(
+        rel.names, 197,
+        "197/198 medido: só o slot sem nome não decodifica — os outros 197 seguem"
+    );
+    assert!(rel.transactions >= 2295, "script de boot inalterado");
 }

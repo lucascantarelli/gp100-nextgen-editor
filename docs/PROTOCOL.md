@@ -625,7 +625,27 @@ OUT 11 12001002 [pág]      → IN 12 75B nibble-exp., d[0]=pág (0..0x13);
                               — layout decifrado: [0]=slot cru; [1..74]
                               nibble-exp = 37B reais = nome 32B + tag 5B
 OUT 11 12001012 [i]        → IN 12 44B nibble-exp. `12 10 2c 00 [i] 00 01 …`
-                              (5 entradas, provavelmente setlist/loja)
+                              (5 entradas de estado; SEMÂNTICA NÃO DECIFRADA —
+                              o repo a chama(va) de "setlist", mas a GP-100
+                              NÃO tem função setlist no manual; ver
+                              `GP100_DEVICE.md` §5#1. Não expor como produto.)
+                              **Layout MEDIADO em campo (10/10, aparelho real,
+                              `analysis/field/2026-10-10/state5.jsonl`):**
+                              `[0]=0x12` (eco do func IN) · `[1..3]=10 2c 00`
+                              (constante; 0x2c=44=B do payload) · `[4]=i` (índice
+                              ecoado) · `[5..6]=00 01` · `[7..43]=00` (defaults).
+                              Neste aparelho as 5 entradas estão zeradas =
+                              defaults de fábrica. O prefixo casa com a captura
+                              S1.
+                              **PROVA NEGATIVA (10/10, mesmo aparelho):** diff
+                              controlado com o dono alterando o **BPM do drum
+                              125→145** no pedal: `read-state5` antes/depois →
+                              **0 bytes divergentes** nas 5 entradas
+                              (`state5_before_bpm.jsonl` ×
+                              `state5_after_bpm145.jsonl`). State5 **NÃO** é a
+                              família de globals do drum. O endereço do drum
+                              segue desconhecido (captura G3–G6 via Suite é o
+                              caminho).
 OUT 11 11000008 [hi][lo] 00 00   (61 leituras, chave de 2B)
                              → IN 12 14B: [0..3]=chave ecoada, [4..13]=nome
                                ASCII do slot. 0x0000..0x000F = slots de
@@ -785,3 +805,94 @@ byte-a-byte e continua provado. O lado **IN** (resync `11000008`, resync
    core (só aceitava `out_long`/`in_long` + `hex`). `analysis/wirelog.py`
    normaliza os dois formatos, e `analysis/validate_core_capture.py` julga a
    sessão frame a frame.
+
+### 13.13 Bloco de registros `0000xxxx/0001xxxx/0002xxxx` + CCs curtos (G3–G5, sessão 11/10)
+
+**Fonte:** `analysis/captures/sessionG3-G6.jsonl` (Suite oficial + proxy winmm,
+5322 frames SysEx + 3 CCs, 292 s; o dono operou a UI do Suite). Tudo abaixo é
+**medido**, sem semântica inventada (ADR-13): endereço e forma são fato;
+"o que o controla" fica para o diff de ação→endereço (§13.13.4).
+
+**13.13.1 — O bloco `000200xx` (o que o golden não tinha):**
+
+```
+READ   11/00020003..0002000b   → IN 12/…  payload 4B (`00XX0000`) ou 8B
+READ   11/00020011..0002001f   → IN 12/…  payload 8B (`080f0c020305030f`)
+WRITE  12/00020003..0002001f   (edições do usuário)
+PUSH   12/00020003..0002001f   device→host — TODOS os 22 endereços fazem
+                                push em bloco (×3 na sincronização de +39s e
+                                novamente em +261s)
+```
+
+- O Suite **sincroniza em bloco**: lê `00020003..0b` num passo (~61 frames)
+  e o device **empurra** o bloco `00020003..1f` de volta — o push existe e o
+  Suite o usa como confirmação (write seguido de re-push).
+- Formas medidas: 4B com padrão `00XX0000` (contador/selector arrastável —
+  observado 0→13→0) e `0f0f0f0f` (= "off/max", aparece ao cruzar o mínimo);
+  8B = 4 pares nibble (`080f0c020305030f`).
+- `00020009` tem write mas **não** aparece no push IN (exceção medida).
+
+**13.13.2 — `00010203` / `00010204` (slider duplo de 4B):** 59 + 113 writes
+numa interação de 11,9 s; payload `XX YY 00 00` arrastado em passos de +3
+com wrap de nibble (low nibble estoura em 16 → carry no byte alto). Os DOIS
+endereços mudam juntos, sempre no mesmo segmento de tempo.
+
+**13.13.3 — `0000xxxx` pontuais e CCs:**
+- `12/00000000` 4B: `0f0f0f0f` → `00010000` (toggle medido)
+- `12/00000005` 4B (`00030000`); `12/00001000` 16B estruturado
+  (`0f0f0f0f000…` → `00000000000800000000000500000000`)
+- `12/10010001` 16B com um nibble flag 0→1 — família próxima de
+  `10xx0002` (set_param §13.11), formato NÃO é o do knob
+- **CCs curtos (fora de SysEx):** `B1 30 05` · `B1 31 7F` · `B1 30 7F` —
+  CC 48/49 no canal 2 (host→device). É por aí que anda EXP/footswitch (G5).
+
+**13.13.4 — Mapa ação→endereço (diff CONTROLADO, 11/10 — `sessionMap.jsonl`):**
+segunda sessão com protocolo de ordem fixa (uma ação por passo, pausa ≥10 s;
+segmentação por gap ≥6 s = ação por construção, sem depender de memória):
+
+| Passo (ordem fixa) | Endereço ÚNICO que mudou | Payload medido |
+|---|---|---|
+| 1. **drum BPM** (+5) | `12/00010203` ×15 | contador nibble +3 com carry (`080b→080e→0901→…→0b03`) |
+| 2. **Input Level** | `12/00020004` ×21 | byte1 conta 6→f→0… (`0f0f0f0f` = máx; envolve p/ `0000`) |
+| 3. **Global EQ** (1 banda) | `12/00020012` ×42 | reg. 8B `00000000 XX YY 04 01`, nibble-pair +8 (`0a08→0b00→…`) |
+| 4. **FS ×2 + varredura EXP** | CC out `B1 30 05` + re-push do bloco IN | **EXP: 0 eventos no fio** (prova negativa) |
+
+Consequências medidas:
+- **`00010203` = registrador do drum BPM** (ação isolada, único endereço).
+  `00010204` (§13.13.2) **NÃO** é BPM — na sessão de mapeamento não mudou;
+  na sessão G3–G6 os dois mudaram juntos (candidato a 2º registrador do
+  drum/algum controle pareado — permanece em aberto).
+- **`00020004` = Input Level** (reg. 4B; `0f0f0f0f` = saturação máx).
+- **`00020012` (e a família 8B `00020011..1f`) = Global EQ** — um registrador
+  por banda/parâmetro.
+- **EXP não streameia** com o Suite aberto (varredura completa = 0 frames);
+  o único CC foi host→device (`B1 30 05`), não device→host.
+- Passo 5 ("outro ajuste") não produziu tráfego — ou não executado, ou
+  controle sem MIDI. Restantes `0000xxxx`/`00020003/05/06/09` seguem SEM
+  nome: entram por novo diff de ação isolada, nunca por dedução.
+
+**13.13.5 — G7 segue aberto:** o `in 12/13000000` desta sessão veio
+**TRUNCADO** de novo (corte de 256 B do proxy) — confirma que o caminho do
+dump completo é o `--log` do `gp100-cli`, não o proxy.
+
+**13.13.6 — RE do firmware V2.1: a tabela de acessadores corrobora as famílias
+(`files/firmware/GP-100 Firmware V2.1.bin`, 3.424.316 B, ARM Cortex-M7 sem
+criptografia):** a região 96k–108k contém as funções mínimas de acesso a
+registrador (épilogo `bd08` = `pop {r3,pc}` seguido do literal do endereço).
+Literais de registrador encontrados, em ordem de firmware:
+
+```
+0x00010205 · 0x00010203 (BPM, medido) · 0x00010201 · 0x00010204 ·
+0x00010104 · 0x00010103                       → família DRUM (000102xx/000101xx)
+0x00020004 (Input Level, medido) · 0x00020003 · 0x00020009 · 0x00020006 ·
+0x00020005 · 0x00020001                       → família SYSTEM (000200xx)
+```
+
+- `0x00010204` é **vizinho direto** do BPM no firmware — reforça (com a
+  co-ocorrência da sessão G3–G6) que é o 2º registrador do drum; o NOME exato
+  ainda não é fato (candidatos: swing/volume do drum — confirmar por diff
+  isolado ou por rótulo no binário do Suite).
+- A família do EQ (`00020011..1f`, 8B) não tem accessor literal nesta região
+  (acesso indexado/genérico) — permanece com o nome de campo (§13.13.4).
+- Método repetível: scan de words LE `0x00000100..0x0003FFFF` após `bd08` na
+  seção de acessadores; nenhum byte foi alterado (só leitura).
