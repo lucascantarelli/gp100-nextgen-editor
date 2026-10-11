@@ -1,8 +1,8 @@
 {
   "_meta": {
     "title": "Fixtures de replay do protocolo GP-100 (ROADMAP P4)",
-    "generated_by": "analysis/make_fixtures.py",
-    "method": "loaders de build_golden.py (repair de aspa, trim ate o F7 FINAL via analysis/wirelog.py, body()); janelas = provas de validate_golden.py",
+    "generated_by": "make_fixtures.py",
+    "method": "loaders de build_golden.py (repair de aspa, trim ate o F7 FINAL via wirelog.py, body()); janelas = provas de validate_golden.py",
     "format": "JSONL compacto, 1 mensagem por linha na ordem do log; campos: s (sessao), t (ms desde o inicio do arquivo), dir (out/in), func (11/12), addr (8 hex), data (payload hex)",
     "semi_hdr": "mensagens truncadas pelo ring buffer do proxy (SEM-HDR) sao excluidas e contadas por fase",
     "golden_sha256": "87540db32422beda4bcabd10a2a73b74753fd5421afa712ccbe21ed1d842f2b0",

@@ -16,7 +16,7 @@ nao da nenhum aviso: o operador so descobre que quebrou o pedal quando a
 leitura seguinte toma timeout.
 
 A trava que evita isso vive no core (`packages/core/src/param_range.rs`) e
-consulta o **dicionario** (`analysis/parameters.json`), que ja traz `min`/
+consulta o **dicionario** (`packages/core/data/parameters.json`), que ja traz `min`/
 `max` dos knobs e `option_ids` das chaves. Este script nao reimplementa essa
 tabela — ele produz o **registro versionado** que responde as perguntas que
 o codigo nao responde:
@@ -26,7 +26,7 @@ o codigo nao responde:
    artefato — nao como um comportamento que mudou em silencio. O hash e do
    byte canonico (LF), o mesmo que o git guarda: ver `sha256()`.
 2. **A tabela foi alguma vez testada contra o aparelho?** As 92 amostras
-   reais de `analysis/fixtures/knobs.jsonl` sao o unico fio que o firmware
+   reais de `packages/core/data/fixtures/knobs.jsonl` sao o unico fio que o firmware
    ja aceitou. O gate compara cada uma com a regra declarada.
 3. **Onde a tabela NAO tem regra?** Um par sem regra e aceito por decisao do
    owner (ADR-10) — entao essa lista e o backlog do dicionario, e precisa
@@ -45,8 +45,8 @@ import os
 import sys
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-DICIONARIO = os.path.join(ROOT, "analysis", "parameters.json")
-CAPTURA = os.path.join(ROOT, "analysis", "fixtures", "knobs.jsonl")
+DICIONARIO = os.path.join(ROOT, "packages", "core", "data", "parameters.json")
+CAPTURA = os.path.join(ROOT, "packages", "core", "data", "fixtures", "knobs.jsonl")
 ARTEFATO = os.path.join(ROOT, "analysis", "param_ranges.json")
 
 # slot do fio (§13.11) -> modulo do dicionario. O nibble do effectCode NAO e
@@ -63,7 +63,7 @@ def sha256(path: str) -> str:
     """sha256 dos bytes **como o REPO os guarda**, não como estão no disco.
 
     O `.gitattributes` deste repo tem `* text=auto eol=lf`, e
-    `analysis/parameters.json` NÃO está na lista de bytes congelados
+    `packages/core/data/parameters.json` NÃO está na lista de bytes congelados
     (`-text`) — a política é explícita: "identidade semântica, não byte".
     Consequência: o checkout do Windows tem CRLF e o blob do git tem LF, e
     os dois são o MESMO arquivo por definição do repo.
@@ -77,7 +77,7 @@ def sha256(path: str) -> str:
 
     Normalizar aqui é a mesma transformação que o git aplica, então o
     hash é o do blob para qualquer pessoa em qualquer SO. Para os
-    arquivos de bytes congelados (`analysis/fixtures/*.jsonl`, `-text`),
+    arquivos de bytes congelados (`packages/core/data/fixtures/*.jsonl`, `-text`),
     a normalização é no-op: eles já estão com LF no blob.
     """
     with open(path, "rb") as f:
@@ -232,12 +232,12 @@ def derivar() -> dict:
         ),
         "sources": {
             "dictionary": {
-                "path": "analysis/parameters.json",
+                "path": "packages/core/data/parameters.json",
                 "sha256": sha256(DICIONARIO),
                 "provenance": "algorithm.xml oficial da Suite (V1.5.1)",
             },
             "capture": {
-                "path": "analysis/fixtures/knobs.jsonl",
+                "path": "packages/core/data/fixtures/knobs.jsonl",
                 "sha256": sha256(CAPTURA),
                 "provenance": "captura real da Suite no GP-100 (sessao S3)",
             },

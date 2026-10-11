@@ -26,11 +26,11 @@
 //!
 //! **POR QUE O DICIONÁRIO E NÃO SÓ AS AMOSTRAS.** A fonte da faixa é o
 //! `algorithm.xml` oficial da Suite (V1.5.1), já versionado e validado em
-//! `analysis/parameters.json` — 185 algoritmos, 639 controles, dos quais 575
+//! `packages/core/data/parameters.json` — 185 algoritmos, 639 controles, dos quais 575
 //! `knob` com `[min,max]` e 64 `switch`/`combox` com `option_ids`. A
 //! corroboração empírica está medida e é um gate
-//! (`analysis/check_param_ranges.py`): das 92 amostras reais de knob em
-//! `analysis/fixtures/knobs.jsonl`, **13 dos 14 pares observados caem
+//! (gate pytest `test_param_ranges`): das 92 amostras reais de knob em
+//! `packages/core/data/fixtures/knobs.jsonl`, **13 dos 14 pares observados caem
 //! inteiros dentro da faixa declarada — zero contradições**. Duas fontes
 //! independentes (o que a Suite declara e o que ela de fato manda ao
 //! firmware) concordam, e a Suite nunca escreve fora do que o aparelho
@@ -103,10 +103,10 @@ fn table() -> &'static HashMap<Key, ValueRule> {
         // (`include_str!`, R1) — se ele estivesse corrompido, o
         // `expect` panicaria no PRIMEIRO set-param em vez de deixar passar
         // byte errado. O dicionário também tem um gate próprio
-        // (`analysis/validate_parameters.py`) que roda antes de qualquer
+        // (gate pytest `test_param_ranges`) que roda antes de qualquer
         // build.
         let dict = Dictionary::from_json(DICTIONARY_JSON)
-            .expect("dicionario embutido invalido (gate: analysis/validate_parameters.py)");
+            .expect("dicionario embutido invalido (gate pytest: test_param_ranges)");
         let mut map = HashMap::with_capacity(700);
         for (i, module) in MODULE_OF_SLOT.iter().enumerate() {
             let slot = (i + 1) as u8;
@@ -319,7 +319,7 @@ mod tests {
 
     /// A tabela cobre a maior parte dos controles: 636 pares com regra
     /// (573 knob + 63 discretos). O número é do gate
-    /// `analysis/check_param_ranges.py` — se cair, o dicionário encolheu e
+    /// gate pytest `test_param_ranges` — se cair, o dicionário encolheu e
     /// alguém precisa olhar.
     #[test]
     fn a_tabela_cobre_os_pares_do_dicionario() {

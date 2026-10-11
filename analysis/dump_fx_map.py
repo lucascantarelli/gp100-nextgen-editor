@@ -1,13 +1,13 @@
 """dump_fx_map.py — mapa REAL dos efeitos da pedaleira para a UI do pedalboard.
 
 Fontes (R1 — nunca adivinhar):
-  - analysis/parameters.json : 185 algoritmos / 639 controles (nome, tipo,
+  - packages/core/data/parameters.json : 185 algoritmos / 639 controles (nome, tipo,
     pos, min/max, options, default) — validado 3 vias (Suite XML + 909 slots
     + firmware)
   - files/patches/all.prst   : os 99 presets de fábrica (nomes/effectCode
     reais da cadeia por slot x=0..8)
 
-Saída: analysis/fx_map.json
+Saída: packages/core/data/fx_map.json
   - modules: { DST: [ {variant, nibble, index, name, knobs, switches,
     comboxes, control_count, observed_in_patches} ] } — o catálogo completo
     por módulo (o UI usa `variant` para escolher o MODELO do pedal e os
@@ -25,13 +25,13 @@ from pathlib import Path
 sys.stdout.reconfigure(errors="replace")
 
 ROOT = Path(__file__).resolve().parent.parent
-PARAMS = ROOT / "analysis" / "parameters.json"
-OUT = ROOT / "analysis" / "fx_map.json"
+PARAMS = ROOT / "packages" / "core" / "data" / "parameters.json"
+OUT = ROOT / "packages" / "core" / "data" / "fx_map.json"
 OUT_TS = ROOT / "packages" / "app" / "ui" / "src" / "artifacts" / "fxData.ts"
 
 TS_HEADER = """/**
- * GERADO por `uv run python analysis/dump_fx_map.py` — NÃO EDITAR NA MÃO.
- * Fonte: analysis/parameters.json (R1 — 185 algoritmos / 639 controles
+ * GERADO — NÃO EDITAR NA MÃO.
+ * Fonte: packages/core/data/parameters.json (R1 — 185 algoritmos / 639 controles
  * validados 3 vias). O fallback dev/teste do browser usa ESTES dados reais
  * (mesmos nomes/ranges/defaults da pedaleira de fábrica).
  */
@@ -126,7 +126,7 @@ def main() -> None:
 
     out = {
         "meta": {
-            "source": "analysis/parameters.json (R1) — gerado por dump_fx_map.py",
+            "source": "packages/core/data/parameters.json (R1) — gerado por dump_fx_map.py",
             "effects_total": len(algs),
             "modules": {m: len(lst) for m, lst in modules.items()},
         },

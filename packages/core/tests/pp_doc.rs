@@ -6,7 +6,7 @@
 //! - o core (`preset_list`, `board_view_for`, `apenas_preset` — aqui);
 //! - a biblioteca (`gp100_library::seed` — teste cruzado em
 //!   `packages/library/tests/seed.rs`);
-//! - o artefato do front (`analysis/dump_preset_list.py` →
+//! - o artefato do front (gerador da era RE →
 //!   `FACTORY_PRESETS`, que ASSERTA `0..98`).
 //!
 //! Antes desta issue o core lia HEX: `board_view_for(Some(24))` casava o

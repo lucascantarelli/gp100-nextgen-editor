@@ -56,7 +56,8 @@ fn shape(expected: impl Into<String>, got: impl Into<String>) -> ProtocolError {
 /// hex no `ppID` daria uma lista ESPARSA (`0x0a` não existe, `"98"` →
 /// `0x98` = 152, fora de qualquer banco do aparelho). Quem mais lê este
 /// atributo em decimal é a semente da biblioteca (`gp100_library::seed`)
-/// e o gerador do artefato do front (`analysis/dump_preset_list.py`, que
+/// e o gerador do artefato do front (gerador da era RE; dissolução na
+/// #168, que
 /// ASSERTA `0..98`): esta função é onde core, biblioteca e front passam a
 /// concordar (#132, critério de aceite).
 pub fn pp_id_decimal(pp_id: &str) -> Option<u16> {

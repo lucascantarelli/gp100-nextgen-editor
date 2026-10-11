@@ -3,7 +3,7 @@
  *
  * O manual do firmware (EDIT mode, pág. 7-8) descreve exatamente esta tela:
  * escolher o módulo, ver os parâmetros e trocar o algoritmo que está nele. O
- * dicionário vem de `fxData.ts` (GERADO de `analysis/parameters.json` — 185
+ * dicionário vem de `fxData.ts` (GERADO do canônico `packages/core/data/parameters.json` — 185
  * algoritmos / 639 controles validados 3 vias), o mesmo que o `device.ts` usa
  * para montar os knobs do palco.
  *

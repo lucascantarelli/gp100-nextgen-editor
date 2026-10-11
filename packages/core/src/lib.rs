@@ -7,7 +7,7 @@
 //! ```text
 //! model → preset → golden → codec
 //!      → transport (trait DeviceTransport + MockDevice)
-//!      → session  (FSM com replay de analysis/fixtures/)
+//!      → session  (FSM com replay das fixtures do fio)
 //! ```
 //!
 //! **Fontes de verdade** — regra de ouro R1: NUNCA adivinhar protocolo.
@@ -18,7 +18,8 @@
 //! - [docs/DECISIONS.md](../../docs/DECISIONS.md) — ADR-1..5 pré-assinados
 //!   (endian/nibble, `ProtocolError`, timeout 3s, trait `DeviceTransport`,
 //!   `WRITE_VERIFIED`);
-//! - [analysis/fixtures/](../../analysis/fixtures) — replay por fase
+//! - [fixtures do fio](../data/fixtures) (packages/core/data/fixtures,
+//!   casa canônica HW-3/#163) — replay por fase
 //!   (boot/knobs/save/ir), paridade travada no pytest.
 //!
 //! **Qualidade** (skill [.agents/skills/rust-practices](../../.agents/skills/rust-practices/SKILL.md)):

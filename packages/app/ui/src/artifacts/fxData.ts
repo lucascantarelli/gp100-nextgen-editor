@@ -1,6 +1,6 @@
 /**
- * GERADO por `uv run python analysis/dump_fx_map.py` — NÃO EDITAR NA MÃO.
- * Fonte: analysis/parameters.json (R1 — 185 algoritmos / 639 controles
+ * GERADO — NÃO EDITAR NA MÃO.
+ * Fonte canônica: `packages/core/data/parameters.json` (R1 — 185 algoritmos / 639 controles
  * validados 3 vias). O fallback dev/teste do browser usa ESTES dados reais
  * (mesmos nomes/ranges/defaults da pedaleira de fábrica).
  */

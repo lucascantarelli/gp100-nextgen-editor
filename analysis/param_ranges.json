@@ -5302,12 +5302,12 @@
   "policy": "regra do dicionario manda; par sem regra aceita; NaN/inf sempre recusado",
   "sources": {
     "capture": {
-      "path": "analysis/fixtures/knobs.jsonl",
+      "path": "packages/core/data/fixtures/knobs.jsonl",
       "provenance": "captura real da Suite no GP-100 (sessao S3)",
       "sha256": "3755b3efd7cbbb83e556831a7db1b827cc7ed27b7d9a12f26e7547624c7c5a83"
     },
     "dictionary": {
-      "path": "analysis/parameters.json",
+      "path": "packages/core/data/parameters.json",
       "provenance": "algorithm.xml oficial da Suite (V1.5.1)",
       "sha256": "d0b480988efd334a5fed133c7a3af058c5dd35f8530b7e89126679d63bcd11af"
     }

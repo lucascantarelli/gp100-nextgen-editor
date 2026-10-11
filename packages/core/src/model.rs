@@ -1,6 +1,6 @@
 //! model — dicionário de algoritmos/controles do GP-100.
 //!
-//! **Insumo:** `analysis/parameters.json` (185 algs / 639 controles, validado
+//! **Insumo:** `packages/core/data/parameters.json` (185 algs / 639 controles, validado
 //! em 3 vias — ver `meta` no próprio arquivo). Embedado via `include_str!`
 //! (skill rust-practices: spec é insumo, não produto — R1).
 //!
@@ -27,8 +27,11 @@ use serde::{Deserialize, Deserializer};
 
 use crate::ProtocolError;
 
-/// O dicionário embutido no binário (`include_str!` — spec é insumo, R1).
-pub const DICTIONARY_JSON: &str = include_str!("../../../analysis/parameters.json");
+/// O dicionário embutido no binário — casa canônica
+/// `packages/core/data/parameters.json` (dado canônico versionado no
+/// projeto, HW-3/#163; origem: manual + RE, validada contra o aparelho nos
+/// gates de campo).
+pub const DICTIONARY_JSON: &str = include_str!("../data/parameters.json");
 
 /// Tipo de controle físico/UI mapeado do JSON (`knob`/`switch`/`combox`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]

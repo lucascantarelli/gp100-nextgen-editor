@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """make_fixtures.py — fatia as 4 capturas em fixtures de replay (ROADMAP P4).
 
-Gera analysis/fixtures/ a partir dos loaders de build_golden.py (repair de aspa,
+Gera packages/core/data/fixtures/ (casa desde #163) a partir dos loaders de build_golden.py (repair de aspa,
 trim no 1º F7, body()), SEM tocar os .jsonl originais. Formato: JSONL compacto,
 1 mensagem por linha, na ordem cronológica do log:
 
@@ -37,7 +37,7 @@ BG = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(BG)
 
 CAPS = {f"S{i}": os.path.join(HERE, "captures", f"session{i}.jsonl") for i in (1, 2, 3, 4)}
-FIXTURES = os.path.join(HERE, "fixtures")
+FIXTURES = os.path.join(HERE, "..", "packages", "core", "data", "fixtures")
 GOLDEN = os.path.join(HERE, os.pardir, "docs", "protocol_golden.json")
 # O hash da baseline NÃO mora aqui como literal (#23): vem de
 # `analysis/baseline.json`, que é o registro com versão, data, motivo e
@@ -251,9 +251,9 @@ def main():
     manifest = {
         "_meta": {
             "title": "Fixtures de replay do protocolo GP-100 (ROADMAP P4)",
-            "generated_by": "analysis/make_fixtures.py",
+            "generated_by": "make_fixtures.py",
             "method": "loaders de build_golden.py (repair de aspa, trim ate o F7 FINAL via "
-                      "analysis/wirelog.py, body()); "
+                      "wirelog.py, body()); "
                       "janelas = provas de validate_golden.py",
             "format": "JSONL compacto, 1 mensagem por linha na ordem do log; "
                       "campos: s (sessao), t (ms desde o inicio do arquivo), "

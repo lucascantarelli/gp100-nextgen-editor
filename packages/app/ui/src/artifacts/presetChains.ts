@@ -1,7 +1,7 @@
 /**
  * CADEIA dos 99 presets de fábrica — GERADO de files/patches/all.prst
  * (schema §13.9 do PROTOCOL.md). NÃO editar à mão.
- * Regenerar: uv run python analysis/dump_preset_chains.py
+ * Regenerar: gerador da era RE (dissolução na #168); fonte: inventário do aparelho.
  *
  * É a MESMA leitura que o core Rust faz em `pedalboard::board_view_for`:
  * `slot` = `@x` (posição na cadeia), `family` = `effectModuleName`,

@@ -151,7 +151,7 @@ def test_linha_cortada_nao_gera_payload_fabricado():
 def test_le_captura_do_suite_e_log_do_core():
     """O objetivo do modulo: os dois formatos viram a MESMA forma."""
     evs_suite, _ = wirelog.load(os.path.join(ANALYSIS, "captures", "session1.jsonl"))
-    evs_p4, _ = wirelog.load(os.path.join(ANALYSIS, "fixtures", "boot.jsonl"))
+    evs_p4, _ = wirelog.load(os.path.join(ROOT, "packages", "core", "data", "fixtures", "boot.jsonl"))
     assert evs_suite, "captura do Suite nao carregou"
     assert evs_p4, "log P4 nao carregou"
     for evs in (evs_suite, evs_p4):
@@ -168,7 +168,7 @@ def test_log_do_core_carrega_eventos():
     `in_long` + `hex`, e um log do gp100-core (P4: `out` + func/addr/data)
     carregava ZERO eventos — sem erro, sem aviso, so um golden degenerado.
     """
-    evs, diag = wirelog.load(os.path.join(ANALYSIS, "fixtures", "knobs.jsonl"))
+    evs, diag = wirelog.load(os.path.join(ROOT, "packages", "core", "data", "fixtures", "knobs.jsonl"))
     assert len(evs) > 0, "log P4 do core carregou 0 eventos (o bug do H3)"
     assert diag["formato"] == "p4"
     assert diag["nao_eventos"] == 0, diag

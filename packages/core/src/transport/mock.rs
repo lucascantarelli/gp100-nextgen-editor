@@ -46,7 +46,7 @@ use crate::preset::Document;
 use crate::{ProtocolError, SYSEX_EOX, SYSEX_HEADER};
 
 const ALL_PRST: &str = include_str!("../../../../files/patches/all.prst");
-const PARAMETERS: &str = include_str!("../../../../analysis/parameters.json");
+const PARAMETERS: &str = include_str!("../../data/parameters.json");
 
 /// Semente fixa do LCG do jitter — dois devices novos percorrem a MESMA
 /// sequência (contrato de determinismo provado em `mod tests`; sem `rand`).
@@ -766,7 +766,7 @@ impl MockDevice {
                             // O estrago disso era invisível e caro: o
                             // `StatePage` é opaco (ninguém lia esse byte), o
                             // dump prints OK, e a referência de
-                            // `analysis/h1_reference/` — que é a SAÍDA do
+                            // `h1_reference` (gate H1) — que é a SAÍDA do
                             // mock — ficava com drift. Como o H1 compara o
                             // device real contra essa referência, cada
                             // sessão de campo acusaria 8 "divergências de

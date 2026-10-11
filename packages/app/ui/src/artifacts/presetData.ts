@@ -1,7 +1,7 @@
 /**
  * Biblioteca de FÁBRICA da GP-100 — GERADO de files/patches/all.prst
  * (schema §13.9 do PROTOCOL.md). NÃO editar mão.
- * Regenerar: uv run python analysis/dump_preset_list.py
+ * Regenerar: gerador da era RE (dissolução na #168); fonte: inventário do aparelho.
  */
 
 interface FactoryPreset {

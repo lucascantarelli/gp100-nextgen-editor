@@ -23,7 +23,7 @@
     }
   ],
   "encoding": "nibble",
-  "generated_from": "analysis/captures/session1.jsonl",
+  "generated_from": "captura session1 da era RE (evidencia no historico do git; artefato canônico desde #163)",
   "layout": {
     "cadeia": {
       "count": 9,

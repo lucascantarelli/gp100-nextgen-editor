@@ -215,7 +215,7 @@ pub fn pp_e_valido(pp: u16) -> bool {
 }
 
 /// Os 198 `pp` que o **aparelho** tem, na ordem em que o Suite varre na
-/// captura S1 (`analysis/fixtures/boot.jsonl` — os mesmos 2299 OUTs que
+/// captura S1 (`packages/core/data/fixtures/boot.jsonl` — os mesmos 2299 OUTs que
 /// `tests/replay_fixtures.rs::replay_boot_byte_a_byte` reproduz).
 ///
 /// **De onde o número vem (issue #132 — nada aqui é inventado).** A captura
