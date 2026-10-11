@@ -94,6 +94,24 @@ ordem de leitura). O fluxo de trabalho é `.agents/skills/github-flow/SKILL.md`.
   `GITHUB_TOKEN` não dispara workflow** (por isso a cadeia de release publica
   artefatos no mesmo run).
 
+## Armadilhas de campo e de captura (código e checklists H citam ESTA seção)
+
+- **Suite oficial FECHADO durante a sessão** (occupancy de MIDI): qualquer
+  programa com a porta aberta dá `OpenFailed` no `open()`. E logo após
+  abrir/conectar, o Windows **reenumera** o device — o 1º `open` pode falhar
+  com "nenhuma porta MIDI"; **retry em ~5s** resolve (não é driver morto).
+  Citada pelos checklists H2–H5 e pela mensagem de erro de `real.rs`.
+- **Buffers MIM_LONGDATA do proxy chegam com cauda stale**, e resposta longa
+  traz `F7` EMBUTIDO no meio (**paginação, NÃO fim de mensagem**). A regra do
+  codec é **trim no 1º `F7`** — já aplicada nos decoders/`RealDevice`.
+  Citada por `packages/core/src/lib.rs` (`SYSEX_EOX`) e `transport/real.rs`.
+- **Linha sem `F7` final não é frame**: o proxy morre no flush e a cauda vem
+  preenchida com `ff` — cortar/interpretar isso fabrica payload que nunca
+  existiu (lição da baseline v1.1: 63 de 77 mensagens de save eram inventadas).
+- **Log de captura é `append-only`**, com truncamentos SEM-HDR (ring buffer);
+  separar sessões por gaps >30s. Nunca "consertar" isso no codec. Citada por
+  `packages/core/src/golden.rs` (`op_payload`).
+
 ## Workflows canônicos (nunca fazer na mão)
 
 - **Consultar o aparelho (leitura pura)**: `cargo build --release -p gp100-cli

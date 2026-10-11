@@ -23,6 +23,11 @@ cargo build --release -p gp100-cli --features real-device
 
 - `--real --i-know-what-im-doing` é a trava de leitura (política VISION §7).
   Sem ela o CLI fala com o `MockDevice`.
+- **Suite oficial FECHADO durante a sessão** (occupancy de MIDI): porta
+  aberta por outro programa = `OpenFailed`. E logo após abrir/conectar, o
+  Windows **reenumera** o device — o 1º `open` pode falhar com "nenhuma porta
+  MIDI"; retry em ~5s resolve (armadilha registrada no `knowledge.md`, seção
+  "campo e captura").
 - Toda varredura troca o patch no display da pedaleira — avise o owner antes
   de escanear (efeito colateral visível, não é bug).
 - O que o aparelho NÃO responde em leitura (sequência temporal, save, upload)
