@@ -796,7 +796,6 @@ jobs:
     # `failure` bloqueia.
     needs: [plan, build-rust, sec-audit]
     if: always() && needs.plan.outputs.scope-rust == 'true' && needs.plan.outputs.stage-test == 'true' && needs.build-rust.result != 'failure' && needs.sec-audit.result != 'failure'
-    if: needs.plan.outputs.scope-rust == 'true' && needs.plan.outputs.stage-test == 'true'
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.plan.outputs.rust-matrix) }}
@@ -887,7 +886,6 @@ jobs:
     # `success()` implícito pulava este job quando a cadeia tinha skipped.
     needs: [plan, build-ui, sec-audit]
     if: always() && needs.plan.outputs.scope-front == 'true' && needs.plan.outputs.stage-test == 'true' && needs.build-ui.result != 'failure' && needs.sec-audit.result != 'failure'
-    if: needs.plan.outputs.scope-front == 'true' && needs.plan.outputs.stage-test == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -938,7 +936,6 @@ jobs:
     # `always()` + guards explícitos: ver o comentário do `test-rust`.
     needs: [plan, build-ui, sec-audit]
     if: always() && needs.plan.outputs.scope-front == 'true' && needs.plan.outputs.stage-test == 'true' && needs.build-ui.result != 'failure' && needs.sec-audit.result != 'failure'
-    if: needs.plan.outputs.scope-front == 'true' && needs.plan.outputs.stage-test == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
@@ -960,7 +957,6 @@ jobs:
     # `always()` + guards explícitos: ver o comentário do `test-rust`.
     needs: [plan, build-ui, sec-audit]
     if: always() && needs.plan.outputs.scope-front == 'true' && needs.plan.outputs.stage-test == 'true' && needs.build-ui.result != 'failure' && needs.sec-audit.result != 'failure'
-    if: needs.plan.outputs.scope-front == 'true' && needs.plan.outputs.stage-test == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:

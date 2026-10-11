@@ -224,7 +224,11 @@ def main() -> int:
 
     ci = docs.get(".github/workflows/ci.yml") or {}
     if not ci:
-        print("FALHAS:\n - ci.yml ausente")
+        # `load()` já registrou o motivo REAL (ex.: chave duplicada); imprimir
+        # só "ci.yml ausente" escondeu o diagnóstico e custou uma rodada de CI.
+        print("FALHAS:")
+        for failure in FAILURES or ["ci.yml ausente"]:
+            print(" -", failure)
         return 1
 
     on = triggers(ci)
@@ -561,6 +565,10 @@ def main() -> int:
         "test-ui": "needs.test-ui.result != 'failure'",
     }
     for job_id, spec in jobs.items():
+        # O Relatório é a Única exceção: ele precisa rodar JUSTAMENTE quando
+        # algo falhou (é o lugar onde se lê a falha) — `always()` sem guard.
+        if job_id == "metrics":
+            continue
         needs_raw = spec.get("needs")
         lista = [n for n in (needs_raw if isinstance(needs_raw, list) else [needs_raw]) if n]
         cond = str(spec.get("if") or "")
