@@ -190,3 +190,5 @@ pub mod gain;
 // Os testes dos herdados do P2 (header/envelope §13.1) usam SÓ API pública,
 // então vivem como contratos caixa-preta em `tests/wire_envelope.rs` (regra
 // da skill rust-practices: unitário dentro de `src/` só para internals).
+
+// probe da matriz Arch (#169): commit descartável só para disparar a matriz cheia

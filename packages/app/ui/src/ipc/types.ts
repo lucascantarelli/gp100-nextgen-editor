@@ -239,3 +239,5 @@ export type ScreenState<D> =
   | { kind: "empty"; hint: string }
   | { kind: "error"; message: string; retry: () => void }
   | { kind: "ready"; data: D };
+
+// probe da matriz Arch (#169): commit descartável só para disparar a matriz cheia
