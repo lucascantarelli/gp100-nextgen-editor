@@ -12,6 +12,29 @@ fonte. Resposta ao usuário SEMPRE em PT-BR.
 > ⚠️ Os **contadores** (testes, cobertura) vivem em `docs/INDEX.md` §6 — não repita
 > o número aqui, aponte. Motivo: números repetidos em N docs divergem (achado #81).
 
+- 11/10 — **TRÊS ARMADILHAS DO CI QUE ESTA RODADA PAGOU (e viraram gate)**
+  (run de prova [38170192636](https://github.com/lucascantarelli/gp100-nextgen-editor/actions/runs/38170192636), 55 jobs · 47 ✅ · 8 ⏭️):
+  1. **Chave YAML repetida passa pelo PyYAML e derruba o LOAD do GitHub.**
+     Um patch que adiciona `needs:`/`if:` sem remover o anterior é invisível
+     para `yaml.safe_load` (a última chave vence) — e o GitHub recusa o
+     workflow inteiro: a run nasce com **0 jobs, `failure` e sem log** (run
+     38166996909). O `validate_workflows.py` ganhou o loader
+     `_LoaderSemChaveDuplicada`; a própria PR errou duas vezes e o gate pegou
+     as duas.
+  2. **`success()` implícito pula o job quando QUALQUER need foi skipped**
+     (actions/runner#2205). Com `ci-images` skipped em todo PR e o
+     `sec-audit` dependendo dele, a fase de testes INTEIRA (test-rust, test-ui,
+     e2e, visual, cobertura) foi pulada numa run verde — só os jobs que já
+     tinham `always()` + `needs.<x>.result != 'failure'` rodaram. O padrão da
+     casa virou guard EXPLÍCITO em toda job atrás de upstream sujeito a skip
+     (contrato 13 do gate), com o `Relatório` como única exceção.
+  3. **`bash -o pipefail` também é regra de processo**: `cmd | tail` engoliu o
+     exit 1 do gate e o commit inválido foi para o remoto. Rodar o gate SEM
+     pipe (ou com `set -o pipefail`) — e commitar na branch certa (o fix
+     acabou commitado na branch descartável e teve de voltar por cherry-pick;
+     a prova vale porque a árvore de workflows/script é idêntica, conferida
+     com `git diff`).
+
 - 11/10 — **#169 (HW-9) EXECUTADO: o CI virou o grafo do dono + Arch na matriz.**
   `.github/workflows/ci.yml` reorganizado na ordem **validação → lint →
   compilação → infra → segurança → testes → cobertura → distribuição →
