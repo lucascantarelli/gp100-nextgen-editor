@@ -103,7 +103,7 @@ boot/scan de presets (S1), upload de IRs mono+estéreo (S2), edição de knobs p
 ├── .venv/                     # Python do projeto (uv, VENV ÚNICO na raiz)
 ├── .github/workflows/ci.yml   # ÚNICO workflow, jobs por TIPO (#68; nº em INDEX §6)
 ├── knowledge.md               # memória operacional do agente (estado vivo, armadilhas)
-└── .agents/skills/            # workflows sob demanda (proxy-build, capture-analyze…)
+└── .agents/                   # harness do agente: skills/ (9, Era HW), prompts/ (6), README
 ```
 
 ---
@@ -201,9 +201,12 @@ Windows + Git Bash (desenvolvido em `D:\GP-100 app`). Requisitos:
   são filtrados por caminho E por função de branch; a distribuição roda só na tag.
   Passos reutilizáveis em `.github/actions/*`; o fluxo completo está em
   `docs/CONTRIBUTING.md`.
-- Agente/IA: ver `knowledge.md` (armadilhas) e `.agents/skills/` (workflows:
-  github-flow, proxy-build, capture-analyze, new-session, spec-baseline,
-  protocol-validate, core-dev, docs-sync, rust-practices, ui-ux-practices)
+- Agente/IA: começar por [`.agents/README.md`](.agents/README.md) (mapa do harness) —
+  `knowledge.md` (premissa e armadilhas) e `.agents/skills/` (workflows sob demanda:
+  github-flow, core-dev, rust-practices, ui-ux-practices, testing, hardware-dev,
+  device-reference, release, docs-sync). Os templates de prompt para colar estão em
+  `.agents/prompts/`. As skills da era de engenharia reversa estão arquivadas em
+  `docs/arquivo/skills-era-RE/`.
 
 Armadilhas conhecidas (cp1252, `%TEMP%` real vs `/tmp`, log append-only, F7 embutido
 em mensagens paginadas) estão catalogadas no `knowledge.md`.

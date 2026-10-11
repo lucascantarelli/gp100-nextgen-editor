@@ -130,24 +130,26 @@ Instaladores, firmware V2.1, manual, driver, DebugView, screenshots,
 ### Raiz do repo — governança
 `LICENSE` (MIT — declarado no `Cargo.toml` e no `PKGBUILD`),
 `SECURITY.md` (política de segurança/secrets/material proprietário),
-`.github/ISSUE_TEMPLATE/` (bug, feature, descoberta de protocolo) +
+`.github/ISSUE_TEMPLATE/` (epic, feature, bug, refactor, protocolo — contrato
+com seções obrigatórias + 🤖 prompt do agente, validado pelo gate
+`scripts/check_issue_templates.py`) +
 `.github/PULL_REQUEST_TEMPLATE.md` (checklist do gate + R1–R4),
 `.gitignore`/`.gitattributes` (o que nunca entra — README §7).
 
-### Infra do agente
-`knowledge.md` (estado vivo + armadilhas), `.codebuffignore`,
-`.agents/skills/{proxy-build,capture-analyze,new-session,spec-baseline,protocol-validate,core-dev,docs-sync,rust-practices,ui-ux-practices,github-flow,device-reference}/SKILL.md`
-— 11 skills: **fluxo de trabalho** (`github-flow`, `new-session`) · **desenvolvimento**
-(`core-dev`, `rust-practices`, `ui-ux-practices`) · **qualidade/infra**
-(`protocol-validate`, `proxy-build`, `capture-analyze`) · **governança**
-(`spec-baseline`, `docs-sync`) · **conhecimento do device** (`device-reference` →
-`docs/GP100_DEVICE.md`).
+### Infra do agente (#170)
+`knowledge.md` (estado vivo + armadilhas), `.codebuffignore`, `.agents/README.md`
+(mapa do harness), `.agents/prompts/` (6 templates: implementar-issue canônico,
+executar-issues-em-sequencia, corrigir-bug, code-review-completo, auditoria,
+release),
+`.agents/skills/{github-flow,core-dev,rust-practices,ui-ux-practices,testing,hardware-dev,device-reference,release,docs-sync}/SKILL.md`
+— 9 skills da Era HW: **fluxo de trabalho** (`github-flow`, `release`) ·
+**desenvolvimento** (`core-dev`, `rust-practices`, `ui-ux-practices`, `hardware-dev`)
+· **qualidade** (`testing`) · **governança** (`docs-sync`) · **conhecimento do
+device** (`device-reference` → `docs/GP100_DEVICE.md`).
 
-✅ As skills do pipeline já falam o **#68**: `rust-practices`, `ui-ux-practices`,
-`core-dev` e `github-flow` citam o `ci.yml`, e o `github-flow` menciona a label
-`ci-lite` só para registrar que foi **abolida**. A dívida apontada na auditoria de
-03/10 (#74) está **paga** — conferido na auditoria de 07/10
-([`audit_2026-10-07.md`](audit_2026-10-07.md) F-03).
+As 5 skills da Era de Engenharia Reversa (`proxy-build`, `capture-analyze`,
+`new-session`, `spec-baseline`, `protocol-validate`) estão **arquivadas** em
+`docs/arquivo/skills-era-RE/` — histórico, não processo.
 
 ### `packaging/` — recipes de pacote fora do Tauri
 `packaging/arch/PKGBUILD` + `packaging/arch/gp100-nextgen-editor.desktop` (#29 / REL-ARCH).
