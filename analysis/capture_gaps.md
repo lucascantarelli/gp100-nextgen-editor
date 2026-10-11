@@ -58,21 +58,31 @@
 - **Mapa ação→endereço FECHADO (11/10, diff controlado — `sessionMap.jsonl`):**
   `00010203` = **drum BPM** · `00020004` = **Input Level** · `00020012` (família
   8B `00020011..1f`) = **Global EQ** por banda. Detalhe em PROTOCOL §13.13.4.
-- **Restam SEM nome:** `00010204`, `00000000/00000005/00001000`,
-  `00020003/05/06/09`. Próximos passos: (a) diff de ação isolada, e/ou (b) RE
-  das strings/resources do binário do Suite (`Program Files/Valeton/GP-100`,
-  já desmontado na era RE — VISION §10.1) como referência de rótulo. Nunca
-  dedução.
+- **Nomes FECHADOS por RE do binário do Suite (11/10, só leitura —
+  `docs/PROTOCOL.md` §13.13.7, prova A/B/C):** `00010204`=`drumVolume` ·
+  `00000000..05`=ppCtrl `c11..c23` · `00001000`=bloco de config EXP (16B) ·
+  `00020003`=`gVolume` · `00020005`=`gUsbGain` · `00020006`=`gUsbMonitorVol` ·
+  `00020009`=`gTapTempoSetting`; família `0002xxxx` inteira nomeada
+  (dispatcher `0x569d80` + vetor B, 2 âncoras independentes: wire + bloco
+  de código). **Restam:** sub-rótulos `00001001..08` (família EXP provada,
+  item individual pendente) · `00010103/04` (0 ocorrências no Suite — só
+  firmware) · banda×parâmetro do EQ · ação de UI→endereço para ppCtrl
+  (diff de ação isolada continua sendo a prova de fio; nunca dedução).
 ## G4. Live/physical controls — ✅ EXISTE notificação device→host (11/10)
 - O device FAZ push em bloco do bloco `000200xx` (×3 na sync de +39s e de
   +261s) — resposta medida: sim, há canal device→host, e o Suite o usa como
   confirmação de write.
 - Knob FÍSICO da master ainda não isolado (exigiria mexer knob com Suite
   parado; a sessão de 11/10 foi toda pela UI do Suite).
-## G5. Footswitch/EXP — ✅ PARCIAL (11/10)
+## G5. Footswitch/EXP — ✅ PARCIAL (11/10) + emissor identificado por RE
 - 3 CCs curtos capturados: `B1 30 05` · `B1 31 7F` · `B1 30 7F` (CC 48/49,
-  canal 2, host→device). Candidatos a EXP/FS — nome exato precisa do diff
-  de ação (§13.13.4).
+  canal 2, host→device).
+- **Emissor achado no Suite (§13.13.7):** `0x44f1c0` monta `B1 <cc> <val>`
+  (imediatos 0x14..0x38); sites = cc 48..56 × {0,127} na página de efeitos +
+  cc 7 no save; wrapper `0x587c70(cc,val)` = o valor dinâmico (o `… 05`).
+  **Resta:** o que CC48/49 *significam* no device (EXP? FS?) — diff de ação.
+- Nota: EXP **não streameia** com Suite aberto (0 events na varredura).
+  Bloco de config `00001000` (16B) já é nomeado (§13.13.7).
 
 ## G6. Firmware/dados de fábrica
 - Ler tela de info de firmware no Suite (se expuser SysEx de versão)
