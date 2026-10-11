@@ -38,7 +38,11 @@ estrutura — e, desde a #68, que a ESTRUTURA nova é o que o projeto adoptou.Co
      tambem falha, senao a regra vira letra morta sem ninguem perceber.
   12. o GRAFO `needs:` na ordem do dono (#169): lint → compilação → segurança →
       testes → cobertura → dist; e a matriz de OS tem o archlinux como
-      CONTAINER (`matrix.host`/`matrix.container` em toda job de matriz).
+      CONTAINER (`matrix.host`/`matrix.container` em toda job de matriz);
+  13. guard EXPLÍCITO (`always()` + `needs.<x>.result != 'failure'`) em toda job
+      que depende de um upstream que pode ser skipped (sec-audit, test-ui) — o
+      `success()` implícito pula a fase inteira de testes, provado na run
+      38168716758 (actions/runner#2205).
 
 Uso: python3 scripts/validate_workflows.py  (exit 1 na primeira violação)
 """
@@ -543,6 +547,29 @@ def main() -> int:
     for token in ("archlinux:base-devel", "ARCH_OS", "ARCH_CONTAINER"):
         if token not in plan_raw:
             FAILURES.append(f"ci_plan.py: perdeu '{token}' — a matriz de OS não tem mais o archlinux (#169)")
+
+    # ── 13. guard EXPLÍCITO onde a cadeia tem job que pode ser skipped ───
+    # O `success()` IMPLÍCITO pula o job quando QUALQUER need foi skipped —
+    # mesmo todos os outros verdes (run 38168716758: `sec-audit` verde e a
+    # fase de testes INTEIRA skipped; actions/runner#2205). Na prática quem
+    # dispara isso é o `ci-images` skipped em PR, que o `sec-audit` consome.
+    # Então toda job que depende de um upstream sujeito a skip precisa do
+    # `always()` + `needs.<x>.result != 'failure'` na cara — é o padrão que o
+    # `test-spec`/`test-e2e-webview` já usavam.
+    GUARDS_EXPLICITOS = {
+        "sec-audit": "needs.sec-audit.result != 'failure'",
+        "test-ui": "needs.test-ui.result != 'failure'",
+    }
+    for job_id, spec in jobs.items():
+        needs_raw = spec.get("needs")
+        lista = [n for n in (needs_raw if isinstance(needs_raw, list) else [needs_raw]) if n]
+        cond = str(spec.get("if") or "")
+        for upstream, guard in GUARDS_EXPLICITOS.items():
+            if upstream in lista and ("always()" not in cond or guard not in cond):
+                FAILURES.append(
+                    f"ci: `{job_id}` depende de `{upstream}` (que pode ser skipped) mas o `if` não tem "
+                    f"`always() && {guard}` — o success() implícito pula o job (actions/runner#2205)"
+                )
 
     # ── relatório ───────────────────────────────────────────────────────
     for path in sorted(docs):
