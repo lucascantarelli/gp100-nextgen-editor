@@ -38,6 +38,24 @@ import re
 # arquitetura de Windows/Linux (suporte até ~08/2027).
 OSS = ["windows-latest", "macos-15-intel", "ubuntu-24.04"]
 
+# ARCH LINUX (#169 — pedido do dono: "linux tem apenas o ubuntu").
+#
+# O GitHub NÃO tem label hosted de Arch (só ubuntu/windows/macos; imagem
+# custom só em larger runners). O padrão da comunidade é Arch como CONTAINER
+# no runner ubuntu: a imagem oficial `archlinux:base-devel` (a mesma que
+# CachyOS e Deskflow usam em CI). Cada entrada da matriz carrega:
+#
+#   os         rótulo que aparece no NOME do job ("… · archlinux")
+#   host       o runner de verdade (ubuntu-24.04 — é ele que paga a VM)
+#   container  a imagem do job; AUSENTE = roda direto no runner hospedado
+#
+# O consumidor usa `runs-on: ${{ matrix.host || matrix.os }}` e
+# `container: image: ${{ matrix.container || '' }}` — expressão vazia = SEM
+# container (actions/runner#2235; o literal '' no YAML seria rejeitado,
+# community/discussions/58763). Ver matrices() para o escopo escolhido.
+ARCH_OS = "archlinux"
+ARCH_CONTAINER = "archlinux:base-devel"
+
 DEV_PREFIXES = (
     "feature/",
     "bugfix/",
@@ -158,6 +176,15 @@ def matrices(sc: dict[str, bool]) -> tuple[str, str]:
       `gp100-cli` continuar existindo (`docs/REAL_DEVICE_GAP.md` §6, passo
       6b).
 
+    **POR QUE O ARCH ENTRA SÓ NO CORE/CLI E NO FRONT (11/10, #169).** O Arch
+    é o segundo Linux da matriz e o único ROLLING (glibc/gcc/rustc mais novos
+    que os do ubuntu LTS) — é ali que um build quebra por ABI/toolchain nova
+    antes de quebrar no ubuntu. O `ui-rust` fica de fora de propósito: o
+    caminho Linux do shell já é provado pelo container `ci-linux` (WebKitGTK +
+    ALSA juntos), e Arch aqui custaria ~1,5 GB de `pacman -Syu` por run para
+    repetir a mesma prova. Provar o `makepkg`/PKGBUILD no Arch é assunto de
+    empacotamento (#72), não desta matriz.
+
     **E POR QUE O LINUX NÃO ESTÁ NESTA MATRIX.** O `ubuntu-24.04` hosted não
     tem as libs de sistema do Tauri (WebKitGTK + ALSA) — foi justamente por
     isso que o projeto tem a imagem `ci-linux`. Uma entrada `ui-rust` em
@@ -179,12 +206,23 @@ def matrices(sc: dict[str, bool]) -> tuple[str, str]:
         for os_name in OSS:
             rust.append({"os": os_name, "project": "core", "workdir": "."})
             rust.append({"os": os_name, "project": "cli", "workdir": "."})
+        # Arch: mesmo conteúdo, outro userland (rolling). `host` + `container`
+        # são o que transforma "outro OS" em "outro container no ubuntu".
+        for project in ("core", "cli"):
+            rust.append({
+                "os": ARCH_OS,
+                "host": "ubuntu-24.04",
+                "container": ARCH_CONTAINER,
+                "project": project,
+                "workdir": ".",
+            })
         # o crate do Tauri: WinMM e CoreMIDI aqui, ALSA no container. Nao
-        # acrescentar `ubuntu-24.04` — ver a razao no docstring acima.
+        # acrescentar `ubuntu-24.04` nem Arch — ver a razao no docstring acima.
         for os_name in ("windows-latest", "macos-15-intel"):
             rust.append({"os": os_name, "project": "ui-rust", "workdir": "packages/app/api"})
     if sc["front"]:
         front = [{"os": o} for o in OSS]
+        front.append({"os": ARCH_OS, "host": "ubuntu-24.04", "container": ARCH_CONTAINER})
     return _compact({"include": rust}), _compact({"include": front})
 
 

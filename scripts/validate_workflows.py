@@ -11,28 +11,34 @@ para `write` falha no meio do job. Nenhuma dessas dá erro de sintaxe.
 Os testes de INTEGRAÇÃO reais acontecem onde o workflow é a própria prova: o
 fechamento de issues roda no merge, e `scripts/simulate_release.py` executa de
  verdade os blocos `run:` da rc/promote num sandbox git. Aqui travamos o que é
-estrutura — e, desde a #68, que a ESTRUTURA nova é o que o projeto adoptou.
-
-Contratos verificados:
-  1. existe UM workflow (.github/workflows/ci.yml) e os cinco legados sumiram;
-  2. gatilhos: push SO em develop/main + tag v*; PR em develop/main com o tipo
-     `closed`. Branch de trabalho entra so por `pull_request` -- listar os dois
-     eventos era o que gerava a run duplicada a cada push;
+estrutura — e, desde a #68, que a ESTRUTURA nova é o que o projeto adoptou.Contratos verificados:
+  1. existem DOIS workflows (.github/workflows/ci.yml + issues-fechamento.yml)
+     e os cinco legados sumiram (#169 tirou o Fechamento do CI);
+  2. gatilhos: push SO em develop/main + tag v*; PR em develop/main SEM o tipo
+     `closed` (ele agora mora no issues-fechamento.yml — arrastá-lo no CI
+     rodava o pipeline inteiro só para jobs `skipped`). Branch de trabalho
+     entra so por `pull_request` -- listar os dois eventos era o que gerava a
+     run duplicada a cada push;
   3. permissão MÍNIMA no topo (`contents: read`) — o `write` é por job;
-  4. os 11 tipos de job e os 26 jobs existem, com nome no padrão `Tipo · o que é`,
+  4. os 10 tipos de job e os 25 jobs existem, com nome no padrão `Tipo · o que é`,
      sem prefixo numérico, e declarados na sequência da execução;
   5. a regra branch → tipos de job mora em `scripts/ci_plan.py` e NÃO volta para
      `if:` espalhado no YAML (duas fontes de verdade é como o gate divergiu);
      e o CodeQL NÃO é configurado aqui (o setup padrão do repo está ligado e o
      GitHub recusa SARIF de configuração avançada enquanto ele estiver ativo);
   6. versionamento e distribuição só por `workflow_dispatch`/tag;
-  7. `close-issues` exige `merged == true` (PR fechado sem merge não fecha nada);
-  8. o job `Relatório` roda com `if: always()`;
+  7. o `close-issues` (workflow próprio) exige `merged == true` (PR fechado sem
+     merge não fecha nada);
+  8. o job `Relatório` roda com `if: always()` e depende de TODOS os jobs do
+     CI — é o ÚLTIMO da run (#169);
   9. as duas imagens: ci-linux (toolset do Tauri) e ci-base (sem GUI, com uv);
- 10. composites preservados (shared-key, add-job-id-key, cache do Playwright);
- 11. PISO de versao por action (o Node 20 foi descontinuado pelo runner):
+  10. composites preservados (shared-key, add-job-id-key, cache do Playwright);
+  11. PISO de versao por action (o Node 20 foi descontinuado pelo runner):
      toda action usada esta no mapa e na major minima; entrada sem uso
      tambem falha, senao a regra vira letra morta sem ninguem perceber.
+  12. o GRAFO `needs:` na ordem do dono (#169): lint → compilação → segurança →
+      testes → cobertura → dist; e a matriz de OS tem o archlinux como
+      CONTAINER (`matrix.host`/`matrix.container` em toda job de matriz).
 
 Uso: python3 scripts/validate_workflows.py  (exit 1 na primeira violação)
 """
@@ -73,29 +79,66 @@ def triggers(doc: dict) -> dict:
 
 
 # ── TIPOS de job × jobs que cada um DEVE ter ─────────────────────────────
-# A ordem do dicionário É a sequência de execução pedida (validação → lint →
-# compilação → testes → cobertura → segurança → relatório → infra → release →
-# distribuição → fechamento). O GitHub não tem `stages:`; a ordem real é o
-# grafo `needs:`. Então a sequência é garantida aqui como ORDEM DE DECLARAÇÃO
-# no arquivo (que é como a gente lê e como o diff mostra), e o `needs:` garante
-# que ela é real.
+# A ordem do dicionário É a sequência de execução pedida (#169: validação →
+# lint → compilação → infra → segurança → testes → cobertura → distribuição →
+# release → relatório). O GitHub não tem `stages:`; a ordem real é o grafo
+# `needs:`. Então a sequência é garantida aqui como ORDEM DE DECLARAÇÃO no
+# arquivo (que é como a gente lê e como o diff mostra), e o `needs:` (contrato
+# 12) garante que ela é real. O Fechamento saiu daqui: é o workflow próprio
+# `.github/workflows/issues-fechamento.yml`.
 TIPOS: dict[str, list[str]] = {
     "Validação": ["plan"],
     "Lint": ["lint-workflows", "lint-commits", "lint-rust-fmt", "lint-rust-clippy", "lint-ui"],
     "Compilação": ["build-rust", "build-ui"],
+    "Infra": ["ci-images"],
+    "Segurança": ["sec-audit"],
     "Testes": ["test-rust", "test-ui", "test-spec", "test-e2e", "test-e2e-visual", "test-e2e-webview"],
     "Cobertura": ["coverage-ui"],
-    "Segurança": ["sec-audit"],
-    "Relatório": ["metrics"],
-    "Infra": ["ci-images"],
-    "Release": ["main-guard", "release-rc", "release-promote", "release-play"],
     # `dist-sdist` publica o tarball de FONTE (com o `ui/dist` embutido) de que
     # o PKGBUILD do Arch precisa (#72). Fica entre o instalador e o CLI porque é
     # artefato de distribuição — não gate, não teste.
     "Distribuição": ["dist-ui", "dist-sdist", "dist-cli"],
-    "Fechamento": ["close-issues"],
+    "Release": ["main-guard", "release-rc", "release-promote", "release-play"],
+    "Relatório": ["metrics"],
 }
 SEQUENCIA_ESPERADA = [j for jobs_ in TIPOS.values() for j in jobs_]
+
+# O GRAFO `needs:` NA ORDEM DO DONO (#169). Posição no arquivo não executa;
+# `needs:` executa. Este mapa é a política transformada em igualdade de
+# conjunto: mudar a ordem sem mudar a política = atualizar aqui, e o diff do
+# gate é a revisão da mudança.
+GRAFO_ESPERADO: dict[str, set[str]] = {
+    # Lint ← Validação (o `plan` é o único que nunca pula)
+    "lint-workflows": {"plan"},
+    "lint-commits": {"plan"},
+    "lint-rust-fmt": {"plan"},
+    "lint-rust-clippy": {"plan"},
+    "lint-ui": {"plan"},
+    # Compilação ← Lint
+    "build-rust": {"plan", "lint-rust-fmt", "lint-rust-clippy"},
+    "build-ui": {"plan", "lint-ui"},
+    # Segurança ← Compilação/Infra — ANTES dos testes (#169 moveu para cá)
+    "sec-audit": {"plan", "ci-images"},
+    # Testes ← Segurança (+ build da área, + imagem quando consomem)
+    "test-rust": {"plan", "build-rust", "sec-audit"},
+    "test-ui": {"plan", "build-ui", "sec-audit"},
+    "test-e2e": {"plan", "build-ui", "sec-audit"},
+    "test-e2e-visual": {"plan", "build-ui", "sec-audit"},
+    "test-spec": {"plan", "ci-images", "sec-audit"},
+    "test-e2e-webview": {"plan", "build-rust", "ci-images", "sec-audit"},
+    # Cobertura ← Testes
+    "coverage-ui": {"plan", "build-ui", "test-ui"},
+    # Distribuição ← Cobertura (UI) ou do teste do artefato (CLI, sem coverage)
+    "dist-ui": {"plan", "coverage-ui"},
+    "dist-sdist": {"plan", "coverage-ui"},
+    "dist-cli": {"plan", "test-rust"},
+    # Release ← Validação (dist nunca coexiste com dispatch — ver o comentário
+    # do bloco de Release no ci.yml)
+    "main-guard": {"plan"},
+    "release-rc": {"plan"},
+    "release-promote": {"plan"},
+    "release-play": {"plan"},
+}
 
 # Legados: a consolidação da #68 os substituiu por um workflow só.
 LEGACY = (
@@ -148,12 +191,13 @@ def main() -> int:
         if doc is not None:
             docs[path] = doc
 
-    # ── 1. UM workflow só, e os legados fora ──────────────────────────────
+    # ── 1. DOIS workflows (ci.yml + fechamento), e os legados fora ────────
     for legacy in LEGACY:
         if f".github/workflows/{legacy}" in docs:
-            FAILURES.append(f".github/workflows/{legacy}: legado ainda existe (a #68 consolidou tudo em ci.yml)")
-    if set(workflows) != {".github/workflows/ci.yml"}:
-        FAILURES.append(f"esperado exatamente 1 workflow (ci.yml); existem: {workflows}")
+            FAILURES.append(f".github/workflows/{legacy}: legado ainda existe (a #68 consolidou tudo em workflows próprios)")
+    esperados = {".github/workflows/ci.yml", ".github/workflows/issues-fechamento.yml"}
+    if set(workflows) != esperados:
+        FAILURES.append(f"esperado exatamente 2 workflows {sorted(esperados)}; existem: {workflows}")
 
     ci = docs.get(".github/workflows/ci.yml") or {}
     if not ci:
@@ -190,10 +234,38 @@ def main() -> int:
         FAILURES.append("ci: on.push.tags precisa de v* (a release publica no push da tag)")
     if "develop" not in pr_branches or "main" not in pr_branches:
         FAILURES.append("ci: on.pull_request.branches precisa de develop e main")
-    if "closed" not in (pr.get("types") or []):
-        FAILURES.append("ci: on.pull_request.types precisa incluir 'closed' (fechamento de issue)")
+    if "closed" in (pr.get("types") or []):
+        FAILURES.append(
+            "ci: on.pull_request.types NÃO pode ter 'closed' — o fechamento de issues saiu do CI (#169) e "
+            "mora em issues-fechamento.yml; arrastá-lo aqui rodava o pipeline inteiro só para jobs skipped"
+        )
     if "schedule" not in on:
         FAILURES.append("ci: precisa de on.schedule (auditoria noturna)")
+
+    # ── 2b. o workflow PRÓPRIO do Fechamento (#169) ──────────────────────
+    fech = docs.get(".github/workflows/issues-fechamento.yml") or {}
+    if fech:
+        if fech.get("name") != "Issues · Fechamento de issues vinculadas":
+            FAILURES.append(
+                f"fechamento: name precisa ser 'Issues · Fechamento de issues vinculadas' (pedido na #169); é {fech.get('name')!r}"
+            )
+        fech_pr = (triggers(fech).get("pull_request") or {})
+        if "closed" not in (fech_pr.get("types") or []):
+            FAILURES.append("fechamento: precisa do gatilho pull_request.types = [closed]")
+        for needed in ("develop", "main"):
+            if needed not in set(fech_pr.get("branches") or []):
+                FAILURES.append(f"fechamento: on.pull_request.branches precisa de {needed}")
+        if (fech.get("permissions") or {}).get("issues") != "write":
+            FAILURES.append("fechamento: permissions.issues precisa ser 'write' (fecha as issues)")
+        fech_close = (fech.get("jobs") or {}).get("close-issues") or {}
+        fech_if = str(fech_close.get("if") or "")
+        for guard in ("pull_request", "closed", "merged == true", "github-actions[bot]"):
+            if guard not in fech_if:
+                FAILURES.append(f"fechamento: `close-issues` perdeu o guard '{guard}' (PR fechado sem merge NÃO fecha issue)")
+        fech_run = " ".join(str(s.get("run") or "") for s in (fech_close.get("steps") or []))
+        for token in ("achados-security", "GITHUB_STEP_SUMMARY"):
+            if token not in fech_run:
+                FAILURES.append(f"fechamento: `close-issues` perdeu '{token}'")
 
     # ── 3. permissão mínima no topo ──────────────────────────────────────
     perms = ci.get("permissions") or {}
@@ -282,24 +354,26 @@ def main() -> int:
             FAILURES.append(f"ci: {job_id} precisa de permissions.contents: write (anexa na Release)")
 
     # ── 7. fechamento de issue só em PR MERGEADO ─────────────────────────
-    close = jobs.get("close-issues") or {}
-    close_if = str(close.get("if") or "")
-    for guard in ("pull_request", "closed", "merged == true", "github-actions[bot]"):
-        if guard not in close_if:
-            FAILURES.append(f"ci: `8 close` perdeu o guard '{guard}' (PR fechado sem merge NÃO fecha issue)")
-    close_run = " ".join(str(s.get("run") or "") for s in (close.get("steps") or []))
-    for token in ("achados-security", "GITHUB_STEP_SUMMARY"):
-        if token not in close_run:
-            FAILURES.append(f"ci: `8 close` perdeu '{token}'")
+    # A checagem saiu daqui para o contrato 2b: o `close-issues` não é mais um
+    # job do ci.yml — é o workflow `.github/workflows/issues-fechamento.yml`.
+    if "close-issues" in jobs:
+        FAILURES.append("ci: `close-issues` voltou para o ci.yml — o Fechamento é workflow próprio (#169)")
 
     # ── 8. métricas SEMPRE (mesmo com falha) ─────────────────────────────
     metrics_if = str((jobs.get("metrics") or {}).get("if") or "")
     if "always()" not in metrics_if:
         FAILURES.append("ci: `6 metrics` precisa de if: always() (o resumo é onde se vê o que quebrou)")
+    # O Relatório é o ÚLTIMO job (#169): precisa depender de todos os outros
+    # para resumir a run INTEIRA. O `if: always()` é o que garante que ele
+    # roda mesmo quando algum desses `needs` vermelhou.
     metrics_needs = (jobs.get("metrics") or {}).get("needs")
-    needs = metrics_needs if isinstance(metrics_needs, list) else [metrics_needs]
-    if "plan" not in [n for n in needs if n]:
-        FAILURES.append("ci: `6 metrics` precisa depender só de `plan` — um `needs` vermelho atrasa o resumo")
+    needs = set(metrics_needs) if isinstance(metrics_needs, list) else {metrics_needs}
+    faltando = set(jobs) - {"metrics"} - needs
+    if faltando:
+        FAILURES.append(
+            "ci: `Relatório · resumo da run` precisa depender de TODOS os jobs do CI (#169 — roda por "
+            f"último); faltando: {sorted(faltando)}"
+        )
 
     # ── 9. as duas imagens ───────────────────────────────────────────────
     images_job = jobs.get("ci-images") or {}
@@ -427,6 +501,30 @@ def main() -> int:
             f"a regra parada deixa de ser conferida"
         )
 
+    # ── 12. o GRAFO na ordem do dono + Arch na matriz (#169) ─────────────
+    for job_id, esperado in GRAFO_ESPERADO.items():
+        needs_raw = (jobs.get(job_id) or {}).get("needs")
+        conjunto = set(needs_raw) if isinstance(needs_raw, list) else {needs_raw}
+        if conjunto != esperado:
+            FAILURES.append(
+                f"ci: `{job_id}` precisa depender de {sorted(esperado)} (ordem do dono, #169); "
+                f"veio {sorted(x for x in conjunto if x)}"
+            )
+    # Toda job que consome matriz de OS precisa aceitar a entrada `archlinux`
+    # como CONTAINER (#169): `matrix.host` no runs-on e `matrix.container` na
+    # imagem (expressão vazia = roda direto no runner hospedado). Sem os dois,
+    # a entrada archlinux morre no LOAD da run inteira.
+    for job_id in ("lint-rust-clippy", "build-rust", "test-rust", "build-ui"):
+        job = jobs.get(job_id) or {}
+        if str(job.get("runs-on") or "") != "${{ matrix.host || matrix.os }}":
+            FAILURES.append(f"ci: `{job_id}` precisa de `runs-on: ${{{{ matrix.host || matrix.os }}}}` (Arch, #169)")
+        imagem = str((job.get("container") or {}).get("image") or "")
+        if imagem != "${{ matrix.container || '' }}":
+            FAILURES.append(f"ci: `{job_id}` precisa de `container.image: ${{{{ matrix.container || '' }}}}` (Arch, #169)")
+    for token in ("archlinux:base-devel", "ARCH_OS", "ARCH_CONTAINER"):
+        if token not in plan_raw:
+            FAILURES.append(f"ci_plan.py: perdeu '{token}' — a matriz de OS não tem mais o archlinux (#169)")
+
     # ── relatório ───────────────────────────────────────────────────────
     for path in sorted(docs):
         print(("ERR " if path == ".github/workflows/ci.yml" and FAILURES else "OK  "), path)
@@ -435,7 +533,7 @@ def main() -> int:
         for failure in FAILURES:
             print(" -", failure)
         return 1
-    print("\n1 workflow + 5 actions compostas + 2 imagens: YAML válido e contratos preservados.")
+    print("\n2 workflows + 5 actions compostas + 2 imagens: YAML válido e contratos preservados.")
     return 0
 
 
