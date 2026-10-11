@@ -7,6 +7,7 @@ use std::time::Duration;
 
 use gp100_core::codec::{ir_begin, ir_chunk, meta_block, op_payload, set_param, set_param_parse};
 use gp100_core::golden::{decode_envelope, GoldenFile};
+use gp100_core::session::Session;
 use gp100_core::transport::{DeviceTransport, MockDevice, TransportError, WireKind};
 use gp100_core::ProtocolError;
 
@@ -421,4 +422,20 @@ fn dialogo_completo_da_sessao_sintetica_sem_timeouts() {
     ));
     assert_eq!(m.state().current_name, "Blink OD");
     assert_eq!(m.state().rejected, 0, "nenhuma divergência no diálogo");
+}
+
+/// `read_state5` — as 5 leituras cruas de `11/12001012` (T2 do boot; era
+/// "setlist", mas a GP-100 não tem setlist — `docs/GP100_DEVICE.md` §5#1).
+/// A semântica fina NÃO está decifrada, então o teste trava só a FORMA
+/// medida no boot/replay: 5 entradas de 44B nibble-exp. Conteúdo inventado
+/// aqui seria exatamente a doença do ADR-13.
+#[test]
+fn read_state5_devolve_5_entradas_de_44b() {
+    let mut m = open_mock();
+    let mut s = Session::new(&mut m);
+    let entradas = s.read_state5().expect("5 leituras de 12001012");
+    assert_eq!(entradas.len(), 5, "T2 = 5 entradas");
+    for (i, p) in entradas.iter().enumerate() {
+        assert_eq!(p.len(), 44, "entrada {i}: 44B nibble-exp (§13.3)");
+    }
 }

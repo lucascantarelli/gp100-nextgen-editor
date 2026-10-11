@@ -1050,6 +1050,26 @@ impl<T: DeviceTransport> Session<T> {
         Ok(UserIrTable { slots })
     }
 
+    /// As 5 leituras de `11/12001012` do boot (T2), devolvidas CRUAS.
+    ///
+    /// É a etapa que o repo chamava de "setlist" e agora se chama
+    /// [`BootStage::State5`]: a GP-100 **não tem função setlist** no manual
+    /// (`docs/GP100_DEVICE.md` §5#1). O payload é 44B nibble-exp com cara de
+    /// `12 10 2c 00 [i] 00 01 …` (PROTOCOL §13.3) — a semântica fina ainda NÃO
+    /// está decifrada; este método existe justamente para medir em campo
+    /// (CLI `read-state5 --log`) sem inventar decode.
+    ///
+    /// Leitura pura: não seleciona preset, não muda estado (o mesmo req T2 do
+    /// boot, provado pelo replay).
+    pub fn read_state5(&mut self) -> Result<Vec<Vec<u8>>, ProtocolError> {
+        let golden = GoldenFile::embedded()?;
+        let mut entradas = Vec::with_capacity(5);
+        for i in 0u8..5 {
+            entradas.push(self.tx_req(golden, 0x11, &[0x12, 0x00, 0x10, 0x12], &[i])?);
+        }
+        Ok(entradas)
+    }
+
     /// Pushes de IN não solicitado acumulados no backlog (D7), para
     /// observação (D8: poll, nunca listener concorrente). A drenagem do
     /// backlog é da operação seguinte compatível.
