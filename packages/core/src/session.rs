@@ -35,7 +35,7 @@ use std::time::Duration;
 const TX_TIMEOUT_MS: u64 = 3000;
 
 /// Ordem REAL do script de boot (prova C do replay):
-/// Tables → Scan → Probe → Setlist → Names → Keepalive.
+/// Tables → Scan → Probe → State5 → Names → Keepalive.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BootStage {
     /// T1 — tabelas de User IRs `11/12001002` (20 páginas ×2 leituras).
@@ -45,8 +45,12 @@ pub enum BootStage {
     Scan,
     /// T6 — sonda do banco 02 (select const + open + 9 páginas).
     Probe,
-    /// T2 — setlist `11/12001012` (5 leituras).
-    Setlist,
+    /// T2 — 5 leituras de `11/12001012` (44B cada). O repo a chama(va) de
+    /// "setlist", mas a GP-100 **não tem função setlist** no manual
+    /// (`docs/GP100_DEVICE.md` §5#1). Renomeado para `State5` (5 entradas de
+    /// estado) até a semântica fina ser decifrada em campo — não expor como
+    /// produto.
+    State5,
     /// T3 — nomes `11/11000008` (fire-and-forget, D4; 61 leituras).
     Names,
     /// T4 — keepalives `12/00020001` ×2 (D4).
@@ -422,7 +426,7 @@ impl<T: DeviceTransport> Session<T> {
     ///
     /// INTERLEAVE (D2): cada transação espera a PRÓPRIA resposta (D1) e
     /// pushes de boot não solicitados (dump 13000000, meta6 13010001,
-    /// páginas 13010003, setlist 12001012, nomes 11000008) vão para o
+    /// páginas 13010003, estado 12001012, nomes 11000008) vão para o
     /// BACKLOG (D7), não confundem as transações. `progress` é
     /// observacional: um `beat!` por transação, nada no fio.
     fn boot_inner(
@@ -432,7 +436,7 @@ impl<T: DeviceTransport> Session<T> {
         let golden = GoldenFile::embedded()?;
         let mut tx = 0usize;
         // Total esperado: T1(40) + scan(11/pp +2 se pp corrente duplicado)
-        // + sonda(11) + setlist(5) + nomes(61) + keepalive(2). O replay da
+        // + sonda(11) + estado5(5) + nomes(61) + keepalive(2). O replay da
         // captura (198 pps, 0x0100 duplicado) fecha em 2299 = prova C.
         let pps = self.inventory();
         let doubled = pps.iter().filter(|&&p| p == 0x0100).count();
@@ -452,7 +456,7 @@ impl<T: DeviceTransport> Session<T> {
         }
 
         // ORDEM REAL do boot S1 (prova C / replay): T1 → scan (T5) →
-        // sonda 1302 (T6) → setlist (T2) → nomes (T3) → keepalives ×2.
+        // sonda 1302 (T6) → estado5 (T2) → nomes (T3) → keepalives ×2.
         // T1: 20 páginas ×2 (regra da prova C)
         for p in 0u8..0x14 {
             for _ in 0..2 {
@@ -599,8 +603,8 @@ impl<T: DeviceTransport> Session<T> {
             tx += 1;
             beat!();
         }
-        stage = BootStage::Setlist;
-        // T2: setlist 5 entradas
+        stage = BootStage::State5;
+        // T2: 5 entradas de `12001012` (estado; não é setlist — GP100_DEVICE §5#1)
         for i in 0u8..5 {
             self.tx_req(golden, 0x11, &[0x12, 0x00, 0x10, 0x12], &[i])?;
             tx += 1;

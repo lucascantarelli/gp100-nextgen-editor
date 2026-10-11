@@ -49,7 +49,7 @@ pub enum WireKind {
     /// Pedido cujo efeito é o device responder com dados.
     ///
     /// Inclui os dois formatos de leitura que existem no fio: `FUNC 0x11`
-    /// sem payload (tabelas de IR, nomes, setlist) **e** `FUNC 0x12` com
+    /// sem payload (tabelas de IR, nomes, estado `12001012`) **e** `FUNC 0x12` com
     /// payload que abre/avança página (§13.10 — "req pg0..7 → pág1..8").
     Read,
     /// Frame que **muta** o estado do device.

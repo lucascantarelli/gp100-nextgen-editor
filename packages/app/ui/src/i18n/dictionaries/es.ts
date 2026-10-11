@@ -91,7 +91,7 @@ export const ES: DictPatch = {
     tables: "Tablas de IR",
     scan: "Escaneo de presets",
     probe: "Sonda banco 02",
-    setlist: "Setlist",
+    state5: "Tabla de estado",
     names: "Nombres",
     keepalive: "Keepalive",
   },

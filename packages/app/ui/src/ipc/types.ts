@@ -104,7 +104,7 @@ type BootStage =
   | "tables"
   | "scan"
   | "probe"
-  | "setlist"
+  | "state5"
   | "names"
   | "keepalive";
 

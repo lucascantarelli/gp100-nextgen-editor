@@ -91,7 +91,7 @@ export const ZH: DictPatch = {
     tables: "IR 表",
     scan: "扫描音色",
     probe: "探测 bank 02",
-    setlist: "Setlist",
+    state5: "状态表",
     names: "名称",
     keepalive: "Keepalive",
   },

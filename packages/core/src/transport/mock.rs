@@ -6,7 +6,7 @@
 //! limpa (pp BE no meta6/páginas, eco de slot+idx no ACK de chunk,
 //! seleção de preset pelo write `13010000`); exemplo congelado do golden
 //! onde o corpo é evidência de captura (bodies mixed 196B de 13xx,
-//! tabela de IRs, nomes `11000008`, setlist `12001012`).
+//! tabela de IRs, nomes `11000008`, estado `12001012`).
 //!
 //! **Contrato de comportamento = D1–D8 do ADR-6 rev.3:**
 //! - **D1** fila IN por endpoint tipado `(func, addr)`; `recv_raw` devolve

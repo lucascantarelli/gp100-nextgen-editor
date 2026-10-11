@@ -90,7 +90,7 @@ export const EN: DictPatch = {
     tables: "IR tables",
     scan: "Preset scan",
     probe: "Bank 02 probe",
-    setlist: "Setlist",
+    state5: "State table",
     names: "Names",
     keepalive: "Keepalive",
   },

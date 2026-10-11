@@ -24,7 +24,7 @@ export const BOOT_STAGE_LABEL: Record<BootProgress["stage"], string> = {
   tables: MSG.bootStages.tables,
   scan: MSG.bootStages.scan,
   probe: MSG.bootStages.probe,
-  setlist: MSG.bootStages.setlist,
+  state5: MSG.bootStages.state5,
   names: MSG.bootStages.names,
   keepalive: MSG.bootStages.keepalive,
 };

@@ -64,7 +64,7 @@ fn boot_com_progresso_beats_por_transacao() {
         BootStage::Tables,
         BootStage::Scan,
         BootStage::Probe,
-        BootStage::Setlist,
+        BootStage::State5,
         BootStage::Names,
         BootStage::Keepalive,
     ];

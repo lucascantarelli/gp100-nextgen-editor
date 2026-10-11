@@ -323,7 +323,7 @@ export async function deviceBoot(): Promise<BootReport> {
     ["tables", 40],
     ["scan", 2179],
     ["probe", 11],
-    ["setlist", 5],
+    ["state5", 5],
     ["names", 60],
     ["keepalive", 2],
   ];

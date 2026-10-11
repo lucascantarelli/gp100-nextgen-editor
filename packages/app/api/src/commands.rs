@@ -96,8 +96,10 @@ impl DeviceInfo {
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct BootProgressDto {
-    /// Etapa do script (§13.10): "tables" | "scan" | "probe" | "setlist" |
-    /// "names" | "keepalive" — literal estável para o front.
+    /// Etapa do script (§13.10): "tables" | "scan" | "probe" | "state5" |
+    /// "names" | "keepalive" — literal estável para o front. (`state5` = as 5
+    /// leituras de `12001012`; era "setlist", mas a GP-100 não tem setlist —
+    /// `docs/GP100_DEVICE.md` §5#1.)
     pub stage: &'static str,
     /// Transações completas até agora.
     pub done: usize,
@@ -114,7 +116,7 @@ impl From<BootProgress> for BootProgressDto {
                 BootStage::Tables => "tables",
                 BootStage::Scan => "scan",
                 BootStage::Probe => "probe",
-                BootStage::Setlist => "setlist",
+                BootStage::State5 => "state5",
                 BootStage::Names => "names",
                 BootStage::Keepalive => "keepalive",
             },

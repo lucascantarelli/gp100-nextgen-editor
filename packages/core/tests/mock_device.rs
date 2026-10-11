@@ -49,7 +49,7 @@ fn boot_prologo_de_pushes_sem_timeout() {
     m.queue_push_template(0x12, [0x12, 0x00, 0x10, 0x02], Some(75))
         .expect("push tabela IRs 75B (t3, by-len)");
     m.queue_push_template(0x12, [0x12, 0x00, 0x10, 0x12], None)
-        .expect("push setlist 44B (t17)");
+        .expect("push estado 44B (t17)");
 
     for _ in 0..4 {
         let msg = m.recv_raw(T).expect("push chega sem timeout");

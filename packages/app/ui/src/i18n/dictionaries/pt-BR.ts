@@ -81,7 +81,7 @@ export const PT_BR = {
     tables: "Tabelas de IR",
     scan: "Scan de presets",
     probe: "Sonda banco 02",
-    setlist: "Setlist",
+    state5: "Tabela de estado",
     names: "Nomes",
     keepalive: "Keepalive",
   },
