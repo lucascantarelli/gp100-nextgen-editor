@@ -18,7 +18,7 @@
 //! do `send_raw`.
 //!
 //! **O que também é testado:** que a trava não barra o que a Suite de fato
-//! manda. Os 92 frames reais de `analysis/fixtures/knobs.jsonl` têm de
+//! manda. Os 92 frames reais de `packages/core/data/fixtures/knobs.jsonl` têm de
 //! passar; um gate que recusa valor legítimo é tão quebrado quanto um que
 //! não recusa valor perigoso.
 

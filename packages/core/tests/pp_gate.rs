@@ -4,7 +4,7 @@
 //!
 //! 1. **O inventário do aparelho É o da captura** —
 //!    [`inventario_do_aparelho`] tem de ser, `u16` por `u16`, a sequência que
-//!    o Suite varre em `analysis/fixtures/boot.jsonl` (198 pps: banco
+//!    o Suite varre em `packages/core/data/fixtures/boot.jsonl` (198 pps: banco
 //!    `0x01xx` e banco `0x00xx`). Nenhum número aqui é de parede.
 //! 2. **A recusa acontece ANTES do frame** — um `select` fora do inventário
 //!    não pode nem chegar no `send_raw` (contagem de transações do mock = 0);

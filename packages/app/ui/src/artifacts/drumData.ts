@@ -1,7 +1,8 @@
 /**
  * Ritmos da bateria (drum) da GP-100 — GERADO do firmware V2.1
  * (tabela de estilos entre as divisões de nota e os compassos).
- * NÃO editar mão. Regenerar: uv run python analysis/dump_drum_kit.py
+ * NÃO editar à mão. Fonte canônica: packages/core/data/parameters.json
+ * (HW-3/#163); regeneração: gerador da era RE (dissolução na #168).
  *
  * Os RÓTULOS de gênero são inferidos (o firmware ordena os estilos por
  * grupo sem gravar os nomes); a LISTA e a ORDEM dos estilos são reais.

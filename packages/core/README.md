@@ -3,7 +3,7 @@
 > **Fontes de verdade:** [docs/protocol_golden.json](../../docs/protocol_golden.json)
 > (spec executável, 40 templates) · [docs/PROTOCOL.md](../../docs/PROTOCOL.md) §13
 > (narrativa do fio) · [docs/DECISIONS.md](../../docs/DECISIONS.md) (ADR-1..6) ·
-> [analysis/fixtures/](../../analysis/fixtures) (replay)
+> [fixtures do fio](data/fixtures) (replay — casa canônica desde #163)
 
 Biblioteca de protocolo e presets da pedaleira Valeton GP-100, construída por
 engenharia reversa **sem adivinhar um byte** (regra R1): todo formato vem do

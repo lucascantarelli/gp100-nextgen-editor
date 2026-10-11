@@ -7,7 +7,7 @@ Sources:
   3. analysis/fw_strings.txt     — firmware string table (name presence check)
 
 Output:
-  analysis/parameters.json       — canonical dictionary, validated & annotated
+  packages/core/data/parameters.json — canonical dictionary (casa desde #163)
 """
 import json, csv, re, sys
 from collections import defaultdict
@@ -140,8 +140,8 @@ for a in algs:
 meta["modules"] = {m: sorted(v) for m, v in sorted(mods.items())}
 
 json.dump({"meta": meta, "algorithms": algs},
-          open("analysis/parameters.json", "w", encoding="utf-8"),
+          open("packages/core/data/parameters.json", "w", encoding="utf-8"),
           ensure_ascii=False, indent=1)
 
 print(json.dumps(report, ensure_ascii=False, indent=1)[:3000])
-print("\nwrote analysis/parameters.json:", len(algs), "algorithms")
+print("\nwrote packages/core/data/parameters.json:", len(algs), "algorithms")

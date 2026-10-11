@@ -8,7 +8,7 @@
 //! (`00 00 | nome[12, pad NUL] | …`).
 //!
 //! **Módulo puro, sem fio e sem `Session`** — é assim que o dataset inteiro
-//! (1.782 páginas de `analysis/fixtures/boot.jsonl`) é testado sem hardware,
+//! (1.782 páginas de `packages/core/data/fixtures/boot.jsonl`) é testado sem hardware,
 //! o mesmo princípio de `param_range.rs` (#110) e do inventário (#132).
 //!
 //! **O decode em si não é meu:** reusa [`crate::codec::nibble_collapse`],
@@ -281,12 +281,13 @@ impl Paginas {
 // (ha 11 cadeias distintas nas 198 pps) e os params formam um fluxo contiguo
 // que atravessa fronteiras de pagina. O artefato guarda a ESTRUTURA, e o
 // offset de cada valor e CALCULADO — nunca procurado. Ver
-// `analysis/map_state_pages.py` para a prova (26552/26554 em params,
-// 1782/1782 em code e state).
+// Prova histórica da RE (26552/26554 em params,
+// 1782/1782 em code e state), revalidada contra o aparelho no gate de campo.
 // ---------------------------------------------------------------------------
 
-/// O artefato embutido no binário — mesmo regime de `model::DICTIONARY_JSON`.
-pub const OFFSETS_JSON: &str = include_str!("../../../analysis/state_pages_offsets.json");
+/// O artefato embutido no binário — mesmo regime de `model::DICTIONARY_JSON`;
+/// casa canônica `packages/core/data/state_pages_offsets.json` (HW-3/#163).
+pub const OFFSETS_JSON: &str = include_str!("../data/state_pages_offsets.json");
 
 /// Bloco de tamanho fixo: `count` elementos de `width` bytes, a partir de
 /// `offset` na `page` (corpo já decodificado).

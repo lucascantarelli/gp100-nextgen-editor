@@ -36,8 +36,8 @@ cargo run -p gp100-cli -- list-user-irs --log session.jsonl  # frames no schema 
 - Escritas (`set-param`/`save`) exigem `--dry-run` nesta fase — escrita real só
   pós-gate H2 (`WRITE_VERIFIED`).
 - `--log` grava OUT/IN no MESMO schema das fixtures P4
-  (`{"s","dir","func","addr","data"}`), consumível por `analysis/decode_wire.py`
-  e pelos testes de replay — é o insumo do
+  (`{"s","dir","func","addr","data"}`), consumível pelo decodificador de fio
+  do projeto e pelos testes de replay — é o insumo do
   [H1_CHECKLIST](../../docs/H1_CHECKLIST.md) em campo.
 - Códigos de saída: `2` = uso/política · `3` = erro de protocolo.
 

@@ -12,7 +12,7 @@
 //! por onde um byte sair).
 //!
 //! **Por que a estimativa é POSIÇÃO, e não decibel.** O dicionário
-//! (`analysis/parameters.json`) traz, de cada controle, a FAIXA física
+//! (`packages/core/data/parameters.json`) traz, de cada controle, a FAIXA física
 //! (`min`/`max`) e o valor atual — nunca a resposta em dB do pedal. Um
 //! "Gain: 70" quer dizer coisas diferentes num overdrive e num amp, e o quanto
 //! cada estágio ganha não está medido em lugar nenhum. Escrever "+12 dB" seria
@@ -191,7 +191,7 @@ pub struct Relatorio {
 
 /// Os nomes declarados como ganho de entrada.
 ///
-/// A lista saiu do DICIONÁRIO, não da imaginação: `analysis/parameters.json`
+/// A lista saiu do DICIONÁRIO, não da imaginação: `packages/core/data/parameters.json`
 /// tem 105 nomes distintos, e só `Gain` (57 algoritmos) é ganho de entrada sem
 /// ambiguidade. `Sustain` (compressor) e `Fuzz`/`Bias` (caráter de clipagem)
 /// ficam de fora: mexem no timbre, não no nível que chega ao estágio seguinte.

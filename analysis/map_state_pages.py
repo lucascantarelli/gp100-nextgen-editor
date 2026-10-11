@@ -2,7 +2,7 @@
 """map_state_pages.py — o LAYOUT das páginas 13xx, provado contra a captura (#155).
 
 Cruza a captura S1 (198 presets x 9 páginas pelo addr `13010003`) com os 99
-presets XML do `all.prst` e grava `analysis/state_pages_offsets.json`, o
+presets XML do `all.prst` e grava `packages/core/data/state_pages_offsets.json`, o
 artefato que `preset_pages::slots()` embute no binário.
 
 ## O que este script faz (e o que já estava errado nele)
@@ -48,7 +48,7 @@ from collections import Counter
 HERE = os.path.dirname(os.path.abspath(__file__))
 CAP1 = os.path.join(HERE, "captures", "session1.jsonl")
 ALLP = os.path.join(HERE, os.pardir, "files", "patches", "all.prst")
-OUT = os.path.join(HERE, "state_pages_offsets.json")
+OUT = os.path.join(HERE, "..", "packages", "core", "data", "state_pages_offsets.json")
 
 HDR = "f021257f47502d64"
 

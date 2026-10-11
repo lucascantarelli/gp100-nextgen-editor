@@ -174,7 +174,7 @@ def test_o_artefato_guarda_o_hash_das_duas_fontes():
 def test_o_hash_e_o_do_blob_do_git_e_nao_o_do_disco():
     """A provenance tem que sobreviver a maquina: o hash e canonico (LF).
 
-    Motivo do teste existir: `analysis/parameters.json` NAO esta na lista de
+    Motivo do teste existir: `packages/core/data/parameters.json` NAO esta na lista de
     bytes congelados do `.gitattributes` (a politica e "identidade semantica,
     nao byte"), entao o checkout do Windows tem CRLF e o blob do git tem LF.
     Hashar o byte do disco gravou o sha256 da forma CRLF no artefato e deixou
@@ -187,7 +187,7 @@ def test_o_hash_e_o_do_blob_do_git_e_nao_o_do_disco():
     """
     import hashlib
 
-    bruto = (RAIZ / "analysis" / "parameters.json").read_bytes()
+    bruto = (RAIZ / "packages" / "core" / "data" / "parameters.json").read_bytes()
     canonico = hashlib.sha256(bruto.replace(b"\r\n", b"\n")).hexdigest()
     com_crlf = hashlib.sha256(bruto).hexdigest()
 

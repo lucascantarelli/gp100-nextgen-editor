@@ -2,7 +2,7 @@
 """validate_knob_map.py — validação final do mapa knob→fio da sessão 3.
 
 Cruza os writes 10[mod]0002 (payload nibble-expandido, 10 bytes reais)
-com analysis/parameters.json (nomes/ranges de controls[pos]) e com os
+com packages/core/data/parameters.json (nomes/ranges de controls[pos]) e com os
 .prst (match do preset por módulo→alg). Emite analysis/knob_map.json.
 
 Layout do payload real (10 bytes):
@@ -20,7 +20,7 @@ HDR = "f021257f47502d64"
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 CAP = os.path.join(ROOT, "analysis", "captures", "session3.jsonl")
-PARAMS = os.path.join(ROOT, "analysis", "parameters.json")
+PARAMS = os.path.join(ROOT, "packages", "core", "data", "parameters.json")
 PATCHES = os.path.join(ROOT, "files", "patches")
 SLOTS = {1: "PRE", 2: "DST", 3: "AMP", 4: "NR", 5: "CAB",
          6: "EQ", 7: "MOD", 8: "DLY", 9: "RVB"}

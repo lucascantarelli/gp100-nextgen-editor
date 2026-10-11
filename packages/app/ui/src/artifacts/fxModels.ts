@@ -1,8 +1,8 @@
 /**
  * Catálogo de MODELOS de pedal por variante (efeito real da pedaleira).
  *
- * Fonte dos efeitos: analysis/fx_map.json (gerado do parameters.json —
- * insumo do device, nunca hardcode). Cada variante mapeia para um `Model` com a FORMA do SVG (enclosure
+ * Fonte dos efeitos: `packages/core/data/fx_map.json` (derivado do
+ * dicionário canônico — insumo do device, nunca hardcode). Cada variante mapeia para um `Model` com a FORMA do SVG (enclosure
  * compacto, caixão largo, treadle de wah, rack de eco…) e referência
  * visual real (o SVG não copia marcas, segue a LINGUAGEM da referência).
  * Sem entrada no catálogo → fallback pelo archetype (capacidade estável

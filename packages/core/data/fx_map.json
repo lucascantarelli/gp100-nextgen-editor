@@ -1,6 +1,6 @@
 {
  "meta": {
-  "source": "analysis/parameters.json (R1) — gerado por dump_fx_map.py",
+  "source": "packages/core/data/parameters.json (R1) — gerado por dump_fx_map.py",
   "effects_total": 185,
   "modules": {
    "PRE": 16,

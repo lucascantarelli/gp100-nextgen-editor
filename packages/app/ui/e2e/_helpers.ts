@@ -1,7 +1,7 @@
 /**
  * Helpers compartilhados dos testes e2e (medidas de layout/alinhamento).
  * Tudo roda no browser (page.evaluate) — os asserts ficam nos specs.
- * Origem: analysis/responsivo_checks.js.
+ * Origem: checks de responsivo da era de RE (histórico no git; #163).
  */
 import type { Page } from "@playwright/test";
 

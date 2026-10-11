@@ -359,7 +359,7 @@ fn parse_u32(s: &str) -> Result<u32, String> {
 //
 // Mesmo schema das fixtures P4 (make_fixtures.py): 1 linha JSON por msg,
 // `{"s","t","dir","func","addr","data"}`, `data` = payload puro (sem envelope)
-// em hex minúsculo — consumível por `analysis/wirelog.py` (normalizador) e
+// em hex minúsculo — consumível pelo wirelog do projeto (normalizador de fio) e
 // pelos replays.
 //
 // **`t` entrou na v1.1 do H3 (#23) e antes disso nao existia.** Sem relogio,

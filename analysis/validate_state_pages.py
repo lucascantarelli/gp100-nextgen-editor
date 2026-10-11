@@ -19,7 +19,7 @@ import os
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-ARTEFATO = os.path.join(HERE, "state_pages_offsets.json")
+ARTEFATO = os.path.join(HERE, "..", "packages", "core", "data", "state_pages_offsets.json")
 
 # Mesma barra do gerador — se mudar uma, muda a outra (o teste acusa).
 TAXA_MIN = 0.95

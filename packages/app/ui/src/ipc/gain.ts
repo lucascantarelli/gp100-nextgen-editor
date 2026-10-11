@@ -95,7 +95,7 @@ export interface Relatorio {
 // ───────────────────────── a tabela declarada (espelho do core) ──────────────
 //
 // MESMAS listas de `packages/core/src/gain.rs`. Elas saíram do dicionário
-// (`analysis/parameters.json`, 105 nomes distintos): `VOL`/`Volume` são as duas
+// (`packages/core/data/parameters.json`, 105 nomes distintos): `VOL`/`Volume` são as duas
 // grafias do nível de saída, `H-Vol`/`L-Vol` são as vozes de um pedal de
 // harmonia, e `Wet`/`Dry` são as metades de uma mistura (mistura não soma
 // nível). `Sustain`, `Fuzz`/`Bias` e os ganhos de banda do EQ ficam fora:
