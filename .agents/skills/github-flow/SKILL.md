@@ -14,8 +14,12 @@ vale o que estiver em `docs/CONTRIBUTING.md` + `.github/workflows/`.
 ## Regra zero — trabalho aberto é uma ISSUE
 
 1. **Nunca implementar sem issue.** Procure a issue no GitHub (milestone
-   `v1.0.0`); se não existir, crie ANTES (template do repo: `bug`, `feature`,
-   `refactor`, `epic`, `protocolo` — ver `.github/ISSUE_TEMPLATE/`).
+   `v1.1.0` — Era Hardware); se não existir, crie ANTES (template do repo:
+   `bug`, `feature`, `refactor`, `epic`, `protocolo` — ver
+   `.github/ISSUE_TEMPLATE/`; todo template novo traz as seções obrigatórias
+   incluindo o **🤖 prompt do agente**). O fluxo de execução canônico de uma
+   issue é o prompt `.agents/prompts/implementar-issue.md` — quem pega a issue
+   já vai com o passo a passo.
 2. **Não duplicar plano em doc**: o ROADMAP aponta para as issues; DoD e
    checklist vivem na issue (epic usa sub-issues/filhas).
 3. **Descoberta nova no caminho** (bug/protocolo/decisão): vira issue na hora;
@@ -92,7 +96,7 @@ vale o que estiver em `docs/CONTRIBUTING.md` + `.github/workflows/`.
 ## Comandos de apoio
 
 ```bash
-gh issue list --milestone v1.0.0 --state open          # trabalho aberto
+gh issue list --milestone v1.1.0 --state open          # trabalho aberto
 gh issue develop <N> --branch-prefix feature/ -b develop # branch ligada à issue (opcional)
 gh pr create --base develop --title "…" --body "Closes #N"
 gh pr checks --watch                                   # estado do CI do PR

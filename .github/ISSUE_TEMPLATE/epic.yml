@@ -1,5 +1,5 @@
 name: "🏗️ Epic"
-description: "Fase do ROADMAP que se desdobra em issues filhas (acompanha pelo checklist)"
+description: "Fase do ROADMAP que se desdobra em issues filhas — define o contrato das filhas"
 labels: ["epic"]
 body:
   - type: markdown
@@ -8,8 +8,12 @@ body:
         **Regra de casa:** o epic NÃO fecha pelo PR de uma filha — só quando
         **todas** as filhas estiverem fechadas. Referencie as filhas como
         tarefas `- [ ] #N` no corpo; se alguma filha usar `Closes #N` apontando
-        para este epic, feche-o manualmente ao final da fase (ou converta o
-        vínculo em simples menção `#N`).
+        para este epic, feche-o manualmente ao final da fase.
+
+        **Este template é o CONTRATO:** cada issue filha deve repetir as seções
+        obrigatórias (contexto medido, escopo, fora de escopo, DoD, plano de
+        teste, referências, 🤖 prompt). O epic só existe para agrupar e medir
+        progresso — nunca para guardar plano que a filha deveria ter.
   - type: textarea
     id: objetivo
     attributes:
@@ -18,18 +22,71 @@ body:
     validations:
       required: true
   - type: textarea
+    id: contexto
+    attributes:
+      label: "Contexto medido"
+      description: "Estado atual do tema do epic, com números e caminhos (data da medição)"
+    validations:
+      required: true
+  - type: textarea
+    id: escopo
+    attributes:
+      label: "Escopo"
+      description: "O que a fase cobre no agregado (as filhas detalham; aqui é o perímetro)"
+    validations:
+      required: true
+  - type: textarea
     id: filhas
     attributes:
       label: "Issues filhas"
-      description: "Checklist com as issues que compõem o epic (com link #N) — é o medidor de progresso"
+      description: "Checklist das issues que compõem o epic (com #N) — é o medidor de progresso"
       placeholder: |
-        - [ ] #12 — task 1
-        - [ ] #13 — task 2
-        - [ ] #14 — task 3
+        - [ ] #12 — tarefa 1 (skill: core-dev)
+        - [ ] #13 — tarefa 2 (skill: ui-ux-practices)
+        - [ ] #14 — tarefa 3 (skill: github-flow)
+    validations:
+      required: true
+  - type: textarea
+    id: fora_de_escopo
+    attributes:
+      label: "Fora de escopo"
+      description: "O que a fase NÃO cobre (vira issue/fase seguinte)"
+    validations:
+      required: true
+  - type: textarea
+    id: plano_de_teste
+    attributes:
+      label: "Plano de teste"
+      description: "Como o epic se prova no agregado (gates por filha + a prova da fase — ex.: gate de campo assinado)"
     validations:
       required: true
   - type: textarea
     id: aceite
     attributes:
       label: "Critério de aceite do epic"
-      description: "Gates verdes + prova (testes, baselines, docs atualizados)"
+      description: "Condição de fechamento: gates verdes + prova (testes, baselines, docs)"
+    validations:
+      required: true
+  - type: textarea
+    id: referencias
+    attributes:
+      label: "Referências"
+      description: "ROADMAP (seção/fase), docs e skills de processo (github-flow, docs-sync)"
+    validations:
+      required: true
+  - type: textarea
+    id: prompt
+    attributes:
+      label: "🤖 Prompt do agente (fila do epic)"
+      description: "Auto-suficiente — normalmente o .agents/prompts/executar-issues-em-sequencia.md apontando este epic"
+      render: text
+    validations:
+      required: true
+  - type: checkboxes
+    id: validacao
+    attributes:
+      label: "Checklist de validação do epic"
+      options:
+        - label: "Todas as filhas fechadas (issue fechada = fonte do 'feito')"
+        - label: "docs-sync da fase (ROADMAP ✅ + data, INDEX/knowledge se aplicável)"
+        - label: "Nenhuma filha juntou duas issues num PR"

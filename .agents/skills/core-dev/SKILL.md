@@ -1,14 +1,15 @@
 ---
 name: core-dev
-description: Implementa as issues M0.1–M0.7 do gp100-core em Rust dentro das decisões de P5 (golden-file como insumo, round-trip sagrado, mock por default).
+description: Implementação no gp100-core/gp100-cli em Rust na Era Hardware — o aparelho real é a fonte (ADR-13), round-trip .prst sagrado, mock por default nos testes, travas de escrita. Use ao executar issue de core/cli (uma por vez), dentro das decisões de docs/DECISIONS.md.
 metadata:
   category: development
 ---
 
 # Desenvolvimento do gp100-core (Rust)
 
-Use para executar as issues do gp100-core no GitHub (milestone `v1.0.0`),
-UMA por vez, na ordem — o ciclo issue→branch→PR→merge é a skill `github-flow`.
+Use para executar as issues do gp100-core/cli no GitHub (milestone `v1.1.0`),
+UMA por vez, na ordem — o ciclo issue→branch→PR→merge é a skill `github-flow`,
+e o formato de execução canônico é o prompt `.agents/prompts/implementar-issue.md`.
 
 ## Regras de ouro (não negociáveis)
 1. **Nunca adivinhar protocolo**: todo byte vem de `docs/protocol_golden.json`
@@ -24,8 +25,11 @@ UMA por vez, na ordem — o ciclo issue→branch→PR→merge é a skill `github
    o nome do preset termina no primeiro NUL (rabo stale após o NUL é legítimo).
    Toda regra de "padrão" nasce de byte OBSERVADO no aparelho, não de suposição
    de fábrica — o H4 (#177) cobrou caro exatamente isso.
-2. **Golden é insumo, não produto**: `docs/protocol_golden.json` é lido/embedado
-   pelo core; mudar a spec é trabalho da skill `spec-baseline` + `capture-analyze`.
+2. **Golden é spec de FORMA, não fonte de valor (ADR-13)**:
+   `docs/protocol_golden.json` descreve o FORMATO do fio; cada espaço de VALOR
+   (default de knob, faixa, semântica) nasce de byte OBSERVADO no aparelho e
+   ganha o próprio modelo/teste (precedentes: knobs #110, pp #148). Mudar a
+   baseline é processo raro, com evidência de campo — ver skill `hardware-dev`.
 3. **Round-trip sagrado (R4)**: o modelo `.prst` só está pronto quando os 3 arquivos
    de `files/patches/` regeneram byte-idênticos.
 4. **Aparelho no app, mock no teste (#165)**: no `gp100-ui` a feature
@@ -34,7 +38,8 @@ UMA por vez, na ordem — o ciclo issue→branch→PR→merge é a skill `github
    `--real --i-know-what-im-doing` para hardware, com `--mock-device` de selo de
    teste (política de hardware VISION §7).
 5. **Qualidade**: `cargo clippy -- -D warnings` + `cargo test` verdes a cada issue;
-   teste novo sempre acompanha código novo (padrão de DoD da issue).
+   teste novo sempre acompanha código novo (onde cada teste vive: skill
+   `testing`).
 6. **Encerramento inclui CI**: branch → commits → PR para `develop` → CI verde
    (`gh pr checks --watch` ou `gh run watch <id> --exit-status`) ATÉ VERDE — só
    então a issue fecha pelo merge (`Closes #N` no corpo do PR; workflow

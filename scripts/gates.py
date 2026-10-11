@@ -41,6 +41,11 @@ GATES: list[tuple[str, list[str], str]] = [
         "schema do Tauri, icones, .deb/PKGBUILD, tarball de fonte",
     ),
     (
+        "check_issue_templates",
+        [sys.executable, "scripts/check_issue_templates.py"],
+        "os templates de issue cumprem o contrato (secoes obrigatorias + prompt, #170)",
+    ),
+    (
         "sync_version",
         [sys.executable, "scripts/sync_version.py", "--check"],
         "os 5 manifests de versao em sincronia",

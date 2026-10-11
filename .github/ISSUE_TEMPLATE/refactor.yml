@@ -2,11 +2,25 @@ name: "♻️ Refactor / tech-debt"
 description: "Melhoria interna sem mudança de comportamento (código morto, dedupe, organização)"
 labels: ["refactor"]
 body:
+  - type: markdown
+    attributes:
+      value: |
+        **Regra do refactor:** comportamento IDÊNTICO antes e depois, provado por
+        garantias de não-regressão listadas aqui. Sem prova, não é refactor — é
+        mudança disfarçada (vira feature/bug com escopo honesto).
+  - type: textarea
+    id: contexto
+    attributes:
+      label: "Contexto medido"
+      description: "Números do estado atual: linhas, duplicações, custo — com caminhos e data"
+      placeholder: "Medido em 11/10: knowledge.md = 1106 linhas; 4 workflows legados citados em 6 docs"
+    validations:
+      required: true
   - type: textarea
     id: problema
     attributes:
       label: "Problema / dívida"
-      description: "O que está duplicado, morto, desorganizado ou frágil hoje — e o custo"
+      description: "O que está duplicado, morto, desorganizado ou frágil hoje — e o custo concreto"
     validations:
       required: true
   - type: dropdown
@@ -14,22 +28,64 @@ body:
     attributes:
       label: "Área"
       options:
-        - "gp100-ui (editor — navbar/palco/biblioteca)"
+        - "gp100-ui (front)"
         - "gp100-ui shell (Tauri/Rust)"
         - "gp100-core (Rust)"
         - "gp100-cli"
-        - "docs"
-        - "CI / workflow"
+        - "docs / .agents"
+        - "CI / workflow / scripts"
     validations:
       required: true
   - type: textarea
-    id: proposta
+    id: escopo
     attributes:
-      label: "Proposta"
-      description: "Como fica depois — alvo concreto da reorganização"
+      label: "Escopo"
+      description: "O que muda internamente — alvo concreto da reorganização"
+    validations:
+      required: true
+  - type: textarea
+    id: fora_de_escopo
+    attributes:
+      label: "Fora de escopo"
+      description: "O que NÃO muda (especialmente: nada de comportamento)"
+    validations:
+      required: true
   - type: textarea
     id: garantias
     attributes:
       label: "Garantias de não-regressão"
-      description: "Como provar comportamento idêntico (testes que devem continuar verdes, baselines)"
-      placeholder: "unit 27/27 · e2e 71/71 · 48 baselines comparadas limpas"
+      description: "Como provar comportamento idêntico — testes/baselines que devem continuar verdes, e como comparar"
+      placeholder: "cargo test 15 suítes verdes antes E depois · e2e 71/71 · 48 baselines comparadas limpas · git diff só move código"
+    validations:
+      required: true
+  - type: textarea
+    id: plano_de_teste
+    attributes:
+      label: "Plano de teste"
+      description: "O comando/regime de comparação executado antes e depois (mesma saída esperada)"
+    validations:
+      required: true
+  - type: textarea
+    id: referencias
+    attributes:
+      label: "Referências"
+      description: "Docs (caminho + seção) e skills"
+    validations:
+      required: true
+  - type: textarea
+    id: prompt
+    attributes:
+      label: "🤖 Prompt do agente (pronto para colar)"
+      description: "Auto-suficiente. Formato: .agents/prompts/implementar-issue.md"
+      render: text
+    validations:
+      required: true
+  - type: checkboxes
+    id: validacao
+    attributes:
+      label: "Checklist de validação da entrega"
+      options:
+        - label: "Comportamento idêntico provado (mesmas saídas de gate antes × depois)"
+        - label: "Commit/refactor sem misturar mudança de comportamento"
+        - label: "PR para develop com `Closes #N`; CI verde"
+        - label: "Docs que citavam o alvo movido/renomeado atualizados (docs-sync)"

@@ -30,11 +30,18 @@
 
 | Template | Quando usar | Ponto-chave |
 |---|---|---|
-| 🐞 [Bug](../.github/ISSUE_TEMPLATE/bug.yml) | algo não funciona | rode `uv run pytest` e `cargo test` antes; cole a saída |
-| ✨ [Feature](../.github/ISSUE_TEMPLATE/feature.yml) | nova funcionalidade | indique a fase do ROADMAP (ou "fora de escopo") |
-| ♻️ [Refactor](../.github/ISSUE_TEMPLATE/refactor.yml) | dívida técnica | liste as **garantias de não-regressão** (testes que devem seguir verdes) |
+| 🐞 [Bug](../.github/ISSUE_TEMPLATE/bug.yml) | algo não funciona | reprodução executável obrigatória; cite a fonte do "esperado" |
+| ✨ [Feature](../.github/ISSUE_TEMPLATE/feature.yml) | nova funcionalidade | escopo × fora de escopo + plano de teste |
+| ♻️ [Refactor](../.github/ISSUE_TEMPLATE/refactor.yml) | dívida técnica | **garantias de não-regressão** (comportamento idêntico provado) |
 | 🏗️ [Epic](../.github/ISSUE_TEMPLATE/epic.yml) | fase do ROADMAP desdobrada | checklist de filhas `- [ ] #N` é o medidor de progresso |
-| 🔌 [Protocolo](../.github/ISSUE_TEMPLATE/protocolo.yml) | divergência com o device | regra R3: captura nova → golden → só então código |
+| 🔌 [Protocolo](../.github/ISSUE_TEMPLATE/protocolo.yml) | observação do aparelho real | evidência (wire log) obrigatória; leitura livre × escrita travada |
+
+**Contrato dos corpos (#170):** todo template traz seções obrigatórias —
+contexto medido, escopo, fora de escopo, DoD, plano de teste, referências,
+**🤖 prompt do agente** (auto-suficiente: quem pega a issue executa sem ler
+mais nada) e checklist de validação da entrega. O gate
+`scripts/check_issue_templates.py` (roda no `Lint · contratos do pipeline` e no
+`python3 scripts/gates.py`) impede que as seções sumam.
 
 **Regras de casa:**
 

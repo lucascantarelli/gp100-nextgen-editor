@@ -31,8 +31,9 @@ antes de assumir qualquer coisa sobre o aparelho.
 
 4. **Lacunas de leitura não se deduzem.** Configs globais, `12001012` e o banco
    USER de presets o device TEM mas o app ainda não lê do fio (`GP100_DEVICE.md`
-   §6). Cada uma entra por captura (skill `capture-analyze`), vira modelo +
-   guarda + teste, ANTES de a UI expor. Nunca invente endereço de leitura.
+   §6). Cada uma entra por evidência de campo (skill `hardware-dev`: wire log +
+   gate), vira modelo + guarda + teste, ANTES de a UI expor. Nunca invente
+   endereço de leitura.
 
 ## O que é nosso (inovação, fora do manual)
 
