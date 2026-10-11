@@ -636,9 +636,16 @@ OUT 11 12001012 [i]        → IN 12 44B nibble-exp. `12 10 2c 00 [i] 00 01 …`
                               ecoado) · `[5..6]=00 01` · `[7..43]=00` (defaults).
                               Neste aparelho as 5 entradas estão zeradas =
                               defaults de fábrica. O prefixo casa com a captura
-                              S1. Próximo passo de decifragem: medir o byte que
-                              muda ao alterar uma configuração global no pedal
-                              (experimento de campo com o owner — nunca deduzir).
+                              S1.
+                              **PROVA NEGATIVA (10/10, mesmo aparelho):** diff
+                              controlado com o dono alterando o **BPM do drum
+                              125→145** no pedal: `read-state5` antes/depois →
+                              **0 bytes divergentes** nas 5 entradas
+                              (`state5_before_bpm.jsonl` ×
+                              `state5_after_bpm145.jsonl`). State5 **NÃO** é a
+                              família de globals do drum. O endereço do drum
+                              segue desconhecido (captura G3–G6 via Suite é o
+                              caminho).
 OUT 11 11000008 [hi][lo] 00 00   (61 leituras, chave de 2B)
                              → IN 12 14B: [0..3]=chave ecoada, [4..13]=nome
                                ASCII do slot. 0x0000..0x000F = slots de
