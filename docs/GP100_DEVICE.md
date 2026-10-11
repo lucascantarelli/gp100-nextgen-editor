@@ -109,7 +109,7 @@ Estas coisas o aparelho TEM mas o app ainda não LÊ do fio — ou lê e descart
 | # | Lacuna | O que o device tem | Estado |
 |---|---|---|---|
 | 1 | **Configs globais** | Menu GLOBAL completo (§4) | 🔴 nenhum endereço de leitura no golden; precisa captura (G3–G6) antes de modelar |
-| 2 | **`12001012`** | 5 entradas de 44B lidas no boot e **descartadas** | 🟡 lido e jogado fora; semântica não decifrada (não é "setlist", §5#1) |
+| 2 | **`12001012`** | 5 entradas de 44B lidas no boot e **descartadas** | 🟡 **layout mínimo MEDIDO em campo (10/10)**: `[0]=0x12` · `10 2c 00` constante · `[4]=i` ecoado · `[5..6]=00 01` · resto zero (defaults). Semântica fina ainda não decifrada — CLI `read-state5 --log` é a ferramenta; próximo experimento: alterar uma global no pedal e reler (PROTOCOL §13.3) |
 | 3 | **User patches do device** | Banco USER `P01–P99` com boards | 🟡 o scan lê os 198 mas a UI User é SQLite local (#113/#150) |
 
 > Regra ADR-13: **nada de deduzir endereço.** Cada lacuna entra por captura

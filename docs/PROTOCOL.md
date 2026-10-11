@@ -625,10 +625,20 @@ OUT 11 12001002 [pág]      → IN 12 75B nibble-exp., d[0]=pág (0..0x13);
                               — layout decifrado: [0]=slot cru; [1..74]
                               nibble-exp = 37B reais = nome 32B + tag 5B
 OUT 11 12001012 [i]        → IN 12 44B nibble-exp. `12 10 2c 00 [i] 00 01 …`
-                              (5 entradas de estado — semântica NÃO decifrada;
-                              o repo a chama de "setlist" por hábito interno, mas
-                              a GP-100 NÃO tem função setlist no manual — ver
+                              (5 entradas de estado; SEMÂNTICA NÃO DECIFRADA —
+                              o repo a chama(va) de "setlist", mas a GP-100
+                              NÃO tem função setlist no manual; ver
                               `GP100_DEVICE.md` §5#1. Não expor como produto.)
+                              **Layout MEDIADO em campo (10/10, aparelho real,
+                              `analysis/field/2026-10-10/state5.jsonl`):**
+                              `[0]=0x12` (eco do func IN) · `[1..3]=10 2c 00`
+                              (constante; 0x2c=44=B do payload) · `[4]=i` (índice
+                              ecoado) · `[5..6]=00 01` · `[7..43]=00` (defaults).
+                              Neste aparelho as 5 entradas estão zeradas =
+                              defaults de fábrica. O prefixo casa com a captura
+                              S1. Próximo passo de decifragem: medir o byte que
+                              muda ao alterar uma configuração global no pedal
+                              (experimento de campo com o owner — nunca deduzir).
 OUT 11 11000008 [hi][lo] 00 00   (61 leituras, chave de 2B)
                              → IN 12 14B: [0..3]=chave ecoada, [4..13]=nome
                                ASCII do slot. 0x0000..0x000F = slots de
