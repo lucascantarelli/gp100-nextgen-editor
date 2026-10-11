@@ -49,18 +49,25 @@
   log do `gp100-core` (P4: `out` + `func`/`addr`/`data`).
 - **Resolvido pela maquinaria** (`wirelog.py`, `--log` com `t`,
   `validate_core_capture.py`, `baseline.py`). **Falta a sessão de campo** que
-  produz a captura e o bump para v1.2.
-
-## G3. Banco/BIOS/global — pouco explorado
-- Trocar de banco (se houver), abrir settings globais (drum/BPM/tuner), mudar BPM da UI
-- Identifica endereços fora do bloco 13xx
-
-## G4. Live/physical controls
-- MEXER knob FÍSICO com o Suite aberto (1 knob, swing lento) → descobrir se há
-  notificação device→host (na sessão 1 não houve, confirmar com scan parado)
-
-## G5. Footswitch/EXP
-- Acionar footswitch e mexer expression pedal com o Suite aberto → eventos em tempo real?
+  produz a captura e o bump para v1.2.## G3. Banco/BIOS/global — ✅ ENDEREÇOS MEDIDOS (11/10, sessão G3–G6)
+- Sessão com o Suite + proxy: `analysis/captures/sessionG3-G6.jsonl` (5322 frames).
+- **Bloco de registros `00020003..0002001f`** (READ 11/… + WRITE 12/… + PUSH
+  IN device→host dos 22 endereços) = o estado global sincronizado em bloco.
+  Mais `00000000`/`00000005`/`00001000` e o slider duplo `00010203/04`.
+  Detalhe de forma em `docs/PROTOCOL.md` §13.13.
+- **FALTA o diff ação→endereço** (qual registrador é drum BPM/Input/EQ…):
+  fecha com o dono confirmando a ordem das operações (§13.13.4). Só depois
+  vira modelo+guarda.
+## G4. Live/physical controls — ✅ EXISTE notificação device→host (11/10)
+- O device FAZ push em bloco do bloco `000200xx` (×3 na sync de +39s e de
+  +261s) — resposta medida: sim, há canal device→host, e o Suite o usa como
+  confirmação de write.
+- Knob FÍSICO da master ainda não isolado (exigiria mexer knob com Suite
+  parado; a sessão de 11/10 foi toda pela UI do Suite).
+## G5. Footswitch/EXP — ✅ PARCIAL (11/10)
+- 3 CCs curtos capturados: `B1 30 05` · `B1 31 7F` · `B1 30 7F` (CC 48/49,
+  canal 2, host→device). Candidatos a EXP/FS — nome exato precisa do diff
+  de ação (§13.13.4).
 
 ## G6. Firmware/dados de fábrica
 - Ler tela de info de firmware no Suite (se expuser SysEx de versão)

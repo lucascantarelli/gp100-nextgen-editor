@@ -805,3 +805,53 @@ byte-a-byte e continua provado. O lado **IN** (resync `11000008`, resync
    core (só aceitava `out_long`/`in_long` + `hex`). `analysis/wirelog.py`
    normaliza os dois formatos, e `analysis/validate_core_capture.py` julga a
    sessão frame a frame.
+
+### 13.13 Bloco de registros `0000xxxx/0001xxxx/0002xxxx` + CCs curtos (G3–G5, sessão 11/10)
+
+**Fonte:** `analysis/captures/sessionG3-G6.jsonl` (Suite oficial + proxy winmm,
+5322 frames SysEx + 3 CCs, 292 s; o dono operou a UI do Suite). Tudo abaixo é
+**medido**, sem semântica inventada (ADR-13): endereço e forma são fato;
+"o que o controla" fica para o diff de ação→endereço (§13.13.4).
+
+**13.13.1 — O bloco `000200xx` (o que o golden não tinha):**
+
+```
+READ   11/00020003..0002000b   → IN 12/…  payload 4B (`00XX0000`) ou 8B
+READ   11/00020011..0002001f   → IN 12/…  payload 8B (`080f0c020305030f`)
+WRITE  12/00020003..0002001f   (edições do usuário)
+PUSH   12/00020003..0002001f   device→host — TODOS os 22 endereços fazem
+                                push em bloco (×3 na sincronização de +39s e
+                                novamente em +261s)
+```
+
+- O Suite **sincroniza em bloco**: lê `00020003..0b` num passo (~61 frames)
+  e o device **empurra** o bloco `00020003..1f` de volta — o push existe e o
+  Suite o usa como confirmação (write seguido de re-push).
+- Formas medidas: 4B com padrão `00XX0000` (contador/selector arrastável —
+  observado 0→13→0) e `0f0f0f0f` (= "off/max", aparece ao cruzar o mínimo);
+  8B = 4 pares nibble (`080f0c020305030f`).
+- `00020009` tem write mas **não** aparece no push IN (exceção medida).
+
+**13.13.2 — `00010203` / `00010204` (slider duplo de 4B):** 59 + 113 writes
+numa interação de 11,9 s; payload `XX YY 00 00` arrastado em passos de +3
+com wrap de nibble (low nibble estoura em 16 → carry no byte alto). Os DOIS
+endereços mudam juntos, sempre no mesmo segmento de tempo.
+
+**13.13.3 — `0000xxxx` pontuais e CCs:**
+- `12/00000000` 4B: `0f0f0f0f` → `00010000` (toggle medido)
+- `12/00000005` 4B (`00030000`); `12/00001000` 16B estruturado
+  (`0f0f0f0f000…` → `00000000000800000000000500000000`)
+- `12/10010001` 16B com um nibble flag 0→1 — família próxima de
+  `10xx0002` (set_param §13.11), formato NÃO é o do knob
+- **CCs curtos (fora de SysEx):** `B1 30 05` · `B1 31 7F` · `B1 30 7F` —
+  CC 48/49 no canal 2 (host→device). É por aí que anda EXP/footswitch (G5).
+
+**13.13.4 — O que falta (ação→endereço):** a sessão teve 22 segmentos de
+tempo; sem o **diário na ordem** das operações do dono, cada endereço novo é
+"candidato a X". O diff de ação→endereço fecha com o dono confirmando a ordem
+(banco → GLOBAL → drum BPM → Input Level → Global EQ → knob físico → FS/EXP →
+info firmware). Só então o bloco vira modelo/guarda — nunca antes.
+
+**13.13.5 — G7 segue aberto:** o `in 12/13000000` desta sessão veio
+**TRUNCADO** de novo (corte de 256 B do proxy) — confirma que o caminho do
+dump completo é o `--log` do `gp100-cli`, não o proxy.
