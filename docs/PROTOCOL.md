@@ -846,11 +846,30 @@ endereços mudam juntos, sempre no mesmo segmento de tempo.
 - **CCs curtos (fora de SysEx):** `B1 30 05` · `B1 31 7F` · `B1 30 7F` —
   CC 48/49 no canal 2 (host→device). É por aí que anda EXP/footswitch (G5).
 
-**13.13.4 — O que falta (ação→endereço):** a sessão teve 22 segmentos de
-tempo; sem o **diário na ordem** das operações do dono, cada endereço novo é
-"candidato a X". O diff de ação→endereço fecha com o dono confirmando a ordem
-(banco → GLOBAL → drum BPM → Input Level → Global EQ → knob físico → FS/EXP →
-info firmware). Só então o bloco vira modelo/guarda — nunca antes.
+**13.13.4 — Mapa ação→endereço (diff CONTROLADO, 11/10 — `sessionMap.jsonl`):**
+segunda sessão com protocolo de ordem fixa (uma ação por passo, pausa ≥10 s;
+segmentação por gap ≥6 s = ação por construção, sem depender de memória):
+
+| Passo (ordem fixa) | Endereço ÚNICO que mudou | Payload medido |
+|---|---|---|
+| 1. **drum BPM** (+5) | `12/00010203` ×15 | contador nibble +3 com carry (`080b→080e→0901→…→0b03`) |
+| 2. **Input Level** | `12/00020004` ×21 | byte1 conta 6→f→0… (`0f0f0f0f` = máx; envolve p/ `0000`) |
+| 3. **Global EQ** (1 banda) | `12/00020012` ×42 | reg. 8B `00000000 XX YY 04 01`, nibble-pair +8 (`0a08→0b00→…`) |
+| 4. **FS ×2 + varredura EXP** | CC out `B1 30 05` + re-push do bloco IN | **EXP: 0 eventos no fio** (prova negativa) |
+
+Consequências medidas:
+- **`00010203` = registrador do drum BPM** (ação isolada, único endereço).
+  `00010204` (§13.13.2) **NÃO** é BPM — na sessão de mapeamento não mudou;
+  na sessão G3–G6 os dois mudaram juntos (candidato a 2º registrador do
+  drum/algum controle pareado — permanece em aberto).
+- **`00020004` = Input Level** (reg. 4B; `0f0f0f0f` = saturação máx).
+- **`00020012` (e a família 8B `00020011..1f`) = Global EQ** — um registrador
+  por banda/parâmetro.
+- **EXP não streameia** com o Suite aberto (varredura completa = 0 frames);
+  o único CC foi host→device (`B1 30 05`), não device→host.
+- Passo 5 ("outro ajuste") não produziu tráfego — ou não executado, ou
+  controle sem MIDI. Restantes `0000xxxx`/`00020003/05/06/09` seguem SEM
+  nome: entram por novo diff de ação isolada, nunca por dedução.
 
 **13.13.5 — G7 segue aberto:** o `in 12/13000000` desta sessão veio
 **TRUNCADO** de novo (corte de 256 B do proxy) — confirma que o caminho do

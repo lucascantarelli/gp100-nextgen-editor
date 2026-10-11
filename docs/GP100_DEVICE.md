@@ -108,7 +108,7 @@ Estas coisas o aparelho TEM mas o app ainda não LÊ do fio — ou lê e descart
 
 | # | Lacuna | O que o device tem | Estado |
 |---|---|---|---|
-| 1 | **Configs globais** | Menu GLOBAL completo (§4) | 🟡 **endereços MEDIDOS (11/10, sessão Suite+proxy):** bloco de registros `00020003..1f` (read+write+push device→host), `0000xxxx`, slider `00010203/04`, CCs `B1 30/31` — `PROTOCOL.md` §13.13. Falta o **diff ação→endereço** (ordem das operações do dono) antes de virar modelo |
+| 1 | **Configs globais** | Menu GLOBAL completo (§4) | 🟡 **medido + MAPEADO (11/10, diff controlado):** `00010203` = drum BPM · `00020004` = Input Level · `00020012` (família 8B `00020011..1f`) = Global EQ por banda; bloco `0002xxxx` tem read+write+**push device→host** (`PROTOCOL.md` §13.13). **Sem nome ainda:** `00010204`, `0000xxxx`, `00020003/05/06/09` — caminho: diff de ação isolada e/ou RE das strings do binário do Suite (referência legítima, era RE VISION §10.1) |
 | 2 | **`12001012`** | 5 entradas de 44B lidas no boot e **descartadas** | 🟡 **layout MEDIDO (10/10)**: `[0]=0x12` · `10 2c 00` constante · `[4]=i` · `[5..6]=00 01` · resto zero (defaults). **Prova negativa:** alterar drum BPM 125→145 no pedal → **0 bytes mudam** nas 5 entradas — não é a família de globals do drum (PROTOCOL §13.3). Semântica segue aberta; CLI `read-state5 --log` é a ferramenta |
 | 3 | **User patches do device** | Banco USER `P01–P99` com boards | 🟡 o scan lê os 198 mas a UI User é SQLite local (#113/#150) |
 

@@ -55,9 +55,14 @@
   IN device→host dos 22 endereços) = o estado global sincronizado em bloco.
   Mais `00000000`/`00000005`/`00001000` e o slider duplo `00010203/04`.
   Detalhe de forma em `docs/PROTOCOL.md` §13.13.
-- **FALTA o diff ação→endereço** (qual registrador é drum BPM/Input/EQ…):
-  fecha com o dono confirmando a ordem das operações (§13.13.4). Só depois
-  vira modelo+guarda.
+- **Mapa ação→endereço FECHADO (11/10, diff controlado — `sessionMap.jsonl`):**
+  `00010203` = **drum BPM** · `00020004` = **Input Level** · `00020012` (família
+  8B `00020011..1f`) = **Global EQ** por banda. Detalhe em PROTOCOL §13.13.4.
+- **Restam SEM nome:** `00010204`, `00000000/00000005/00001000`,
+  `00020003/05/06/09`. Próximos passos: (a) diff de ação isolada, e/ou (b) RE
+  das strings/resources do binário do Suite (`Program Files/Valeton/GP-100`,
+  já desmontado na era RE — VISION §10.1) como referência de rótulo. Nunca
+  dedução.
 ## G4. Live/physical controls — ✅ EXISTE notificação device→host (11/10)
 - O device FAZ push em bloco do bloco `000200xx` (×3 na sync de +39s e de
   +261s) — resposta medida: sim, há canal device→host, e o Suite o usa como
