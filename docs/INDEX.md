@@ -22,7 +22,7 @@
 | **Congelar a especificação depois do hardware (gate H3)** | `docs/H3_CHECKLIST.md` (4 sessões) + `docs/H3_REPORT.md` + [`PROTOCOL.md` §13.14](PROTOCOL.md) (a conta da baseline v1.1) + `analysis/baseline.py show` |
 | **Medir as páginas 13xx em campo (gate H4)** | `docs/H4_CHECKLIST.md` (é leitura — nada escreve no aparelho pelo app: as edições do roteiro são feitas no pedal) + `docs/H4_REPORT.md` (relatório) + `analysis/validate_state_pages.py` (gate do artefato de offsets) |
 | **Implementar o protocolo (gp100-core)** | `docs/protocol_golden.json` (especificação executável) + `docs/PROTOCOL.md` §13 (narrativa) |
-| **Decidir arquitetura/estrutura no core (M0)** | `docs/DECISIONS.md` (ADR-1..12 aceitos) |
+| **Decidir arquitetura/estrutura no core (M0)** | `docs/DECISIONS.md` (ADR-1..13 aceitos) |
 | **Saber onde o código novo do front vai morar** | `docs/ARCHITECTURE.md` (mapa de módulos + o que **não** entra em cada camada + orçamento de tamanho) |
 | **Saber onde a persistencia do app mora (M2)** | `docs/DECISIONS.md` ADR-9 (crate `gp100-library` no workspace gnu, nao no crate MSVC do Tauri) |
 | **Escrever/revisar código Rust (M0)** | `.agents/skills/rust-practices/SKILL.md` (gates fmt/clippy/test + estilo de docs) |
@@ -47,7 +47,7 @@
 | Números (testes, cobertura, datas dos marcos) | `docs/INDEX.md` §6 | repetir o número em README/ROADMAP/knowledge (#81) |
 | Estrutura do pipeline (jobs, tipos, ordem) | `.github/workflows/ci.yml` + `docs/CONTRIBUTING.md` §5 | workflow pré-#68 (`_validate.yml`/`release.yml`/`container.yml`) — **consolidados no #68; não existem mais** |
 | Mapa knob→fio | `analysis/knob_map.json` (regenerável) | — |
-| Decisões de implementação do core | `docs/DECISIONS.md` (ADR-1..12) | reabrir debate ad-hoc |
+| Decisões de implementação do core | `docs/DECISIONS.md` (ADR-1..13) | reabrir debate ad-hoc |
 | Armadilhas Windows/ambiente | `knowledge.md` | — |
 
 ## 3. Inventário de documentos
