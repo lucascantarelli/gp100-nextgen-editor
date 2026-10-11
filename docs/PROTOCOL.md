@@ -874,3 +874,25 @@ Consequências medidas:
 **13.13.5 — G7 segue aberto:** o `in 12/13000000` desta sessão veio
 **TRUNCADO** de novo (corte de 256 B do proxy) — confirma que o caminho do
 dump completo é o `--log` do `gp100-cli`, não o proxy.
+
+**13.13.6 — RE do firmware V2.1: a tabela de acessadores corrobora as famílias
+(`files/firmware/GP-100 Firmware V2.1.bin`, 3.424.316 B, ARM Cortex-M7 sem
+criptografia):** a região 96k–108k contém as funções mínimas de acesso a
+registrador (épilogo `bd08` = `pop {r3,pc}` seguido do literal do endereço).
+Literais de registrador encontrados, em ordem de firmware:
+
+```
+0x00010205 · 0x00010203 (BPM, medido) · 0x00010201 · 0x00010204 ·
+0x00010104 · 0x00010103                       → família DRUM (000102xx/000101xx)
+0x00020004 (Input Level, medido) · 0x00020003 · 0x00020009 · 0x00020006 ·
+0x00020005 · 0x00020001                       → família SYSTEM (000200xx)
+```
+
+- `0x00010204` é **vizinho direto** do BPM no firmware — reforça (com a
+  co-ocorrência da sessão G3–G6) que é o 2º registrador do drum; o NOME exato
+  ainda não é fato (candidatos: swing/volume do drum — confirmar por diff
+  isolado ou por rótulo no binário do Suite).
+- A família do EQ (`00020011..1f`, 8B) não tem accessor literal nesta região
+  (acesso indexado/genérico) — permanece com o nome de campo (§13.13.4).
+- Método repetível: scan de words LE `0x00000100..0x0003FFFF` após `bd08` na
+  seção de acessadores; nenhum byte foi alterado (só leitura).
