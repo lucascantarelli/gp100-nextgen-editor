@@ -281,6 +281,10 @@ jobs:
           python3 scripts/check_bundle.py
           python3 scripts/sync_version.py --check
           python3 scripts/validate_workflows.py
+          # O contrato dos templates de issue (#170): secoes obrigatorias e o
+          # prompt auto-suficiente. Sem gate, "enxugar template" remove a secao
+          # e o contrato morre em silencio — mesma classe do check_bundle (#71).
+          python3 scripts/check_issue_templates.py
           # O juiz da Fase C do gate H1 (#21) contra o §13. E o gate que impede
           # o conjunto de referencia do H1 — que e a SAÍDA do MockDevice — de
           # sair de sincronia com as formas que o §13 manda, sem ninguem

@@ -26,8 +26,8 @@ cargo build
 
 ## CI (GitHub Actions) — mesma régua do local
 
-A CI é **um workflow só**, `.github/workflows/ci.yml` (consolidado na #68; os
-5 workflows legados foram apagados). Os gates Rust são **três jobs separados**,
+A CI é o pipeline `.github/workflows/ci.yml` + o workflow próprio de fechamento
+`issues-fechamento.yml` (#169). Os gates Rust são **três jobs separados**,
 não um `rust` único:
 
 | Job | Gate | Matriz |
@@ -37,10 +37,11 @@ não um `rust` único:
 | `Compilação · Rust (cargo check · …)` | `cargo check` | core/cli/ui-rust |
 | `Testes · Rust (cargo test · …)` | `cargo test` + build do binário de campo | core/cli/ui-rust |
 
-Matriz: **core e cli em 3-OS** (windows-latest, ubuntu-24.04, macos-15-intel);
-**ui-rust em 2 OS** — Windows (MSVC) + Linux no container `ci-linux` (issue
-#41). O macOS saiu do ui-rust de propósito: compilar o shell Tauri lá não pegava
-classe de bug própria.
+Matriz de OS (#169): **core e cli em 4 OS** — windows-latest, ubuntu-24.04,
+macos-15-intel e **archlinux** (container `archlinux:base-devel` no runner
+ubuntu; o Arch é o Linux rolling da matriz). **ui-rust em 2 OS** — Windows
+(MSVC) + Linux no container `ci-linux` (issue #41); o macOS saiu do ui-rust de
+propósito: compilar o shell Tauri lá não pegava classe de bug própria.
 
 **Quando roda:** `push` em `develop`/`main` e em tags `v*`; branch de trabalho
 **não** dispara push — entra só por `pull_request` (a #68 restringiu `on.push`

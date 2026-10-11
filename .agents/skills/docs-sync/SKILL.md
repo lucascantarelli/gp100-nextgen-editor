@@ -7,8 +7,8 @@ metadata:
 
 # Sincronização de documentação (pós-marco)
 
-Use ao concluir qualquer issue do GitHub (milestone `v1.0.0`), descoberta de
-protocolo ou mudança de status de fase. O trabalho aberto é gerido nas ISSUES —
+Use ao concluir qualquer issue do GitHub (milestone `v1.1.0` — Era Hardware), descoberta de
+hardware ou mudança de status de fase. O trabalho aberto é gerido nas ISSUES —
 aqui só se reflete o que já está fechado/provado. A documentação é o produto coletivo — dessincronizada, ela vira
 fonte de retrocesso (viola a regra R1).
 
@@ -17,8 +17,10 @@ fonte de retrocesso (viola a regra R1).
    (não reescrever o detalhe da issue aqui); se a fase virou 100%, destacar no topo.
 2. **knowledge.md** — atualizar "Estado vivo" (1–3 linhas por marco, sem prosa).
 3. **docs/INDEX.md** — novo documento? Entrar no inventário com status; doc mudou
-   de natureza (ex.: virou histórico)? Atualizar a tabela. **Falta alguma skill na
-   lista "Infra do agente"?** (as 10 skills estão lá — conferido 03/10).
+   de natureza (ex.: virou histórico)? Atualizar a tabela. **Falta skill/prompt
+   novo na seção "Infra do agente"?** (skills ativas em `.agents/skills/`,
+   templates em `.agents/prompts/`, histórico em `docs/arquivo/` — conferido
+   11/10 na #170).
 4. **README.md** — só se algo do panorama mudou (marco estrutural, não issue menor).
 5. **Banners de status** — qualquer doc que ganhou obsolescência parcial ganha
    banner ✅/⚠️/📜 com ponteiro para o substituto.

@@ -96,11 +96,12 @@ pnpm build         # vite build (bundle; tsc já rodou acima)
 - Rust lado Tauri (`packages/app/api/`, crate `gp100-ui` — ADR-7): mesmos
   gates da `rust-practices` (fmt, clippy -D warnings, testes), no job
   `Lint`/`Compilação`/`Testes · Rust (… · ui-rust · windows-latest)`.
-- CI é **um workflow só** (`.github/workflows/ci.yml`, #68). Os gates do front:
-  `Lint · UI (eslint)` · `Compilação · UI (tsc + vite · <os>)` em 3-OS ·
-  `Testes · UI (vitest)` · `Cobertura · UI (gate 85%)` · e os e2e
-  (`Testes · E2E shell`, `· E2E visual`, `· E2E webview`). Não existe mais o
-  `_validate.yml` nem jobs `front`/`ui-rust`/`e2e-visual` com esses nomes.
+- CI: o pipeline `.github/workflows/ci.yml` (#68, reorganizado na #169) + o
+  workflow próprio de fechamento. Os gates do front: `Lint · UI (eslint)` ·
+  `Compilação · UI (tsc + vite · <os>)` em **4 OS** (windows · macos-intel ·
+  ubuntu · archlinux como container) · `Testes · UI (vitest)` · `Cobertura ·
+  UI (gate 85%)` · e os e2e (`Testes · E2E shell`, `· E2E visual`, `· E2E
+  webview`).
 
 ## Armadilhas específicas de Tauri 2 desktop
 
