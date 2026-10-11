@@ -1158,14 +1158,13 @@ jobs:
     name: Distribuição · tarball de fonte (insumo do Arch)
     # Dist ← Cobertura (#169), mesma razão do `dist-ui` — e este tarball é o
     # insumo do PKGBUILD do Arch (#72), o empacotamento "nativo" do 4o OS.
-    needs: plan
+    needs: [plan, coverage-ui]
     # O PKGBUILD (#29) compila deste tarball e, ate #72, ele NAO ERA PUBLICADO:
     # `makepkg` procuraria um arquivo inexistente. Alem disso o tarball do git
     # nao tem `packages/app/ui/dist` (gitignored, e o `frontendDist` do conf) nem
     # `packages/core` (dependencia de caminho do crate do Tauri) — o
     # `make_sdist.py` junta os tres e sobe o front antes de empacotar.
     if: needs.plan.outputs.stage-dist == 'true'
-    needs: [plan, coverage-ui]
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     permissions:

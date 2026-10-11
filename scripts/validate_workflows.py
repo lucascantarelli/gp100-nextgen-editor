@@ -55,10 +55,28 @@ REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FAILURES: list[str] = []
 
 
+class _LoaderSemChaveDuplicada(yaml.SafeLoader):
+    """O PyYAML aceita chave repetida (a última vence em silêncio); o GitHub
+    RECUSA no LOAD — a run nasce com 0 jobs, conclusion=failure e sem log. Já
+    aconteceu (#169: `dist-sdist` ficou com DOIS `needs:` depois do patch do
+    grafo, e o gate local passou). Este loader transforma o silêncio em erro.
+    """
+
+    def construct_mapping(self, node, deep=False):  # noqa: ANN001 — assinatura do PyYAML
+        chaves = [self.construct_object(k, deep=deep) for k, _ in node.value]
+        repetidas = sorted({c for c in chaves if isinstance(c, str) and chaves.count(c) > 1})
+        if repetidas:
+            raise yaml.YAMLError(
+                f"chave(s) duplicada(s) {repetidas} na linha {node.start_mark.line + 1} "
+                "— o GitHub recusa no LOAD (run com 0 jobs e sem log)"
+            )
+        return super().construct_mapping(node, deep)
+
+
 def load(path: str) -> dict | None:
     try:
         with open(os.path.join(REPO, path), encoding="utf-8") as fh:
-            data = yaml.safe_load(fh)
+            data = yaml.load(fh, Loader=_LoaderSemChaveDuplicada)
         return data if isinstance(data, dict) else {}
     except Exception as exc:  # noqa: BLE001 — reportar qualquer YAML quebrado
         FAILURES.append(f"{path}: YAML inválido ({exc})")
