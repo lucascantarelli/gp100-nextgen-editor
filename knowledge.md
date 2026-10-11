@@ -12,6 +12,17 @@ fonte. Resposta ao usuário SEMPRE em PT-BR.
 > ⚠️ Os **contadores** (testes, cobertura) vivem em `docs/INDEX.md` §6 — não repita
 > o número aqui, aponte. Motivo: números repetidos em N docs divergem (achado #81).
 
+- 10/10 — **DOC CANÔNICO DO DEVICE + SKILL `device-reference`**: `docs/GP100_DEVICE.md`
+  agora é a fonte única de funcionalidades/comportamentos da GP-100 real (manual
+  V1.9 + produto + medição própria), com vocabulário travado (**User IR ≠ User
+  Patch ≠ Setlist**) e a fila de lacunas de leitura (globals, `12001012`, banco
+  user). A pesquisa de 10/10 achou que a GP-100 **não tem função setlist** no
+  manual — o repo usava o nome como etapa de boot; renomeei `BootStage::Setlist`
+  → `State5` (o fio lê 5 entradas de `12001012`, semântica ainda não decifrada) e
+  corrigi o chute "setlist/loja" no PROTOCOL §13.3 e no gerador do golden (JSON
+  congelado intocado — baseline v1.1 OK). `analysis/build_golden.py` também: a
+  `12001002` é tabela dos **20 User IRs** (§13.12), não "tipos de preset".
+
 - 10/10 — **O APARELHO REAL ESTÁ LIGADO A ESTA MÁQUINA E É CONSULTÁVEL A QUALQUER
   SESSÃO** (Era Hardware). Antes de deduzir comportamento do mock ou perguntar ao
   owner, CONSULTE o aparelho: o caminho scriptável é o CLI de campo

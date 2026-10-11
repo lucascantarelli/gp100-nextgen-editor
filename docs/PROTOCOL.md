@@ -625,7 +625,10 @@ OUT 11 12001002 [pág]      → IN 12 75B nibble-exp., d[0]=pág (0..0x13);
                               — layout decifrado: [0]=slot cru; [1..74]
                               nibble-exp = 37B reais = nome 32B + tag 5B
 OUT 11 12001012 [i]        → IN 12 44B nibble-exp. `12 10 2c 00 [i] 00 01 …`
-                              (5 entradas, provavelmente setlist/loja)
+                              (5 entradas de estado — semântica NÃO decifrada;
+                              o repo a chama de "setlist" por hábito interno, mas
+                              a GP-100 NÃO tem função setlist no manual — ver
+                              `GP100_DEVICE.md` §5#1. Não expor como produto.)
 OUT 11 11000008 [hi][lo] 00 00   (61 leituras, chave de 2B)
                              → IN 12 14B: [0..3]=chave ecoada, [4..13]=nome
                                ASCII do slot. 0x0000..0x000F = slots de
