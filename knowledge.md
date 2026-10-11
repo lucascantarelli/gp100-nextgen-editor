@@ -12,6 +12,54 @@ fonte. Resposta ao usuário SEMPRE em PT-BR.
 > ⚠️ Os **contadores** (testes, cobertura) vivem em `docs/INDEX.md` §6 — não repita
 > o número aqui, aponte. Motivo: números repetidos em N docs divergem (achado #81).
 
+- 11/10 — **TRÊS ARMADILHAS DO CI QUE ESTA RODADA PAGOU (e viraram gate)**
+  (run de prova [38170192636](https://github.com/lucascantarelli/gp100-nextgen-editor/actions/runs/38170192636), 55 jobs · 47 ✅ · 8 ⏭️):
+  1. **Chave YAML repetida passa pelo PyYAML e derruba o LOAD do GitHub.**
+     Um patch que adiciona `needs:`/`if:` sem remover o anterior é invisível
+     para `yaml.safe_load` (a última chave vence) — e o GitHub recusa o
+     workflow inteiro: a run nasce com **0 jobs, `failure` e sem log** (run
+     38166996909). O `validate_workflows.py` ganhou o loader
+     `_LoaderSemChaveDuplicada`; a própria PR errou duas vezes e o gate pegou
+     as duas.
+  2. **`success()` implícito pula o job quando QUALQUER need foi skipped**
+     (actions/runner#2205). Com `ci-images` skipped em todo PR e o
+     `sec-audit` dependendo dele, a fase de testes INTEIRA (test-rust, test-ui,
+     e2e, visual, cobertura) foi pulada numa run verde — só os jobs que já
+     tinham `always()` + `needs.<x>.result != 'failure'` rodaram. O padrão da
+     casa virou guard EXPLÍCITO em toda job atrás de upstream sujeito a skip
+     (contrato 13 do gate), com o `Relatório` como única exceção.
+  3. **`bash -o pipefail` também é regra de processo**: `cmd | tail` engoliu o
+     exit 1 do gate e o commit inválido foi para o remoto. Rodar o gate SEM
+     pipe (ou com `set -o pipefail`) — e commitar na branch certa (o fix
+     acabou commitado na branch descartável e teve de voltar por cherry-pick;
+     a prova vale porque a árvore de workflows/script é idêntica, conferida
+     com `git diff`).
+
+- 11/10 — **#169 (HW-9) EXECUTADO: o CI virou o grafo do dono + Arch na matriz.**
+  `.github/workflows/ci.yml` reorganizado na ordem **validação → lint →
+  compilação → infra → segurança → testes → cobertura → distribuição →
+  release** com `needs:` real (lint vermelho não gasta mais compile-time de
+  build/test atrás dele), o `Relatório · resumo da run` virou o **último** job
+  (needs de TODOS + `if: always()`, resumindo a run inteira) e o Fechamento
+  saiu de vez: `.github/workflows/issues-fechamento.yml` (“Issues · Fechamento
+  de issues vinculadas”, gatilho `pull_request: [closed]`, sem checkout e com
+  `permissions: issues: write` só). O `closed` sumiu dos `pull_request.types`
+  do CI — arrastá-lo rodava o pipeline inteiro (tudo `skipped`) só para fechar
+  issue. **Arch Linux (#169b, pedido do dono)**: o GitHub não tem label hosted
+  de Arch, então ele roda como **container `archlinux:base-devel` no runner
+  ubuntu** — as jobs de matriz agora aceitam `matrix.host`/`matrix.container`
+  (vazio = runner hospedado normal) e o `scripts/ci_plan.py` emite
+  `os: archlinux` no `rust-matrix` (core/cli) e no `front-matrix`; `ui-rust`
+  ficou fora de propósito (o container `ci-linux` já prova WebKitGTK+ALSA, e
+  Arch lá custaria ~1,5 GB de `pacman -Syu` por run). Armadilha gravada: o
+  guard do apt é por `matrix.os`, não por `runner.os` — **Arch TAMBÉM é Linux
+  no runner** e não tem `apt`. `validate_workflows.py` ganhou o contrato 12
+  (grafo por igualdade de conjunto + `runs-on`/`container` das jobs de matriz)
+  e passou a cobrir o workflow novo; `ci_report.py` reordenou os estágios.
+  **Item 4 da issue (enxugar jobs de RE) ficou FORA de propósito**: `test-spec`
+  e os self-checks H1/H2 morrem junto com HW-3/HW-6 — removê-los agora seria
+  desligar gate sem substituto na mesma PR, que é a regra do próprio ROADMAP.
+
 - 10/10 — **DOC CANÔNICO DO DEVICE + SKILL `device-reference`**: `docs/GP100_DEVICE.md`
   agora é a fonte única de funcionalidades/comportamentos da GP-100 real (manual
   V1.9 + produto + medição própria), com vocabulário travado (**User IR ≠ User

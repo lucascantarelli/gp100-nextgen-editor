@@ -69,10 +69,11 @@ vale o que estiver em `docs/CONTRIBUTING.md` + `.github/workflows/`.
 7. **Review** — releia o diff (`git diff develop...HEAD`) e o PR antes do merge;
    achou algo? corrige na branch (novo commit) — nunca em commit "fix" solto
    na develop.
-8. **Merge (squash) em `develop`** — o job `Fechamento · issues` fecha a
-   issue via API com comentário de rastreabilidade (PR + sha + run). ⚠️ O
-   fechamento só acontece quando o PR foi **mesmo** mergeado; PR fechado sem
-   merge não resolveu nada.
+8. **Merge (squash) em `develop`** — o workflow próprio
+   `Issues · Fechamento de issues vinculadas` (`issues-fechamento.yml`, #169)
+   fecha a issue via API com comentário de rastreabilidade (PR + sha + run).
+   ⚠️ O fechamento só acontece quando o PR foi **mesmo** mergeado; PR fechado
+   sem merge não resolveu nada.
 9. **Backport/limpeza**: hotfix mergeia também em `develop`; release branch é
    apagada pelo `promote` (não apague à mão).
 

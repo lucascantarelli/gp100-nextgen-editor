@@ -19,9 +19,10 @@
 4. **Gates locais** da sua área (§4) — o PR nasce verde.
 5. **PR** para `develop` com o [template](../.github/PULL_REQUEST_TEMPLATE.md),
    tabelas preenchidas e `Closes #N` no **corpo** (§5).
-6. **CI verde + merge** (squash) → o job `Fechamento · issues` do
-   [ci.yml](../.github/workflows/ci.yml) fecha a issue com comentário de
-   rastreabilidade (só quando o PR foi MESMO mergeado).
+6. **CI verde + merge** (squash) → o workflow
+   [`Issues · Fechamento de issues vinculadas`](../.github/workflows/issues-fechamento.yml)
+   fecha a issue com comentário de rastreabilidade (só quando o PR foi MESMO
+   mergeado).
 
 ---
 
@@ -41,9 +42,9 @@
   apontando para o epic — referencie com menção simples `#N`. O epic fecha
   manualmente quando o checklist completa (ou vire o vínculo em menção).
 - **Label `achados-security`**: issue automática da auditoria noturna
-  (`Segurança · auditorias`). Prioridade máxima; o
-  `Fechamento · issues` **nunca** fecha uma issue com essa label — só
-  manualmente, com a correção provada.
+  (`Segurança · auditorias`). Prioridade máxima; o workflow de **Fechamento**
+  **nunca** fecha uma issue com essa label — só manualmente, com a correção
+  provada.
 - **A label `ci-lite` foi abolida (#68)**: ela reduzia a matriz para Windows
   em silêncio, sem ninguém registrar o motivo. Todo PR roda a matriz inteira.
 - **Vínculo de fechamento vive no CORPO do PR** (não no título, não em
@@ -65,8 +66,9 @@
   (rastreabilidade que sobrevive fora do GitHub).
 - ⚠️ **Por que o PR aponta para develop e a issue ainda fecha:** o GitHub
   nativo só fecha por `Closes #N` em merge na branch **default** (`main`).
-  No GitFlow a integração acontece em `develop` — o job `Fechamento · issues`
-  ([ci.yml](../.github/workflows/ci.yml)) cobre essa lacuna via API (§5).
+  No GitFlow a integração acontece em `develop` — o workflow
+  [`Issues · Fechamento de issues vinculadas`](../.github/workflows/issues-fechamento.yml)
+  cobre essa lacuna via API (§5).
 - **Push e PR** disparam a CI em toda branch de desenvolvimento. O filtro é o
   de *caminho* (`scripts/ci_plan.py`): um PR que só mexe em `docs/` não sobe
   Rust nem front.
@@ -224,8 +226,10 @@ tabela **antes → depois** · tabela de **gates executados** (marque o que rodo
 · ambiente verificado · R1–R4 · política de conteúdo (nenhum material
 proprietário do device).
 
-**CI — UM workflow, 11 tipos de job** (consolidado na #68; a divisão anterior em
-6 arquivos por função veio da #31–#34 e da imagem de container da #41):
+**CI — DOIS workflows: o pipeline (10 tipos de job) + o Fechamento**
+(consolidado na #68; a divisão anterior em 6 arquivos por função veio da
+#31–#34 e da imagem de container da #41; a separação do Fechamento veio da
+#169):
 
 O `name:` de cada job é `Tipo · o que é`, sem número. O GitHub não tem
 `stages:` como o GitLab — a doc de migração do próprio GitHub diz que o
@@ -234,19 +238,29 @@ execução é o grafo `needs:` (e a ordem de declaração no arquivo), e a **lis
 de checks de um PR sai em ordem alfabética**. Por isso o job `Relatório`
 reconta a sequência real no step summary.
 
+A ordem do dono (#169) é **validação → lint → compilação → segurança → testes
+→ cobertura → distribuição → release**, com o **Relatório por último** e o
+**Fechamento fora do pipeline**. Cada estágio espera o anterior (`needs:`),
+então lint vermelho não gasta mais compile-time de build/test atrás dele.
+
 | Tipo | Jobs | Quando roda |
 |---|---|---|
 | `Validação` | contexto: o que mudou, tipo da branch, matrizes | sempre |
 | `Lint` | contratos do pipeline · mensagens de commit · rust fmt · rust clippy · eslint | **sempre**, em toda branch |
 | `Compilação` | rust `cargo check` · front (tsc + vite) | **sempre** — build ≠ distribuição |
+| `Infra` | imagens de container do próprio CI | push que mexe em `.github/docker/` (ou tag ausente no registro) |
+| `Segurança` | cargo audit · pnpm audit · issue ACHADOS · pytest da spec | sempre — **antes** dos testes (#169) |
 | `Testes` | rust (unit) · vitest · pytest · e2e Chromium · e2e visual · e2e webview | dev · develop · main · hotfix · tag |
 | `Cobertura` | vitest com instrumentação + gate 85% | dev · develop · main · hotfix · tag |
-| `Segurança` | cargo audit · pnpm audit · npm audit · issue ACHADOS | sempre |
-| `Relatório` | resumo visual no step summary | **sempre** (`if: always()`), mesmo com falha |
-| `Infra` | imagens de container do próprio CI | push que mexe em `.github/docker/` (ou tag ausente no registro) |
-| `Release` | guarda da main · rc · promote · play | dist só na tag `v*`; versionamento só por dispatch |
-| `Distribuição` | instaladores (3 OS) · CLI de campo | só na tag `v*` |
-| `Fechamento` | fecha as issues do PR **mergeado** | só em PR fechado com merge |
+| `Distribuição` | instaladores (3 OS) · tarball de fonte · CLI de campo | só na tag `v*` |
+| `Release` | guarda da main · rc · promote · play | versionamento só por dispatch |
+| `Relatório` | resumo visual no step summary | **sempre**, por último (`if: always()`), mesmo com falha |
+
+O **Fechamento** (issues do PR mergeado) mora no workflow próprio
+[`issues-fechamento.yml`](../.github/workflows/issues-fechamento.yml): ele
+reage ao PR mergeado, não a um evento de branch, e o `closed` do
+`pull_request` saiu do CI de propósito — arrastá-lo lá rodava o pipeline
+inteiro (tudo `skipped`) só para fechar issue.
 
 Um job cujo `if:` é falso aparece como *skipped* na lista de checks: o GitHub
 cria um check para todo job declarado e não há como esconder. Só sumiria se o
@@ -262,13 +276,23 @@ para o shell Tauri) e `ci-base` (Debian slim + Rust/uv/Node, para os jobs sem
 GUI). Alpine foi descartado: `alsa-sys` e crates com código C/linkam contra
 glibc.
 
-A régua é o conjunto de jobs dos tipos `Lint` a `Segurança`. As
-matrizes Rust/front são **filtradas por caminhos** (`scripts/ci_plan.py`): docs
-puro não sobe Rust/front — os jobs aparecem como *skipped*, sem custo. O gate
-do front (`Lint · UI` e `Cobertura`) roda em **jobs próprios**, em
-paralelo com a matriz de compilação 3-OS, para o Setup Node de um não serializar
-com o do outro (issue #50). A cobertura é job separado de propósito: é uma
-métrica com gate, não parte de "os testes passaram".
+A régua é o conjunto de jobs dos tipos `Lint` a `Cobertura` (encadeados: lint
+→ compilação → segurança → testes → cobertura). As matrizes Rust/front são
+**filtradas por caminhos** (`scripts/ci_plan.py`): docs puro não sobe Rust/front
+— os jobs aparecem como *skipped*, sem custo. O gate do front (`Lint · UI` e
+`Cobertura`) roda em **jobs próprios**, em paralelo com a matriz de compilação,
+para o Setup Node de um não serializar com o do outro (issue #50). A cobertura
+é job separado de propósito: é uma métrica com gate, não parte de "os testes
+passaram".
+
+**Matriz de OS (#169):** `windows-latest` · `macos-15-intel` · `ubuntu-24.04` ·
+**`archlinux`**. O Arch não tem label hosted no GitHub — ele roda como
+**container `archlinux:base-devel` no runner ubuntu** (as jobs de matriz aceitam
+`matrix.host`/`matrix.container`; vazios = runner hospedado normal). O Arch é o
+Linux rolling da matriz (glibc/gcc/rustc mais novos que os do ubuntu LTS) e
+entra no **core/cli** e no **front**; o `ui-rust` fica de fora porque o caminho
+Linux do shell já é provado pelo container `ci-linux` (WebKitGTK + ALSA juntos)
+— provar o `makepkg` no Arch é empacotamento (#72).
 
 **Uma run por push, não duas.** O gatilho `push` cobre só `develop`, `main` e as
 tags `v*`. Branch de trabalho (`feature/*`, `bugfix/*`, `hotfix/*`, `release/*`)
@@ -338,7 +362,8 @@ job: virou camada da imagem publicada no ghcr.io.
 (visual divergente só com decisão de baseline documentada).
 
 **Fechamento automático**
-(job `Fechamento · issues` do [ci.yml](../.github/workflows/ci.yml)):
+(workflow [`Issues · Fechamento de issues vinculadas`](../.github/workflows/issues-fechamento.yml)
+— saiu do CI na #169):
 
 1. No merge em `develop`, extrai `Closes/Fixes/Resolves #N` do **corpo**;
 2. Fecha cada issue via API com comentário de rastreabilidade

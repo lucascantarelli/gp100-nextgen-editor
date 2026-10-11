@@ -14,9 +14,10 @@
 # grafo de `needs:`. Duas consequências, ambas aceitas de propósito:
 #
 #   - a ORDEM DE EXECUÇÃO é o grafo `needs:`, não a posição no arquivo nem o
-#     nome. As declarações abaixo estão na ordem pedida (validação → lint →
-#     compilação → testes → cobertura → segurança → relatório → release/dist →
-#     fechamento) para quem lê o arquivo, e `needs:` para quem roda;
+#     nome. As declarações abaixo estão na ordem pedida (#169: validação →
+#     lint → compilação → infra → segurança → testes → cobertura →
+#     distribuição → release → relatório) para quem lê o arquivo, e `needs:`
+#     para quem roda;
 #   - a LISTA DE CHECKS de um PR sai em ordem ALFABÉTICA, não de execução. Foi
 #     o preço de tirar o prefixo numérico, e é a razão de o `Relatório · resumo
 #     da run` existir: ele reconta a sequência real no step summary.
@@ -24,14 +25,21 @@
 #   Validação    contexto: o que mudou, de que tipo é a branch, quais matrizes
 #   Lint         validações estáticas — SEMPRE, em toda branch
 #   Compilação   compilação de VERIFICAÇÃO — SEMPRE (build ≠ distribuição)
+#   Infra        imagens de container do próprio CI (ghcr.io) — sem dependência
+#   Segurança    auditorias de dependência + issue de achados — ANTES dos testes
 #   Testes       unit, integração, e2e shell, e2e visual, e2e webview
 #   Cobertura    relatório + gate de 85% — separado de propósito
-#   Segurança    auditorias de dependência + issue de achados
-#   Relatório    resumo visual — roda SEMPRE (`if: always()`), mesmo com falha
-#   Infra        imagens de container do próprio CI (ghcr.io)
-#   Release      versionamento e cadeia rc → promote → play
 #   Distribuição instaladores e CLI de campo (só na tag)
-#   Fechamento   issues do PR mergeado
+#   Release      versionamento e cadeia rc → promote → play
+#   Relatório    resumo visual — o ÚLTIMO a rodar, SEMPRE (`if: always()`)
+#
+#   Fechamento   issues do PR mergeado — SAIU DESTE WORKFLOW (#169): virou
+#                `.github/workflows/issues-fechamento.yml`, com gatilho próprio
+#
+# OS DA MATRIZ (scripts/ci_plan.py): windows-latest · macos-15-intel ·
+# ubuntu-24.04 · archlinux. O Arch não tem label hosted no GitHub — ele roda
+# como CONTAINER `archlinux:base-devel` no runner ubuntu (as jobs de matriz
+# aceitam `matrix.host`/`matrix.container`; vazio = runner hospedado normal).
 #
 # JOB QUE NÃO RODA APARECE COMO "skipped": é limitação da plataforma, o GitHub
 # cria um check para todo job declarado. Só sumiria se o job não existisse
@@ -41,15 +49,19 @@
 # QUAL TIPO RODA EM QUE BRANCH (a regra é do job `plan`, não espalhada em
 # `if:` soltos — uma fonte de verdade, testável):
 #
-#   branch                    plan lint build test cov sec dist release close
-#   (as colunas seguem a ordem da tabela acima)
-#   feature/* bugfix/* (PR)   ✅   ✅   ✅    ✅   ✅   ✅   ❌    ❌      ✅
-#   develop   (push)          ✅   ✅   ✅    ✅   ✅   ✅   ❌    ⚠️      ❌
-#   main      (push)          ✅   ✅   ✅    ✅   ✅   ✅   ❌    ❌      ❌
-#   release/* (push/PR)       ✅   ✅   ✅    ❌   ❌   ✅   ❌    ⚠️      ❌
-#   hotfix/*  (push/PR)       ✅   ✅   ✅    ✅   ✅   ✅   ❌    ⚠️      ❌
-#   tag v*    (push)          ✅   ✅   ✅    ✅   ✅   ✅   ✅    ✅      ❌
-#   schedule  (noturno)       ⚠️   ❌   ❌    ✅   ❌   ✅   ❌    ❌      ❌
+#   branch                    plan lint build sec test cov dist release
+#   (colunas na ordem da política — confira contra ci_plan.py, que é a fonte)
+#   feature/* bugfix/* (PR)   ✅   ✅   ✅    ✅   ✅   ✅   ❌    ❌
+#   develop   (push)          ✅   ✅   ✅    ✅   ✅   ✅   ❌    ⚠️
+#   main      (push)          ✅   ✅   ✅    ✅   ✅   ✅   ❌    ❌
+#   release/* (push/PR)       ✅   ✅   ✅    ❌   ❌   ❌   ❌    ⚠️
+#   hotfix/*  (push/PR)       ✅   ✅   ✅    ✅   ✅   ✅   ❌    ⚠️
+#   tag v*    (push)          ✅   ✅   ✅    ✅   ✅   ✅   ✅    ✅
+#   schedule  (noturno)       ⚠️   ✅   ✅    ✅   ✅   ❌   ❌    ❌
+#
+#   O Fechamento (issues do PR mergeado) não tem coluna: é outro workflow
+#   (`.github/workflows/issues-fechamento.yml`, #169). O Relatório não tem
+#   coluna porque roda em TODA run, por último, com `if: always()`.
 #
 #   ⚠️ release = só em `workflow_dispatch` (nunca em push/PR): versionar no push
 #      é a receita de tag prematura. A release REAL acontece na tag `v*`, que
@@ -91,7 +103,10 @@ on:
     tags: ["v*"]
   pull_request:
     branches: [develop, main, "hotfix/**", "release/**"]
-    types: [opened, synchronize, reopened, closed]
+    # SEM `closed`: o fechamento de issues saiu daqui (#169) e virou o
+    # workflow próprio `issues-fechamento.yml`. Manter `closed` aqui rodava o
+    # pipeline INTEIRO (tudo `skipped`) só para um job que nem mora mais aqui.
+    types: [opened, synchronize, reopened]
   schedule:
     # 06:30 UTC = 03:30 BRT — auditorias antes do expediente.
     - cron: "30 6 * * *"
@@ -124,7 +139,7 @@ on:
 
 permissions:
   contents: read
-  issues: write # fechamento de issues vinculadas
+  issues: write # achados de segurança (o fechamento de issues saiu p/ workflow próprio)
   actions: read # relatório de métricas (lista os jobs da run)
   packages: read # pull das imagens de CI no ghcr.io
   security-events: write # CodeQL
@@ -149,9 +164,7 @@ env:
   BOT_EMAIL: github-actions[bot]@users.noreply.github.com
 
 jobs:
-  # ═══════════════════════════════════════════════════════════════════════
-  # VALIDAÇÃO — contexto para todo o resto
-  # ═══════════════════════════════════════════════════════════════════════
+
   plan:
     name: Validação · plano e escopo
     runs-on: ubuntu-24.04
@@ -213,7 +226,6 @@ jobs:
   # ═══════════════════════════════════════════════════════════════════════
   # LINT — estático; sempre; toda branch
   # ═══════════════════════════════════════════════════════════════════════
-
   lint-workflows:
     name: Lint · contratos do pipeline
     needs: plan
@@ -286,6 +298,7 @@ jobs:
 
   lint-commits:
     name: Lint · mensagens de commit
+    needs: plan
     # Não roda em tag (não há "commit novo" a checar) nem em schedule/dispatch.
     if: github.event_name == 'push' || github.event_name == 'pull_request'
     runs-on: ubuntu-24.04
@@ -324,7 +337,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.plan.outputs.rust-matrix) }}
-    runs-on: ${{ matrix.os }}
+    # Arch (#169): `host`/`container` só existem na entrada `archlinux` —
+    # expressão vazia = roda direto no runner hospedado, sem container.
+    runs-on: ${{ matrix.host || matrix.os }}
+    container:
+      image: ${{ matrix.container || '' }}
     timeout-minutes: 30
     env:
       # ADR-7: MSVC no workspace da api (Tauri), GNU no da raiz (cli de campo).
@@ -336,16 +353,37 @@ jobs:
         working-directory: ${{ matrix.workdir }}
     steps:
       - uses: actions/checkout@v7
+      # Arch (#169) é CONTAINER: a imagem `base-devel` não traz rustup, e numa
+      # distro rolling o `pacman -Syu` antes de instalar é obrigatório (a
+      # imagem é um snapshot do dia do build). Toolchain = o mesmo `stable` dos
+      # outros Linux (RUSTUP_TOOLCHAIN do job), com clippy/rustfmt pro gate.
+      - name: toolchain do Arch (container sem rustup pré-instalado)
+        if: matrix.os == 'archlinux'
+        # Em job de container o runner assume `sh` como default do `run` —
+        # e `set -o pipefail` é bash. O Arch tem bash, então declarar é mais
+        # barato do que descobrir na run.
+        shell: bash
+        run: |
+          set -euo pipefail
+          pacman -Syu --noconfirm --needed rustup
+          rustup toolchain install stable --profile minimal --component clippy --component rustfmt --no-self-update
       - uses: ./.github/actions/setup-rust
         with:
           workdir: ${{ matrix.workdir }}
           shared-key: ${{ matrix.project == 'ui-rust' && 'ws-api' || 'ws-raiz' }}
-      - name: deps de sistema do ALSA (Linux — cli)
-        if: matrix.project == 'cli' && runner.os == 'Linux'
+      # O Arch TAMBÉM é Linux no `runner.os`, mas é container pacman — não tem
+      # `apt`. Por isso o guard é por `matrix.os` e não por `runner.os` (#169).
+      - name: deps de sistema do ALSA (ubuntu — cli)
+        if: matrix.project == 'cli' && matrix.os == 'ubuntu-24.04'
         uses: awalsh128/cache-apt-pkgs-action@v1
         with:
           packages: pkg-config libasound2-dev
           version: 1.0
+      - name: deps de sistema do ALSA (archlinux — cli)
+        if: matrix.project == 'cli' && matrix.os == 'archlinux'
+        # `-S` sem `-Sy`: o `pacman -Syu` do passo de toolchain já sincronizou
+        # o banco nesta mesma job.
+        run: pacman -S --noconfirm --needed alsa-lib pkgconf
       - name: front (o `generate_context!` do Tauri embute ui/dist)
         if: matrix.project == 'ui-rust'
         uses: ./.github/actions/setup-node-pnpm
@@ -401,15 +439,22 @@ jobs:
   # --release` que estava dentro da matriz de validação publicava artefato de
   # campo a cada push de PR.
   # ═══════════════════════════════════════════════════════════════════════
-
   build-rust:
     name: Compilação · Rust (cargo check · ${{ matrix.project }} · ${{ matrix.os }})
-    needs: plan
+    # Compilação ← Lint (#169): o grafo do dono é validação → lint →
+    # compilação → segurança → testes → cobertura → dist → release. O custo é
+    # serializar o que já era pago em paralelo; o ganho é que lint vermelho
+    # não gasta mais compile-time de build/test atrás dele.
+    needs: [plan, lint-rust-fmt, lint-rust-clippy]
     if: needs.plan.outputs.scope-rust == 'true'
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.plan.outputs.rust-matrix) }}
-    runs-on: ${{ matrix.os }}
+    # Arch (#169): `host`/`container` só existem na entrada `archlinux` —
+    # expressão vazia = roda direto no runner hospedado, sem container.
+    runs-on: ${{ matrix.host || matrix.os }}
+    container:
+      image: ${{ matrix.container || '' }}
     timeout-minutes: 30
     env:
       RUSTUP_TOOLCHAIN: ${{ matrix.os == 'windows-latest' && (matrix.workdir == 'packages/app/api' && 'stable-x86_64-pc-windows-msvc' || 'stable-x86_64-pc-windows-gnu') || 'stable' }}
@@ -418,16 +463,37 @@ jobs:
         working-directory: ${{ matrix.workdir }}
     steps:
       - uses: actions/checkout@v7
+      # Arch (#169) é CONTAINER: a imagem `base-devel` não traz rustup, e numa
+      # distro rolling o `pacman -Syu` antes de instalar é obrigatório (a
+      # imagem é um snapshot do dia do build). Toolchain = o mesmo `stable` dos
+      # outros Linux (RUSTUP_TOOLCHAIN do job), com clippy/rustfmt pro gate.
+      - name: toolchain do Arch (container sem rustup pré-instalado)
+        if: matrix.os == 'archlinux'
+        # Em job de container o runner assume `sh` como default do `run` —
+        # e `set -o pipefail` é bash. O Arch tem bash, então declarar é mais
+        # barato do que descobrir na run.
+        shell: bash
+        run: |
+          set -euo pipefail
+          pacman -Syu --noconfirm --needed rustup
+          rustup toolchain install stable --profile minimal --component clippy --component rustfmt --no-self-update
       - uses: ./.github/actions/setup-rust
         with:
           workdir: ${{ matrix.workdir }}
           shared-key: ${{ matrix.project == 'ui-rust' && 'ws-api' || 'ws-raiz' }}
-      - name: deps de sistema do ALSA (Linux — cli)
-        if: matrix.project == 'cli' && runner.os == 'Linux'
+      # O Arch TAMBÉM é Linux no `runner.os`, mas é container pacman — não tem
+      # `apt`. Por isso o guard é por `matrix.os` e não por `runner.os` (#169).
+      - name: deps de sistema do ALSA (ubuntu — cli)
+        if: matrix.project == 'cli' && matrix.os == 'ubuntu-24.04'
         uses: awalsh128/cache-apt-pkgs-action@v1
         with:
           packages: pkg-config libasound2-dev
           version: 1.0
+      - name: deps de sistema do ALSA (archlinux — cli)
+        if: matrix.project == 'cli' && matrix.os == 'archlinux'
+        # `-S` sem `-Sy`: o `pacman -Syu` do passo de toolchain já sincronizou
+        # o banco nesta mesma job.
+        run: pacman -S --noconfirm --needed alsa-lib pkgconf
       - name: front (o `generate_context!` do Tauri embute ui/dist)
         if: matrix.project == 'ui-rust'
         uses: ./.github/actions/setup-node-pnpm
@@ -447,12 +513,15 @@ jobs:
 
   build-ui:
     name: Compilação · UI (tsc + vite · ${{ matrix.os }})
-    needs: plan
+    needs: [plan, lint-ui]
     if: needs.plan.outputs.scope-front == 'true'
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.plan.outputs.front-matrix) }}
-    runs-on: ${{ matrix.os }}
+    # Arch (#169): mesma alavanca das jobs de matriz Rust — ver ci_plan.py.
+    runs-on: ${{ matrix.host || matrix.os }}
+    container:
+      image: ${{ matrix.container || '' }}
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
@@ -460,406 +529,14 @@ jobs:
       - name: tsc + vite
         uses: ./.github/actions/build-front
 
-  # ═══════════════════════════════════════════════════════════════════════
-  # TESTES — unit · integração · e2e shell · e2e visual · e2e webview
-  # ═══════════════════════════════════════════════════════════════════════
-
-  test-rust:
-    name: Testes · Rust (cargo test · ${{ matrix.project }} · ${{ matrix.os }})
-    needs: [plan, build-rust]
-    if: needs.plan.outputs.scope-rust == 'true' && needs.plan.outputs.stage-test == 'true'
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJSON(needs.plan.outputs.rust-matrix) }}
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 40
-    env:
-      RUSTUP_TOOLCHAIN: ${{ matrix.os == 'windows-latest' && (matrix.workdir == 'packages/app/api' && 'stable-x86_64-pc-windows-msvc' || 'stable-x86_64-pc-windows-gnu') || 'stable' }}
-    defaults:
-      run:
-        working-directory: ${{ matrix.workdir }}
-    steps:
-      - uses: actions/checkout@v7
-      - uses: ./.github/actions/setup-rust
-        with:
-          workdir: ${{ matrix.workdir }}
-          shared-key: ${{ matrix.project == 'ui-rust' && 'ws-api' || 'ws-raiz' }}
-          # O MSVC é a perna mais cara que resta (issue #41): aqui vale cortar
-          # o rebuild do gp100-ui, que é o que domina esse tempo.
-          cache-workspace-crates: ${{ matrix.project == 'ui-rust' && matrix.os == 'windows-latest' && 'true' || 'false' }}
-      - name: deps de sistema do ALSA (Linux — cli)
-        if: matrix.project == 'cli' && runner.os == 'Linux'
-        uses: awalsh128/cache-apt-pkgs-action@v1
-        with:
-          packages: pkg-config libasound2-dev
-          version: 1.0
-      - name: front (o `generate_context!` do Tauri embute ui/dist)
-        if: matrix.project == 'ui-rust'
-        uses: ./.github/actions/setup-node-pnpm
-      - name: front (build)
-        if: matrix.project == 'ui-rust'
-        uses: ./.github/actions/build-front
-      - name: testes
-        if: matrix.project == 'cli'
-        run: cargo test -p gp100-cli --features real-device
-      # O gate de escrita (H2/ADR-5) é uma FEATURE de compilação: nada garante
-      # que ela ainda compile depois de mexer na Session ou no transporte, e
-      # um binário de campo quebrado só se descobre com a pedaleira na mão.
-      # Por isso o CLI é testado nos DOIS modos. `escrita_verificada_segue_a_
-      # feature` só existe com a feature ligada — é o que prova que a trava
-      # segue a build e não um default silencioso.
-      - name: testes (build de escrita — feature write-verified)
-        if: matrix.project == 'cli'
-        run: cargo test -p gp100-cli --features real-device,write-verified
-      - name: testes
-        if: matrix.project != 'cli'
-        run: cargo test -p ${{ matrix.project == 'ui-rust' && 'gp100-ui' || 'gp100-core' }}
-      # `cargo test` compila o bin-alvo COMO HARNESS (`--test`), e o artefato
-      # fica em target/debug/deps/gp100_cli-<hash>, não em
-      # `target/debug/gp100-cli.exe`. Quem produz o binário de verdade é
-      # `cargo build`. O build de distribution foi para o estagio 7 na #68 e o
-      # smoke ficou sem insumo — o job reprovava com exit 127 ("command not
-      # found") parecendo que o smoke estava quebrado.
-      - name: binário do smoke (o `cargo test` acima não produz o .exe)
-        if: runner.os == 'Windows' && matrix.project == 'cli'
-        run: cargo build -p gp100-cli --features real-device
-      - name: smoke da política de hardware (o stack de campo é WinMM)
-        if: matrix.project == 'cli' && runner.os == 'Windows'
-        uses: ./.github/actions/hardware-smoke
-        with:
-          profile: debug
-
-  test-ui:
-    name: Testes · UI (vitest)
-    needs: [plan, build-ui]
-    if: needs.plan.outputs.scope-front == 'true' && needs.plan.outputs.stage-test == 'true'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@v7
-      - uses: ./.github/actions/setup-node-pnpm
-      - name: vitest
-        working-directory: packages/app/ui
-        run: pnpm exec vitest run
-
-  test-spec:
-    name: Testes · Especificação (pytest)
-    needs: [plan, ci-images]
-    if: always() && needs.plan.outputs.scope-spec == 'true' && needs.plan.outputs.stage-test == 'true' && needs.ci-images.result != 'failure'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    container:
-      image: ghcr.io/${{ github.repository }}/ci-base:1
-    steps:
-      - uses: actions/checkout@v7
-      - name: instalar uv
-        uses: astral-sh/setup-uv@v10.2.0
-        with:
-          enable-cache: true
-      - name: sync do ambiente (capstone, pefile, ziglang, pytest)
-        run: uv sync --all-groups
-      - name: golden, baseline versionada, knob_map e fixtures
-        run: uv run pytest
-      # O pytest já cobre `baseline.py --check` (o teste
-      # `test_golden_baseline_hash_unchanged` chama o gate), mas rodar o
-      # comando aqui deixa o número da baseline VISÍVEL no log do job. Sem
-      # isso, quem quiser saber de qual versão o golden está tem que abrir
-      # o analysis/baseline.json e recontar o sha.
-      - name: baseline do golden (versão + hash + motivo)
-        run: uv run python analysis/baseline.py show
-      # Prova de que o juiz do H3 roda — e o que garante que o caminho de
-      # entrada da captura do gp100-core existe de fato (antes da #23 o
-      # build_golden carregava 0 eventos de um log do core).
-      - name: juiz da captura do core (self-check do normalizador)
-        run: |
-          uv run python analysis/wirelog.py packages/core/data/fixtures/knobs.jsonl > /dev/null
-          uv run python analysis/validate_core_capture.py packages/core/data/fixtures/knobs.jsonl
-
-  test-e2e:
-    name: Testes · E2E shell (Chromium)
-    needs: [plan, build-ui]
-    if: needs.plan.outputs.scope-front == 'true' && needs.plan.outputs.stage-test == 'true'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 25
-    steps:
-      - uses: actions/checkout@v7
-      - uses: ./.github/actions/setup-node-pnpm
-      - uses: ./.github/actions/playwright-setup
-      - name: suíte e2e (o playwright.config sobe o dev server sozinho)
-        working-directory: packages/app/ui
-        # SKIP_VISUAL=1 tira o visual.spec.ts: as baselines têm o job delas
-        # logo abaixo (`test-e2e-visual`). Sem isto elas rodavam DUAS vezes por
-        # PR, e como o arquivo é serial num worker só, ele virava o gargalo do
-        # job inteiro.
-        env:
-          SKIP_VISUAL: "1"
-        run: pnpm exec playwright test
-
-  test-e2e-visual:
-    name: Testes · E2E visual (baseline por plataforma)
-    needs: [plan, build-ui]
-    if: needs.plan.outputs.scope-front == 'true' && needs.plan.outputs.stage-test == 'true'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 25
-    steps:
-      - uses: actions/checkout@v7
-      - uses: ./.github/actions/setup-node-pnpm
-      - uses: ./.github/actions/playwright-setup
-      - name: comparar (ou regenerar com o input update-snapshots)
-        working-directory: packages/app/ui
-        # `--update-snapshots=all` é o ÚNICO caminho de escrita no CI: o
-        # default lá é comparar e FALHAR no que faltar.
-        #
-        # `inputs['update-snapshots']` e NAO `inputs.update-snapshots`: o hífen
-        # quebra o acesso por propriedade na expressão (o GitHub lê
-        # `inputs.update`). E o input e do tipo BOOLEAN, então o flag e
-        # testado pela VERDADE (`&& ... || ''`), nunca por `== 'true'` — a
-        # comparação de um booleano com a string 'true' dá falso e a
-        # regeneração documentada rodava como comparação, que é o oposto do
-        # que se pede. Os dois erros juntos: o job falhava do mesmo jeito, com
-        # o artefato cheio de baseline velho.
-        run: pnpm exec playwright test visual.spec.ts ${{ inputs['update-snapshots'] && '--update-snapshots=all' || '' }}
-      - name: baselines/diffs como artefato
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: visual-snapshots
-          path: packages/app/ui/e2e/__screenshots__/
-          retention-days: 14
-          if-no-files-found: ignore
-
-  test-e2e-webview:
-    name: Testes · E2E webview (shell Tauri real)
-    needs: [plan, build-rust, ci-images]
-    if: always() && (needs.plan.outputs.scope-front == 'true' || needs.plan.outputs.scope-rust == 'true') && needs.plan.outputs.stage-test == 'true' && needs.ci-images.result != 'failure'
-    runs-on: ubuntu-24.04
-    container:
-      image: ghcr.io/${{ github.repository }}/ci-linux:1
-    timeout-minutes: 35
-    env:
-      RUSTUP_TOOLCHAIN: stable
-    steps:
-      - uses: actions/checkout@v7
-      - uses: ./.github/actions/setup-rust
-        with:
-          workdir: packages/app/api
-          shared-key: ws-api
-      - uses: ./.github/actions/setup-node-pnpm
-      - uses: ./.github/actions/build-front
-      - name: build debug do shell (dist embutido, backend mock)
-        working-directory: packages/app/api
-        run: cargo build -p gp100-ui
-      # O backend com aparelho real do APP só é compilado aqui: no Windows
-      # (passo `ui-rust` de lint/check) e neste container Linux, que já tem o
-      # ALSA e o WebKitGTK. Sem estes dois passos, `abrir_backend`,
-      # `AppDevice` e o `impl DeviceBackend for RealDevice` do crate do Tauri
-      # seriam código que SÓ a máquina de quem tem a pedaleira compila.
-      #
-      # O macOS NÃO precisa deste container: o `ui-rust` da matriz roda lá
-      # desde 05/10 e cobre o CoreMIDI do mesmo jeito que este cobre o ALSA.
-      # Este passo continua porque prova o `real-device` no MESMO container
-      # que roda o e2e do webview (WebKitGTK + ALSA juntos), que é uma
-      # combinação que o runner do macOS não reproduz.
-      - name: check do backend com aparelho real (ALSA — Linux)
-        working-directory: packages/app/api
-        run: cargo check -p gp100-ui --features real-device --all-targets
-      # Lição (run 36943668915): build DEBUG carrega o `devUrl` do
-      # tauri.conf.json — o dist embutido só entra em RELEASE. Servimos o dist
-      # de produção na devUrl: o smoke segue provando o WEBVIEW, que é o
-      # objeto dele.
-      - name: servir o dist na devUrl
-        working-directory: packages/app/ui
-        run: |
-          nohup pnpm exec vite preview --port 5173 --strictPort > /tmp/preview.log 2>&1 &
-          for _ in $(seq 1 60); do
-            curl -sf http://localhost:5173 >/dev/null && { echo "preview no ar na :5173"; exit 0; }
-            sleep 0.5
-          done
-          echo "::error::preview não subiu:"; cat /tmp/preview.log; exit 1
-      - name: smoke (xvfb + tauri-driver)
-        working-directory: packages/app/ui
-        env:
-          WEBKIT_DISABLE_DMABUF_RENDERER: "1"
-          WEBKIT_DISABLE_COMPOSITING_MODE: "1"
-        run: xvfb-run -a node e2e/tauri.smoke.mjs
-
 # ═══════════════════════════════════════════════════════════════════════
-  # COBERTURA (job próprio: a régua é uma Métrica com GATE, não
-  # parte de "os testes passaram")
+  # INFRA — imagens de container do próprio CI (ghcr.io)
+  #
+  # Ferramenta do pipeline, não artefato de usuário — e é a Única parte do
+  # grafo sem dependência: os jobs que consomem imagem (sec-audit, test-spec,
+  # test-e2e-webview) precisam dela pronta, então ela roda independente, ao
+  # lado do lint, e nunca atrasa ninguém por ser lenta.
   # ═══════════════════════════════════════════════════════════════════════
-
-  coverage-ui:
-    name: Cobertura · UI (gate 85%)
-    needs: [plan, build-ui]
-    if: needs.plan.outputs.scope-front == 'true' && needs.plan.outputs.stage-coverage == 'true'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 25
-    steps:
-      - uses: actions/checkout@v7
-      - uses: ./.github/actions/setup-node-pnpm
-      - name: vitest com instrumentação + gate
-        working-directory: packages/app/ui
-        run: pnpm test:coverage
-      # `json-summary` é o que o estágio de métricas lê — sem ele o relatório
-      # agregaria zero números (e a régua viraria decoração).
-      - name: resumo em JSON para o estágio de métricas
-        if: always()
-        working-directory: packages/app/ui
-        run: pnpm exec vitest run --coverage.reporter=json-summary --coverage.reporter=text
-      - name: publicar o resumo
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: cov-ui
-          path: packages/app/ui/coverage/coverage-summary.json
-          retention-days: 7
-          if-no-files-found: ignore
-
-  # ═══════════════════════════════════════════════════════════════════════
-  # SEGURANÇA — auditorias de dependência
-  #
-  # NÃO bloqueia o merge, e essa é uma decisão: `glib` é uma advisory
-  # documentada em SECURITY.md sem upgrade possível com o Tauri 2 — um gate
-  # que sempre falha treina o time a ignorar o vermelho. A DETECÇÃO é a
-  # issue de achados; a REMEDIAÇÃO é o dependabot.yml.
-  #
-  # CodeQL NÃO mora aqui: o repositório já tem o setup PADRÃO ligado (5
-  # linguagens: rust, javascript, cpp, python, actions) e o GitHub recusa
-  # SARIF de configuração avançada enquanto ele estiver ativo ("CodeQL
-  # analyses from advanced configurations cannot be processed when the
-  # default setup is enabled"). Configurar o CodeQL aqui só criava conflito.
-  # ═══════════════════════════════════════════════════════════════════════
-
-  sec-audit:
-    name: Segurança · auditorias de dependência
-    needs: [plan, ci-images]
-    if: always() && needs.plan.outputs.stage-security == 'true' && needs.ci-images.result != 'failure'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 30
-    container:
-      image: ghcr.io/${{ github.repository }}/ci-base:1
-    env:
-      # O pin gnu do rust-toolchain.toml da raiz quebra o cargo no Linux.
-      RUSTUP_TOOLCHAIN: stable
-    permissions:
-      contents: read
-      issues: write
-      packages: read
-      actions: read
-    steps:
-      - uses: actions/checkout@v7
-      - name: cargo-audit (binário pré-compilado)
-        uses: taiki-e/install-action@v2
-        with:
-          tool: cargo-audit
-      - name: cargo audit (workspace da raiz)
-        id: cargo_audit
-        continue-on-error: true
-        run: cargo audit --file Cargo.lock 2>&1 | tee /tmp/cargo-audit.txt
-      - name: cargo audit (gp100-ui — lockfile próprio, ADR-7)
-        id: cargo_audit_ui
-        continue-on-error: true
-        working-directory: packages/app/api
-        run: cargo audit --file Cargo.lock 2>&1 | tee /tmp/cargo-audit-ui.txt
-      - name: instalar uv
-        uses: astral-sh/setup-uv@v10.2.0
-      - uses: ./.github/actions/setup-node-pnpm
-        with:
-          # `pnpm audit` lê o lockfile; instalar a árvore inteira aqui só
-          # custaria tempo — a imagem não tem store aquecido de propósito.
-          install: "false"
-      - name: pnpm audit (runtime do front)
-        id: pnpm_audit
-        continue-on-error: true
-        working-directory: packages/app/ui
-        run: pnpm audit --prod 2>&1 | tee /tmp/pnpm-audit.txt
-      - name: pnpm outdated (informativo — não falha)
-        if: always()
-        continue-on-error: true
-        working-directory: packages/app/ui
-        run: pnpm outdated 2>&1 | tee /tmp/pnpm-outdated.txt || true
-      - name: trava da especificação (pytest — a garantia da RE)
-        if: always()
-        run: |
-          uv sync --all-groups
-          uv run pytest
-      - name: registrar o resultado de cada auditoria
-        # Direcionado a arquivo, não a env: `steps.<id>.outcome` só é
-        # disponivel dentro de um step, e o relatorio e um script separado.
-        if: always()
-        run: |
-          {
-            echo "cargo_audit(workspace)=${{ steps.cargo_audit.outcome }}"
-            echo "cargo_audit(gp100-ui)=${{ steps.cargo_audit_ui.outcome }}"
-            echo "pnpm_audit(runtime)=${{ steps.pnpm_audit.outcome }}"
-          } > .audit-outcomes
-          cat .audit-outcomes
-      - name: achado = issue na FASE ACHADOS
-        if: always()
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        run: python3 scripts/security_report.py
-
-  # ═══════════════════════════════════════════════════════════════════════
-  # RELATÓRIO — resumo da run (roda SEMPRE, `if: always()`)
-  #
-  # `if: always()` é o ponto: o resumo tem que aparecer MESMO quando algo
-  # quebrou — é nele que se lê o que quebrou. Depende de `plan` (não de
-  # lint/build/test) para nunca ficar preso atrás de um `needs` vermelho.
-  # ═══════════════════════════════════════════════════════════════════════
-
-  metrics:
-    name: Relatório · resumo da run
-    needs: plan
-    if: always()
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    permissions:
-      contents: read
-      actions: read
-      packages: read
-    steps:
-      - uses: actions/checkout@v7
-      - name: aggregating os resumos de cobertura
-        uses: actions/download-artifact@v7
-        with:
-          pattern: cov-*
-          path: .cov
-        continue-on-error: true
-      - name: relatório
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-          RUN_ID: ${{ github.run_id }}
-          BRANCH_CLASS: ${{ needs.plan.outputs.branch-class }}
-        run: python3 scripts/ci_report.py
-
-# ═══════════════════════════════════════════════════════════════════════
-  # RELEASE / DISTRIBUIÇÃO
-  #
-  # Separei em dois porque os gatilhos são incompatíveis:
-  #
-  #   Infra · imagens de container  publica a imagem de CI (ferramenta do
-  #                    pipeline, não artefato de usuário) — código estável
-  #   Release · guarda da main  recusa push direto na main (só SHA de tag v*)
-  #   Release · RC        versiona + cria a release branch — SÓ `workflow_dispatch`
-  #   Release · promote   rc → tag final → main recebe o SHA da tag
-  #   Release · play      corta tag pelo semver dos commits
-  #   Distribuição · instalador  gera o instalador por plataforma
-  #   Distribuição · tarball de fonte  insumo do PKGBUILD do Arch (#72)
-  #   Distribuição · CLI de campo  o binário + kit do gate H1
-  #
-  # A numeração de outrora ("7 dist · ui") era do prefixo numérico de nome,
-  # que o owner pediu para tirar: a lista de checks do PR sai em ordem
-  # ALFABÉTICA, então o número era o único vestígio da ordem real — e a ordem
-  # real agora está no grafo `needs:` e no `Relatório · resumo da run`.
-  #
-  # LIÇÃO QUE VIROU ESTRUTURA (auditoria 01/10): tag empurrada com
-  # GITHUB_TOKEN NÃO dispara workflow. Por isso rc/promote/play publicam NO
-  # MESMO RUN; o trigger de tag cobre só tags criadas por HUMANO.
-  # ═══════════════════════════════════════════════════════════════════════
-
   ci-images:
     name: Infra · imagens de container
     # Publicar é infraestrutura do repo (a imagem é versionada, com tag
@@ -1015,6 +692,668 @@ jobs:
             echo "Sem mudança em \`.github/docker\` e a tag \`:1\` já está no ghcr.io."
           } >> "$GITHUB_STEP_SUMMARY"
 
+  # ═══════════════════════════════════════════════════════════════════════
+  # SEGURANÇA — auditorias de dependência
+  #
+  # NÃO bloqueia o merge, e essa é uma decisão: `glib` é uma advisory
+  # documentada em SECURITY.md sem upgrade possível com o Tauri 2 — um gate
+  # que sempre falha treina o time a ignorar o vermelho. A DETECÇÃO é a
+  # issue de achados; a REMEDIAÇÃO é o dependabot.yml.
+  #
+  # CodeQL NÃO mora aqui: o repositório já tem o setup PADRÃO ligado (5
+  # linguagens: rust, javascript, cpp, python, actions) e o GitHub recusa
+  # SARIF de configuração avançada enquanto ele estiver ativo ("CodeQL
+  # analyses from advanced configurations cannot be processed when the
+  # default setup is enabled"). Configurar o CodeQL aqui só criava conflito.
+  # ═══════════════════════════════════════════════════════════════════════
+  sec-audit:
+    name: Segurança · auditorias de dependência
+    # Segurança ← Compilação (#169): a política do dono coloca a auditoria
+    # DEPOIS da compilação e ANTES dos testes. O `always()` do `if` é o que
+    # faz isto funcionar quando um dos dois `build-*` foi skipped (PR de docs:
+    # sem escopo Rust/front) — `skipped` não bloqueia, `failure` sim.
+    needs: [plan, ci-images, build-rust, build-ui]
+    if: always() && needs.plan.outputs.stage-security == 'true' && needs.ci-images.result != 'failure'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    container:
+      image: ghcr.io/${{ github.repository }}/ci-base:1
+    env:
+      # O pin gnu do rust-toolchain.toml da raiz quebra o cargo no Linux.
+      RUSTUP_TOOLCHAIN: stable
+    permissions:
+      contents: read
+      issues: write
+      packages: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v7
+      - name: cargo-audit (binário pré-compilado)
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-audit
+      - name: cargo audit (workspace da raiz)
+        id: cargo_audit
+        continue-on-error: true
+        run: cargo audit --file Cargo.lock 2>&1 | tee /tmp/cargo-audit.txt
+      - name: cargo audit (gp100-ui — lockfile próprio, ADR-7)
+        id: cargo_audit_ui
+        continue-on-error: true
+        working-directory: packages/app/api
+        run: cargo audit --file Cargo.lock 2>&1 | tee /tmp/cargo-audit-ui.txt
+      - name: instalar uv
+        uses: astral-sh/setup-uv@v10.2.0
+      - uses: ./.github/actions/setup-node-pnpm
+        with:
+          # `pnpm audit` lê o lockfile; instalar a árvore inteira aqui só
+          # custaria tempo — a imagem não tem store aquecido de propósito.
+          install: "false"
+      - name: pnpm audit (runtime do front)
+        id: pnpm_audit
+        continue-on-error: true
+        working-directory: packages/app/ui
+        run: pnpm audit --prod 2>&1 | tee /tmp/pnpm-audit.txt
+      - name: pnpm outdated (informativo — não falha)
+        if: always()
+        continue-on-error: true
+        working-directory: packages/app/ui
+        run: pnpm outdated 2>&1 | tee /tmp/pnpm-outdated.txt || true
+      - name: trava da especificação (pytest — a garantia da RE)
+        if: always()
+        run: |
+          uv sync --all-groups
+          uv run pytest
+      - name: registrar o resultado de cada auditoria
+        # Direcionado a arquivo, não a env: `steps.<id>.outcome` só é
+        # disponivel dentro de um step, e o relatorio e um script separado.
+        if: always()
+        run: |
+          {
+            echo "cargo_audit(workspace)=${{ steps.cargo_audit.outcome }}"
+            echo "cargo_audit(gp100-ui)=${{ steps.cargo_audit_ui.outcome }}"
+            echo "pnpm_audit(runtime)=${{ steps.pnpm_audit.outcome }}"
+          } > .audit-outcomes
+          cat .audit-outcomes
+      - name: achado = issue na FASE ACHADOS
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: python3 scripts/security_report.py
+
+  # ═══════════════════════════════════════════════════════════════════════
+  # TESTES — unit · integração · e2e shell · e2e visual · e2e webview
+  # ═══════════════════════════════════════════════════════════════════════
+  test-rust:
+    name: Testes · Rust (cargo test · ${{ matrix.project }} · ${{ matrix.os }})
+    # Testes ← Segurança (#169): se a auditoria quebrou (falha de infra), o
+    # teste não roda atrás — a run já está vermelha e o `Relatório` explica.
+    #
+    # O `always()` + guards EXPLÍCITOS não são estilo: sem eles o `success()`
+    # implícito pulava a fase de testes INTEIRA quando a cadeia tinha qualquer
+    # job skipped (run 38168716758: `sec-audit` verde e `test-rust`/`test-ui`
+    # skipped; actions/runner#2205). `skipped` de upstream não bloqueia aqui;
+    # `failure` bloqueia.
+    needs: [plan, build-rust, sec-audit]
+    if: always() && needs.plan.outputs.scope-rust == 'true' && needs.plan.outputs.stage-test == 'true' && needs.build-rust.result != 'failure' && needs.sec-audit.result != 'failure'
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.rust-matrix) }}
+    # Arch (#169): `host`/`container` só existem na entrada `archlinux` —
+    # expressão vazia = roda direto no runner hospedado, sem container.
+    runs-on: ${{ matrix.host || matrix.os }}
+    container:
+      image: ${{ matrix.container || '' }}
+    timeout-minutes: 40
+    env:
+      RUSTUP_TOOLCHAIN: ${{ matrix.os == 'windows-latest' && (matrix.workdir == 'packages/app/api' && 'stable-x86_64-pc-windows-msvc' || 'stable-x86_64-pc-windows-gnu') || 'stable' }}
+    defaults:
+      run:
+        working-directory: ${{ matrix.workdir }}
+    steps:
+      - uses: actions/checkout@v7
+      # Arch (#169): ver o mesmo passo em `Lint · Rust (clippy)` — a imagem
+      # `base-devel` não traz rustup e a rolling exige `pacman -Syu` antes.
+      - name: toolchain do Arch (container sem rustup pré-instalado)
+        if: matrix.os == 'archlinux'
+        # Em job de container o runner assume `sh` como default do `run` —
+        # e `set -o pipefail` é bash. O Arch tem bash, então declarar é mais
+        # barato do que descobrir na run.
+        shell: bash
+        run: |
+          set -euo pipefail
+          pacman -Syu --noconfirm --needed rustup
+          rustup toolchain install stable --profile minimal --component clippy --component rustfmt --no-self-update
+      - uses: ./.github/actions/setup-rust
+        with:
+          workdir: ${{ matrix.workdir }}
+          shared-key: ${{ matrix.project == 'ui-rust' && 'ws-api' || 'ws-raiz' }}
+          # O MSVC é a perna mais cara que resta (issue #41): aqui vale cortar
+          # o rebuild do gp100-ui, que é o que domina esse tempo.
+          cache-workspace-crates: ${{ matrix.project == 'ui-rust' && matrix.os == 'windows-latest' && 'true' || 'false' }}
+      # O Arch TAMBÉM é Linux no `runner.os`, mas é container pacman — não tem
+      # `apt`. Por isso o guard é por `matrix.os` e não por `runner.os` (#169).
+      - name: deps de sistema do ALSA (ubuntu — cli)
+        if: matrix.project == 'cli' && matrix.os == 'ubuntu-24.04'
+        uses: awalsh128/cache-apt-pkgs-action@v1
+        with:
+          packages: pkg-config libasound2-dev
+          version: 1.0
+      - name: deps de sistema do ALSA (archlinux — cli)
+        if: matrix.project == 'cli' && matrix.os == 'archlinux'
+        # `-S` sem `-Sy`: o `pacman -Syu` do passo de toolchain já sincronizou
+        # o banco nesta mesma job.
+        run: pacman -S --noconfirm --needed alsa-lib pkgconf
+      - name: front (o `generate_context!` do Tauri embute ui/dist)
+        if: matrix.project == 'ui-rust'
+        uses: ./.github/actions/setup-node-pnpm
+      - name: front (build)
+        if: matrix.project == 'ui-rust'
+        uses: ./.github/actions/build-front
+      - name: testes
+        if: matrix.project == 'cli'
+        run: cargo test -p gp100-cli --features real-device
+      # O gate de escrita (H2/ADR-5) é uma FEATURE de compilação: nada garante
+      # que ela ainda compile depois de mexer na Session ou no transporte, e
+      # um binário de campo quebrado só se descobre com a pedaleira na mão.
+      # Por isso o CLI é testado nos DOIS modos. `escrita_verificada_segue_a_
+      # feature` só existe com a feature ligada — é o que prova que a trava
+      # segue a build e não um default silencioso.
+      - name: testes (build de escrita — feature write-verified)
+        if: matrix.project == 'cli'
+        run: cargo test -p gp100-cli --features real-device,write-verified
+      - name: testes
+        if: matrix.project != 'cli'
+        run: cargo test -p ${{ matrix.project == 'ui-rust' && 'gp100-ui' || 'gp100-core' }}
+      # `cargo test` compila o bin-alvo COMO HARNESS (`--test`), e o artefato
+      # fica em target/debug/deps/gp100_cli-<hash>, não em
+      # `target/debug/gp100-cli.exe`. Quem produz o binário de verdade é
+      # `cargo build`. O build de distribution foi para o estagio 7 na #68 e o
+      # smoke ficou sem insumo — o job reprovava com exit 127 ("command not
+      # found") parecendo que o smoke estava quebrado.
+      - name: binário do smoke (o `cargo test` acima não produz o .exe)
+        if: runner.os == 'Windows' && matrix.project == 'cli'
+        run: cargo build -p gp100-cli --features real-device
+      - name: smoke da política de hardware (o stack de campo é WinMM)
+        if: matrix.project == 'cli' && runner.os == 'Windows'
+        uses: ./.github/actions/hardware-smoke
+        with:
+          profile: debug
+
+  test-ui:
+    name: Testes · UI (vitest)
+    # `always()` + guards explícitos: ver o comentário do `test-rust` — o
+    # `success()` implícito pulava este job quando a cadeia tinha skipped.
+    needs: [plan, build-ui, sec-audit]
+    if: always() && needs.plan.outputs.scope-front == 'true' && needs.plan.outputs.stage-test == 'true' && needs.build-ui.result != 'failure' && needs.sec-audit.result != 'failure'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-node-pnpm
+      - name: vitest
+        working-directory: packages/app/ui
+        run: pnpm exec vitest run
+
+  test-spec:
+    name: Testes · Especificação (pytest)
+    needs: [plan, ci-images, sec-audit]
+    # O `always()` é o que deixa este job atrás de um `ci-images` skipped (a
+    # imagem já publicada serve); o `!= 'failure'` é o gate: imagem ou
+    # auditoria vermelha = este job não roda (#169 — segurança antes dos testes).
+    if: always() && needs.plan.outputs.scope-spec == 'true' && needs.plan.outputs.stage-test == 'true' && needs.ci-images.result != 'failure' && needs.sec-audit.result != 'failure'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    container:
+      image: ghcr.io/${{ github.repository }}/ci-base:1
+    steps:
+      - uses: actions/checkout@v7
+      - name: instalar uv
+        uses: astral-sh/setup-uv@v10.2.0
+        with:
+          enable-cache: true
+      - name: sync do ambiente (capstone, pefile, ziglang, pytest)
+        run: uv sync --all-groups
+      - name: golden, baseline versionada, knob_map e fixtures
+        run: uv run pytest
+      # O pytest já cobre `baseline.py --check` (o teste
+      # `test_golden_baseline_hash_unchanged` chama o gate), mas rodar o
+      # comando aqui deixa o número da baseline VISÍVEL no log do job. Sem
+      # isso, quem quiser saber de qual versão o golden está tem que abrir
+      # o analysis/baseline.json e recontar o sha.
+      - name: baseline do golden (versão + hash + motivo)
+        run: uv run python analysis/baseline.py show
+      # Prova de que o juiz do H3 roda — e o que garante que o caminho de
+      # entrada da captura do gp100-core existe de fato (antes da #23 o
+      # build_golden carregava 0 eventos de um log do core).
+      - name: juiz da captura do core (self-check do normalizador)
+        run: |
+          uv run python analysis/wirelog.py packages/core/data/fixtures/knobs.jsonl > /dev/null
+          uv run python analysis/validate_core_capture.py packages/core/data/fixtures/knobs.jsonl
+
+  test-e2e:
+    name: Testes · E2E shell (Chromium)
+    # `always()` + guards explícitos: ver o comentário do `test-rust`.
+    needs: [plan, build-ui, sec-audit]
+    if: always() && needs.plan.outputs.scope-front == 'true' && needs.plan.outputs.stage-test == 'true' && needs.build-ui.result != 'failure' && needs.sec-audit.result != 'failure'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-node-pnpm
+      - uses: ./.github/actions/playwright-setup
+      - name: suíte e2e (o playwright.config sobe o dev server sozinho)
+        working-directory: packages/app/ui
+        # SKIP_VISUAL=1 tira o visual.spec.ts: as baselines têm o job delas
+        # logo abaixo (`test-e2e-visual`). Sem isto elas rodavam DUAS vezes por
+        # PR, e como o arquivo é serial num worker só, ele virava o gargalo do
+        # job inteiro.
+        env:
+          SKIP_VISUAL: "1"
+        run: pnpm exec playwright test
+
+  test-e2e-visual:
+    name: Testes · E2E visual (baseline por plataforma)
+    # `always()` + guards explícitos: ver o comentário do `test-rust`.
+    needs: [plan, build-ui, sec-audit]
+    if: always() && needs.plan.outputs.scope-front == 'true' && needs.plan.outputs.stage-test == 'true' && needs.build-ui.result != 'failure' && needs.sec-audit.result != 'failure'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-node-pnpm
+      - uses: ./.github/actions/playwright-setup
+      - name: comparar (ou regenerar com o input update-snapshots)
+        working-directory: packages/app/ui
+        # `--update-snapshots=all` é o ÚNICO caminho de escrita no CI: o
+        # default lá é comparar e FALHAR no que faltar.
+        #
+        # `inputs['update-snapshots']` e NAO `inputs.update-snapshots`: o hífen
+        # quebra o acesso por propriedade na expressão (o GitHub lê
+        # `inputs.update`). E o input e do tipo BOOLEAN, então o flag e
+        # testado pela VERDADE (`&& ... || ''`), nunca por `== 'true'` — a
+        # comparação de um booleano com a string 'true' dá falso e a
+        # regeneração documentada rodava como comparação, que é o oposto do
+        # que se pede. Os dois erros juntos: o job falhava do mesmo jeito, com
+        # o artefato cheio de baseline velho.
+        run: pnpm exec playwright test visual.spec.ts ${{ inputs['update-snapshots'] && '--update-snapshots=all' || '' }}
+      - name: baselines/diffs como artefato
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: visual-snapshots
+          path: packages/app/ui/e2e/__screenshots__/
+          retention-days: 14
+          if-no-files-found: ignore
+
+  test-e2e-webview:
+    name: Testes · E2E webview (shell Tauri real)
+    needs: [plan, build-rust, ci-images, sec-audit]
+    if: always() && (needs.plan.outputs.scope-front == 'true' || needs.plan.outputs.scope-rust == 'true') && needs.plan.outputs.stage-test == 'true' && needs.ci-images.result != 'failure' && needs.sec-audit.result != 'failure'
+    runs-on: ubuntu-24.04
+    container:
+      image: ghcr.io/${{ github.repository }}/ci-linux:1
+    timeout-minutes: 35
+    env:
+      RUSTUP_TOOLCHAIN: stable
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-rust
+        with:
+          workdir: packages/app/api
+          shared-key: ws-api
+      - uses: ./.github/actions/setup-node-pnpm
+      - uses: ./.github/actions/build-front
+      - name: build debug do shell (dist embutido, backend mock)
+        working-directory: packages/app/api
+        run: cargo build -p gp100-ui
+      # O backend com aparelho real do APP só é compilado aqui: no Windows
+      # (passo `ui-rust` de lint/check) e neste container Linux, que já tem o
+      # ALSA e o WebKitGTK. Sem estes dois passos, `abrir_backend`,
+      # `AppDevice` e o `impl DeviceBackend for RealDevice` do crate do Tauri
+      # seriam código que SÓ a máquina de quem tem a pedaleira compila.
+      #
+      # O macOS NÃO precisa deste container: o `ui-rust` da matriz roda lá
+      # desde 05/10 e cobre o CoreMIDI do mesmo jeito que este cobre o ALSA.
+      # Este passo continua porque prova o `real-device` no MESMO container
+      # que roda o e2e do webview (WebKitGTK + ALSA juntos), que é uma
+      # combinação que o runner do macOS não reproduz.
+      - name: check do backend com aparelho real (ALSA — Linux)
+        working-directory: packages/app/api
+        run: cargo check -p gp100-ui --features real-device --all-targets
+      # Lição (run 36943668915): build DEBUG carrega o `devUrl` do
+      # tauri.conf.json — o dist embutido só entra em RELEASE. Servimos o dist
+      # de produção na devUrl: o smoke segue provando o WEBVIEW, que é o
+      # objeto dele.
+      - name: servir o dist na devUrl
+        working-directory: packages/app/ui
+        run: |
+          nohup pnpm exec vite preview --port 5173 --strictPort > /tmp/preview.log 2>&1 &
+          for _ in $(seq 1 60); do
+            curl -sf http://localhost:5173 >/dev/null && { echo "preview no ar na :5173"; exit 0; }
+            sleep 0.5
+          done
+          echo "::error::preview não subiu:"; cat /tmp/preview.log; exit 1
+      - name: smoke (xvfb + tauri-driver)
+        working-directory: packages/app/ui
+        env:
+          WEBKIT_DISABLE_DMABUF_RENDERER: "1"
+          WEBKIT_DISABLE_COMPOSITING_MODE: "1"
+        run: xvfb-run -a node e2e/tauri.smoke.mjs
+
+# ═══════════════════════════════════════════════════════════════════════
+  # COBERTURA (job próprio: a régua é uma Métrica com GATE, não
+  # parte de "os testes passaram")
+  # ═══════════════════════════════════════════════════════════════════════
+  coverage-ui:
+    name: Cobertura · UI (gate 85%)
+    # Cobertura ← Testes (#169): a régua de 85% só faz sentido depois que os
+    # testes de comportamento passaram — cobertura de teste quebrado é número
+    # bonito em cima de vermelho. `always()` + guards explícitos: ver o
+    # comentário do `test-rust` (o `success()` implícito pulava a fase).
+    needs: [plan, build-ui, test-ui]
+    if: always() && needs.plan.outputs.scope-front == 'true' && needs.plan.outputs.stage-coverage == 'true' && needs.build-ui.result != 'failure' && needs.test-ui.result != 'failure'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-node-pnpm
+      - name: vitest com instrumentação + gate
+        working-directory: packages/app/ui
+        run: pnpm test:coverage
+      # `json-summary` é o que o estágio de métricas lê — sem ele o relatório
+      # agregaria zero números (e a régua viraria decoração).
+      - name: resumo em JSON para o estágio de métricas
+        if: always()
+        working-directory: packages/app/ui
+        run: pnpm exec vitest run --coverage.reporter=json-summary --coverage.reporter=text
+      - name: publicar o resumo
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: cov-ui
+          path: packages/app/ui/coverage/coverage-summary.json
+          retention-days: 7
+          if-no-files-found: ignore
+
+# ═══════════════════════════════════════════════════════════════════════
+  # DISTRIBUIÇÃO — só na tag (artefato de usuário)
+  #
+  #   Distribuição · instalador  gera o instalador por plataforma
+  #   Distribuição · tarball de fonte  insumo do PKGBUILD do Arch (#72)
+  #   Distribuição · CLI de campo  o binário + kit do gate H1
+  #
+  # A numeração de outrora ("7 dist · ui") era do prefixo numérico de nome,
+  # que o owner pediu para tirar: a lista de checks do PR sai em ordem
+  # ALFABÉTICA, então o número era o único vestígio da ordem real — e a ordem
+  # real agora está no grafo `needs:` e no `Relatório · resumo da run`.
+  # ═══════════════════════════════════════════════════════════════════════
+  dist-ui:
+    name: Distribuição · instalador (${{ matrix.os }})
+    # DISTRIBUIÇÃO: só quando existe versão para publicar. Nada aqui roda em
+    # PR, feature ou develop — um `.msi` por push seria desperdício.
+    # Dist ← Cobertura (#169): o instalador só sai depois da suíte e da régua
+    # de 85% — a cadeia toda é transitiva (coverage ← test-ui ← build-ui ← lint-ui).
+    needs: [plan, coverage-ui]
+    if: needs.plan.outputs.stage-dist == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            args: --bundles nsis,msi
+          - os: macos-15-intel
+            args: --bundles app,dmg
+          - os: ubuntu-24.04
+            args: --bundles deb,appimage
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    permissions:
+      contents: write # anexar na Release
+      issues: read
+      actions: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.ref }}
+      - uses: ./.github/actions/setup-node-pnpm
+      - uses: ./.github/actions/build-front
+      - uses: ./.github/actions/setup-rust
+        with:
+          workdir: packages/app/api
+          shared-key: ws-api
+      - name: linux precisa dos headers de WebKitGTK
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y --no-install-recommends \
+            libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev
+      - name: linux precisa do ALSA (o `midir` da feature real-device)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get install -y --no-install-recommends \
+            libasound2-dev
+      - name: linux precisa do Node do tauri-cli
+        if: runner.os == 'Linux'
+        run: sudo apt-get install -y --no-install-recommends pkg-config
+      - name: build do instalador
+        working-directory: packages/app/api
+        # O caminho é `../ui` (o pacote do webview): `../../ui` resolvia para
+        # um packages/ui inexistente e o step MORRIA antes de compilar — por
+        # isso o `dist-ui` nunca gerou instalador (0 runs para v0.1.0 e
+        # v0.2.0-rc.*). E `--features real-device` é a face (A) da #126: o
+        # instalador PUBLICADO fala com a pedaleira, com a escrita travada
+        # pela ADR-5 (sem `write-verified`) e explicada na tela.
+        run: ../ui/node_modules/.bin/tauri build --features real-device ${{ matrix.args }}
+      - name: coletar + sha256
+        id: collect
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist-pkg
+          # Glob por plataforma: o layout do bundle muda entre nsis/msi,
+          # dmg/app e deb/appimage.
+          find packages/app/api/target/release/bundle -maxdepth 2 -type f \
+            \( -name '*.exe' -o -name '*.msi' -o -name '*.dmg' -o -name '*.deb' -o -name '*.AppImage' \) \
+            -exec cp {} dist-pkg/ \;
+          ls -la dist-pkg/
+          test -n "$(ls -A dist-pkg)" || { echo "::error::nenhum instalador gerado"; exit 1; }
+          (cd dist-pkg && sha256sum ./* > SHA256SUMS.txt)
+      - name: publicar na Release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ github.ref_name }}
+          prerelease: ${{ contains(github.ref_name, '-rc') }}
+          files: |
+            dist-pkg/*
+          fail_on_unmatched_files: true
+
+  dist-sdist:
+    name: Distribuição · tarball de fonte (insumo do Arch)
+    # Dist ← Cobertura (#169), mesma razão do `dist-ui` — e este tarball é o
+    # insumo do PKGBUILD do Arch (#72), o empacotamento "nativo" do 4o OS.
+    needs: [plan, coverage-ui]
+    # O PKGBUILD (#29) compila deste tarball e, ate #72, ele NAO ERA PUBLICADO:
+    # `makepkg` procuraria um arquivo inexistente. Alem disso o tarball do git
+    # nao tem `packages/app/ui/dist` (gitignored, e o `frontendDist` do conf) nem
+    # `packages/core` (dependencia de caminho do crate do Tauri) — o
+    # `make_sdist.py` junta os tres e sobe o front antes de empacotar.
+    if: needs.plan.outputs.stage-dist == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: write # anexar na Release
+      issues: read
+      actions: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.ref }}
+      - uses: ./.github/actions/setup-node-pnpm
+      - uses: ./.github/actions/build-front
+      - uses: ./.github/actions/setup-rust
+        with:
+          workdir: packages/app/api
+          shared-key: ws-api
+      - name: linux precisa dos headers de WebKitGTK
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y --no-install-recommends \
+            libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev \
+            librsvg2-dev pkg-config
+      # Prova de que o tarball e realmente CONSUMIVEL, e nao so um .tar.gz:
+      # o manifesto do crate do Tauri precisa resolver a dependencia de caminho
+      # `gp100-core`, e o `frontendDist` precisa existir (sem ele o
+      # `generate_context!()` faz `panic!` em tempo de compilacao).
+      - name: o tarball tem o que o build do shell exige
+        run: |
+          set -euo pipefail
+          VER="${GITHUB_REF_NAME#v}"
+          python3 scripts/make_sdist.py --version "$VER" --out dist-pkg
+          SRC="dist-pkg/gp100-nextgen-editor-$VER.tar.gz"
+          test -s "$SRC" || { echo "::error::tarball vazio"; exit 1; }
+          rm -rf /tmp/sdist-check && mkdir -p /tmp/sdist-check
+          tar xzf "$SRC" -C /tmp/sdist-check
+          ROOT="/tmp/sdist-check/gp100-nextgen-editor-$VER"
+          test -f "$ROOT/packages/app/ui/dist/index.html" || {
+            echo "::error::frontendDist ausente — o build do shell entra em panic"; exit 1; }
+          test -f "$ROOT/packages/core/Cargo.toml" || {
+            echo "::error::packages/core ausente — dependencia de caminho do gp100-ui"; exit 1; }
+          (cd "$ROOT/packages/app/api" && cargo metadata --format-version 1 --locked >/dev/null) || {
+            echo "::error::manifesto do shell nao resolve dentro do tarball"; exit 1; }
+          echo "tarball consumivel: frontendDist + gp100-core + manifesto"
+      - name: publicar na Release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ github.ref_name }}
+          prerelease: ${{ contains(github.ref_name, '-rc') }}
+          files: |
+            dist-pkg/gp100-nextgen-editor-${{ github.ref_name }}.tar.gz
+            dist-pkg/SHA256SUMS.txt
+          fail_on_unmatched_files: true
+
+  dist-cli:
+    name: Distribuição · CLI de campo (Windows)
+    # O CLI não tem job de cobertura (a régua de 85% é do front) — o gate de
+    # teste dele é o `test-rust`, que é quem ele espera (#169).
+    needs: [plan, test-rust]
+    if: needs.plan.outputs.stage-dist == 'true'
+    runs-on: windows-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write
+      issues: read
+      actions: read
+      packages: read
+    env:
+      RUSTUP_TOOLCHAIN: stable-x86_64-pc-windows-gnu
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.ref }}
+      - uses: ./.github/actions/setup-rust
+        with:
+          workdir: .
+          shared-key: ws-raiz
+      - name: gates reconfirmados na tag
+        run: |
+          cargo fmt --check
+          cargo clippy --workspace --all-targets -- -D warnings
+          cargo test
+      - name: build release do binário de campo
+        run: cargo build --release -p gp100-cli --features real-device
+      - uses: ./.github/actions/hardware-smoke
+        with:
+          profile: release
+      - name: empacotar (zip + SHA256 + kit de campo)
+        shell: bash
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          STAGE="gp100-cli-$TAG"
+          mkdir -p "$STAGE"
+          cp target/release/gp100-cli.exe "$STAGE/"
+          cp docs/H1_CHECKLIST.md docs/H1_REPORT.md scripts/h1_field.sh scripts/h1_compare.py "$STAGE/"
+          cp docs/H2_CHECKLIST.md docs/H2_REPORT.md scripts/h2_field.sh scripts/h2_compare.py "$STAGE/"
+          cp docs/H3_CHECKLIST.md docs/H3_REPORT.md "$STAGE/"
+          cp analysis/wirelog.py analysis/validate_core_capture.py analysis/baseline.py analysis/baseline.json "$STAGE/"
+          cat > "$STAGE/LEIA-ME.txt" <<MD
+          GP-100 NextGen Editor — CLI de campo ${TAG}
+
+          Gate H1 (LEITURA): docs/H1_CHECKLIST.md (roteiro) + h1_field.sh (runbook).
+          Relatorio da sessao: docs/H1_REPORT.md.
+
+          A FASE C (comparar e classificar a sessao nos 3 niveis do §4) e
+          automatizada: h1_field.sh chama h1_compare.py ao fim do roteiro e
+          sai com codigo 1 se houver divergencia que bloqueia o H1. Para
+          reprocessar uma sessao sem re-rodar a leitura:
+
+            python h1_compare.py <dir-da-sessao> --markdown
+
+          Gate H2 (ESCRITA): docs/H2_CHECKLIST.md (roteiro) + h2_field.sh (runbook)
+          + h2_compare.py (o juiz da Fase C). Relatorio: docs/H2_REPORT.md.
+          O runbook roda os 3 fluxos UM POR VEZ, com pausa para o display ser
+          lido entre eles, e exige o 'ok' digitado — por pipe ele recusa, porque
+          o gate de escrita nao pode rodar sem alguem olhando o aparelho.
+          Para reprocessar uma sessao sem re-rodar a escrita:
+              python h2_compare.py <dir-da-sessao> --markdown
+
+          O binario DESTE zip e o do H1: a escrita real esta BLOQUEADA e nao ha
+          flag, variavel de ambiente ou argumento que a abra. Para o gate H2
+          recompile com a feature write-verified:
+              cargo build --release -p gp100-cli --features real-device,write-verified
+
+          Gate H3 (CONGELAMENTO da especificacao): docs/H3_CHECKLIST.md +
+          docs/H3_REPORT.md. E o gate que tira o golden do Suite e poe o
+          golden do gp100-core. Os scripts vao no zip porque a sessao de campo
+          precisa deles na mao:
+
+            python wirelog.py <log.jsonl>          # inspeciona e normaliza
+            python validate_core_capture.py <log.jsonl>   # juz frame a frame
+                                                  # (0 ok / 1 bug / 2 fora da spec)
+            python baseline.py show                # versao + hash + motivo
+            python baseline.py bump --motivo "..." --issue "#23"
+
+          O log que este binario grava tem timestamp (t, em ms), que antes
+          nao tinha: sem relogio nao ha casamento de transacao.
+
+          Politica de hardware: leitura real exige --real --i-know-what-im-doing
+          (build com feature real-device). A escrita e uma TERCEIRA camada, no
+          transporte (ADR-5), e so depois do gate H2 passar.
+
+          O subcomando de upload de IR existe nos dois builds:
+              upload-ir <slot> <arquivo>   blob de User IR (§13.7)
+          Neste binario ele so imprime os frames (--dry-run implicito na
+          ausencia da feature); no build do H2 ele envia.
+          MD
+          zip -q -r "$STAGE.zip" "$STAGE" 2>/dev/null || 7z a -tzip -bso0 "$STAGE.zip" "$STAGE"
+          sha256sum "$STAGE.zip" > "$STAGE.zip.sha256"
+      - name: publicar na Release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ github.ref_name }}
+          prerelease: ${{ contains(github.ref_name, '-rc') }}
+          files: |
+            gp100-cli-${{ github.ref_name }}.zip
+            gp100-cli-${{ github.ref_name }}.zip.sha256
+          fail_on_unmatched_files: true
+
+# ═══════════════════════════════════════════════════════════════════════
+  # RELEASE — versionamento e cadeia rc → promote → play
+  #
+  #   Release · guarda da main  recusa push direto na main (só SHA de tag v*)
+  #   Release · RC        versiona + cria a release branch — SÓ `workflow_dispatch`
+  #   Release · promote   rc → tag final → main recebe o SHA da tag
+  #   Release · play      corta tag pelo semver dos commits
+  #
+  # LIÇÃO QUE VIROU ESTRUTURA (auditoria 01/10): tag empurrada com
+  # GITHUB_TOKEN NÃO dispara workflow. Por isso rc/promote/play publicam NO
+  # MESMO RUN; o trigger de tag cobre só tags criadas por HUMANO.
+  # ═══════════════════════════════════════════════════════════════════════
+
   # A REGRA DA MAIN: ela só pode receber o SHA de uma tag v* aprovada. O
   # GitHub NÃO deixa_write essa regra em repositório PESSOAL (a API responde
   # "Only organization repositories can have users and team restrictions"), e
@@ -1023,9 +1362,14 @@ jobs:
   # FALHA a run se o sha não for o de uma tag v* — a violação aparece vermelha
   # e linkada, em vez de passar em silêncio. Em repo de organização dá para
   # trocar isto por `restrictions.push` de verdade.
-
+  # RELEASE (#169): a política é `dist → release`, mas os jobs de release são
+  # SÓ `workflow_dispatch` e o dist é SÓ tag — os dois nunca coexistem, então
+  # `release-* ← dist` seria um needs que salta sempre. O gate de verdade da
+  # release continua sendo o push da tag v*, que roda a suíte inteira antes de
+  # gerar qualquer artefato; aqui eles entram no grafo atrás da Validação.
   main-guard:
     name: Release · guarda da main
+    needs: plan
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -1047,6 +1391,7 @@ jobs:
 
   release-rc:
     name: Release · RC
+    needs: plan
     # Versionar NUNCA em push ou PR — só na mão do dono.
     if: github.event_name == 'workflow_dispatch' && inputs.action == 'release'
     runs-on: ubuntu-24.04
@@ -1153,6 +1498,7 @@ jobs:
 
   release-promote:
     name: Release · promote
+    needs: plan
     if: github.event_name == 'workflow_dispatch' && inputs.action == 'promote'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -1285,6 +1631,7 @@ jobs:
 
   release-play:
     name: Release · play (tag pelo semver)
+    needs: plan
     if: github.event_name == 'workflow_dispatch' && inputs.action == 'play'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -1319,345 +1666,61 @@ jobs:
           git push --force origin "v$NEXT"
           echo "### 🏷️ Tag \`v$NEXT\` criada" >> "$GITHUB_STEP_SUMMARY"
 
-  dist-ui:
-    name: Distribuição · instalador (${{ matrix.os }})
-    # DISTRIBUIÇÃO: só quando existe versão para publicar. Nada aqui roda em
-    # PR, feature ou develop — um `.msi` por push seria desperdício.
-    needs: plan
-    if: needs.plan.outputs.stage-dist == 'true'
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: windows-latest
-            args: --bundles nsis,msi
-          - os: macos-15-intel
-            args: --bundles app,dmg
-          - os: ubuntu-24.04
-            args: --bundles deb,appimage
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 60
-    permissions:
-      contents: write # anexar na Release
-      issues: read
-      actions: read
-      packages: read
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          ref: ${{ github.ref }}
-      - uses: ./.github/actions/setup-node-pnpm
-      - uses: ./.github/actions/build-front
-      - uses: ./.github/actions/setup-rust
-        with:
-          workdir: packages/app/api
-          shared-key: ws-api
-      - name: linux precisa dos headers de WebKitGTK
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update -y
-          sudo apt-get install -y --no-install-recommends \
-            libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev
-      - name: linux precisa do ALSA (o `midir` da feature real-device)
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get install -y --no-install-recommends \
-            libasound2-dev
-      - name: linux precisa do Node do tauri-cli
-        if: runner.os == 'Linux'
-        run: sudo apt-get install -y --no-install-recommends pkg-config
-      - name: build do instalador
-        working-directory: packages/app/api
-        # O caminho é `../ui` (o pacote do webview): `../../ui` resolvia para
-        # um packages/ui inexistente e o step MORRIA antes de compilar — por
-        # isso o `dist-ui` nunca gerou instalador (0 runs para v0.1.0 e
-        # v0.2.0-rc.*). E `--features real-device` é a face (A) da #126: o
-        # instalador PUBLICADO fala com a pedaleira, com a escrita travada
-        # pela ADR-5 (sem `write-verified`) e explicada na tela.
-        run: ../ui/node_modules/.bin/tauri build --features real-device ${{ matrix.args }}
-      - name: coletar + sha256
-        id: collect
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p dist-pkg
-          # Glob por plataforma: o layout do bundle muda entre nsis/msi,
-          # dmg/app e deb/appimage.
-          find packages/app/api/target/release/bundle -maxdepth 2 -type f \
-            \( -name '*.exe' -o -name '*.msi' -o -name '*.dmg' -o -name '*.deb' -o -name '*.AppImage' \) \
-            -exec cp {} dist-pkg/ \;
-          ls -la dist-pkg/
-          test -n "$(ls -A dist-pkg)" || { echo "::error::nenhum instalador gerado"; exit 1; }
-          (cd dist-pkg && sha256sum ./* > SHA256SUMS.txt)
-      - name: publicar na Release
-        uses: softprops/action-gh-release@v3
-        with:
-          tag_name: ${{ github.ref_name }}
-          prerelease: ${{ contains(github.ref_name, '-rc') }}
-          files: |
-            dist-pkg/*
-          fail_on_unmatched_files: true
-
-  dist-sdist:
-    name: Distribuição · tarball de fonte (insumo do Arch)
-    needs: plan
-    # O PKGBUILD (#29) compila deste tarball e, ate #72, ele NAO ERA PUBLICADO:
-    # `makepkg` procuraria um arquivo inexistente. Alem disso o tarball do git
-    # nao tem `packages/app/ui/dist` (gitignored, e o `frontendDist` do conf) nem
-    # `packages/core` (dependencia de caminho do crate do Tauri) — o
-    # `make_sdist.py` junta os tres e sobe o front antes de empacotar.
-    if: needs.plan.outputs.stage-dist == 'true'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 25
-    permissions:
-      contents: write # anexar na Release
-      issues: read
-      actions: read
-      packages: read
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          ref: ${{ github.ref }}
-      - uses: ./.github/actions/setup-node-pnpm
-      - uses: ./.github/actions/build-front
-      - uses: ./.github/actions/setup-rust
-        with:
-          workdir: packages/app/api
-          shared-key: ws-api
-      - name: linux precisa dos headers de WebKitGTK
-        run: |
-          sudo apt-get update -y
-          sudo apt-get install -y --no-install-recommends \
-            libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev \
-            librsvg2-dev pkg-config
-      # Prova de que o tarball e realmente CONSUMIVEL, e nao so um .tar.gz:
-      # o manifesto do crate do Tauri precisa resolver a dependencia de caminho
-      # `gp100-core`, e o `frontendDist` precisa existir (sem ele o
-      # `generate_context!()` faz `panic!` em tempo de compilacao).
-      - name: o tarball tem o que o build do shell exige
-        run: |
-          set -euo pipefail
-          VER="${GITHUB_REF_NAME#v}"
-          python3 scripts/make_sdist.py --version "$VER" --out dist-pkg
-          SRC="dist-pkg/gp100-nextgen-editor-$VER.tar.gz"
-          test -s "$SRC" || { echo "::error::tarball vazio"; exit 1; }
-          rm -rf /tmp/sdist-check && mkdir -p /tmp/sdist-check
-          tar xzf "$SRC" -C /tmp/sdist-check
-          ROOT="/tmp/sdist-check/gp100-nextgen-editor-$VER"
-          test -f "$ROOT/packages/app/ui/dist/index.html" || {
-            echo "::error::frontendDist ausente — o build do shell entra em panic"; exit 1; }
-          test -f "$ROOT/packages/core/Cargo.toml" || {
-            echo "::error::packages/core ausente — dependencia de caminho do gp100-ui"; exit 1; }
-          (cd "$ROOT/packages/app/api" && cargo metadata --format-version 1 --locked >/dev/null) || {
-            echo "::error::manifesto do shell nao resolve dentro do tarball"; exit 1; }
-          echo "tarball consumivel: frontendDist + gp100-core + manifesto"
-      - name: publicar na Release
-        uses: softprops/action-gh-release@v3
-        with:
-          tag_name: ${{ github.ref_name }}
-          prerelease: ${{ contains(github.ref_name, '-rc') }}
-          files: |
-            dist-pkg/gp100-nextgen-editor-${{ github.ref_name }}.tar.gz
-            dist-pkg/SHA256SUMS.txt
-          fail_on_unmatched_files: true
-
-  dist-cli:
-    name: Distribuição · CLI de campo (Windows)
-    needs: plan
-    if: needs.plan.outputs.stage-dist == 'true'
-    runs-on: windows-latest
-    timeout-minutes: 45
-    permissions:
-      contents: write
-      issues: read
-      actions: read
-      packages: read
-    env:
-      RUSTUP_TOOLCHAIN: stable-x86_64-pc-windows-gnu
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          ref: ${{ github.ref }}
-      - uses: ./.github/actions/setup-rust
-        with:
-          workdir: .
-          shared-key: ws-raiz
-      - name: gates reconfirmados na tag
-        run: |
-          cargo fmt --check
-          cargo clippy --workspace --all-targets -- -D warnings
-          cargo test
-      - name: build release do binário de campo
-        run: cargo build --release -p gp100-cli --features real-device
-      - uses: ./.github/actions/hardware-smoke
-        with:
-          profile: release
-      - name: empacotar (zip + SHA256 + kit de campo)
-        shell: bash
-        env:
-          TAG: ${{ github.ref_name }}
-        run: |
-          set -euo pipefail
-          STAGE="gp100-cli-$TAG"
-          mkdir -p "$STAGE"
-          cp target/release/gp100-cli.exe "$STAGE/"
-          cp docs/H1_CHECKLIST.md docs/H1_REPORT.md scripts/h1_field.sh scripts/h1_compare.py "$STAGE/"
-          cp docs/H2_CHECKLIST.md docs/H2_REPORT.md scripts/h2_field.sh scripts/h2_compare.py "$STAGE/"
-          cp docs/H3_CHECKLIST.md docs/H3_REPORT.md "$STAGE/"
-          cp analysis/wirelog.py analysis/validate_core_capture.py analysis/baseline.py analysis/baseline.json "$STAGE/"
-          cat > "$STAGE/LEIA-ME.txt" <<MD
-          GP-100 NextGen Editor — CLI de campo ${TAG}
-
-          Gate H1 (LEITURA): docs/H1_CHECKLIST.md (roteiro) + h1_field.sh (runbook).
-          Relatorio da sessao: docs/H1_REPORT.md.
-
-          A FASE C (comparar e classificar a sessao nos 3 niveis do §4) e
-          automatizada: h1_field.sh chama h1_compare.py ao fim do roteiro e
-          sai com codigo 1 se houver divergencia que bloqueia o H1. Para
-          reprocessar uma sessao sem re-rodar a leitura:
-
-            python h1_compare.py <dir-da-sessao> --markdown
-
-          Gate H2 (ESCRITA): docs/H2_CHECKLIST.md (roteiro) + h2_field.sh (runbook)
-          + h2_compare.py (o juiz da Fase C). Relatorio: docs/H2_REPORT.md.
-          O runbook roda os 3 fluxos UM POR VEZ, com pausa para o display ser
-          lido entre eles, e exige o 'ok' digitado — por pipe ele recusa, porque
-          o gate de escrita nao pode rodar sem alguem olhando o aparelho.
-          Para reprocessar uma sessao sem re-rodar a escrita:
-              python h2_compare.py <dir-da-sessao> --markdown
-
-          O binario DESTE zip e o do H1: a escrita real esta BLOQUEADA e nao ha
-          flag, variavel de ambiente ou argumento que a abra. Para o gate H2
-          recompile com a feature write-verified:
-              cargo build --release -p gp100-cli --features real-device,write-verified
-
-          Gate H3 (CONGELAMENTO da especificacao): docs/H3_CHECKLIST.md +
-          docs/H3_REPORT.md. E o gate que tira o golden do Suite e poe o
-          golden do gp100-core. Os scripts vao no zip porque a sessao de campo
-          precisa deles na mao:
-
-            python wirelog.py <log.jsonl>          # inspeciona e normaliza
-            python validate_core_capture.py <log.jsonl>   # juz frame a frame
-                                                  # (0 ok / 1 bug / 2 fora da spec)
-            python baseline.py show                # versao + hash + motivo
-            python baseline.py bump --motivo "..." --issue "#23"
-
-          O log que este binario grava tem timestamp (t, em ms), que antes
-          nao tinha: sem relogio nao ha casamento de transacao.
-
-          Politica de hardware: leitura real exige --real --i-know-what-im-doing
-          (build com feature real-device). A escrita e uma TERCEIRA camada, no
-          transporte (ADR-5), e so depois do gate H2 passar.
-
-          O subcomando de upload de IR existe nos dois builds:
-              upload-ir <slot> <arquivo>   blob de User IR (§13.7)
-          Neste binario ele so imprime os frames (--dry-run implicito na
-          ausencia da feature); no build do H2 ele envia.
-          MD
-          zip -q -r "$STAGE.zip" "$STAGE" 2>/dev/null || 7z a -tzip -bso0 "$STAGE.zip" "$STAGE"
-          sha256sum "$STAGE.zip" > "$STAGE.zip.sha256"
-      - name: publicar na Release
-        uses: softprops/action-gh-release@v3
-        with:
-          tag_name: ${{ github.ref_name }}
-          prerelease: ${{ contains(github.ref_name, '-rc') }}
-          files: |
-            gp100-cli-${{ github.ref_name }}.zip
-            gp100-cli-${{ github.ref_name }}.zip.sha256
-          fail_on_unmatched_files: true
-
   # ═══════════════════════════════════════════════════════════════════════
-  # FECHAMENTO — issues do PR mergeado
+  # RELATÓRIO — resumo da run (o ÚLTIMO job, roda SEMPRE `if: always()`)
   #
-  # Só `merged == true`. Um PR fechado SEM merge não resolveu nada — fechar as
-  # issues nesse caso é o bug mais caro que um job de fechamento consegue ter.
+  # `if: always()` + needs de TODO o pipeline (#169) é a combinação que faz o
+  # resumo ser o resumo da RUN INTEIRA e não só do começo: ele espera todos os
+  # anteriores terminarem (com falha ou não) e roda mesmo assim — é nele que se
+  # lê o que quebrou. Antes ele dependia só de `plan`, corria logo no início e
+  # resumia uma run que ainda não tinha acontecido.
   # ═══════════════════════════════════════════════════════════════════════
-
-  close-issues:
-    name: Fechamento · issues vinculadas
-    if: >-
-      github.event_name == 'pull_request' &&
-      github.event.action == 'closed' &&
-      github.event.pull_request.merged == true &&
-      github.event.pull_request.user.login != 'github-actions[bot]'
+  metrics:
+    name: Relatório · resumo da run
+    needs:
+      - plan
+      - lint-workflows
+      - lint-commits
+      - lint-rust-fmt
+      - lint-rust-clippy
+      - lint-ui
+      - build-rust
+      - build-ui
+      - ci-images
+      - sec-audit
+      - test-rust
+      - test-ui
+      - test-spec
+      - test-e2e
+      - test-e2e-visual
+      - test-e2e-webview
+      - coverage-ui
+      - dist-ui
+      - dist-sdist
+      - dist-cli
+      - main-guard
+      - release-rc
+      - release-promote
+      - release-play
+    if: always()
     runs-on: ubuntu-24.04
-    timeout-minutes: 5
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+      packages: read
     steps:
       - uses: actions/checkout@v7
-      - name: extrair as issues do corpo do PR
-        id: linked
-        env:
-          BODY: ${{ github.event.pull_request.body || '' }}
-        run: |
-          # close[sd]/fix(e[sd])/resolve[sd] #N — case-insensitive, aceita
-          # vírgula ou dois-pontos entre a palavra e o número.
-          NUMBERS=$(printf '%s\n' "$BODY" \
-            | grep -ioE '(close[sd]?|fix(e[sd])?|resolve[sd]?)[:,]? #[0-9]+' \
-            | grep -oE '#[0-9]+' | tr -d '#' | awk '!seen[$0]++')
-          {
-            echo "numbers<<EOF"
-            echo "$NUMBERS"
-            echo "EOF"
-          } >> "$GITHUB_OUTPUT"
-      - name: fechar
-        id: close
+      - name: aggregating os resumos de cobertura
+        uses: actions/download-artifact@v7
+        with:
+          pattern: cov-*
+          path: .cov
+        continue-on-error: true
+      - name: relatório
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-          NUMBERS: ${{ steps.linked.outputs.numbers }}
-          SHA: ${{ github.event.pull_request.merge_commit_sha }}
-          PR: ${{ github.event.pull_request.number }}
-          # Título do PR = entrada NÃO confiável: sempre por env, nunca
-          # ${{ }} inline no run (injeção de comando).
-          PR_TITLE: ${{ github.event.pull_request.title }}
-          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        run: |
-          set -euo pipefail
-          [ -n "$NUMBERS" ] || { echo "nenhuma palavra-chave de fechamento no corpo do PR"; exit 0; }
-          : > /tmp/issues.tsv
-          CLOSED=0; SKIPPED=0
-          for N in $NUMBERS; do
-            JSON=$(gh issue view "$N" --json state,title,labels) || { echo "issue #$N inacessível — ignorada"; continue; }
-            TITLE_I=$(echo "$JSON" | jq -r .title)
-            if echo "$JSON" | jq -e '.labels[]?.name | select(. == "achados-security")' >/dev/null; then
-              echo "skipped|$N|$TITLE_I|achado de security (fechamento manual)" >> /tmp/issues.tsv; SKIPPED=$((SKIPPED+1)); continue
-            fi
-            if [ "$(echo "$JSON" | jq -r .state)" = "CLOSED" ]; then
-              echo "skipped|$N|$TITLE_I|ja fechada" >> /tmp/issues.tsv; SKIPPED=$((SKIPPED+1)); continue
-            fi
-            gh issue close "$N" --comment "✅ Fechada automaticamente: integrada em \`develop\` pelo PR **#$PR — $PR_TITLE** (sha \`$SHA\`).
-
-            _Rastreabilidade: job \`8 close · issues vinculadas\` do CI — [run]($RUN_URL). A issue sai oficialmente na release, quando a tag \(v*\) chega à \`main\`._"
-            echo "closed|$N|$TITLE_I|PR #$PR" >> /tmp/issues.tsv; CLOSED=$((CLOSED+1))
-          done
-          {
-            echo "closed=$CLOSED"
-            echo "skipped=$SKIPPED"
-          } >> "$GITHUB_OUTPUT"
-      - name: resumo
-        if: always()
-        env:
-          NUMBERS: ${{ steps.linked.outputs.numbers }}
-          CLOSED: ${{ steps.close.outputs.closed }}
-          SKIPPED: ${{ steps.close.outputs.skipped }}
-          PR: ${{ github.event.pull_request.number }}
-          PR_TITLE: ${{ github.event.pull_request.title }}
-        run: |
-          {
-            echo "### 🔗 Fechamento de issues"
-            echo ""
-            echo "PR **#$PR — $PR_TITLE** (mergeado em \`develop\`)"
-            echo ""
-            if [ -z "$NUMBERS" ]; then
-              echo "> Nenhuma palavra de fechamento no corpo do PR — use \`Closes #N\`."
-            else
-              echo "| Issue | Resultado |"
-              echo "|---|---|"
-              while IFS='|' read -r tipo n titulo detalhe; do
-                icone="❓"; [ "$tipo" = "closed" ] && icone="✅ fechada"; [ "$tipo" = "skipped" ] && icone="⏭️ pulada"
-                echo "| #$n — $titulo | $icone ($detalhe) |"
-              done < /tmp/issues.tsv
-              echo ""
-              echo "**${CLOSED:-0} fechada(s) · ${SKIPPED:-0} pulada(s).**"
-            fi
-          } >> "$GITHUB_STEP_SUMMARY"
+          RUN_ID: ${{ github.run_id }}
+          BRANCH_CLASS: ${{ needs.plan.outputs.branch-class }}
+        run: python3 scripts/ci_report.py

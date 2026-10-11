@@ -33,21 +33,23 @@ try:
 except (AttributeError, OSError):
     pass
 
-# Ordem de execução dos tipos de job. O `name:` é `Tipo · o que é`, então o
-# tipo é o texto ANTES do ` · ` — é isso que agrupa o resumo na ordem real,
-# que é justamente o que a lista de checks do PR (alfabética) não entrega.
+# Ordem de execução dos tipos de job (#169: validação → lint → compilação →
+# infra → segurança → testes → cobertura → distribuição → release → relatório).
+# O `name:` é `Tipo · o que é`, então o tipo é o texto ANTES do ` · ` — é isso
+# que agrupa o resumo na ordem real, que é justamente o que a lista de checks do
+# PR (alfabética) não entrega. O Fechamento sumiu daqui de propósito: virou o
+# workflow `issues-fechamento.yml` e não é mais job desta run.
 STAGE_ORDER = [
     "Validação",
     "Lint",
     "Compilação",
+    "Infra",
+    "Segurança",
     "Testes",
     "Cobertura",
-    "Segurança",
-    "Relatório",
-    "Infra",
-    "Release",
     "Distribuição",
-    "Fechamento",
+    "Release",
+    "Relatório",
 ]
 
 ICON = {
