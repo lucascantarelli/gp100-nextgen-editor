@@ -13,9 +13,8 @@
 | Objetivo | Rota de leitura |
 |---|---|
 | **Entender o projeto** | `README.md` → `docs/VISION.md` |
-| **Saber o estado atual (o que foi entregue, quantos testes, o que está aberto)** | **`docs/INDEX.md` §6** (fonte única dos números) |
-| **Contribuir (issue → branch → PR → merge)** | `docs/CONTRIBUTING.md` (GitFlow, conventional commits, gates por área, fechamento automático da issue)
-| **Executar o plano de desenvolvimento** | **Issues do GitHub** — milestone **v1.1.0**: épico [#171](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/171) + filhas **#161–#170** (cada uma com prompt de agente pronto) — e o **`docs/ROADMAP.md`** (Era Hardware) como documento-mestre; o histórico entregue (v1.0.0) está em `docs/arquivo/ROADMAP_era-RE_2026-09.md` |
+| **Saber o estado atual (o que foi entregue, quantos testes, o que está aberto)** | **`docs/INDEX.md` §6** (fonte única dos números) || **Contribuir (issue → branch → PR → merge)** | `docs/CONTRIBUTING.md` (GitFlow, conventional commits, gates por área, fechamento automático da issue) |
+| **Saber o que a suíte de testes cobre / adicionar um teste / o que NÃO entra / proteções que não caem** | **`docs/TESTING.md`** (contrato da suíte: rodar, critérios de admissão de teste novo, regras de exclusão, DoD #5) | **Executar o plano de desenvolvimento** | **Issues do GitHub** — milestone **v1.1.0**: épico [#171](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/171) + filhas **#161–#170** (cada uma com prompt de agente pronto) — e o **`docs/ROADMAP.md`** (Era Hardware) como documento-mestre; o histórico entregue (v1.0.0) está em `docs/arquivo/ROADMAP_era-RE_2026-09.md` |
 | **Planejar o lançamento (release multiplataforma)** | `docs/RELEASE_PLAN.md` (épicos EPIC-01..05 + issues REL-*: binários para download direto na GitHub Release, smoke em ambiente limpo, assinatura, auto-update — sem stores por decisão do owner) |
 | **Levar o gp100-core à pedaleira (gate H1)** | `docs/H1_CHECKLIST.md` (checklist) + `docs/H1_REPORT.md` (relatório/plano de backup) + `scripts/h1_field.sh` (runbook: rehearsal/field/refresh-reference) + `scripts/h1_compare.py` (juiz da Fase C: classifica a sessão nos 3 níveis e imprime a tabela do §5) |
 | **Escrever no device real (gate H2)** | `docs/H2_CHECKLIST.md` (3 fluxos, um por vez) + `docs/H2_REPORT.md` (relatório) — build com `--features real-device,write-verified` |
@@ -45,6 +44,7 @@
 | Envelope do knob / save / IR no fio | §13.11 / §13.12 / §13.7 | leituras antigas do §13.4 (marcadas) |
 | Estado do projeto / próximos passos | `docs/BLOCKERS.md` + `knowledge.md` (estado vivo) | `docs/CAPTURE_PLAN.md` (histórico) |
 | Números (testes, cobertura, datas dos marcos) | `docs/INDEX.md` §6 | repetir o número em README/ROADMAP/knowledge (#81) |
+| Contrato da suíte de testes (o que testa, como rodar, o que NÃO entra, proteções) | `docs/TESTING.md` | repetir gates por área (é do `CONTRIBUTING` §4) nem roteiros e2e (é do `UI_TEST_PLAN`) |
 | Estrutura do pipeline (jobs, tipos, ordem) | `.github/workflows/ci.yml` + `docs/CONTRIBUTING.md` §5 | workflow pré-#68 (`_validate.yml`/`release.yml`/`container.yml`) — **consolidados no #68; não existem mais** |
 | Mapa knob→fio | `analysis/knob_map.json` (regenerável) | — |
 | Decisões de implementação do core | `docs/DECISIONS.md` (ADR-1..13) | reabrir debate ad-hoc |
@@ -67,6 +67,7 @@
 | `UI_PLAN.md` | Planejamento issue-a-issue da Fase M1 (Editor UI Tauri/React): escopo, arquitetura DeviceActor, superfície IPC, telas, política de hardware, testes, riscos | 🔨 M1.0 ✅ (ADR-7) · M1.1 ✅ (actor + boot com barra) · M1.2/M1.3 ✅ (palco real + afinador) · V-8 ✅ (#20) · i18n ✅ (#30); M2 planejada (#24–#26) |
 | `UI_REFERENCE.md` | Referência da casca do front: papéis de tela, contratos de estado, **§8 = fonte de verdade do texto de usuário** (o lint de i18n aponta para cá) | ✅ atual (M1.3) |
 | `UI_TEST_PLAN.md` | **Fonte dos roteiros e2e** (declarada no `playwright.config.ts`): R1–R6 + drum/looper, matriz de viewports, política de baselines | ✅ atual |
+| `TESTING.md` | **Contrato da suíte de testes** (#166): as 4 suítes + gates, como rodar, o que um teste novo precisa provar (5 portas), o que **não** entra (anti-espelho da RE, dado de `analysis/`, duplicata) e as 6 proteções DoD #5 — aponta CONTRIBUTING/UI_TEST_PLAN/rust-practices em vez de duplicar | ✅ novo (11/10) |
 | `MANUAL_COVERAGE.md` | Matriz de cobertura do manual oficial V1.8 → requisitos implementados (X1..Xn), com o gate que prova cada um | ✅ atual |
 | `GP100_DEVICE.md` | **Contexto canônico da pedaleira real**: funcionalidades, comportamentos, vocabulário (User Patch × User IR × Setlist-inexistente), menu GLOBAL, lacunas de leitura do hardware e divergências expostas pela pesquisa de 10/10. Skill `device-reference` aponta pra cá | ✅ atual (10/10) |
 | `UI_DESIGN.md` | Design system da UI: paleta palco Valeton (âmbar/preto/vermelho/lavanda com rácios WCAG medidos), escala de Fibonacci, tipografia, motion, identidade "pedalboard ao vivo", checklist de review | ✅ atual (M1.0) |

@@ -572,8 +572,8 @@ jobs:
       # build_golden carregava 0 eventos de um log do core).
       - name: juiz da captura do core (self-check do normalizador)
         run: |
-          uv run python analysis/wirelog.py analysis/fixtures/knobs.jsonl > /dev/null
-          uv run python analysis/validate_core_capture.py analysis/fixtures/knobs.jsonl
+          uv run python analysis/wirelog.py packages/core/data/fixtures/knobs.jsonl > /dev/null
+          uv run python analysis/validate_core_capture.py packages/core/data/fixtures/knobs.jsonl
 
   test-e2e:
     name: Testes · E2E shell (Chromium)

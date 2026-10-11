@@ -1,8 +1,13 @@
-//! Testes de CONTRATO do envelope de fio (PROTOCOL.md §13.1) — os 3 testes
+//! Testes de CONTRATO do envelope de fio (PROTOCOL.md §13.1) — os 2 testes
 //! unitários herdados do P2 em `lib.rs`, movidos para caixa-preta: usam
-//! exclusivamente API pública (`SYSEX_HEADER`, `SYSEX_EOX`, golden embutido),
-//! então o lugar deles é `tests/` (regra da skill rust-practices: só API
-//! pub → `tests/`; internals → `#[cfg(test)]` dentro de `src/`).
+//! exclusivamente API pública (`SYSEX_HEADER`, `SYSEX_EOX`), então o lugar
+//! deles é `tests/` (regra da skill rust-practices: só API pub → `tests/`;
+//! internals → `#[cfg(test)]` dentro de `src/`).
+//!
+//! (O antigo `embedded_golden_smoke` daqui foi removido na #166 — peso
+//! morto: `golden_consumer::embedded_golden_loads_39_templates` prova a
+//! mesma carga do golden embutido por igual caminho externo, e com assertion
+//! mais forte (39 templates, não só "não-vazio").)
 
 use gp100_core::{SYSEX_EOX, SYSEX_HEADER};
 
@@ -35,17 +40,4 @@ fn minimal_read_request_shape() {
     assert_eq!(&msg[8..9], &[0x11]);
     assert_eq!(&msg[9..13], &[0x11, 0x00, 0x00, 0x08]);
     assert_eq!(msg[13], SYSEX_EOX);
-}
-
-/// Smoke caixa-preta do crate compilado como EXTERNO (a diferença real do
-/// antigo `smoke` `2+2` do P2): o golden EMBUTIDO carrega e expõe templates
-/// pela API pública — prova linkage + `include_str!` do ponto de vista de
-/// um consumidor qualquer do gp100-core.
-#[test]
-fn embedded_golden_smoke() {
-    let golden = gp100_core::golden::GoldenFile::embedded().expect("golden embutido carrega");
-    assert!(
-        !golden.templates().is_empty(),
-        "golden embedded deve expor templates"
-    );
 }
