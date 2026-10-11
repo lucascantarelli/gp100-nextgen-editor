@@ -386,3 +386,84 @@ fn hex_decode_strict() {
     assert!(hex_decode("abc").is_err()); // ímpar
     assert!(hex_decode("zz").is_err()); // não-hex
 }
+
+/// #177 — `match_shape` valida SÓ a forma, nunca o conteúdo.
+///
+/// A sonda T6 (`12|13020003`) tem resposta `mixed` com um segmento `const`
+/// de 144B que CONGELA o nome do preset (nibble-exp). O aparelho do dono
+/// renomeou o pp (H4: `It's GP100` → `H2 TESTE`), então a resposta legítima
+/// difere DESSE snapshot de análise em mais de um byte — a regra de pad do
+/// device nem zera o rabo. `match_response` (conteúdo) rejeitaria e o boot
+/// morreria; `match_shape` (comprimento) aceita e o decode dos objetos é que
+/// julga o conteúdo contra o schema, não contra o golden.
+#[test]
+fn match_shape_aceita_conteudo_divergente_do_snapshot() {
+    let g = GoldenFile::embedded().expect("golden válido");
+    let addr = [0x13u8, 0x02, 0x00, 0x03];
+
+    // resposta real da sonda (exemplo do próprio golden, 196B)
+    let base = hex_decode(
+        g.for_response(0x12, &addr)
+            .iter()
+            .find(|t| t.response_pattern().is_some_and(|p| p.len == Some(196)))
+            .expect("template 196B em 13020003")
+            .example
+            .response_hex
+            .as_deref()
+            .expect("response_hex"),
+    )
+    .expect("hex");
+    assert_eq!(base.len(), 196);
+
+    // o MESMO comprimento, mas com o "nome" divergente (offsets 2..16 do
+    // payload — dentro do const de 144B), como o device respondeu no H4.
+    let mut renomeado = base.clone();
+    renomeado[2..16].copy_from_slice(b"H2 TESTE\0\0\0\0\0\0");
+    assert_ne!(renomeado, base, "fixture de conteúdo divergente");
+
+    // Conteúdo: o snapshot de análise REJEITA a resposta verdadeira do
+    // hardware (é a falha do boot no H4 — bug #177).
+    assert!(
+        g.match_response(0x12, &addr, &renomeado).is_none(),
+        "match_response (conteúdo) rejeita rename — o bug #177"
+    );
+    // Forma: o MESMO payload casa — comprimento é schema, conteúdo é do
+    // hardware e vai para o decode dos objetos.
+    assert!(
+        g.match_shape(0x12, &addr, &renomeado).is_some(),
+        "match_shape aceita a resposta legítima do aparelho renomeado"
+    );
+    // O snapshot original continua casando nos DOIS (não é regressão).
+    assert!(g.match_response(0x12, &addr, &base).is_some());
+    assert!(g.match_shape(0x12, &addr, &base).is_some());
+    // Comprimento errado NÃO casa nem na forma (by-len: 196 ou 32).
+    assert!(g.match_shape(0x12, &addr, &base[..100]).is_none());
+}
+
+/// #177 — a forma continua distinguindo por COMPRIMENTO no by-len
+/// (ACK 4B × tabela 75B em `12001002`): o despacho por len é schema e
+/// sobrevive à troca de `match_response` por `match_shape` na FSM.
+#[test]
+fn match_shape_mantem_despacho_por_comprimento() {
+    let g = GoldenFile::embedded().expect("golden válido");
+    let cands = g.for_response(0x12, &ADDR_TABLE);
+    let push = cands
+        .iter()
+        .copied()
+        .find(|t| t.template_type == "push")
+        .expect("push 12001002");
+    let table = hex_decode(push.example.hex.as_deref().expect("exemplo 75B")).expect("hex");
+    assert_eq!(
+        g.match_shape(0x12, &ADDR_TABLE, &table)
+            .map(|t| t.template_type.as_str()),
+        Some("push")
+    );
+    let ack: [u8; 4] = [0, 0, 0, 0x01];
+    assert_eq!(
+        g.match_shape(0x12, &ADDR_TABLE, &ack)
+            .map(|t| t.template_type.as_str()),
+        Some("req")
+    );
+    // 5B não é nenhum dos comprimentos observados → sem forma.
+    assert!(g.match_shape(0x12, &ADDR_TABLE, &[0u8; 5]).is_none());
+}

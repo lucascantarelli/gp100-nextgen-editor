@@ -12,6 +12,21 @@ fonte. Resposta ao usuário SEMPRE em PT-BR.
 > ⚠️ Os **contadores** (testes, cobertura) vivem em `docs/INDEX.md` §6 — não repita
 > o número aqui, aponte. Motivo: números repetidos em N docs divergem (achado #81).
 
+- 10/10 — **O APARELHO REAL ESTÁ LIGADO A ESTA MÁQUINA E É CONSULTÁVEL A QUALQUER
+  SESSÃO** (Era Hardware). Antes de deduzir comportamento do mock ou perguntar ao
+  owner, CONSULTE o aparelho: o caminho scriptável é o CLI de campo
+  `./target/release/gp100-cli.exe --real --i-know-what-im-doing <sub>` (build:
+  `cargo build --release -p gp100-cli --features real-device` — leitura pura;
+  escrita segue bloqueada sem `write-verified`, ADR-5). O port name do WinMM é
+  `Valeton GP-100 Subdevice` (contém "gp-100", o critério do `find_port`).
+  **Armadilhas de campo:** (a) Suite oficial tem de estar FECHADO (occupancy), e
+  logo após abrir/conectar o Windows reenumera o device — o 1º `open` pode falhar
+  com "nenhuma porta MIDI"; retry em ~5s resolve; (b) o `dump-preset` faz
+  select+9 páginas (PG 0..7 → páginas 1..8) mas **NÃO** o `open` — o NOME (pg0)
+  só sai do boot (app, 2299 transações) ou de um `open` explícito; (c) **efeito
+  visível**: toda varredura (boot do app, scan do Suite, `dump-preset`) faz o
+  pedal TROCAR de patch no display — avisar o owner antes.
+
 - 09/10 — **ERA HARDWARE ABERTA (épico #171, milestone v1.1.0)**: o roadmap foi reescrito
   (`docs/ROADMAP.md`) e o antigo arquivado em `docs/arquivo/ROADMAP_era-RE_2026-09.md`; as 4
   issues abertas foram avaliadas e fechadas (#159 absorvida; #117/#118 candidatas pós-núcleo;

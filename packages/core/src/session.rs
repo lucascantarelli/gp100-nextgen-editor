@@ -5,8 +5,10 @@
 //!
 //! Regras de dispatch — resumo (FONTE ÚNICA = ADR-6, não reabrir aqui):
 //! - **D1** a transação é dona do endpoint: quem pediu interpreta a PRÓXIMA
-//!   msg do `(func, addr)` via `GoldenFile::match_response` (by-len resolve
-//!   `12001002`: ACK 4B × tabela 75B);
+//!   msg do `(func, addr)` via `GoldenFile::match_shape` (by-len resolve
+//!   `12001002`: ACK 4B × tabela 75B). **FORMA só** (#177): o conteúdo da
+//!   resposta é do hardware e passa pelo decode dos objetos — nunca é
+//!   comparado com os bytes `const` do golden (snapshot de análise);
 //! - **D2** push é classificado pelo CONTEXTO da operação, não pela msg
 //!   (`13010001` push×req têm os MESMOS 6 bytes — ordem do arquivo só
 //!   desempata FORMA);
@@ -105,7 +107,7 @@ pub struct StatePage {
 }
 
 /// Resultado de `list_user_irs`: a TABELA dos 20 User IRs (§13.12), já
-/// distinguida do ACK 4B pelo by-len de `match_response` (D1).
+/// distinguida do ACK 4B pelo by-len de `match_shape` (D1).
 #[derive(Debug, Clone)]
 pub struct UserIrTable {
     /// Slots decodificáveis: (slot u8, nome ASCII até 32B). CRC de slot
@@ -1016,8 +1018,9 @@ impl<T: DeviceTransport> Session<T> {
     }
 
     /// Tabela dos 20 User IRs: req em `12001002`; o by-len de
-    /// `match_response` garante que a resposta lida é a TABELA (75B
-    /// nibble-exp), não um ACK (4B) — D1.
+    /// `match_shape` garante que a resposta lida é a TABELA (75B
+    /// nibble-exp), não um ACK (4B) — D1. Os nomes vêm do hardware
+    /// (nibble-collapse do payload), sem comparação com golden.
     pub fn list_user_irs(&mut self) -> Result<UserIrTable, ProtocolError> {
         let mut slots = Vec::new();
         for page in 0u8..0x14 {
@@ -1127,10 +1130,19 @@ impl<T: DeviceTransport> Session<T> {
                 );
             }
             if f == func && a == *addr {
+                // FORMA só (#177): endereço + comprimento (by-len) são
+                // schema; os bytes `const` do golden são o estado de fábrica
+                // do aparelho ANALISADO, e o dono editou o dele (renomear um
+                // pp muda pg0 — medido no boot do H4). O conteúdo é validado
+                // pelo decode dos objetos (`preset_pages`, `codec`), que
+                // conhecem o schema dos dados.
                 GoldenFile::embedded()?
-                    .match_response(f, &a, payload)
+                    .match_shape(f, &a, payload)
                     .ok_or_else(|| ProtocolError::InvalidShape {
-                        expected: format!("resposta do golden em {f:02x}/{}", addr_hex(&a)),
+                        expected: format!(
+                            "forma de resposta do golden em {f:02x}/{}",
+                            addr_hex(&a)
+                        ),
                         got: hex_short(payload),
                     })?;
                 return Ok(payload.to_vec());
