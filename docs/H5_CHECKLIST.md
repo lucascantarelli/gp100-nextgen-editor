@@ -3,7 +3,7 @@
 > **Status:** 📝 **rascunho** — este roteiro só roda depois de **#161** (boot gate),
 > **#162** (FactoryPatch/UserPatch), **#164** (sync bilateral) e **#165** (aparelho por
 > default) mergeadas em `develop`.
-> **Criado:** 2026-10-09 · **Issue da sessão:** _a abrir (HW-11)_ · **Épico:** [#171](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/171)
+> **Criado:** 2026-10-09 · **Issue da sessão:** [#174](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/174) (HW-11) · **Épico:** [#171](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/171)
 > **Responsáveis:** owner no hardware · **Formato:** o mesmo dos relatórios H1–H4 (relatório
 > assinado + evidência preservada).
 >
