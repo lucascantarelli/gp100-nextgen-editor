@@ -1,9 +1,9 @@
 # 🖼️ UI_REFERENCE — Referencial de UI do editor (app oficial + achados + plano por etapas)
 
 > **Status:** 🔨 em andamento (Fase 1 — casca/navegação) · **Criado:** 30/09/2026 ·
-> **Fontes:** capturas do app oficial (`files/images/`, `analysis/screens.html`), manual oficial
-> (`files/GP-100_Online Manual_EN_Firmware V2.0.pdf` → texto em `analysis/manual_streams.txt`),
-> dicionário (`analysis/parameters.json` — 185 algs/639 controles), `docs/UI_DESIGN.md`,
+> **Fontes:** capturas do app oficial (`files/images/`, `docs/arquivo/analysis/screens.html`), manual oficial
+> (`files/GP-100_Online Manual_EN_Firmware V2.0.pdf` → texto em `docs/arquivo/analysis/manual_streams.txt`),
+> dicionário (`packages/core/data/parameters.json` — 185 algs/639 controles), `docs/UI_DESIGN.md`,
 > `docs/UI_PLAN.md`, decisões do owner (30/09, conversa de revisão de UI).
 >
 > **Por que este doc existe:** decisão do owner — "anote todos os achados que temos até
@@ -15,7 +15,7 @@
 ## 1. O app oficial (Valeton GP-100 Suite v1.5.1) — layout completo (capturas)
 
 Fonte: `files/images/Captura de tela 2026-09-25 174604.png` (tela principal) e
-`...174654.png` (modal Settings). Cópia servida em `analysis/screens.html` (base64).
+`...174654.png` (modal Settings). Cópia servida em `docs/arquivo/analysis/screens.html` (base64).
 
 ### 1.1 Tela principal (uma janela única, ~1502×687)
 
@@ -85,7 +85,7 @@ General:
 - **Política nossa (UI_PLAN §5):** escritas globais só pós-captura (G3–G6); a aba
   General da fase 1 persiste LOCAL (localStorage) e marca "prévia local".
 
-### 1.3 Achados do manual (texto extraído, `analysis/manual_grep.py`)
+### 1.3 Achados do manual (texto extraído, `docs/arquivo/analysis/manual_grep.py`)
 
 | Item | Evidência (fio/manual) | Impacto na UI |
 |---|---|---|
@@ -102,8 +102,8 @@ General:
 
 | Fonte | Conteúdo | Onde a UI usa |
 |---|---|---|
-| `analysis/parameters.json` | 185 algoritmos/639 controles (knob/switch/combox, pos/min/max/default/options) | Effects List por módulo, knobs, ranges |
-| `analysis/fx_map.json` + `packages/app/ui/src/artifacts/fxData.ts` | catálogo gerado por módulo (variant/nibble/index/name/controles) | fallback dev + models |
+| `packages/core/data/parameters.json` | 185 algoritmos/639 controles (knob/switch/combox, pos/min/max/default/options) | Effects List por módulo, knobs, ranges |
+| `packages/core/data/fx_map.json` + `packages/app/ui/src/artifacts/fxData.ts` | catálogo gerado por módulo (variant/nibble/index/name/controles) | fallback dev + models |
 | `.prst` XML da máquina (fábrica) | presets nomeados (ex.: "It's GP100", PP25 "Mist") | biblioteca de fábrica (99 presets) |
 | `docs/PROTOCOL.md` §13.9/13.10 | formato XML + scan de presets | leitura REAL da biblioteca |
 | Stats por família | PRE16 DST19 AMP51 NR2 CAB60 (IRs, 1 knob) EQ3 MOD12 DLY12 (max 9 ctrl) RVB10 | tamanhos dos pedais, contagem da Effects List |
@@ -192,7 +192,7 @@ completamente funcional"):** importar/gerar a lista REAL dos 99 presets de fábr
 - ⚠️ Fallback dev exige nomes EXATOS do `fxData.ts` (era "4x12 Green", correto é
   "UK-GN 4x12").
 - ⚠️ `fxData.ts` é GERADO (não editar mão) — fonte é `parameters.json` via
-  `analysis/dump_fx_map.py`.
+  `scripts/dump_fx_map.py`.
 - ⚠️ `control_count` no fxData quebrou o tsc (removido).
 - ⚠️ Crate `gp100-ui` NÃO compila no host (MSVC ausente — ADR-7); CI é a prova.
 - ⚠️ **Coluna estreita + `flex` sem `flexWrap` = o RÓTULO encolhe, não o botão.**
@@ -290,7 +290,7 @@ FASE 3 — CONTO E POLIMENTO
 
 ### 7.1 Bateria (drum) — 87 ritmos REAIS do firmware V2.1
 - **Fonte:** tabela de estilos no `GP-100 Firmware V2.1.bin` (entre as divisões
-  de nota `1/8T` e os compassos) — gerador `analysis/dump_drum_kit.py` →
+  de nota `1/8T` e os compassos) — gerador `scripts/dump_drum_kit.py` →
   `packages/app/ui/src/artifacts/drumData.ts` (GERADO).
 - **Estilos (87) em 5 grupos** na ordem do firmware: Electronic (Metro, Electro1,
   Electro2, Techno, TripHop, H-Hop1-4, D&B, Break, E-Pop) · Rock (Surfin, Hard 1-3,
@@ -378,7 +378,7 @@ violeta, com três colunas soltas e muito espaço morto):**
 
 > Pedido do owner: board + looper em 1280/1024 sem quebrar o alinhamento dos
 > painéis. Implementado em CSS (sem estilos inline de grid) e verificado por
-> MEDIÇÃO no Chrome (`analysis/responsivo_checks.js` — 9 asserts/viewport,
+> MEDIÇÃO no Chrome (`docs/arquivo/analysis/responsivo_checks.js` — 9 asserts/viewport,
 > 27/27 ✅; registro em docs/UI_TEST_PLAN.md, rodada R-RESPONSIVO).
 
 | Regra | Onde vive | Comportamento |
@@ -394,7 +394,7 @@ violeta, com três colunas soltas e muito espaço morto):**
   439.3×3+0 @1440, 386×3 @1280, 300.7×3 @1024; nenhum texto clipado nos painéis.
 - **Ferramenta:** os asserts de alinhamento viraram TESTE e2e
   (`e2e/responsivo.spec.ts` + `e2e/_helpers.ts::expectShellAligned` — rodam na
-  CI e localmente, 3 viewports). O script `analysis/responsivo_shots.js`
+  CI e localmente, 3 viewports). O script `docs/arquivo/analysis/responsivo_shots.js`
   continua útil só para gerar screenshots/recortes de inspeção do owner.
 
 ### 7.4 Atalhos globais de teclado (R-ATALHOS, 30/09)
@@ -438,7 +438,7 @@ violeta, com três colunas soltas e muito espaço morto):**
 
 | Peça | Onde | O que faz |
 |---|---|---|
-| Cadeia real dos 99 | `src/artifacts/presetChains.ts` (**GERADO** por `analysis/dump_preset_chains.py` do `all.prst`) | 99 × 9 slots com `family`, `name`, `state`, `code`, `params` crus |
+| Cadeia real dos 99 | `src/artifacts/presetChains.ts` (**GERADO** por `scripts/dump_preset_chains.py` do `all.prst`) | 99 × 9 slots com `family`, `name`, `state`, `code`, `params` crus |
 | Leitura no mock | `src/ipc/device.ts::localMockBoard` | `algFor` pelo `effectCode`; knob = `params[pos]` se plausível (dentro do range, nunca o sentinel `0xFFFF`); algoritmo fora do dicionário → pedal SEM knobs (regra do core) |
 | Ordem do palco | `Stage.tsx::baseOrder` | ordena pelo `slot` REAL, não pela família: **20 dos 99 presets têm a cadeia trocada** (ex.: P06 = DST antes de PRE) |
 | Banco + rótulo | `BoardView.bank` / `BoardView.ppLabel` | `"factory"`/`"user"` + `"P25"` (1-based) ou `"U01"` — o LED e a navbar leem o rótulo do board |
@@ -509,7 +509,7 @@ o retrato do PALCO, não do preset de fábrica.
 
 ### 7.8 Gestor de tons SnapTone/NAM (issue #25)
 
-> O `.nam` é convertido pelo **Valeton Suite** para `.clo` (`analysis/exe_strings.txt`:
+> O `.nam` é convertido pelo **Valeton Suite** para `.clo` (`docs/arquivo/analysis/exe_strings.txt`:
 > `Choose a nam file to open it` → `*.nam` → `nam_output_clo.wav` +
 > `nam_output_wav.wav`) e o motor NAM mora no exe da Valeton — o app importa o
 > `.clo` JÁ CONVERTIDO e não finge converter o que não converte.
@@ -522,7 +522,7 @@ arquivo. O botão é de ÍCONE porque a coluna tem 248px e o texto "SnapTone"
 empurraria os outros botões para uma segunda linha (medido: rodapé 91px → 61px).
 
 **O aviso do CAB é visível e o envio pede confirmação.** O release note da
-Valeton (`analysis/release_note.txt`) diz que o SnapTone **desliga o CAB** do
+Valeton (`docs/arquivo/analysis/release_note.txt`) diz que o SnapTone **desliga o CAB** do
 aparelho — e o dono **confirmou em campo, com o pedal na mão, em 05/10/2026**:
 o SnapTone desliga o CAB. O que era inferência de documentação virou
 comportamento observado; o modal de aviso e o `confirm` antes do primeiro

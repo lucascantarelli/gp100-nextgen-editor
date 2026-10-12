@@ -3,7 +3,7 @@
 > 📜 **HISTÓRICO (2026-09-28):** plano cumprido — a Rota 1b (proxy winmm) foi a
 > vencedora e as sessões 1–4 fecharam tudo isto. Estado atual do protocolo:
 > `docs/PROTOCOL.md` §13 + `docs/protocol_golden.json`. Gaps restantes de captura:
-> `analysis/capture_gaps.md` (G3–G6). Mapa geral: `docs/INDEX.md`.
+> `docs/arquivo/analysis/capture_gaps.md` (G3–G6). Mapa geral: `docs/INDEX.md`.
 
 **Objetivo:** capturar 1 sessão real do Suite GP-100 para calibrar os campos
 ambíguos do protocolo já mapeado. **Não é para "descobrir o protocolo"** — o
@@ -23,7 +23,7 @@ Procedimento:
 2. Rodar como admin, ativar `Capture Win32 + Global Win32`.
 3. Abrir o Suite GP-100, conectar a pedaleira, fazer: scan de presets,
    editar 1 parâmetro, salvar, importar 1 IR, importar 1 NAM (SnapTone).
-4. Salvar o log (`File > Save`) → `analysis/captures/debugview_session1.log`.
+4. Salvar o log (`File > Save`) → `docs/arquivo/analysis/captures/debugview_session1.log`.
 
 O que procurar no log: linhas com `checksum:` (confirma CRC-8/0x07 no fio),
 `effectCode: %08X` (tags de objeto), `IR Data:`/`Nam Data:` (payload dos
@@ -58,7 +58,7 @@ para o device (somente leitura das mensagens); reversível removendo a DLL.
    gravar em slot vazio, importar 1 IR e 1 NAM.
 3. O sniffer produz `captures/session1.jsonl` com eventos
    `{ts, dir, bytes[]}`.
-4. Rodar `analysis/decode_capture.py` (a criar) que decodifica com o mapa
+4. Rodar `docs/arquivo/analysis/decode_capture.py` (a criar) que decodifica com o mapa
    atual e aponta os campos desconhecidos — deve fechar `0x817` e flags em
    minutos.
 
@@ -95,8 +95,8 @@ para o device (somente leitura das mensagens); reversível removendo a DLL.
 ## Roteiro (30–45 min com a pedaleira, mesma instrumentação das sessões 1–4)
 
 1. Instrumentar o Suite com a **Rota 1b** (proxy winmm) ou espelhar na
-   `loopMIDI` — a sessão 3 (`analysis/captures/session3.jsonl`) já tem o
-   ferramental pronto, inclusive `analysis/dump_edit_writes.py`, que extrai os
+   `loopMIDI` — a sessão 3 (`docs/arquivo/analysis/captures/session3.jsonl`) já tem o
+   ferramental pronto, inclusive `docs/arquivo/analysis/dump_edit_writes.py`, que extrai os
    `12 10 XX 00 02`.
 2. Conectar a GP-100, abrir um patch de fábrica **não vazio** (o mesmo da
    sessão 3), e abrir o painel do módulo PRE.
@@ -126,8 +126,8 @@ para o device (somente leitura das mensagens); reversível removendo a DLL.
 
 ## Depois da captura
 
-1. Congelar os bytes em `analysis/fixtures/` + um caso no golden
-   (`analysis/build_golden.py` → `docs/protocol_golden.json`), como nas sessões
+1. Congelar os bytes em `packages/core/data/fixtures/` + um caso no golden
+   (`scripts/build_golden.py` → `docs/protocol_golden.json`), como nas sessões
    3 e 4.
 2. Promover o item 10 da matriz do `docs/BLOCKERS.md` (opcodes lógicos) de
    "parcial" para "RESOLVIDO EM CAMPO" **só** para o `change-effect`.

@@ -93,7 +93,7 @@ Armadilhas mordidas — não reabrir:
 - Sem `unsafe` no M0. Caso legítimo apareça (ex.: WinMM real), novo ADR antes.
 - Magic number de protocolo NUNCA inline: vira `const` documentada ou entra no
   golden (R1). Dados de protocolo vêm de `docs/protocol_golden.json`; replay
-  usa `analysis/fixtures/` (P4) — nunca hardcode de captura.
+  usa `packages/core/data/fixtures/` (P4) — nunca hardcode de captura.
 - Feature `real-device`: default **ON no app** (`gp100-ui`, #165 — `tauri dev`
   fala com o aparelho) e **OFF no core/CLI/testes**; nada de I/O de device fora
   do módulo `transport` (ADR-4). Nos testes o caminho default é o `MockDevice`.
@@ -111,8 +111,8 @@ em 29/09: golden e .prst).
 - Classes na lista (ver seção comentada no `.gitattributes`):
   1. especificação executável (`docs/protocol_golden.json`);
   2. patches de referência (`files/patches/*.prst`, R4);
-  3. evidência de campo (`analysis/captures/*.jsonl`, `ir_slot*.bin`);
-  4. fixtures de replay (`analysis/fixtures/*.jsonl` — o replay do M0.6
+  3. evidência de campo (`docs/arquivo/analysis/captures/*.jsonl`, `ir_slot*.bin`);
+  4. fixtures de replay (`packages/core/data/fixtures/*.jsonl` — o replay do M0.6
      compara byte a byte).
 - **NÃO** entra: produto editável/regenerável (docs, scripts, knob_map,
   parameters.json — identidade semântica, não byte).

@@ -53,12 +53,14 @@ crate externo e não enxerga internals (detalhe na skill `rust-practices`).
   o dev server). Não dependa de quebra de linha exata (fonte do SO muda
   métricas — ver `ui-ux-practices`).
 
-## Pytest de spec (`uv run pytest`) — provisório
+## Pytest de spec (`uv run pytest`)
 
-A suíte de `analysis/tests/` valida hoje a especificação reconstruída (golden,
-knob_map, fixtures). Ela **morre com HW-3/HW-6** (issues #163 e da época RE):
-não acrescente teste novo lá sem decisão registrada — o dado canônico migra
-para o core e seus contratos.
+A suíte de `scripts/tests/` (casa desde #163) valida a especificação
+reconstruída (golden, baseline, knob_map, faixas ADR-10, paridade de fixtures)
+e os juízes de campo H1/H2 — o que ela cobre está em `docs/TESTING.md` §1.
+**Não acrescente teste novo lá sem decisão registrada**: o que prova só o
+processo de RE sai na auditoria da suíte (contrato da #166); dado de runtime
+tem contrato em `packages/*/tests/`.
 
 ## Ao diagnosticar falha
 

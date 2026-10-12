@@ -43,8 +43,8 @@ negativo** — não de uma funcionalidade nova.
 - [ ] Build de **leitura**: `tauri build --features real-device` — **sem**
       `write-verified`. O badge do `FieldDiagPanel` tem de dizer `real`.
 - [ ] `uv run pytest -q` verde · `cargo test --workspace` verde
-- [ ] `uv run python analysis/validate_state_pages.py` → **exit 0**
-- [ ] `uv run python analysis/validate_golden.py` → **2299/2299** (baseline
+- [ ] `uv run python scripts/validate_state_pages.py` → **exit 0**
+- [ ] `uv run python scripts/validate_golden.py` → **2299/2299** (baseline
       intocada — se este número mudou, **parar**: o gate não é a causa)
 
 **Com o device ligado:**
@@ -130,8 +130,8 @@ do `all.prst`.
 
 - [ ] No painel: **copiar o caminho** do log e **abrir a pasta** (os dois botões
       só aparecem com o log ativo). Anexe o `.jsonl` das 3 sessões.
-- [ ] `uv run python analysis/validate_state_pages.py` de novo → **exit 0**
-- [ ] `uv run python analysis/validate_golden.py` → **2299/2299**
+- [ ] `uv run python scripts/validate_state_pages.py` de novo → **exit 0**
+- [ ] `uv run python scripts/validate_golden.py` → **2299/2299**
 - [ ] `uv run pytest -q` · `cargo test --workspace` (o golden **não** muda nesta
       sessão: nenhuma captura nova entra no baseline — ADR R2/R3)
 - [ ] Preencher `docs/H4_REPORT.md` e arquivar junto dos `.jsonl`
@@ -181,7 +181,7 @@ esperado é baixo; se acontecer, o `.jsonl` da execução **é** o diagnóstico.
 - [#152](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/152) — o negativo da meta6 e a condição de reabertura
 - `docs/PROTOCOL.md` §13.10 — o layout das páginas 13xx, entregue no PR #158
 - `packages/core/src/preset_pages.rs` · `packages/core/tests/preset_pages.rs`
-- `analysis/state_pages_offsets.json` · `analysis/map_state_pages.py` · `analysis/validate_state_pages.py`
+- `packages/core/data/state_pages_offsets.json` · `scripts/map_state_pages.py` · `scripts/validate_state_pages.py`
 - [`docs/REAL_DEVICE_GAP.md`](REAL_DEVICE_GAP.md) §6 passo 7 (a sessão de campo) e §4b.1 (o log automático)
 - [`docs/H1_CHECKLIST.md`](H1_CHECKLIST.md) (leitura, fluxo R3) ·
   [`docs/H3_CHECKLIST.md`](H3_CHECKLIST.md) (o irmão de baseline)

@@ -18,15 +18,15 @@ A fase de **reconhecimento estático já foi executada** com sucesso sobre os ar
 
 | Ativo | Evidência | Local |
 |---|---|---|
-| Firmware V2.1 analisada | 3.424.316 B, binário ARM Cortex-M7 (NXP i.MX RT, FlexSPI), ~10.301 strings extraídas | `analysis/fw_strings.txt` |
-| Protocolo de patch decodificado | Formato XML (não binário); semântica do `effectCode` resolvida: `(módulo<<24) \| índice` | `analysis/effect_catalog.csv` |
-| Catálogo de efeitos | 909 slots, 116 efeitos distintos, 9 módulos, ordem da cadeia mapeada (`x=0..8`) | `analysis/effect_catalog.csv` |
+| Firmware V2.1 analisada | 3.424.316 B, binário ARM Cortex-M7 (NXP i.MX RT, FlexSPI), ~10.301 strings extraídas | `docs/arquivo/analysis/fw_strings.txt` |
+| Protocolo de patch decodificado | Formato XML (não binário); semântica do `effectCode` resolvida: `(módulo<<24) \| índice` | `docs/arquivo/analysis/effect_catalog.csv` |
+| Catálogo de efeitos | 909 slots, 116 efeitos distintos, 9 módulos, ordem da cadeia mapeada (`x=0..8`) | `docs/arquivo/analysis/effect_catalog.csv` |
 | Módulos do DSP | PRE, DST, AMP, CAB, NR, EQ, MOD, DLY, RVB (nibbles 0x00–0x0C) | tabela §4.2 |
-| Funcionalidade oculta | **SnapTone (V2.0+): importação de modelos NAM** no módulo AMP, slots 1–5 | `analysis/release_note.txt` + strings `0x002803AD` |
-| Changelog oficial V1.3→V2.1 | Extraído do RTF | `analysis/release_note.txt` |
+| Funcionalidade oculta | **SnapTone (V2.0+): importação de modelos NAM** no módulo AMP, slots 1–5 | `docs/arquivo/analysis/release_note.txt` + strings `0x002803AD` |
+| Changelog oficial V1.3→V2.1 | Extraído do RTF | `docs/arquivo/analysis/release_note.txt` |
 | Stack do app oficial | Shell CEF/web + MFC; driver ASIO via MSI (`Valeton_UsbAudio_v5.57.2`) | análise de strings do instalador |
 | **Protocolo de FIO (§13.1–13.12)** | SysEx Valeton confirmado em campo: ler/editar/salvar/IR | capturas 1–4 + `docs/protocol_golden.json` (40 templates, validação 100%) |
-| **Envelope do knob (§13.11)** | write semântico `[effectCode u32LE][ctrl][00][f32 LE]` | `analysis/knob_map.json`: 89/89 edits regeneradas byte-a-byte |
+| **Envelope do knob (§13.11)** | write semântico `[effectCode u32LE][ctrl][00][f32 LE]` | `scripts/knob_map.json`: 89/89 edits regeneradas byte-a-byte |
 
 **Riscos neutralizados:** o formato de preset é **XML de texto legível** — não há necessidade de sniffing USB para a camada de dados; a correlação firmware↔patch já é possível hoje. **E, com as capturas 1–4 (proxy winmm), o protocolo de fio completo foi confirmado em campo e validado byte-a-byte (§13 + golden-file) — a última dependência de hardware foi eliminada.**
 
@@ -40,14 +40,14 @@ A fase de **reconhecimento estático já foi executada** com sucesso sobre os ar
 |---|---|---|---|
 | `GP-100 Firmware V2.1.bin` | 3.424.316 B | Firmware ARM (Cortex-M7, i.MX RT1050/1060-family), sem criptografia | ✅ strings extraídas; descritores USB montados em runtime (padrão NXP SDK) |
 | `GP-100 Firmware Release Note.rtf` | 162 KB | Changelog V1.3→V2.1 (EN/CN) com imagens embutidas | ✅ texto extraído |
-| `GP-100 Setup V1.5.1 for Windows.exe` | 80 MB | Instalador NSIS (x86 launcher); app = shell CEF/web | ✅ extraído (`analysis/nsis_app/`) + binário nativo desmontado (`analysis/FINDINGS_*.md`) |
-| `Valeton USB ASIO Driver V5.57.2 Setup.exe` | 4,7 MB | Instalador que baixa/empacota MSI do driver USB Audio | ✅ MSI extraído (`analysis/driver_ext/`); **VID_84EF / PID_0021** confirmados no `.inf` |
-| `GP-100_Online Manual_EN_Firmware V2.0.pdf` | 4,8 MB | Manual oficial; texto em fontes CID com ToUnicode CMap | ✅ texto bruto extraído (`analysis/manual_streams.txt`) |
+| `GP-100 Setup V1.5.1 for Windows.exe` | 80 MB | Instalador NSIS (x86 launcher); app = shell CEF/web | ✅ extraído (`docs/arquivo/analysis/nsis_app/`) + binário nativo desmontado (`docs/arquivo/analysis/FINDINGS_*.md`) |
+| `Valeton USB ASIO Driver V5.57.2 Setup.exe` | 4,7 MB | Instalador que baixa/empacota MSI do driver USB Audio | ✅ MSI extraído (`docs/arquivo/analysis/driver_ext/`); **VID_84EF / PID_0021** confirmados no `.inf` |
+| `GP-100_Online Manual_EN_Firmware V2.0.pdf` | 4,8 MB | Manual oficial; texto em fontes CID com ToUnicode CMap | ✅ texto bruto extraído (`docs/arquivo/analysis/manual_streams.txt`) |
 | `patches/*.prst` (3 arquivos) | 4 KB / 413 KB | **XML**: 1 preset, 99 presets, preset unitário | ✅ 100% decodificado (§4) |
 | `images/*.png` | — | Screenshots do app oficial V1.5.1 | ✅ inspecionados (visual + Settings) |
 | `prompt_inicial.md` | — | Briefing do projeto | ✅ |
 
-Diretório de trabalho: `analysis/` (scripts + produtos). Ferramentas da fase RE: `extract_strings.py`, `rtf_text.py`, `pdf_text.py`, `build_catalog.py`/`build_parameters.py` (dicionário), desmontadores capstone (`disasm_*.py`, `rtti_disasm.py`), **proxy winmm** (`build_proxy.py` + `midi_proxy.c`), decoders de captura (`decode_wire.py`, `validate_knob_map.py`, …), **golden-file** (`build_golden.py`/`validate_golden.py`).
+Diretório de trabalho: `docs/arquivo/analysis/` (scripts + produtos). Ferramentas da fase RE: `extract_strings.py`, `rtf_text.py`, `pdf_text.py`, `build_catalog.py`/`build_parameters.py` (dicionário), desmontadores capstone (`disasm_*.py`, `rtti_disasm.py`), **proxy winmm** (`build_proxy.py` + `midi_proxy.c`), decoders de captura (`decode_wire.py`, `validate_knob_map.py`, …), **golden-file** (`build_golden.py`/`validate_golden.py`).
 
 ---
 
@@ -57,8 +57,8 @@ Diretório de trabalho: `analysis/` (scripts + produtos). Ferramentas da fase RE
 1. ✅ Strings ASCII/UTF-16LE com offsets (`extract_strings.py` → `fw_strings.txt`, ~10.301 strings).
 2. ✅ Censo de símbolos: `algorithmParaNameConstData.c`, `FlashDataProcess.c`, asserts de flash (`FLASH_*_SIZE`) — delimitam presets/IRs/SnapTones/global.
 3. ✅ Tabela de UI multilíngue localizada (0x279xxx–0x281xxx) e reutilizada para i18n do novo app.
-4. ✅ **Dicionário canônico**: 185 algoritmos / 639 controles com ranges e defaults — obtido do `algorithm.xml` (payload oficial do instalador) e validado em 3 vias (909 slots de patches, strings da firmware, nome verificado no firmware p/ 150) → `analysis/parameters.json`.
-5. ✅ Auditoria opcional documentada em `analysis/README_GHIDRA.md` (extração in-place da `algorithmParaNameConstData`, não bloqueia nada).
+4. ✅ **Dicionário canônico**: 185 algoritmos / 639 controles com ranges e defaults — obtido do `algorithm.xml` (payload oficial do instalador) e validado em 3 vias (909 slots de patches, strings da firmware, nome verificado no firmware p/ 150) → `packages/core/data/parameters.json`.
+5. ✅ Auditoria opcional documentada em `docs/arquivo/analysis/README_GHIDRA.md` (extração in-place da `algorithmParaNameConstData`, não bloqueia nada).
 6. ✅ RE estática do exe (capstone, sem Ghidra): FSM/opcodes (`FINDINGS_FSM.md`), 7 formatos de objeto (`FINDINGS_OBJECTS.md`), VLV/tag-mapper (`FINDINGS_COMMANDMAP.md`), protocolo (`FINDINGS_PROTOCOL.md`) — corrobora o §13. 0x817 resolvido (§13.8).
 
 ### Fase R2 — Formato de presets (✅ CONCLUÍDA)
@@ -71,9 +71,9 @@ Diretório de trabalho: `analysis/` (scripts + produtos). Ferramentas da fase RE
 7. ⏳ Semântica fina de `ppEXP1`/`ppCtrl` (expCode) — baixa prioridade, dados completos no XML.
 
 ### Fase R3 — Executável/driver (✅ CONCLUÍDA)
-1. ✅ Stack identificada (CEF shell + MFC launcher); NSIS extraído para `analysis/nsis_app/`.
+1. ✅ Stack identificada (CEF shell + MFC launcher); NSIS extraído para `docs/arquivo/analysis/nsis_app/`.
 2. ✅ Binário nativo do Suite desmontado (pefile+capstone) — achados nos `FINDINGS_*.md`.
-3. ✅ MSI do driver extraído (`analysis/driver_ext/`); **VID_84EF / PID_0021** confirmados.
+3. ✅ MSI do driver extraído (`docs/arquivo/analysis/driver_ext/`); **VID_84EF / PID_0021** confirmados.
 
 ### Fase R4 — Protocolo de transporte (✅ CONCLUÍDA EM CAMPO)
 - ✅ Hipótese confirmada: USB-MIDI class-compliant + SysEx vendor `F0 21 25 7F 47 50 2D 64`.
@@ -240,7 +240,7 @@ Diretório de trabalho: `analysis/` (scripts + produtos). Ferramentas da fase RE
 
 ## 10. LISTA DE TAREFAS INICIAIS (✅ TODAS EXECUTADAS — rev. v1.1)
 
-1. ✅ NSIS extraído (`analysis/nsis_app/`) + binário nativo desmontado — protocolo revelado por RE **e confirmado em campo** (capturas 1–4).
+1. ✅ NSIS extraído (`docs/arquivo/analysis/nsis_app/`) + binário nativo desmontado — protocolo revelado por RE **e confirmado em campo** (capturas 1–4).
 2. ✅ MSI do driver extraído; VID/PID confirmados no `.inf`.
 3. ✅ Dicionário `parameters.json` obtido do `algorithm.xml` (via mais confiável que Ghidra) e validado em 3 vias; auditoria Ghidra opcional em `README_GHIDRA.md`.
 4. ✅ Manual extraído (`manual_streams.txt`) para cross-check.
@@ -282,17 +282,17 @@ Diretório de trabalho: `analysis/` (scripts + produtos). Ferramentas da fase RE
 - **Dívidas técnicas de baixa prioridade** (não bloqueiam nada): layout byte-a-byte da
   página de estado 13xx ↔ params (completar com mais capturas de scan), campo 0x00BC/0x00B4
   e alinhamento de samples do blob de IR, semântica fina de ppEXP1/ppCtrl, gaps G3–G6
-  (globals/BPM, knob físico, footswitch — `analysis/capture_gaps.md`). A tabela de
+  (globals/BPM, knob físico, footswitch — `docs/arquivo/analysis/capture_gaps.md`). A tabela de
   TIPOS da `12001002` e o schema do `11000007` foram FECHADOS em §13.12 (28/09).
 
 ---
 
 ## 12. APÊNDICE — COMANDOS/SCRIPTS DE ANÁLISE
 ```bash
-python analysis/extract_strings.py   # strings do firmware -> analysis/fw_strings.txt
-python analysis/rtf_text.py          # changelog -> analysis/release_note.txt
-python analysis/build_catalog.py     # catalogo de efeitos -> analysis/effect_catalog.csv
-python analysis/pdf_text.py          # extracao bruta do manual (precisa pypdf p/ CID)
+python docs/arquivo/analysis/extract_strings.py   # strings do firmware -> docs/arquivo/analysis/fw_strings.txt
+python docs/arquivo/analysis/rtf_text.py          # changelog -> docs/arquivo/analysis/release_note.txt
+python docs/arquivo/analysis/build_catalog.py     # catalogo de efeitos -> docs/arquivo/analysis/effect_catalog.csv
+python docs/arquivo/analysis/pdf_text.py          # extracao bruta do manual (precisa pypdf p/ CID)
 ```
 
 *Fim do documento.*

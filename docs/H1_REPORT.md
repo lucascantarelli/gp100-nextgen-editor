@@ -1,7 +1,7 @@
 # 🧾 H1_REPORT — Relatório do gate H1 (preencher em campo)
 
 > **Status:** 📝 template · **Preencher durante/imediatamente após a sessão** (Fase C do [H1_CHECKLIST.md](H1_CHECKLIST.md)) e arquivar como evidência da issue H1.
-> **Complemento operacional:** `scripts/h1_field.sh` (ensaio `rehearsal` / roteiro `field`) + referências do mock em `analysis/h1_reference/`.
+> **Complemento operacional:** `scripts/h1_field.sh` (ensaio `rehearsal` / roteiro `field`) + referências do mock em `docs/arquivo/analysis/h1_reference/`.
 
 ## 1. Identificação da sessão
 
@@ -13,7 +13,7 @@
 | Device (firmware/display) | GP-100 V2.1 · pp no display: ____ |
 | USB | porta direta? hub? driver enumerado? |
 | Suite oficial fechado? | sim/não |
-| Log bruto | `analysis/captures/sessionH1.jsonl` (sha256: ____) |
+| Log bruto | `docs/arquivo/analysis/captures/sessionH1.jsonl` (sha256: ____) |
 
 ## 2. Execução (por etapa; repetição ×1 antes de classificar Timeout)
 
@@ -52,7 +52,7 @@ conteúdo, que em CAMPO é estado esperado).
 
 1. Roteiro PARADO em: ____ (etapa)
 2. Reprodução: nova leitura com `--log` / nova captura com o proxy winmm
-   (arquivo: ____; anotado no `analysis/captures/`)
+   (arquivo: ____; anotado no `docs/arquivo/analysis/captures/`)
 3. `build_golden.py` regenerado? ____ · `validate_golden.py` 100%? ____
 4. Bump de baseline (5 lugares: §13, `GOLDEN_BASELINE_SHA`, `test_protocol.py`,
    DECISIONS/INDEX): ____ (novo sha: ____)
@@ -73,10 +73,10 @@ conteúdo, que em CAMPO é estado esperado).
 
 1. **PARAR o roteiro** (nenhum passo adicional; nenhuma "tentativa rápida").
 2. **Preservar a evidência:** copiar `sessionH1.jsonl` + saídas `.txt` + sha256
-   do binário para `analysis/h1_field_<tag>/` (nunca apagar; log é append-only).
+   do binário para `docs/arquivo/analysis/h1_field_<tag>/` (nunca apagar; log é append-only).
 3. **Tentativa única de diagnóstico sem hardware** (no PC, com o log capturado):
    rodar os decoders (`decode_wire.py`) no log e comparar o FRAMING com as
-   referências de `analysis/h1_reference/` — isola se o desvio é de ordem,
+   referências de `docs/arquivo/analysis/h1_reference/` — isola se o desvio é de ordem,
    endereço ou conteúdo (nível 1 vs 2 vs 3).
 4. **Reprodução controlada (só se o owner autorizar nova conexão):** nova
    sessão `field` com o MESMO binário, UM passo (o que divergiu), log novo.
@@ -105,7 +105,7 @@ incoerente) → desligar, preservar evidência, R3.
 |---|---|
 | Data/hora | 2026-10-05 11:43 BRT |
 | Binário | `gp100-cli.exe` compilado com `--features real-device` (H1) |
-| Sessão | `analysis/h1_field_20261005_114300` |
+| Sessão | `docs/arquivo/analysis/h1_field_20261005_114300` |
 | Frames de fio | **120** (20+20 no B2; 20 em cada um dos 3 dumps) |
 | Relógio | `t` de 0.3 ms a 99.4 ms (o `--log` grava relógio desde o #23) |
 | Suite oficial | fechado (só `ValetonUsbAudioCpl.exe`, que não ocupa MIDI) |

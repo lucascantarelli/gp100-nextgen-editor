@@ -1,6 +1,6 @@
 # 📜 DECISIONS — Decisões de design pré-assinadas (ADR-lite)
 
-> **Banner:** ✅ atual · **Última revisão:** 2026-10-10 · **Origem:** ROADMAP P5 (ADR-1..5) + pré-desenho M0.6 (ADR-6) · **Campo:** ADR-12/13 vindos do gate H4 (#177)
+> **Banner:** ✅ atual · **Última revisão:** 2026-10-11 · **Origem:** ROADMAP P5 (ADR-1..5) + pré-desenho M0.6 (ADR-6) · **Campo:** ADR-12/13 vindos do gate H4 (#177) · **Era HW:** ADR-14 (casa canônica, #163)
 >
 > Registra as decisões estruturais do `gp100-core` **antes** de cada bloco de
 > implementação (ADR-1..5 pré-assinados antes do M0; ADR-6 sancionado antes do
@@ -190,7 +190,7 @@ MOTIVO (`MSG.writeLockedHint`), nunca recusa depois do clique. Coberto por unit
 ## ADR-6 — `Session` (M0.6): assinaturas da FSM e dispatch do IN ambíguo
 
 **Status:** **Accepted — sancionado pelo owner em 29/09** (rev.3, após revisão
-crítica + re-derivação do save do log cru, `analysis/derive_save_ops.py` — D3
+crítica + re-derivação do save do log cru, `docs/arquivo/analysis/derive_save_ops.py` — D3
 definitivo) · **Afeta:** M0.5, M0.6, M0.7 · **Vincula:** ADR-2 (erros), ADR-3
 (timeout), ADR-4 (trait), ADR-5 (escrita real)
 
@@ -579,7 +579,7 @@ quando a leitura seguinte toma timeout.
 **Decisão.** O `set_param_payload` valida o **conteúdo** do valor antes de
 montar o frame, e uma variante nova de `ProtocolError`
 (`ValueOutOfRange { addr, param, got, allowed }`) sobe até a borda. A regra
-vem do dicionário (`analysis/parameters.json`, derivado do `algorithm.xml`
+vem do dicionário (`packages/core/data/parameters.json`, derivado do `algorithm.xml`
 oficial da Suite V1.5.1):
 
 | par `(slot, code, ctrl)` | regra | ação |
@@ -597,7 +597,7 @@ A chave carrega o **slot**, não só o `code`: o `nibble` do `effectCode` não
 captura é que `knobs.jsonl` é **uma sessão só**: uma faixa derivada dela é
 piso, não verdade. Mas o dicionário é a fonte declarada da própria Suite, e
 a Suite é quem fala com o firmware. A corroboração está medida e é gate
-(`analysis/param_ranges.py --check`): das 92 amostras reais, **13 dos 14
+(`scripts/param_ranges.py --check`): das 92 amostras reais, **13 dos 14
 pares observados caem inteiros dentro da faixa declarada, zero
 contradições**. Duas fontes independentes — o que a Suite declara e o que
 ela de fato manda — concordam, e a Suite nunca escreve fora do que o
@@ -855,3 +855,67 @@ consultável a qualquer sessão (CLI de campo `--real`, leitura pura). Antes de
 deduzir comportamento do mock ou perguntar ao owner, MEÇA no aparelho. Toda
 regra de "padrão" tem de nascer de byte observado, nunca de suposição de fábrica
 — foi exatamente isso que o H4 cobrou caro.
+
+---
+
+## ADR-14 — Casa canônica: dado em `packages/core/data/`, ferramenta em `scripts/`, história em `docs/arquivo/analysis/` (#163)
+
+> **Criado em:** 11/10/2026 · **Status:** aceito · **Vincula:** #163 (HW-3),
+> #178 (migração dos dados), ADR-13 (fonte dinâmica), ADR R2/R3 (baseline),
+> #168 (HW-8, dono de `scripts/`), #166 (HW-6, dono da suíte)
+
+**Contexto.** O runtime nasceu embutindo artefatos de engenharia reversa:
+`include_str!` de `analysis/parameters.json` e de `analysis/state_pages_offsets.json`,
+fixtures de captura como espinha dos testes, geradores de RE alimentando artefatos
+do front e o job de pytest validando baseline de análise. O #178 já tinha levado os
+dados para `packages/core/data/` e posto o guard; faltava **dissolver a pasta** e
+declarar, para cada coisa que sobrou, quem é dona e por quê.
+
+**Decisão — três casas e um critério.** O critério não é "de onde veio", é
+**quem consome hoje**:
+
+| Casa | Entra quem | Exemplo |
+|---|---|---|
+| `packages/core/data/` | dado consumido por **runtime ou teste de contrato**, com origem declarada no próprio JSON | `parameters.json`, `state_pages_offsets.json`, `fx_map.json`, `fixtures/` + `manifest.json` |
+| `scripts/` | ferramenta que **roda hoje** (CI, `gates.py`, pytest ou fluxo R2/R3) e cujos insumos estão **versionados** no repo | `build_golden.py`, `validate_golden.py`, `baseline.py`, `wirelog.py`, `param_ranges.py`, `dump_fx_map.py`, `tests/` (suíte Spec) |
+| `docs/arquivo/analysis/` | todo o resto da Era de RE: o que exige insumo **local não versionado** (`fw_strings.txt`, manual, Ghidra, `suite_local/`), o que nunca mais roda e a **evidência dos gates** | `build_parameters.py` + `algorithm.xml`, `decode_*.py`, `disasm_*.py`, `build_proxy.py`, `captures/`, `h1_reference/`, `h2/`, `h4/` |
+
+- **A estrutura foi preservada dentro do arquivo** (um `mv analysis/
+  docs/arquivo/analysis/`), para que os caminhos citados nos relatórios H1–H4,
+  no `PROTOCOL.md` §13 e no golden continuem encontráveis com uma troca de
+  prefixo — e para que o `.gitattributes` de bytes congelados troque de caminho
+  sem trocar de política (as 5 capturas CRLF provaram na hora por que aquilo é
+  regra e não estilo).
+- **Guard (DoD #1).** `packages/core/tests/guard_dados_canonicos.rs` falha se a
+  sequência `analysis/` reaparecer em `packages/**` — código, comentário,
+  include ou manifesto. Como o caminho novo contém a mesma sequência, o guard
+  cobre o arquivo também. `git grep "analysis/" packages/` = **0**.
+- **`files/patches/all.prst` fica como insumo de BUILD, nunca como arquivo lido
+  em produção.** Ele entra por `include_bytes!` (`lib.rs::seed_de_fabrica`) e
+  `include_str!` (`transport/mock.rs`): compilado, empacotado, zero I/O em
+  runtime. É insumo do round-trip R4 e da seed do mock/inventário. Quando o
+  modelo tipado `FactoryPatch`/`UserPatch` existir (HW-2/#162) e o inventário
+  vier do aparelho (HW-4/#164), a seed deixa de ser necessária — mas em
+  NENHUM momento o app passa a depender de arquivo local no disco do usuário.
+- **`docs/protocol_golden.json` permanece documento de especificação** (R1:
+  insumo, não produto). Mudou só o campo `_meta.generated_by` (apontador do
+  gerador) e, como a baseline é sobre o CONTEÚDO do arquivo de spec, a mudança
+  entrou pelo ritual R2/R3: `baseline.py bump --motivo --issue #163` → v1.2,
+  com o mesmo registro no `PROTOCOL.md` §13.14. Zero byte de template mudou.
+- **Dono de `scripts/` é HW-8 (#168).** As ferramentas de spec/dados movidas
+  para cá são declaradas como dependência na issue — quem dissolver a pasta
+  decide a casa final delas junto com os demais scripts.
+
+**Consequências.**
+- (+) Nenhum binário, teste ou artefato do front nasce de árvore de RE: a
+  proveniência é documental, e o guard a mantém assim.
+- (+) Uma captura nova de campo entra no fluxo R2/R3 sem tocar em "análise":
+  `wirelog.py` → `build_golden.py` → `validate_golden.py` → `baseline.py bump`.
+- (−) Ferramenta histórica com insumo local (`build_parameters.py`) não roda em
+  checkout limpo — **nunca rodou**: é proveniência do dicionário, e o dicionário
+  versionado é `packages/core/data/parameters.json`. Regenerar exige o payload
+  da Suite e a tabela de strings da firmware, ambas declaradas no arquivo.
+- (−) Evidência de campo vive sob `docs/` (cápsula), não numa pasta de dados.
+  Aceito: o issue manda e os relatórios H apontam para cá. Se um dia a evidência
+  virar volume (H5), ela sai para um lugar próprio — com o apontador atualizado,
+  nunca com o doc apontando para nada.

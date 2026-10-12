@@ -3,7 +3,7 @@
 **Como ler:** §13 = protocolo de FIO (confirmado em campo, capturas 1–4) — é o que o
 gp100-core fala; §1–12 = formato de ARQUIVO (TLV/CRC-8/objetos). A especificação
 executável byte-a-byte é `docs/protocol_golden.json` (validada por
-`analysis/validate_golden.py`). Mapa geral da documentação: `docs/INDEX.md`.
+`scripts/validate_golden.py`). Mapa geral da documentação: `docs/INDEX.md`.
 **Histórico:** framing do GP-50/GP-5 validado por terceiros (§7); GP-100 confirmado
 DIFERENTE no wire-format por disassembly (§9) — mesma CRC-8/0x07, framing TLV de bits.
 
@@ -115,7 +115,7 @@ GP-50 (binário): header `GP-50` 20B + CRC-8@0x14 + sentinel 4B + nome 16B + cor
 - Comando de leitura global (`gParam/gPatch/gBank/gChannel/gVolume/gInput/gUsbGain/...`).
 
 ## 9. DESASSEMBLY DO GP-100.exe — RESULTADO (v2.0)
-Método e evidências completas: `analysis/FINDINGS_PROTOCOL.md` (scripts em `analysis/`, venv com capstone+pefile).
+Método e evidências completas: `docs/arquivo/analysis/FINDINGS_PROTOCOL.md` (scripts em `docs/arquivo/analysis/`, venv com capstone+pefile).
 
 **Veredito: o GP-100 NÃO usa o wire-format nibble+F0..F7 do GP-50.**
 
@@ -146,7 +146,7 @@ Evidências diretas no código (VA, base 0x400000):
 ---
 
 ## 10. SESSÃO 2 DE DESASSEMBLY — CODEC RESOLVIDO ESTRUTURALMENTE
-Detalhes completos: `analysis/FINDINGS_FSM.md`. Correções à §9:
+Detalhes completos: `docs/arquivo/analysis/FINDINGS_FSM.md`. Correções à §9:
 
 1. **A tabela `0x621210` não é jump-table** — é *thrunk* MSVC de `this`-adjust
    (múltipla herança). `0x621020` = set-state trivial; `0x621030` = no-op;
@@ -179,8 +179,8 @@ Detalhes completos: `analysis/FINDINGS_FSM.md`. Correções à §9:
 ---
 
 ## 11. SESSÃO 3 — OS 7 FORMATOS DE OBJETO DO SERIALIZER `0x6209D0`
-Documentação completa com offsets e bit-widths: `analysis/FINDINGS_OBJECTS.md`.
-**Veredito da sessão 4** (`analysis/FINDINGS_COMMANDMAP.md`): estes objetos são
+Documentação completa com offsets e bit-widths: `docs/arquivo/analysis/FINDINGS_OBJECTS.md`.
+**Veredito da sessão 4** (`docs/arquivo/analysis/FINDINGS_COMMANDMAP.md`): estes objetos são
 os payloads de um protocolo **state-sync orientado a objetos** — o envelope de
 4 bits + classe de 3 bits endereça o objeto; não há opcodes de operação.
 
@@ -208,7 +208,7 @@ writeBytes(ptr,push), `0x4B4800` = reserva/zero-fill de N bits.
 ---
 
 ## 12. SESSÃO 4 — MAPA DE COMANDOS FECHADO (state-sync, não opcodes)
-Evidência: `analysis/FINDINGS_COMMANDMAP.md`. As 4 únicas chamadas VLQ/tagmap
+Evidência: `docs/arquivo/analysis/FINDINGS_COMMANDMAP.md`. As 4 únicas chamadas VLQ/tagmap
 no binário inteiro:
 ```
 0x6208A9 -> 0x633520 (varint32)    0x6208B6 -> 0x6331D0 (varint64)
@@ -251,9 +251,9 @@ gestão de buffers de slots de preset/IR em RAM, coerente com state-sync.
 
 ## 13. SESSÃO 5 — CAPTURA REAL (ROTA 1): FORMATO DE FIO CONFIRMADO
 
-Fonte: `analysis/captures/session1.jsonl` (4.653 eventos MIDI, Suite instrumentado
+Fonte: `docs/arquivo/analysis/captures/session1.jsonl` (4.653 eventos MIDI, Suite instrumentado
 com proxy winmm.dll; sessão = scan → trocar preset → editar knob → save).
-Decoder: `analysis/decode_wire.py`. Build do proxy: `analysis/build_proxy.py`.
+Decoder: `docs/arquivo/analysis/decode_wire.py`. Build do proxy: `docs/arquivo/analysis/build_proxy.py`.
 
 ### 13.1 Envelope SysEx (não é o envelope de objetos §10-11!)
 
@@ -305,17 +305,17 @@ o contador da página — coerente com §12).
 ### 13.4 Padrões de transação
 
 > **Referência executável:** `docs/protocol_golden.json` (gerado por
-> `analysis/build_golden.py` a partir das sessões 1–4) contém os 40 templates
+> `scripts/build_golden.py` a partir das sessões 1–4) contém os 40 templates
 > request→resposta com padrões de payload (const/var) e semântica por
 > endereço. Este §13 é a narrativa; o golden é a referência byte-a-byte
 > para implementação e fixtures de teste.
 > **Baseline v1.0 (congelada 28/09/2026 — regra R2/R3 do ROADMAP):**
 > - `docs/protocol_golden.json` sha256 `0426d6a8843c57d16ab917170ed5f50eb95026281f1f460f4c2520aaeefef859`
-> - `analysis/parameters.json` sha256 `196c67992cd072bbd78c1f7ce3cfc615133d73934e2aa034c6f32b13c171a020`
+> - `packages/core/data/parameters.json` sha256 `196c67992cd072bbd78c1f7ce3cfc615133d73934e2aa034c6f32b13c171a020`
 > Qualquer mudança nesses arquivos exige: nova captura → build_golden → validate 100% →
 > novo hash + justificativa aqui.
 >
-> **Validado por** `analysis/validate_golden.py` — 5 provas:
+> **Validado por** `scripts/validate_golden.py` — 5 provas:
 > accounting IN 100% / OUT 99,57% (sobras = fragmentos truncados do ring
 > buffer do proxy); regeneração byte-a-byte: knobs 89/89 + 3/3 (§13.11),
 > boot/scan 2.299/2.299 (§13.10), save 77/77 (§13.12, metadados gerados do
@@ -429,7 +429,7 @@ absorve; o MockDevice não emite.
 Evidência: `.prst` exportado pelo Suite é **XML puro** (`<?xml …><GP-100>…`),
 zero ocorrências byte-aligned de 81 7F / 08 17 e 1 falso-positivo bit-shifted
 (texto `ms_1="0.5"` — decodifica como 0x817 no shift 3; NÃO é o magic).
-Varredura de imediatos no .text (`analysis/find_817_imm.py`): exatamente
+Varredura de imediatos no .text (`docs/arquivo/analysis/find_817_imm.py`): exatamente
 **2 usos reais**, ambos no par serializer/deserializer de objetos:
 
 | VA | Papel | Código |
@@ -467,7 +467,7 @@ alto e o NIBBLE do modulo (PRE=1 DST=3 AMP=7 RVB=0C...), NAO o slot x/y
 (cfr. parameters.json: Bog RedM = 0x0700006E, nibble 7, index 110; Hall =
 0x0C000001, nibble 12, index 1). `params_N` = valores crus dos controles
 (0-14, mesma ordem do dicionario); `ppIRNum` = IR selecionado. Compatível com o dicionário
-`analysis/parameters.json` (códigos validados 0-conflito). O gp100-core pode
+`packages/core/data/parameters.json` (códigos validados 0-conflito). O gp100-core pode
 importar/exportar bibliotecas completas SEM tocar no hardware.
 
 ### 13.10 Scan de presets e paginação de estado (modelo final da sessão 1)
@@ -484,7 +484,7 @@ OUT 13 01 00 04 <- [pp u16BE] [PG u16BE] 01   avanca pagina (5B, ambos u16BE)
 
 **Larguras exatas confirmadas pela validação do golden-file** (sessão 1,
 198 presets × 9 páginas = 1.782 requests de página regenerados byte-a-byte
-por `analysis/validate_golden.py`): quirk de boot = o preset atual (pp 0x0100
+por `scripts/validate_golden.py`): quirk de boot = o preset atual (pp 0x0100
 no exemplo) recebe select+open DUPLICADOS (re-leitura): 2 selects respondem
 meta6 cada (e 1 resposta de tabela T1 chega TARDIA entre elas — backlog),
 depois 2 opens respondem PÁGINA 0 duas vezes em `13010003` (não é um 3º
@@ -535,8 +535,8 @@ Os params são 135 f32 LE (9 slots × 15) em bloco contíguo atravessando as
 páginas: pg0[68..96] + pg1..pg5 inteiros + pg6[0..32]. `effectState` mora
 em pg6 @32 (9 × u16 LE).
 
-**Provas** (gate `state_pages` — `analysis/validate_state_pages.py`,
-artefato `analysis/state_pages_offsets.json`, embutido no binário):
+**Provas** (gate `state_pages` — `scripts/validate_state_pages.py`,
+artefato `packages/core/data/state_pages_offsets.json`, embutido no binário):
 
 | o quê | medido |
 |---|---|
@@ -584,7 +584,7 @@ existe no hardware e no .prst (`params_1=80`) mas NÃO virou `controls[]`
 no algorithm.xml do Suite — controle oculto do dicionário. Corolário: ao
 serializar presets, PRESERVAR todos `params_N` 0..14 mesmo sem nome.
 
-Mapa completo (89 edits com timeline): `analysis/knob_map.json`.
+Mapa completo (89 edits com timeline): `scripts/knob_map.json`.
 
 **Corolário para o gp100-core:** para SETAR um parâmetro basta 1 SysEx
 `F0 21 25 7F 47 50 2D 64 | 12 | 10 <slot> 00 02 | <20B nibble-expandido> |
@@ -630,7 +630,7 @@ OUT 11 12001012 [i]        → IN 12 44B nibble-exp. `12 10 2c 00 [i] 00 01 …`
                               NÃO tem função setlist no manual; ver
                               `GP100_DEVICE.md` §5#1. Não expor como produto.)
                               **Layout MEDIADO em campo (10/10, aparelho real,
-                              `analysis/field/2026-10-10/state5.jsonl`):**
+                              `docs/arquivo/analysis/field/2026-10-10/state5.jsonl`):**
                               `[0]=0x12` (eco do func IN) · `[1..3]=10 2c 00`
                               (constante; 0x2c=44=B do payload) · `[4]=i` (índice
                               ecoado) · `[5..6]=00 01` · `[7..43]=00` (defaults).
@@ -756,9 +756,16 @@ acima é o caminho real de commit. Item 11 do BLOCKERS: FECHADO.
 ### 13.14 Baseline v1.1 — o que o golden NÃO sabe (e por que)
 
 > Escrito em 04/10 (#23, gate H3). A baseline é `docs/protocol_golden.json`;
-> a versão, o hash, o motivo e o histórico vivem em **`analysis/baseline.json`**
-> (`uv run python analysis/baseline.py show`). Até a v1.0 o hash era um literal
+> a versão, o hash, o motivo e o histórico vivem em **`scripts/baseline.json`**
+> (`uv run python scripts/baseline.py show`). Até a v1.0 o hash era um literal
 > dentro de um teste, sem versão e sem motivo: colar o hash novo passava.
+>
+> **v1.2 (11/10, #163)** — bump só de proveniência: a dissolução de `analysis/`
+> moveu o gerador para `scripts/` e `_meta.generated_by` no golden apontava o
+> caminho antigo. **Nenhum byte de template mudou**: 39 templates intactos,
+> `validate_golden` 100% (provas A–E) e as fixtures regeneradas batem byte a
+> byte com as versionadas. O que segue é a narrativa da v1.1 e continua valendo;
+> o registro completo está em `scripts/baseline.json` (`v1.2`).
 
 **O achado.** O `build_golden.py` cortava cada frame no **primeiro** par de
 nibbles `f7` (`hx.find("f7")`) em vez do `F7` **final** do SysEx. Nomes de preset
@@ -802,13 +809,13 @@ byte-a-byte e continua provado. O lado **IN** (resync `11000008`, resync
    bytes inventados.
 3. **Regeneração da baseline a partir do gp100-core** — o DoD literal do H3, que
    antes era impossível: o `build_golden` carregava **0 eventos** de um log do
-   core (só aceitava `out_long`/`in_long` + `hex`). `analysis/wirelog.py`
-   normaliza os dois formatos, e `analysis/validate_core_capture.py` julga a
+   core (só aceitava `out_long`/`in_long` + `hex`). `scripts/wirelog.py`
+   normaliza os dois formatos, e `scripts/validate_core_capture.py` julga a
    sessão frame a frame.
 
 ### 13.13 Bloco de registros `0000xxxx/0001xxxx/0002xxxx` + CCs curtos (G3–G5, sessão 11/10)
 
-**Fonte:** `analysis/captures/sessionG3-G6.jsonl` (Suite oficial + proxy winmm,
+**Fonte:** `docs/arquivo/analysis/captures/sessionG3-G6.jsonl` (Suite oficial + proxy winmm,
 5322 frames SysEx + 3 CCs, 292 s; o dono operou a UI do Suite). Tudo abaixo é
 **medido**, sem semântica inventada (ADR-13): endereço e forma são fato;
 "o que o controla" fica para o diff de ação→endereço (§13.13.4).

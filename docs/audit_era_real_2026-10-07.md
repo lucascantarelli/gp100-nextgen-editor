@@ -140,10 +140,10 @@ ser exercício da tela fora do hardware.
 ## 7. Fontes citadas
 
 - Sessões de campo 07/10: asserts do device (2) + boot limpo pós-fix + biblioteca.
-  - [ ] arquivar os logs de campo desta data em `analysis/field/2026-10-07/`
+  - [ ] arquivar os logs de campo desta data em `docs/arquivo/analysis/field/2026-10-07/`
     (mesmo padrão do H1/H2_REPORT).
-- `analysis/captures/session{1..4}.jsonl` (796 selects; payloads = 0000..0062, 0100..0162).
-- `analysis/manual_v18.txt` ("two patch banks: User P01–P99 / Factory F01–F99").
+- `docs/arquivo/analysis/captures/session{1..4}.jsonl` (796 selects; payloads = 0000..0062, 0100..0162).
+- `docs/arquivo/analysis/manual_v18.txt` ("two patch banks: User P01–P99 / Factory F01–F99").
 - Valeton oficial (valeton.net/product/gp-100): "198 presets (99 user + 99 factory)".
 - Issues: #148 (duplicata consolidada em #132/#137), #150 (biblioteca do aparelho), #116 (A/B), #110 (precedente knob).
 - `packages/core/src/session.rs` (inventory/select_preset/pp_e_valido), `packages/app/ui/src/hooks/useStage.ts` (o mount abre o `current_pp` via `device_preset_library`).
