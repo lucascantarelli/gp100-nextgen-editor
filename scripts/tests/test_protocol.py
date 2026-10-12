@@ -15,20 +15,20 @@ import sys
 import contextlib
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-ANALYSIS = os.path.join(ROOT, "analysis")
-sys.path.insert(0, ANALYSIS)
+SCRIPTS = os.path.join(ROOT, "scripts")
+sys.path.insert(0, SCRIPTS)
 sys.stdout.reconfigure(errors="replace")
 
 # ---------------------------------------------------------------- helpers
 class _Buf(io.StringIO):
-    """StringIO que tolera sys.stdout.reconfigure() dos scripts de analysis/."""
+    """StringIO que tolera sys.stdout.reconfigure() dos scripts de `scripts/`."""
     def reconfigure(self, *a, **k):
         pass
 
 def run_module(filename, *args):
-    """executa um script de analysis/ capturando stdout; retorna (exitcode, out)."""
+    """executa um script de `scripts/` capturando stdout; retorna (exitcode, out)."""
     spec = importlib.util.spec_from_file_location(
-        filename[:-3].replace("-", "_"), os.path.join(ANALYSIS, filename))
+        filename[:-3].replace("-", "_"), os.path.join(SCRIPTS, filename))
     mod = importlib.util.module_from_spec(spec)
     buf = _Buf()
     old_argv = sys.argv
@@ -115,7 +115,7 @@ def test_golden_baseline_hash_unchanged():
     """P1: baseline congelada — golden nao pode mudar sem spec-baseline.
 
     O hash NAO mora mais aqui como literal (#23): mora em
-    `analysis/baseline.json`, que alem do hash carrega versao, data, motivo e
+    `scripts/baseline.json`, que alem do hash carrega versao, data, motivo e
     historico. Um literal aqui verificava que o arquivo nao mudou, mas nao
     que alguem explicou POR QUE — e era so colar o hash novo para passar.
     """
@@ -131,7 +131,7 @@ def test_baseline_tem_motivo_em_cada_versao():
     o ARQUIVO tem conteudo. Um `--check` que so valida o hash passaria com
     um historico de motivacoes em branco.
     """
-    reg = os.path.join(ROOT, "analysis", "baseline.json")
+    reg = os.path.join(ROOT, "scripts", "baseline.json")
     data = json.load(open(reg, encoding="utf-8"))
     assert data.get("versao"), "registro sem versao"
     assert data.get("motivo", "").strip(), "versao atual sem motivo"

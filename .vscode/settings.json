@@ -35,7 +35,7 @@
   "search.exclude": {
     "**/target": true,
     "packages/app/ui/dist": true,
-    "analysis/nsis_app": true,
+    "docs/arquivo/analysis/nsis_app": true,
     "pnpm-lock.yaml": true,
     "Cargo.lock": true
   }

@@ -11,7 +11,7 @@ Formato da captura: cada linha é o SysEx COMPLETO.
     f0 21 25 7f 47 50 2d 64 | <func> | <addr 4B> | <payload> | f7
      0  1  2  3  4  5  6  7     8        9..12      13..        -1
 
-Uso:  python analysis/check_byte_order.py
+Uso:  python scripts/check_byte_order.py
 """
 import json
 import struct
@@ -19,7 +19,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-CAP = ROOT / "analysis" / "captures" / "session3.jsonl"
+CAP = ROOT / "docs" / "arquivo" / "analysis" / "captures" / "session3.jsonl"
 HDR = bytes.fromhex("f021257f47502d64")  # 8 bytes de cabeçalho do SysEx
 
 

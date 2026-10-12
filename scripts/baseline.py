@@ -4,7 +4,7 @@
 Por que o hash nao pode morar dentro de um teste
 ------------------------------------------------
 Ate o H3, "a baseline esta congelada" era um `assert h == "0426d6..."` dentro
-de `analysis/tests/test_protocol.py`. Isso trava a mudanca, mas tem dois furos:
+de `scripts/tests/test_protocol.py`. Isso trava a mudanca, mas tem dois furos:
 
 1. **Nao ha motivo.** O golden pode mudar por qualquer motivo — inclusive um
    erro de script — e o unico registro do "por que" e a frase na mensagem de
@@ -16,9 +16,9 @@ de `analysis/tests/test_protocol.py`. Isso trava a mudanca, mas tem dois furos:
 O `docs/PROTOCOL.md` §13 e a memoria do protocolo; este arquivo e a memoria
 **da baseline**, com as duas coisas que faltavam: numero de versao e motivo.
 
-    uv run python analysis/baseline.py --check        # gate (CI)
-    uv run python analysis/baseline.py show
-    uv run python analysis/baseline.py bump --motivo "..." --issue "#23"
+    uv run python scripts/baseline.py --check        # gate (CI)
+    uv run python scripts/baseline.py show
+    uv run python scripts/baseline.py bump --motivo "..." --issue "#23"
 
 `bump` recusa escrever sem `--motivo`. Nao e burocracia: e o que separa
 "corrigi um bug de terminador SysEx, com 100 linhas cortadas descartadas" de
@@ -33,7 +33,7 @@ import sys
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 GOLDEN = os.path.join(ROOT, "docs", "protocol_golden.json")
-REGISTRO = os.path.join(ROOT, "analysis", "baseline.json")
+REGISTRO = os.path.join(ROOT, "scripts", "baseline.json")
 
 
 def sha256(path: str) -> str:

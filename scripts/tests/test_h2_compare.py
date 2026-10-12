@@ -46,7 +46,7 @@ h2 = _carregar()
 # ---------------------------------------------------------------- helpers
 def _log(nome, frames):
     """Grava um log P4 e devolve o caminho."""
-    caminho = ROOT / "analysis" / "h2_scratch_test" / nome
+    caminho = ROOT / "docs" / "arquivo" / "analysis" / "h2_scratch_test" / nome
     caminho.parent.mkdir(parents=True, exist_ok=True)
     with io.open(caminho, "w", encoding="utf-8", newline="") as fh:
         for dir_, func, addr, data in frames:

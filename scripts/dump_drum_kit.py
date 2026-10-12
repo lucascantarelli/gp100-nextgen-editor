@@ -8,7 +8,7 @@ traz rótulos de gênero; o agrupamento por conteúdo é evidente na ordem
 (Electronic → Rock → Pop/Blues → World → Jazz) e os rótulos são INFERIDOS
 (documentado em docs/UI_REFERENCE.md §8).
 
-Regenerar: uv run python analysis/dump_drum_kit.py
+Regenerar: uv run python scripts/dump_drum_kit.py
 """
 import re
 import sys
@@ -58,7 +58,7 @@ lines = [
     "/**",
     " * Ritmos da bateria (drum) da GP-100 — GERADO do firmware V2.1",
     " * (tabela de estilos entre as divisões de nota e os compassos).",
-    " * NÃO editar mão. Regenerar: uv run python analysis/dump_drum_kit.py",
+    " * NÃO editar mão. Regenerar: uv run python scripts/dump_drum_kit.py",
     " *",
     " * Os RÓTULOS de gênero são inferidos (o firmware ordena os estilos por",
     " * grupo sem gravar os nomes); a LISTA e a ORDEM dos estilos são reais.",

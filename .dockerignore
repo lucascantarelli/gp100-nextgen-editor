@@ -3,7 +3,6 @@
 # contexto útil e só faria o upload de contexto crescer.
 .git
 .github
-analysis
 docs
 packages/app/ui/node_modules
 packages/app/ui/dist

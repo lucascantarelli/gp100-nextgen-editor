@@ -30,7 +30,7 @@ set -u  # sem -e: a classificação de divergência é manual, o roteiro segue
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 MOCK_CLI="$ROOT/target/release/gp100-cli.exe"
-REF="$ROOT/analysis/h1_reference"
+REF="$ROOT/docs/arquivo/analysis/h1_reference"
 STAMP="$(date +%Y%m%d_%H%M%S)"
 
 die() { echo "[!] $*" >&2; exit 2; }
@@ -54,7 +54,7 @@ fase_c() {
 
 do_rehearsal() {
     [ -f "$MOCK_CLI" ] || die "binário de campo ausente: $MOCK_CLI (cargo build --release -p gp100-cli)"
-    local out="$ROOT/analysis/h1_rehearsal_$STAMP"
+    local out="$ROOT/docs/arquivo/analysis/h1_rehearsal_$STAMP"
     mkdir -p "$out"
     echo "════ ENSAIO H1 (mock) — saída em $out"
     cp "$MOCK_CLI" "$out/" 2>/dev/null || true
@@ -84,7 +84,7 @@ do_rehearsal() {
 do_field() {
     local real_cli="$1" tag="$2"
     [ -x "$real_cli" ] || die "CLI real não encontrado/executável: $real_cli"
-    local out="$ROOT/analysis/h1_field_$tag"
+    local out="$ROOT/docs/arquivo/analysis/h1_field_$tag"
     mkdir -p "$out"
     echo "════ CAMPO H1 (só leitura) — saída em $out"
     echo "    Pré-checagens do checklist §2: Suite FECHADO? USB direta? display anotado?"
@@ -122,7 +122,7 @@ do_field() {
     echo "════ CAMPO concluído — logs brutos: $out/*.jsonl (append-only, -text)"
     echo
     # A FASE C É O JUIZ. Antes ela era um lembrete em texto ("compare o
-    # framing de cada *.jsonl vs analysis/h1_reference/") executado na mão,
+    # framing de cada *.jsonl vs docs/arquivo/analysis/h1_reference/") executado na mão,
     # DEPOIS de desligar a pedaleira — e é ela que decide se o H1 passou.
     local rc=0
     fase_c "$out" || rc=$?
@@ -141,7 +141,7 @@ do_field() {
 
 # ---------------------------------------------------------------- reference
 
-# `analysis/h1_reference/` é um artefato DERIVADO: é a saída do MockDevice
+# `docs/arquivo/analysis/h1_reference/` é um artefato DERIVADO: é a saída do MockDevice
 # atual, não um golden de captura. Por isso ela tem um comando que a
 # regenera — sem ele, o único jeito de consertar um drift é editar arquivo
 # na mão, que é o caminho mais curto para a referência deixar de descrever
@@ -153,7 +153,7 @@ do_field() {
 do_refresh() {
     [ -f "$MOCK_CLI" ] || die "binário ausente: $MOCK_CLI (cargo build --release -p gp100-cli)"
     local forcar="${1:-}"
-    local out="$ROOT/analysis/h1_refresh_$STAMP"
+    local out="$ROOT/docs/arquivo/analysis/h1_refresh_$STAMP"
     mkdir -p "$out"
     "$MOCK_CLI" info > "$out/info.txt" 2>&1
     "$MOCK_CLI" list-user-irs --log "$out/b2_list.jsonl" > "$out/b2_list.txt" 2>&1
@@ -219,16 +219,16 @@ uso: scripts/h1_field.sh <comando>
 
   rehearsal                       ensaio completo contra o MOCK (hoje)
   field <cli-real> <tag>          roteiro de campo pós-RealDevice (H1)
-  refresh-reference               regenera analysis/h1_reference/ do mock atual
+  refresh-reference               regenera docs/arquivo/analysis/h1_reference/ do mock atual
 
 A Fase C (comparação e classificação nos 3 níveis do §4) é feita por
 scripts/h1_compare.py — chame-o direto se tiver a sessão e quiser o
 veredito sem re-rodar o roteiro:
 
-  python3 scripts/h1_compare.py analysis/h1_field_<tag> --markdown
+  python3 scripts/h1_compare.py docs/arquivo/analysis/h1_field_<tag> --markdown
   python3 scripts/h1_compare.py --self-check   # gate: referência x §13
 
-Referências do mock: analysis/h1_reference/ · Checklist: docs/H1_CHECKLIST.md
+Referências do mock: docs/arquivo/analysis/h1_reference/ · Checklist: docs/H1_CHECKLIST.md
 USAGE
     ;;
 esac

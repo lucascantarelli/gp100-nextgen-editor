@@ -1,7 +1,7 @@
 """test_param_ranges.py — a trava de conteudo do knob se prova por MUTACAO (#110).
 
 O que aconteceu em campo (05/10/2026, gate H2, GP-100 V2.1) esta na
-docstring de `analysis/param_ranges.py` e vale a repeticao curta: o runbook
+docstring de `scripts/param_ranges.py` e vale a repeticao curta: o runbook
 mandava um valor inventado, o firmware V2.1 tem o assert
 `para <= GetParaMaxVal` (`Drivers/audio/audio.c:1828`), e ao assertar ele
 **para de responder a toda transacao** — inclusive as leituras. O device
@@ -25,9 +25,9 @@ RAIZ = pathlib.Path(__file__).resolve().parents[2]
 
 
 def _carrega():
-    """Importa `analysis/param_ranges.py` como modulo (o nome tem caminho)."""
+    """Importa `scripts/param_ranges.py` como modulo (o nome tem caminho)."""
     spec = importlib.util.spec_from_file_location(
-        "param_ranges", RAIZ / "analysis" / "param_ranges.py"
+        "param_ranges", RAIZ / "scripts" / "param_ranges.py"
     )
     assert spec and spec.loader
     mod = importlib.util.module_from_spec(spec)
@@ -151,7 +151,7 @@ def test_o_artefato_bate_com_os_arquivos():
     import json
 
     artefato = json.loads(
-        (RAIZ / "analysis" / "param_ranges.json").read_text(encoding="utf-8")
+        (RAIZ / "scripts" / "param_ranges.json").read_text(encoding="utf-8")
     )
     erros = pr.checar(artefato, pr.derivar())
     assert erros == [], erros
@@ -162,7 +162,7 @@ def test_o_artefato_guarda_o_hash_das_duas_fontes():
     import json
 
     artefato = json.loads(
-        (RAIZ / "analysis" / "param_ranges.json").read_text(encoding="utf-8")
+        (RAIZ / "scripts" / "param_ranges.json").read_text(encoding="utf-8")
     )
     fontes = artefato["sources"]
     assert fontes["dictionary"]["sha256"] == pr.sha256(pr.DICIONARIO)

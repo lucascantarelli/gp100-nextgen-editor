@@ -14,7 +14,7 @@ Saída: packages/core/data/fx_map.json
     knobs vêm todos, sem corte).
   - stats: contagens por módulo (quantos SVGs por família e capacidades).
 
-Rodar: uv run python analysis/dump_fx_map.py
+Rodar: uv run python scripts/dump_fx_map.py
 """
 
 import json

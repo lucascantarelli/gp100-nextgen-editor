@@ -36,7 +36,7 @@ Com isso o offset deixa de ser PROCURADO e passa a ser **CALCULADO pela
 estrutura**, o que e uma prova muito mais forte que qualquer dominancia de
 votos. Este script valida o modelo e so grava se ele casar.
 
-Uso:  python analysis/map_state_pages.py   (exit 1 se o modelo nao casar)
+Uso:  python scripts/map_state_pages.py   (exit 1 se o modelo nao casar)
 """
 import json
 import os
@@ -46,7 +46,7 @@ import xml.etree.ElementTree as ET
 from collections import Counter
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-CAP1 = os.path.join(HERE, "captures", "session1.jsonl")
+CAP1 = os.path.join(HERE, "..", "docs", "arquivo", "analysis", "captures", "session1.jsonl")
 ALLP = os.path.join(HERE, os.pardir, "files", "patches", "all.prst")
 OUT = os.path.join(HERE, "..", "packages", "core", "data", "state_pages_offsets.json")
 
@@ -279,7 +279,7 @@ def main():
     ok = taxa_params >= MODELO_MIN and taxa_state >= MODELO_MIN
 
     saida = {
-        "generated_from": "analysis/captures/session1.jsonl",
+        "generated_from": "docs/arquivo/analysis/captures/session1.jsonl",
         "encoding": "nibble",
         "method": "modelo-deterministico (offset calculado pela estrutura)",
         "layout": {

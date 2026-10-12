@@ -22,7 +22,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import wirelog
 
 HDR = "f021257f47502d64"
-CAPTURES = sorted(glob.glob(os.path.join("analysis", "captures", "session*.jsonl")))
+CAPTURES = sorted(glob.glob(os.path.join("docs", "arquivo", "analysis", "captures", "session*.jsonl")))
 OUT = os.path.join("docs", "protocol_golden.json")
 PAIR_TIMEOUT_MS = 3000
 GAP_MS = 30000
@@ -47,7 +47,7 @@ def trim(hx):
     existiram no fio — o golden passaria a descrever um aparelho que nao e
     este. Entao: sem F7 final, `None`. Cortado se conta e segue (R1).
 
-    A regra mora em `analysis/wirelog.py` (fonte unica — #23); aqui delegamos.
+    A regra mora em `scripts/wirelog.py` (fonte unica — #23); aqui delegamos.
     """
     return wirelog.trim(hx)
 
@@ -304,7 +304,7 @@ def main():
     doc = {
         "_meta": {
             "title": "GP-100 protocol golden-file (especificação executável)",
-            "generated_by": "analysis/build_golden.py",
+            "generated_by": "scripts/build_golden.py",
             "wire_header": "F0 21 25 7F 47 50 2D 64 | FUNC | ADDR(4B BE) | DATA | F7",
             "func": {"0x11": "READ request", "0x12": "data/write (respostas e writes)"},
             "pairing": f"OUT->IN por (func,addr), timeout {PAIR_TIMEOUT_MS}ms; "

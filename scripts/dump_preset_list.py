@@ -3,7 +3,7 @@
 para packages/app/ui/src/artifacts/presetData.ts (const FACTORY_PRESETS).
 
 Fonte: files/patches/all.prst (schema §13.9 do PROTOCOL.md). O artefato é
-GERADO — não editar mão. Regenerar: uv run python analysis/dump_preset_list.py
+GERADO — não editar mão. Regenerar: uv run python scripts/dump_preset_list.py
 """
 import re
 import sys
@@ -35,7 +35,7 @@ lines = [
     "/**",
     " * Biblioteca de FÁBRICA da GP-100 — GERADO de files/patches/all.prst",
     " * (schema §13.9 do PROTOCOL.md). NÃO editar mão.",
-    " * Regenerar: uv run python analysis/dump_preset_list.py",
+    " * Regenerar: uv run python scripts/dump_preset_list.py",
     " */",
     "",
     "export interface FactoryPreset {",

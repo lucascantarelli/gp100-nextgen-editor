@@ -17,7 +17,7 @@ DST antes de PRE; ppID 11 tem CAB antes de NR) — `@x` é a posição real e o
 GP-100 deixa reordenar os pedais. Por isso `slot` vem de `@x` e `family` do
 módulo, sem supor que sejam iguais.
 
-Regenerar: uv run python analysis/dump_preset_chains.py
+Regenerar: uv run python scripts/dump_preset_chains.py
 """
 import sys
 import xml.etree.ElementTree as ET
@@ -71,7 +71,7 @@ lines = [
     "/**",
     " * CADEIA dos 99 presets de fábrica — GERADO de files/patches/all.prst",
     " * (schema §13.9 do PROTOCOL.md). NÃO editar à mão.",
-    " * Regenerar: uv run python analysis/dump_preset_chains.py",
+    " * Regenerar: uv run python scripts/dump_preset_chains.py",
     " *",
     " * É a MESMA leitura que o core Rust faz em `pedalboard::board_view_for`:",
     " * `slot` = `@x` (posição na cadeia), `family` = `effectModuleName`,",
