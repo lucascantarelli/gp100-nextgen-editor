@@ -67,17 +67,17 @@ GATES: list[tuple[str, list[str], str]] = [
     ),
     (
         "byte_order",
-        [sys.executable, "analysis/check_byte_order.py"],
+        [sys.executable, "scripts/check_byte_order.py"],
         "o effectCode e u32 LE no fio real — se alguem escrever BE, os decoders mentem",
     ),
     (
         "param_ranges",
-        [sys.executable, "analysis/param_ranges.py", "--check"],
+        [sys.executable, "scripts/param_ranges.py", "--check"],
         "a trava de conteudo do knob (#110) bate com o dicionario e com as 92 amostras reais",
     ),
     (
         "state_pages",
-        [sys.executable, "analysis/validate_state_pages.py"],
+        [sys.executable, "scripts/validate_state_pages.py"],
         "o layout das paginas 13xx casa no modelo deterministico (#155) — o artefato e embutido no binario",
     ),
     (
@@ -87,7 +87,7 @@ GATES: list[tuple[str, list[str], str]] = [
     ),
     (
         "baseline",
-        [sys.executable, "analysis/baseline.py", "--check"],
+        [sys.executable, "scripts/baseline.py", "--check"],
         "a baseline do golden tem versao, hash E motivo (R2/R3)",
     ),
     (

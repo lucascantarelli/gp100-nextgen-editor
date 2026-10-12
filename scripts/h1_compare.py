@@ -62,7 +62,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from wirelog_compare import Frame, encurta_hex, ler_log, rotulo_de_endpoint
 
 ROOT = Path(__file__).resolve().parent.parent
-REFERENCIA = ROOT / "analysis" / "h1_reference"
+REFERENCIA = ROOT / "docs" / "arquivo" / "analysis" / "h1_reference"
 
 # O console do Windows e cp1252 e o texto deste script tem § e acentos: sem
 # isto, `print` morre com UnicodeEncodeError. O `hasattr` e o mesmo de
@@ -514,7 +514,7 @@ def main() -> int:
         "sessao",
         nargs="?",
         type=Path,
-        help="diretorio da sessao (analysis/h1_field_<tag> ou h1_rehearsal_*)",
+        help="diretorio da sessao (docs/arquivo/analysis/h1_field_<tag> ou h1_rehearsal_*)",
     )
     ap.add_argument(
         "--ensaio",

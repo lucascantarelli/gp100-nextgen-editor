@@ -6,7 +6,7 @@
 > **Kit de campo PRONTO (05/10, issue #22):** runbook `scripts/h2_field.sh
 > rehearsal|field` · **juiz da Fase C `scripts/h2_compare.py`** (confere os
 > invariantes do §13 nos 3 fluxos e imprime o que o DISPLAY deve mostrar) ·
-> referência `analysis/h2_reference/` que ancora a tabela de formas · gate de
+> referência `docs/arquivo/analysis/h2_reference/` que ancora a tabela de formas · gate de
 > CI `h2_compare --self-check`. O `rehearsal` sai com 0 contra o mock.
 >
 > **O QUE A #22 CORRIGIU, e era um buraco no gate:** `set-param` e `save`
@@ -123,7 +123,7 @@ O mais simples dos três: 1 frame, sem resposta, sem read-back no fio (D4).
 - [ ] Escolha um knob de efeito com valor visível no display (ex.: AMP Gain —
       o mesmo que a S3 usou, gain ~99)
 - [ ] Escolha um valor **diferente** do que está no display
-- [ ] `gp100-cli --real --i-know-what-im-doing --log analysis/h2/<sessão>/f1_setparam.jsonl set-param <slot> <code> <ctrl> <valor>`
+- [ ] `gp100-cli --real --i-know-what-im-doing --log docs/arquivo/analysis/h2/<sessão>/f1_setparam.jsonl set-param <slot> <code> <ctrl> <valor>`
       - `slot` = 1..=9, a posição na **cadeia** (1=PRE … 9=RVB) — *não* o slot de IR
       - `code` = `effectCode` do algoritmo, u32 hex (ex.: Bog RedM = `0x0700006e`)
       - `ctrl` = índice do controle (AMP: 0=Gain, 1=PRES, 2=Master)
@@ -142,7 +142,7 @@ esperado** (D3 — fire-and-forget; burst tardio NÃO é confirmação).
 
 - [ ] Escolha um preset **descartável** (regra 3.2)
 - [ ] Anote o nome atual do preset no display
-- [ ] `gp100-cli --real --i-know-what-im-doing --log analysis/h2/<sessão>/f2_save.jsonl save <pp> <pp-type> "<nome-novo>"`
+- [ ] `gp100-cli --real --i-know-what-im-doing --log docs/arquivo/analysis/h2/<sessão>/f2_save.jsonl save <pp> <pp-type> "<nome-novo>"`
       - `pp` = id do preset (hex `0x0000` ou decimal)
       - `pp-type` = 4=Rock, 6=Pop (o dicionário do `.prst`)
       - nome = até 12 caracteres (o `.prst` trunca e preenche)
@@ -160,10 +160,10 @@ upload é a **duplicação do último chunk** (idx `0x226`), não um commit.
       `list-user-irs` ANTES de escrever). Regra dura: **não subir em slot
       ocupado** — o conteúdo do slot anterior não é recuperável.
 - [ ] O blob tem de ser **múltiplo de 15 bytes** (§13.7 rev.2: a FSM
-      *rejeita*, não padroniza). O `analysis/test_ir_mono.wav` do repo serve
+      *rejeita*, não padroniza). O `docs/arquivo/analysis/test_ir_mono.wav` do repo serve
       de insumo, mas o upload é do **blob** de 4.425 B (§13.7: o device
       armazena representação reduzida, não o WAV cru)
-- [ ] `gp100-cli --real --i-know-what-im-doing --log analysis/h2/<sessão>/f3_upload.jsonl upload-ir <slot> <arquivo-do-blob>`
+- [ ] `gp100-cli --real --i-know-what-im-doing --log docs/arquivo/analysis/h2/<sessão>/f3_upload.jsonl upload-ir <slot> <arquivo-do-blob>`
 - [ ] Confirme no display: o slot mostra o nome do IR
 - [ ] Read-back de software (a única verificação programática dos 3 fluxos):
       `gp100-cli --real --i-know-what-im-doing list-user-irs` → o nome do slot
@@ -187,7 +187,7 @@ O que o fio **não** pode provar — porque os dois primeiros são fire-and-forg
 e o §13 não tem read-back — é o efeito no aparelho. Por isso o juiz **imprime
 o valor que o display DEVERIA mostrar** (`15.0`, o nome `'H2 TESTE'`, o slot
 `0`) — e `15.0` **não** é um número redondo: é o valor que a Suite realmente
-enviou para esse par de knob na captura `analysis/fixtures/knobs.jsonl`. O
+enviou para esse par de knob na captura `packages/core/data/fixtures/knobs.jsonl`. O
 runbook usava `99.5`, que estava acima do teto real e derrubou o firmware do
 GP-100 num assert `para <= GetParaMaxVal(` — ver
 [H2_REPORT.md](H2_REPORT.md) §3.1 e §4. A verificação do §2.5 vira uma comparação, e não um "pareceu que".
@@ -203,7 +203,7 @@ veredito do display). Saída `1` = PARAR, e o §7 diz o que fazer.
 
 > **A transcrição do §13 é conferida contra a referência, não contra a
 > memória.** O `--self-check` roda em CI e compara a tabela de formas com os
-> logs que o `MockDevice` emite (`analysis/h2_reference/`). Isso não é
+> logs que o `MockDevice` emite (`docs/arquivo/analysis/h2_reference/`). Isso não é
 > paranoia: a tabela já errou uma vez, com o ACK do chunk de IR em 75B — que
 > é o tamanho da resposta da **lista** dos 20 slots, a mesma mensagem
 > `12/12001002` com outro conteúdo. Nada pegou, e o erro só apareceria com a

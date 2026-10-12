@@ -3,7 +3,7 @@
 
 O problema que este script resolve
 ----------------------------------
-`analysis/validate_golden.py` valida as **4 capturas do Suite** e so elas: os
+`scripts/validate_golden.py` valida as **4 capturas do Suite** e so elas: os
 enderecos, as janelas de tempo e as provas estao hard-coded por sessao. Ele nao
 sabe o que fazer com uma sessao nova, e menos ainda com uma sessao vinda do
 gp100-core (que e justamente o DoD do H3: "nova captura com o gp100-core no fio
@@ -13,8 +13,8 @@ Este juiz e o geral: nao conhece senao, senao nem janela. Ele diz, frame a
 frame, se o que o gp100-core fez no fio esta coberto pela especificacao e se os
 bytes batem.
 
-    uv run python analysis/validate_core_capture.py <log.jsonl> [--markdown]
-    uv run python analysis/validate_core_capture.py <log.jsonl> --json
+    uv run python scripts/validate_core_capture.py <log.jsonl> [--markdown]
+    uv run python scripts/validate_core_capture.py <log.jsonl> --json
 
 Saidas (exit codes)
 ------------------
@@ -214,7 +214,7 @@ def main(argv=None) -> int:
     fonte = args[0]
     eventos, diag = wirelog.load(fonte)
     if not eventos:
-        print(f"{fonte}: 0 EVENTOS. Formato inesperado? Use analysis/wirelog.py "
+        print(f"{fonte}: 0 EVENTOS. Formato inesperado? Use scripts/wirelog.py "
               f"para inspecionar.")
         print(f"  diag: {diag}")
         return 3

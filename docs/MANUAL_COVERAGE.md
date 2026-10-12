@@ -2,7 +2,7 @@
 
 > **Status:** 🔨 vivo · **Criado:** 30/09/2026
 > **Fontes:** docs/UI_REFERENCE.md §1 (app oficial + manual), `files/GP-100_Online Manual_EN_Firmware V2.0.pdf`
-> (extração em `analysis/manual_streams.txt`), firmware V2.1 (drum/looper/Global EQ), all.prst (99 presets).
+> (extração em `docs/arquivo/analysis/manual_streams.txt`), firmware V2.1 (drum/looper/Global EQ), all.prst (99 presets).
 > **Regra do owner (30/09):** toda funcionalidade do manual deve estar implementada E testada
 > antes de avançar de fase. Esta matriz é a prova viva — nada passa para a Fase 2 com 🔴/🟡.
 > **Testes:** ✅ = e2e Playwright (14/14, `pnpm e2e`) · unit vitest (23/23, `pnpm test`).
@@ -99,7 +99,7 @@
 | X5 | e2e na CI contra `pnpm dev` (Chromium) — gate de release | ✅ `Testes · E2E shell` | CI |
 | X6 | Regressão estética (toHaveScreenshot, baselines por viewport/plataforma/tema) | ✅ | `Testes · E2E visual` + `visual.spec` |
 | X7 | Smoke do shell Tauri REAL no webview (tauri-driver, Linux) | ✅ | `Testes · E2E webview` |
-| X8 | **Gestor de tons SnapTone/NAM** (#25) — importa o `.clo` (convertido pelo Valeton Suite), guarda no SQLite com CRC-32, atribui a 1 dos 5 slots, manda ao aparelho (blocos de 19B + ACK) e faz A/B tocando o WAV do Suite | ✅ botão `∿` no rodapé da biblioteca (fora do manual V1.8; o recurso existe no app oficial — `analysis/release_note.txt`) | 33 unit + e2e (painel/rodapé) |
+| X8 | **Gestor de tons SnapTone/NAM** (#25) — importa o `.clo` (convertido pelo Valeton Suite), guarda no SQLite com CRC-32, atribui a 1 dos 5 slots, manda ao aparelho (blocos de 19B + ACK) e faz A/B tocando o WAV do Suite | ✅ botão `∿` no rodapé da biblioteca (fora do manual V1.8; o recurso existe no app oficial — `docs/arquivo/analysis/release_note.txt`) | 33 unit + e2e (painel/rodapé) |
 | X9 | **Laboratório de IRs** (#24) — importa o `.ir`, guarda no SQLite, atribui a 1 dos 20 slots, sobe ao aparelho (blocos de 15B + ACK por chunk) e mostra a tabela que o **aparelho** relata | ✅ porta de conteúdo `∿` do rodapé (tons OU IRs); fora do manual V1.8 | 13 core + 17 library + 32 front (porta IPC/tela/hook) |
 
 ## Placar: **35 ✅ · 5 🟡 · 5 🔴** — nenhuma 🔴/🟡 é silenciosa (ou está explícita na UI como aguardando captura, ou é Fase 2/3 documentada).

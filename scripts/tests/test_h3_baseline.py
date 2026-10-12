@@ -18,21 +18,22 @@ import os
 import sys
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-ANALYSIS = os.path.join(ROOT, "analysis")
-sys.path.insert(0, ANALYSIS)
+SCRIPTS = os.path.join(ROOT, "scripts")
+ARQ = os.path.join(ROOT, "docs", "arquivo", "analysis")
+sys.path.insert(0, SCRIPTS)
 
 
 class _Buf(io.StringIO):
-    """StringIO que tolera o sys.stdout.reconfigure dos scripts de analysis/."""
+    """StringIO que tolera o sys.stdout.reconfigure dos scripts de `scripts/`."""
 
     def reconfigure(self, *a, **k):
         pass
 
 
 def run_module(filename, *args):
-    """Executa um script de analysis/ capturando stdout; devolve (exit, out)."""
+    """Executa um script de `scripts/` capturando stdout; devolve (exit, out)."""
     spec = importlib.util.spec_from_file_location(
-        filename[:-3].replace("-", "_"), os.path.join(ANALYSIS, filename))
+        filename[:-3].replace("-", "_"), os.path.join(SCRIPTS, filename))
     mod = importlib.util.module_from_spec(spec)
     buf = _Buf()
     old_argv, old_stdout = sys.argv, sys.stdout
@@ -150,7 +151,7 @@ def test_linha_cortada_nao_gera_payload_fabricado():
 
 def test_le_captura_do_suite_e_log_do_core():
     """O objetivo do modulo: os dois formatos viram a MESMA forma."""
-    evs_suite, _ = wirelog.load(os.path.join(ANALYSIS, "captures", "session1.jsonl"))
+    evs_suite, _ = wirelog.load(os.path.join(ARQ, "captures", "session1.jsonl"))
     evs_p4, _ = wirelog.load(os.path.join(ROOT, "packages", "core", "data", "fixtures", "boot.jsonl"))
     assert evs_suite, "captura do Suite nao carregou"
     assert evs_p4, "log P4 nao carregou"
@@ -183,7 +184,7 @@ def test_rebuild_devolve_o_envelope_original():
 
 def test_relogio_ausente_e_reportado():
     """Sem `t` nao da para segmentar nem casar OUT->IN. E preciso dizer."""
-    evs, diag = wirelog.load(os.path.join(ANALYSIS, "captures", "session1.jsonl"))
+    evs, diag = wirelog.load(os.path.join(ARQ, "captures", "session1.jsonl"))
     assert diag["sem_relogio"] == 0, "captura do Suite tem relogio"
     assert wirelog.segmentos(evs), "captura com relogio deveria segmentar"
     # e um log sem relogio NAO pode fingir que sabe segmentar:
@@ -200,7 +201,7 @@ def test_baseline_check_passa_no_estado_do_repo():
 
 def test_baseline_recusa_hash_divergente(tmp_path=None):
     """Gate novo é inútil sem provar que ele falha."""
-    reg_path = os.path.join(ANALYSIS, "baseline.json")
+    reg_path = os.path.join(SCRIPTS, "baseline.json")
     original = open(reg_path, encoding="utf-8").read()
     try:
         reg = json.loads(original)
@@ -217,7 +218,7 @@ def test_baseline_recusa_hash_divergente(tmp_path=None):
 
 def test_baseline_recusa_motivo_vazio():
     """O motivo é o que separa 'corrigi um bug' de 'rodei o script'."""
-    reg_path = os.path.join(ANALYSIS, "baseline.json")
+    reg_path = os.path.join(SCRIPTS, "baseline.json")
     original = open(reg_path, encoding="utf-8").read()
     try:
         reg = json.loads(original)
@@ -239,7 +240,7 @@ def test_bump_sem_motivo_e_recusado():
 
 
 def test_registro_tem_historico_com_motivo_e_data():
-    reg = json.load(open(os.path.join(ANALYSIS, "baseline.json"), encoding="utf-8"))
+    reg = json.load(open(os.path.join(SCRIPTS, "baseline.json"), encoding="utf-8"))
     assert reg["versao"], "sem versao"
     assert reg["motivo"].strip(), "versao atual sem motivo"
     hist = reg["historico"]

@@ -58,7 +58,7 @@ MTIME_FIXO = 1_577_836_800
 
 # O que entra no tarball. Deliberadamente MINIMO: o PKGBUILD so precisa do
 # necessario para `cargo build --release --locked` do shell e para montar o
-# pacote. Entrar com `analysis/`, `files/` ou os testes do front incharia o
+# pacote. Entrar com `docs/arquivo/analysis/`, `files/` ou os testes do front incharia o
 # tarball e arrastaria material que o `.gitignore` existe para nao distribuir.
 INCLUDE_ARQUIVOS = [
     "Cargo.toml",

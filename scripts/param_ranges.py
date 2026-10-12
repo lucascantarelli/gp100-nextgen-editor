@@ -32,9 +32,9 @@ o codigo nao responde:
    owner (ADR-10) — entao essa lista e o backlog do dicionario, e precisa
    ser visivel, nao enterrada.
 
-    python analysis/param_ranges.py            # regera o artefato
-    python analysis/param_ranges.py --check    # gate (CI)
-    python analysis/param_ranges.py show       # o relatório, legível
+    python scripts/param_ranges.py            # regera o artefato
+    python scripts/param_ranges.py --check    # gate (CI)
+    python scripts/param_ranges.py show       # o relatório, legível
 """
 from __future__ import annotations
 
@@ -47,7 +47,7 @@ import sys
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 DICIONARIO = os.path.join(ROOT, "packages", "core", "data", "parameters.json")
 CAPTURA = os.path.join(ROOT, "packages", "core", "data", "fixtures", "knobs.jsonl")
-ARTEFATO = os.path.join(ROOT, "analysis", "param_ranges.json")
+ARTEFATO = os.path.join(ROOT, "scripts", "param_ranges.json")
 
 # slot do fio (§13.11) -> modulo do dicionario. O nibble do effectCode NAO e
 # o modulo (0x05 = C-Wah no PRE, 0x03 = Green OD no DST); o slot do endereco
@@ -265,13 +265,13 @@ def checar(artefato: dict, atual: dict) -> list[str]:
             if chave == "sources":
                 erros.append(
                     "os arquivos de origem mudaram (sha256) — regere com "
-                    "`python analysis/param_ranges.py` e revise o diff"
+                    "`python scripts/param_ranges.py` e revise o diff"
                 )
             else:
                 erros.append(
                     f"a secao '{chave}' do artefato diverge do que os "
                     f"arquivos dizem hoje — regere com "
-                    f"`python analysis/param_ranges.py`"
+                    f"`python scripts/param_ranges.py`"
                 )
     return erros
 
@@ -309,7 +309,7 @@ def main() -> int:
 
     if args.check:
         if not os.path.exists(ARTEFATO):
-            print(f"[!] {ARTEFATO} nao existe — rode `python analysis/param_ranges.py`",
+            print(f"[!] {ARTEFATO} nao existe — rode `python scripts/param_ranges.py`",
                   file=sys.stderr)
             return 1
         with open(ARTEFATO, encoding="utf-8") as f:

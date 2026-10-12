@@ -153,7 +153,7 @@ Isto não precisa ser refeito para o app falar com a pedaleira:
   despacho de porta por nome contendo `gp-100`, reconexão no mesmo objeto, e a
   trava `WRITE_VERIFIED` do ADR-5 **antes do driver**.
 - **As leituras foram provadas em campo** — a sessão H1 real
-  ([`analysis/captures/sessionH1/`](../analysis/captures/sessionH1/)) tem as 20
+  ([`docs/arquivo/analysis/captures/sessionH1/`](../docs/arquivo/analysis/captures/sessionH1/)) tem as 20
   respostas de `list-user-irs` e as 5 transações de `dump-preset` gravadas.
 - **As escritas foram provadas em campo** — o gate H2 (05/10) fechou os 3 fluxos:
   F1 knob (1 frame OUT), F2 save (9 frames, persistiu), F3 upload de IR (295

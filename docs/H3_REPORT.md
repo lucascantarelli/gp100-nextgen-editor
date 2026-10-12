@@ -16,7 +16,7 @@
 | Commit do repo no binário | ____ |
 | sha256 do `gp100-cli.exe` | ____ |
 | Build | `cargo build --release -p gp100-cli --features real-device` |
-| Baseline de partida | v____ (`uv run python analysis/baseline.py show`) |
+| Baseline de partida | v____ (`uv run python scripts/baseline.py show`) |
 | H1 anterior | arquivado em ____ |
 | H2 anterior | arquivado em ____ (necessário para a sessão 3) |
 
@@ -24,9 +24,9 @@
 
 | # | Sessão | Arquivo de log | Frames | Veredito do juiz (exit) |
 |---|---|---|---|---|
-| 1 | dump de boot (`13000000`) | `analysis/h3/s1_boot/…` | ____ | ____ |
-| 2 | varredura de presets | `analysis/h3/s2_scan/…` | ____ | ____ |
-| 3 | save (escreve!) | `analysis/h3/s3_save/…` | ____ | ____ |
+| 1 | dump de boot (`13000000`) | `docs/arquivo/analysis/h3/s1_boot/…` | ____ | ____ |
+| 2 | varredura de presets | `docs/arquivo/analysis/h3/s2_scan/…` | ____ | ____ |
+| 3 | save (escreve!) | `docs/arquivo/analysis/h3/s3_save/…` | ____ | ____ |
 
 > **exit 0** = tudo coberto e batendo · **1** = divergência de payload (bug no
 > core) · **2** = endereço fora da spec (captura nova) · **3** = o log não

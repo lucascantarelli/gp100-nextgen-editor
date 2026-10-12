@@ -74,7 +74,7 @@ ROOT = Path(__file__).resolve().parent.parent
 # A referencia dos 3 fluxos, gerada pelo `h2_field.sh rehearsal` contra o
 # `MockDevice` e versionada no repo. E o que ancora a `FORMAS_13` (ver
 # `self_check`).
-REFERENCIA = ROOT / "analysis" / "h2_reference"
+REFERENCIA = ROOT / "docs" / "arquivo" / "analysis" / "h2_reference"
 
 # O console do Windows e cp1252 e o texto deste script tem §: sem isto,
 # `print` morre com UnicodeEncodeError. O `hasattr` e o mesmo de

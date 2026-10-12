@@ -36,11 +36,11 @@ _spec = importlib.util.spec_from_file_location("build_golden", os.path.join(HERE
 BG = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(BG)
 
-CAPS = {f"S{i}": os.path.join(HERE, "captures", f"session{i}.jsonl") for i in (1, 2, 3, 4)}
+CAPS = {f"S{i}": os.path.join(HERE, "..", "docs", "arquivo", "analysis", "captures", f"session{i}.jsonl") for i in (1, 2, 3, 4)}
 FIXTURES = os.path.join(HERE, "..", "packages", "core", "data", "fixtures")
 GOLDEN = os.path.join(HERE, os.pardir, "docs", "protocol_golden.json")
 # O hash da baseline NÃO mora aqui como literal (#23): vem de
-# `analysis/baseline.json`, que é o registro com versão, data, motivo e
+# `scripts/baseline.json`, que é o registro com versão, data, motivo e
 # histórico. Um literal aqui obrigava a colar o hash novo em DOIS lugares
 # (aqui e no teste) e nenhum dos dois exigia justificativa.
 with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),

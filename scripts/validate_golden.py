@@ -20,7 +20,7 @@ BG = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(BG)
 
 HDR = BG.HDR
-CAPS = {f"S{i}": os.path.join(HERE, "captures", f"session{i}.jsonl") for i in (1, 2, 3, 4)}
+CAPS = {f"S{i}": os.path.join(HERE, "..", "docs", "arquivo", "analysis", "captures", f"session{i}.jsonl") for i in (1, 2, 3, 4)}
 sys.stdout.reconfigure(errors="replace")
 
 # ---------------------------------------------------------------- patterns

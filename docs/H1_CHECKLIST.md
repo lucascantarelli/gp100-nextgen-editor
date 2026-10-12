@@ -3,7 +3,7 @@
 > **Status:** ⏳ aguardando o transporte real (software da Fase M0 pronto: M0.7 ✅ e M0.8 ✅) · **Última revisão:** 2026-09-29 · **Responsáveis:** owner no hardware + skill `capture-analyze` para divergências
 >
 > **Kit de campo PRONTO (29/09, Fase C automatizada em #21):** build release do
-> CLI · referências do mock em `analysis/h1_reference/` · runbook
+> CLI · referências do mock em `docs/arquivo/analysis/h1_reference/` · runbook
 > `scripts/h1_field.sh rehearsal|field` · **juiz da Fase C
 > `scripts/h1_compare.py`** (classifica a sessão nos 3 níveis do §4 e imprime a
 > tabela do §5) · relatório `docs/H1_REPORT.md` com o **plano de backup fixo** (§7)
@@ -62,7 +62,7 @@ fluxo R3"*.
 **Fase A — saneamento (5 min)**
 - [ ] `gp100-cli` (mock): `info` → salvar saída de referência
 - [ ] Conectar a pedaleira; aguardar o driver enumerar (Gerenciador de Dispositivos)
-- [ ] Iniciar o log: `gp100-cli --real --i-know-what-im-doing --log analysis/captures/sessionH1.jsonl`
+- [ ] Iniciar o log: `gp100-cli --real --i-know-what-im-doing --log docs/arquivo/analysis/captures/sessionH1.jsonl`
 
 **Fase B — leitura incremental** (cada passo SÓ avança se o anterior não deu
 `InvalidShape`/`Timeout`; timeout = repetir 1× antes de classificar — sem retry
@@ -89,7 +89,7 @@ automático, D6)
 **Fase C — comparação (no PC, logo após a sessão) — AUTOMATIZADA em #21**
 - [ ] `h1_field.sh field` já chamou o juiz e imprimiu o veredito; se a sessão foi
       feita passo a passo, reprocesse sem re-ler o device:
-      `python3 scripts/h1_compare.py analysis/h1_field_<tag> --markdown`
+      `python3 scripts/h1_compare.py docs/arquivo/analysis/h1_field_<tag> --markdown`
 - [ ] Rodar os decoders na `sessionH1.jsonl` (mesmos scripts das capturas do Suite)
 - [ ] Conferir a **tabela do §5** que o juiz imprimiu (nível 1/3 = R3; nível 2 =
       estado, documentar). O juiz separa os três; a conferência humana é sobre o
@@ -108,14 +108,14 @@ firmware, e "testinhas" fora do roteiro. Curiosidade custa pedaleira.
 | **3. ESTRUTURAL** | formas/tamanhos: meta6 6B, páginas 196/32B, fim 4B, ACK 4B | **§13 (a tabela `FORMAS_13`), NÃO o mock** | **FALHA → R3 (§6)** |
 
 **POR QUE O NÍVEL 3 NÃO COMPARA CONTRA O MOCK.** Se os três níveis usassem
-`analysis/h1_reference/` como fonte única, o gate passaria junto com o mock: um
+`docs/arquivo/analysis/h1_reference/` como fonte única, o gate passaria junto com o mock: um
 `MockDevice` que passasse a responder página de 197B geraria uma referência de
 197B, e o "divergente" em campo viraria "idêntico ao mock". O nível 3 é conferido
 contra a tabela `FORMAS_13` do juiz — o §13, não o código que o implementa — e o
 `--self-check` roda essa conferência no próprio conjunto de referência, ligado na
 CI. É o gate que impede mock e §13 de saírem de sincronia em silêncio.
 
-**A REFERÊNCIA É ARTEFATO DERIVADO.** `analysis/h1_reference/` é a *saída* do
+**A REFERÊNCIA É ARTEFATO DERIVADO.** `docs/arquivo/analysis/h1_reference/` é a *saída* do
 `MockDevice`, não um golden de captura. Quando o mock muda de semântica, a
 referência fica velha — e o `rehearsal` acusa isso como **DRIFT** (nível 2 com
 outro significado), nunca como "estado do device". Regenerar:
@@ -132,7 +132,7 @@ determinístico (diverge igual nas duas), estado não muda entre leituras.
 | 1 | B2 | 12/12001002 | 2 | CRC vazio = ppIRCRC do all.prst | outro CRC | slot 0 tem IR da S2 | estado | documentar |
 
 - **Severidade:** `bloqueia-H1` (nível 1/3), `estado` (nível 2, esperado), `info`.
-- Bruto da sessão: `analysis/captures/sessionH1.jsonl` (append-only; **`-text` no
+- Bruto da sessão: `docs/arquivo/analysis/captures/sessionH1.jsonl` (append-only; **`-text` no
   .gitattributes antes do 1º commit** — regime de bytes da skill rust-practices).
 
 ## 6. Fluxo R3 (do ROADMAP) — o que fazer com cada `bloqueia-H1`

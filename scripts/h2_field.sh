@@ -3,7 +3,7 @@
 #
 # Uso:
 #   ./scripts/h2_field.sh rehearsal                        # ensaio HOJE contra o MOCK
-#   ./scripts/h2_field.sh refresh-reference                # regenera analysis/h2_reference/
+#   ./scripts/h2_field.sh refresh-reference                # regenera docs/arquivo/analysis/h2_reference/
 #   ./scripts/h2_field.sh field <caminho-do-cli> <nome>    # o H2 de verdade (escrita)
 #
 # O que faz (Fases B e C do checklist, automatizadas):
@@ -35,7 +35,7 @@ set -eu  # -e de propósito: no H2 uma reprovação para o roteiro
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 MOCK_CLI="$ROOT/target/release/gp100-cli.exe"
-REF="$ROOT/analysis/h2_reference"
+REF="$ROOT/docs/arquivo/analysis/h2_reference"
 STAMP="$(date +%Y%m%d_%H%M%S)"
 
 die() { echo "[!] $*" >&2; exit 2; }
@@ -95,7 +95,7 @@ pausa() {
 
 do_rehearsal() {
     binario_campo
-    local out="$ROOT/analysis/h2_rehearsal_$STAMP"
+    local out="$ROOT/docs/arquivo/analysis/h2_rehearsal_$STAMP"
     mkdir -p "$out"
     echo "════ ENSAIO H2 (mock) — saída em $out"
     echo "O ensaio prova o ROTEIRO e a tabela de invariantes do juiz."
@@ -112,7 +112,7 @@ do_rehearsal() {
     # respondendo normalmente logo depois do frame.
     #
     # 15.0 nao e arbitrario: e o valor do MESMO par (slot 3 / 0x0700006e,
-    # ctrl 0) na captura real da Suite (analysis/fixtures/knobs.jsonl). As 6
+    # ctrl 0) na captura real da Suite (packages/core/data/fixtures/knobs.jsonl). As 6
     # amostras desse par vao de 15.0 a 99.0 — e 99.5 ja estava ACIMA do teto
     # observado. `decode_knobs.py` reproduz essa faixa.
     "$MOCK_CLI" --log "$out/f1_setparam.jsonl" set-param 3 0x0700006e 0 15.0 \
@@ -178,7 +178,7 @@ do_field() {
     local cli="${1:-}" sessao="${2:-}"
     [ -n "$cli" ] || die "uso: $0 field <caminho-do-binario-de-escrita> <nome-da-sessao>"
     [ -x "$cli" ] || die "binário não encontrado ou não executável: $cli"
-    local out="$ROOT/analysis/h2/${sessao:-$STAMP}"
+    local out="$ROOT/docs/arquivo/analysis/h2/${sessao:-$STAMP}"
     mkdir -p "$out"
 
     cat <<AVISO

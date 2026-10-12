@@ -18,11 +18,11 @@ entender antes de qualquer passo:
 
 ### O H3 era impossível até ontem
 
-`analysis/build_golden.py` só aceitava o schema de captura do Suite
+`scripts/build_golden.py` só aceitava o schema de captura do Suite
 (`out_long`/`in_long` + `hex`). O `--log` do `gp100-cli` grava o schema P4
 (`out`/`in` + `func`/`addr`/`data`). Medido: **0 eventos** carregados de um log
 do core — sem erro, sem aviso, só um golden degenerado. Por isso o `--log`
-agora grava `t` (ms desde a abertura) e existe o `analysis/wirelog.py`, que
+agora grava `t` (ms desde a abertura) e existe o `scripts/wirelog.py`, que
 normaliza os dois formatos.
 
 ### A baseline v1.0 afirmava coisas que o fio não sustenta
@@ -34,7 +34,7 @@ normaliza os dois formatos.
 | `11000008` resync | 31 "registros de usuário" | **Fabricados** (14 bytes que saíram de um buffer cheio de `ff`). |
 
 Detalhes e a conta inteira em [`PROTOCOL.md`](PROTOCOL.md) §13.14. A v1.1 está
-registrada em `analysis/baseline.json`, com motivo e histórico.
+registrada em `scripts/baseline.json`, com motivo e histórico.
 
 > **O número 77 da prova de save virou 14, e isso NÃO é uma regressão.** As 63
 > mensagens que sumiram mediam bytes inventados. Se alguém "consertar" esse
@@ -48,8 +48,8 @@ registrada em `analysis/baseline.json`, com motivo e histórico.
 - [ ] Binário do **H1** compilado (`--features real-device`) — esta sessão é de
       **leitura**. Nada aqui escreve no device.
 - [ ] `uv run pytest -q` verde (inclui os 19 testes do H3)
-- [ ] `uv run python analysis/baseline.py --check` → `baseline v1.1 integra`
-- [ ] `uv run python analysis/validate_core_capture.py <qualquer>.jsonl` roda
+- [ ] `uv run python scripts/baseline.py --check` → `baseline v1.1 integra`
+- [ ] `uv run python scripts/validate_core_capture.py <qualquer>.jsonl` roda
       (use um log do mock para smoke; deve dar `20/20`)
 
 **Com o device ligado:**
@@ -70,11 +70,11 @@ registrada em `analysis/baseline.json`, com motivo e histórico.
 O endereço `13000000` responde com mais de 256 bytes e o proxy cortava ali.
 Para fechar, é preciso o log **do gp100-core**, que grava o frame inteiro.
 
-- [ ] `gp100-cli --real --i-know-what-im-doing --log analysis/h3/s1_boot/dump.jsonl dump-preset 0x0000`
+- [ ] `gp100-cli --real --i-know-what-im-doing --log docs/arquivo/analysis/h3/s1_boot/dump.jsonl dump-preset 0x0000`
 - [ ] Confirmar que o log tem uma linha `in` com `addr":"13000000"` e que ela
       **não** termina com lixo: a linha do log é o payload puro, então o
       `F7` **não** aparece. O que confirma integralidade é o `validate_core_capture`:
-- [ ] `uv run python analysis/validate_core_capture.py analysis/h3/s1_boot/dump.jsonl --markdown`
+- [ ] `uv run python scripts/validate_core_capture.py docs/arquivo/analysis/h3/s1_boot/dump.jsonl --markdown`
       - `0` → tudo coberto e batendo. Anote o comprimento do payload de `13000000`.
       - `1` → divergência de payload (**suspeita de bug no core** — anote func/addr)
       - `2` → endereço fora da spec (**captura nova** → ADR, R1)
@@ -85,7 +85,7 @@ Para fechar, é preciso o log **do gp100-core**, que grava o frame inteiro.
 
 - [ ] O mesmo `dump.jsonl` da sessão 1, com o `dump-preset` rodado em 3 presets
       diferentes (`0x0000`, `0x0031`, `0x0062` — os mesmos do mock de referência)
-- [ ] `uv run python analysis/validate_core_capture.py analysis/h3/s2_scan/scan.jsonl`
+- [ ] `uv run python scripts/validate_core_capture.py docs/arquivo/analysis/h3/s2_scan/scan.jsonl`
 - [ ] Anote todo endereço `2` (fora da spec) e todo `1` (divergência)
 
 ### Sessão 3 — o resync do save (o gap que a v1.0 fingiu provar)
@@ -95,12 +95,12 @@ Para fechar, é preciso o log **do gp100-core**, que grava o frame inteiro.
 > runbook de `H2_CHECKLIST.md` inteiro respeitado: preset descartável,
 > verificação no display entre as etapas. O H3 **não** é mais seguro que o H2.
 
-- [ ] `gp100-cli --real --i-know-what-im-doing --log analysis/h3/s3_save/f1.jsonl save <pp> <type> "<nome>"`
+- [ ] `gp100-cli --real --i-know-what-im-doing --log docs/arquivo/analysis/h3/s3_save/f1.jsonl save <pp> <type> "<nome>"`
 - [ ] **`--log` é obrigatório aqui.** É o único jeito de capturar o lado IN do
       save — justamente a parte que hoje é gap.
 - [ ] No display: confirme o nome e a persistência (o veredito é do H2; aqui só
       se registra)
-- [ ] `uv run python analysis/validate_core_capture.py analysis/h3/s3_save/f1.jsonl`
+- [ ] `uv run python scripts/validate_core_capture.py docs/arquivo/analysis/h3/s3_save/f1.jsonl`
 - [ ] Os ACKs de resync devem aparecer como frames `in` reais no endpoint que o
       `H2_REPORT.md` indicar. Anote func/addr/len de cada um.
 
@@ -108,10 +108,10 @@ Para fechar, é preciso o log **do gp100-core**, que grava o frame inteiro.
 
 Só depois de 1–3, e **não antes**:
 
-- [ ] `uv run python analysis/build_golden.py` (com as capturas novas no lugar)
-- [ ] `uv run python analysis/validate_golden.py` → **tem que dar 100%**
-- [ ] `uv run python analysis/make_fixtures.py` → paridade 100%
-- [ ] `uv run python analysis/baseline.py bump --motivo "<por que>" --issue "#23"`
+- [ ] `uv run python scripts/build_golden.py` (com as capturas novas no lugar)
+- [ ] `uv run python scripts/validate_golden.py` → **tem que dar 100%**
+- [ ] `uv run python scripts/make_fixtures.py` → paridade 100%
+- [ ] `uv run python scripts/baseline.py bump --motivo "<por que>" --issue "#23"`
       — o `--motivo` é **obrigatório** e o bump é recusado sem ele
 - [ ] Copiar o mesmo motivo para o §13.14 do `PROTOCOL.md`
 - [ ] `uv run pytest -q` · `cargo test --workspace`
@@ -151,7 +151,7 @@ Este é o caso mais provável e o mais interessante: o golden v1.1 tem 39
 templates e o aparelho tem mais endereços do que isso.
 
 - [ ] Listar os endereços accused com
-      `uv run python analysis/validate_core_capture.py <log> --json`
+      `uv run python scripts/validate_core_capture.py <log> --json`
 - [ ] Para **cada** endereço novo: existe captura suficiente para descrever o
       payload, ou só 1–2 exemplos?
       - **Vários exemplos** → dá para derivar template (const × var). ADR.
@@ -163,8 +163,8 @@ templates e o aparelho tem mais endereços do que isso.
 ## 5. Fontes
 
 - [`docs/PROTOCOL.md`](PROTOCOL.md) §13.14 — a conta completa da v1.1 e os gaps
-- `analysis/baseline.json` · `uv run python analysis/baseline.py show`
+- `scripts/baseline.json` · `uv run python scripts/baseline.py show`
 - [`docs/H1_CHECKLIST.md`](H1_CHECKLIST.md) (leitura, fluxo R3) ·
   [`docs/H2_CHECKLIST.md`](H2_CHECKLIST.md) (**escreve** — a sessão 3 depende dele)
-- `analysis/wirelog.py` (normalizador) · `analysis/validate_core_capture.py`
-  (juiz) · `analysis/tests/test_h3_baseline.py` (19 testes, mutation-provados)
+- `scripts/wirelog.py` (normalizador) · `scripts/validate_core_capture.py`
+  (juiz) · `scripts/tests/test_h3_baseline.py` (19 testes, mutation-provados)

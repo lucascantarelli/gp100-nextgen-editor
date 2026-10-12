@@ -1,13 +1,13 @@
 # Material extraído do instalador (108MB, read-only, quase nunca lido inteiro)
-analysis/nsis_app/
+docs/arquivo/analysis/nsis_app/
 
 # Strings brutas enormes (usar grep dirigido quando precisar)
-analysis/exe_strings.txt
-analysis/fw_strings.txt
+docs/arquivo/analysis/exe_strings.txt
+docs/arquivo/analysis/fw_strings.txt
 
 # Gerados por build_proxy.py — regeneráveis a qualquer momento
-analysis/forwarders_impl.c
-analysis/midi_proxy_build.c
+docs/arquivo/analysis/forwarders_impl.c
+docs/arquivo/analysis/midi_proxy_build.c
 
 # Objetos soltos de build na raiz
 fwd_tmp.o
@@ -23,4 +23,4 @@ __pycache__/
 .venv/
 
 # Capturas brutas pesadas (os decoders leem sob demanda)
-analysis/captures/*.jsonl
+docs/arquivo/analysis/captures/*.jsonl

@@ -24,7 +24,7 @@ seguir o padrão.
 | `src/hooks/` | **Estado de sessão**. Compõe a porta com regras de UI; é onde mora a política ("não otimista", "falha tem ação"). | Nada de JSX. Nada de geometria. Nada de `localStorage` cru fora do hook que é dono da chave. |
 | `src/components/` | **Apresentação.** Recebe dados prontos e callbacks. | Nada de chamada direta ao device — se um componente precisa do device, é sinal de que falta um hook. Nada de número mágico de layout (vai para `design/`). |
 | `src/design/` | **Puro, sem React.** Geometria, tokens, cálculos de layout. Testável sem renderizar. | Nada de React — nem como tipo. Se `design/` importar React, a distinção deixou de ser caminho de import e virou sugestão. |
-| `src/artifacts/` | **Dados gerados.** Dicionário de efeitos, presets, cadeias. Vem de `analysis/`. | Nada de lógica — é dado, e dado não decide nada. Regenerável: se alguém editar à mão, o próximo `build_*.py` sobrescreve. |
+| `src/artifacts/` | **Dados gerados.** Dicionário de efeitos, presets, cadeias. Vem de `docs/arquivo/analysis/`. | Nada de lógica — é dado, e dado não decide nada. Regenerável: se alguém editar à mão, o próximo `build_*.py` sobrescreve. |
 | `src/i18n/` | **Texto de usuário.** Toda string visível mora aqui. | Nada de lógica de tela. `facts.ts` é a exceção: números que a UI mostra sem vir do device. |
 | `src/looper/`, `src/tuner/` | **Regras de domínio** dos dois painéis que têm máquina de estados. | Nada de React — mesma razão de `design/`. |
 

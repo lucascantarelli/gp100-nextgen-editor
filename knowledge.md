@@ -32,7 +32,7 @@ ordem de leitura). O fluxo de trabalho é `.agents/skills/github-flow/SKILL.md`.
 ## O que NÃO fazer (regras de era, não sugestões)
 
 - **Nada de engenharia reversa**: spec não é reconstruída de Suite/proxy/captura.
-  `analysis/` é histórico/evidência; o que importa de lá migrou para
+  `docs/arquivo/analysis/` é histórico/evidência; o que importa de lá migrou para
   `packages/core/data/` (#163). Skills da Era RE estão arquivadas — não
   ressuscite o processo delas.
 - **Nada de escrever no aparelho fora das travas** (ADR-5): escrita exige a
@@ -79,7 +79,8 @@ ordem de leitura). O fluxo de trabalho é `.agents/skills/github-flow/SKILL.md`.
 - **`bash -o pipefail`**: `cmd | tail` engole o exit 1 do gate. Rode gate sem
   pipe ou com pipefail — e confirme o exit code, não só a saída.
 - **Heredoc `python - <<'EOF'` no Git Bash** é frágil (aspas/try-except):
-  script não-trivial vira arquivo em `analysis/` e roda.
+  script não-trivial vira arquivo temporário e roda (o `analysis/` virou
+  cápsula de histórico na #163 — não jogue lixo novo lá).
 - `%TEMP%` real = `C:\Users\Canta\AppData\Local\Temp` (o `/tmp` do Git Bash é
   outro). O proxy grava `%TEMP%\midi_trace.jsonl`.
 - **`zip` não existe no Git Bash**: `7z a -tzip` (também na CI, runner Windows).
@@ -147,8 +148,10 @@ ordem de leitura). O fluxo de trabalho é `.agents/skills/github-flow/SKILL.md`.
 - `.agents/` — harness do agente (skills, prompts, README)
 - `docs/arquivo/` — era anterior (ROADMAP, skills, este knowledge) — histórico,
   não processo
-- `analysis/` — evidência histórica de captura + scripts provisórios (morte
-  planejada com #166/#168); não é fonte de spec
+- `docs/arquivo/analysis/` — a Era de RE inteira, arquivada na #163 (capturas,
+  evidência dos gates H, decoders, proxy, manual): é PROVENIÊNCIA — de onde veio
+  cada número — e não fonte de spec nem insumo de runtime (o guard reprova
+  `analysis/` dentro de `packages/`)
 
 ## Convenções
 

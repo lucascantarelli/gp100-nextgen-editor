@@ -28,11 +28,11 @@ H3 baseline congelada). Trabalho aberto vive nas **issues do GitHub** (milestone
 
 | Camada | Resultado | Onde |
 |---|---|---|
-| **Modelo de dados** | 185 algoritmos / 639 controles com nomes, ranges e defaults, validado em 3 vias (XML oficial do Suite + 909 slots de patches reais + strings da firmware) | `analysis/parameters.json` |
+| **Modelo de dados** | 185 algoritmos / 639 controles com nomes, ranges e defaults, validado em 3 vias (XML oficial do Suite + 909 slots de patches reais + strings da firmware) | `packages/core/data/parameters.json` |
 | **Formato de preset** | `.prst` = XML puro; `effectCode = (nibble<<24) \| index`; cadeia de 9 slots fixos (`x=0..8`); `params_N` 0..14 (incl. controles ocultos como o Mic do CAB) | `docs/PROTOCOL.md` §13.9 |
 | **Protocolo de fio** | SysEx `F0 21 25 7F 47 50 2D 64 \| FUNC \| ADDR(4B) \| DATA \| F7`; ler estado (páginas `13xx`), setar parâmetro (envelope semântico `10xx0002` com float32), save (metadados `11xx` + ops `00020000`), upload de IR com ACK por chunk | `docs/PROTOCOL.md` §13.1–13.12 |
 | **Especificação executável** | 40 templates request→resposta extraídos das capturas, com padrões de payload (const/var) e semântica por endereço | `docs/protocol_golden.json` |
-| **Validação** | Accounting IN 100% / OUT 99,6% (resto = truncamentos do ring buffer); regeneração byte-a-byte: knobs 92/92, boot/scan 2299/2299 | `analysis/validate_golden.py` |
+| **Validação** | Accounting IN 100% / OUT 99,6% (resto = truncamentos do ring buffer); regeneração byte-a-byte: knobs 92/92, boot/scan 2299/2299 | `scripts/validate_golden.py` |
 | **Persistência comprovada** | O save da UI persiste o **estado ao vivo** (confirmado no display da pedaleira após a sessão 4) | `docs/PROTOCOL.md` §13.12 |
 
 **Como chegamos lá:** um proxy `winmm.dll` (129 exports) instrumenta o Suite oficial
@@ -49,6 +49,7 @@ boot/scan de presets (S1), upload de IRs mono+estéreo (S2), edição de knobs p
 ├── packages/                  # monorepo de código (root limpo = só configs)
 │   ├── core/                  # gp100-core (lib Rust): model, preset, golden,
 │   │   │                      #   codec, transport (mock/real), session
+│   │   ├── data/              # dado CANÔNICO (parameters, offsets, fx_map, fixtures)
 │   │   ├── README.md          # arquitetura do core + exemplos que rodam
 │   │   └── tests/             # contratos caixa-preta (fixtures P4, replay)
 │   ├── cli/                   # gp100-cli (bin Rust) — CONGELADO (05/10):
@@ -66,7 +67,7 @@ boot/scan de presets (S1), upload de IRs mono+estéreo (S2), edição de knobs p
 │   ├── UI_PLAN.md             # planejamento issue-a-issue da UI (M1)
 │   ├── PROTOCOL.md            # referência do protocolo (§1–12 arquivo, §13 fio)
 │   ├── protocol_golden.json   # especificação executável (40 templates, baseline)
-│   ├── DECISIONS.md           # ADR-lite: 8 decisões estruturais (ADR-1..8)
+│   ├── DECISIONS.md           # ADR-lite: 14 decisões estruturais (ADR-1..14)
 │   ├── CONTRIBUTING.md        # fluxo de contribuição: GitFlow, commits, gates por área
 │   ├── PACKAGING.md           # empacotamento: bundle, ícones, .deb, Arch (#27/#28/#29)
 │   ├── UI_DESIGN.md           # design system (tokens, rácios WCAG medidos)
@@ -74,32 +75,26 @@ boot/scan de presets (S1), upload de IRs mono+estéreo (S2), edição de knobs p
 │   ├── UI_TEST_PLAN.md        # fonte dos roteiros e2e
 │   ├── BLOCKERS.md            # matriz de riscos/bloqueios (11/12 resolvidos)
 │   └── CAPTURE_PLAN.md        # plano das capturas (histórico)
-├── analysis/                  # laboratório de RE
-│   ├── parameters.json        # dicionário canônico (185 algs / 639 controles)
-│   ├── knob_map.json          # mapa de 89 edições knob→fio (sessão 3)
+├── docs/arquivo/analysis/     # Era de RE, arquivada na #163 (proveniência)
+│   ├── captures/              # session1–4.jsonl + ir_slot*.bin (append-only)
+│   ├── algorithm.xml          # origem do dicionário (payload oficial da Suite)
 │   ├── capture_gaps.md        # gaps de captura G1–G6 (G1/G2 fechados)
-│   ├── captures/              # session1–4.jsonl + ir_slot*.bin (brutos)
-│   ├── build_proxy.py         # gera/compila/valida o proxy winmm (zig)
+│   ├── build_proxy.py         # gera/compila/valida o proxy winmm (zig) — histórico
 │   ├── midi_proxy.c …         # fontes do proxy
 │   ├── suite_local/           # Suite instrumentado (GP-100.exe + winmm.dll)
-│   ├── build_golden.py        # extrai os templates → docs/protocol_golden.json
-│   ├── validate_golden.py     # 5 provas de validação (accounting + geração A–E)
-│   ├── validate_knob_map.py   # valida o envelope do knob vs dicionário/.prst
-│   ├── make_fixtures.py       # fatia as capturas → fixtures/ (replay do M0)
-│   ├── fixtures/              # boot/knobs/save/ir + manifest (paridade vs golden)
 │   ├── decode_wire.py …       # decoders de captura
 │   ├── FINDINGS_*.md          # achados da RE estática do exe (capstone)
-│   ├── nsis_app/              # extração do instalador (read-only, não indexar)
-│   └── captures/              # session1–4.jsonl + ir_slot*.bin (append-only)
+│   └── nsis_app/              # extração do instalador (read-only, não indexar)
 ├── files/                     # artefatos oficiais de entrada (firmware, instaladores,
 │   └── patches/*.prst         #   patches: all.prst = 99 presets)
 ├── packaging/arch/            # receita do pacote Arch (PKGBUILD + .desktop) — #29
-├── scripts/                   # gates executáveis (o mapa completo está no INDEX.md §3)
+├── scripts/                   # gates executáveis + ferramentas de spec/dados
 │   ├── ci_plan.py             # regra branch → escopo → matriz/estágios
 │   ├── validate_workflows.py  # sintaxe + contratos do pipeline
 │   ├── check_bundle.py        # schema Tauri, ícones, .deb/PKGBUILD
 │   ├── check_base_images.py   # tags de imagem base antes do build
-│   └── … (12 no total)
+│   ├── tests/                 # suíte Spec (pytest)
+│   └── … (o mapa completo está no INDEX.md §3)
 ├── .venv/                     # Python do projeto (uv, VENV ÚNICO na raiz)
 ├── .github/workflows/ci.yml   # ÚNICO workflow, jobs por TIPO (#68; nº em INDEX §6)
 ├── knowledge.md               # memória operacional do agente (estado vivo, armadilhas)
@@ -215,34 +210,40 @@ em mensagens paginadas) estão catalogadas no `knowledge.md`.
 
 ## 5. Workflows de regeneração
 
-### 5.1 Proxy winmm (instrumentação do Suite)
+### 5.1 Proxy winmm (instrumentação do Suite) 📜 histórico
+
+> A captura de hoje sai do `--log` do `gp100-cli`; o proxy é o como a Era de RE
+> gravava (arquivado na #163 em `docs/arquivo/analysis/`).
 ```bash
-uv run python analysis/build_proxy.py
-cp analysis/winmm.dll analysis/suite_local/     # obrigatório após o build
+uv run python docs/arquivo/analysis/build_proxy.py
+cp docs/arquivo/analysis/winmm.dll docs/arquivo/analysis/suite_local/     # obrigatório após o build
 ```
 O `build_proxy.py` gera o C de forwarding, cruza exports (129) com a winmm real,
 compila com zig e valida o resultado.
 
-### 5.2 Nova sessão de captura (requer a pedaleira)
+### 5.2 Nova sessão de captura (requer a pedaleira) 📜 histórico
+
+> Mesmo veredito do 5.1: processo da Era RE (arquivado na #163). Mantido como
+> proveniência das 4 sessões que sustentam o golden.
 1. **Feche TODAS as instâncias do Suite** (instância única mata a nossa silenciosamente)
-2. Rode `analysis/suite_local/GP-100.exe` — o proxy loga em `%TEMP%\midi_trace.jsonl`
-3. Execute o roteiro da sessão (ver `analysis/capture_gaps.md` para os gaps abertos
+2. Rode `docs/arquivo/analysis/suite_local/GP-100.exe` — o proxy loga em `%TEMP%\midi_trace.jsonl`
+3. Execute o roteiro da sessão (ver `docs/arquivo/analysis/capture_gaps.md` para os gaps abertos
    G3–G6); pausas de ~5s entre ações separam as fases na timeline
 4. Feche o Suite e copie o log:
    ```bash
-   cp "$LOCALAPPDATA/Temp/midi_trace.jsonl" analysis/captures/sessionN.jsonl
+   cp "$LOCALAPPDATA/Temp/midi_trace.jsonl" docs/arquivo/analysis/captures/sessionN.jsonl
    ```
 5. Analise:
    ```bash
-   uv run python analysis/decode_wire.py analysis/captures/sessionN.jsonl
+   uv run python docs/arquivo/analysis/decode_wire.py docs/arquivo/analysis/captures/sessionN.jsonl
    ```
    ⚠️ O log é **append-only** (sessões novas contêm as antigas — segmente por gaps >30s)
    e mensagens sem `F7` são truncamentos do ring buffer (ignore).
 
 ### 5.3 Golden-file do protocolo
 ```bash
-uv run python analysis/build_golden.py      # gera docs/protocol_golden.json
-uv run python analysis/validate_golden.py   # 5 provas (deve dar 100%)
+uv run python scripts/build_golden.py      # gera docs/protocol_golden.json
+uv run python scripts/validate_golden.py   # 5 provas (deve dar 100%)
 uv run pytest                               # suíte de regressão (após P3)
 ```
 O golden cobre as 4 sessões. Regras de largura de campo confirmadas:
@@ -251,7 +252,7 @@ chaves da tabela de nomes = `[banco u8][índice u8]`.
 
 ### 5.4 Dicionário e mapa de knobs
 ```bash
-uv run python analysis/validate_knob_map.py # revalida knob_map.json
+uv run python scripts/validate_knob_map.py # revalida knob_map.json
 ```
 
 ---
@@ -319,7 +320,7 @@ cargo test --workspace
   IR §13.7); fluxo novo = captura própria primeiro, feature-flag depois
 - **Nunca toque em rotinas de firmware update** (política V2+)
 - Descobertas de protocolo vão para o `PROTOCOL.md` com evidência — nunca só conversa
-- Não commite sem pedido; `analysis/nsis_app/` e `files/` são material de origem
+- Não commite sem pedido; `docs/arquivo/analysis/nsis_app/` e `files/` são material de origem
 
 **Estado atual e boas primeiras tarefas:** o panorama completo — o que foi entregue,
 os números medidos e o que está aberto — está em

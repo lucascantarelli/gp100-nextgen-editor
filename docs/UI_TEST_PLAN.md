@@ -94,7 +94,7 @@
 ## 📐 EXECUÇÃO — R-RESPONSIVO (30/09, Playwright · Chrome do sistema 1440/1280/1024)
 
 > Pedido do owner: board + looper em telas menores (1280/1024) sem quebrar o
-> alinhamento dos painéis. Verificação OBJETIVA via `analysis/responsivo_checks.js`
+> alinhamento dos painéis. Verificação OBJETIVA via `docs/arquivo/analysis/responsivo_checks.js`
 > no Chrome real (channel "chrome" — preview webview instável; mesmo método da
 > rodada e2e). 9 asserts por viewport, **27/27 PASSARAM**; screenshots regenerados.
 
@@ -117,7 +117,7 @@
 5. Ferramenta viva: os asserts desta rodada foram PROMOVIDOS a e2e permanente
    (`e2e/responsivo.spec.ts` + `e2e/_helpers.ts`, 30/09) — rodam na CI a cada
    mudança de `packages/app/ui/`. Screenshots/recortes: `pnpm dev` +
-   `node analysis/responsivo_shots.js`.
+   `node docs/arquivo/analysis/responsivo_shots.js`.
 
 ---
 

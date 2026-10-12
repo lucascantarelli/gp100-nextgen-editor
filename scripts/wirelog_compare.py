@@ -22,7 +22,7 @@ não-JSON ou com campo faltando é ERRO de uso (não divergência — o juiz nã
 confronta um log quebrado com a spec, ele reclama do log).
 
 Consumidores: `h1_compare.py`, `h2_compare.py` e os testes
-`analysis/tests/test_h1_compare.py`/`test_h2_compare.py` (importam dos juízes,
+`scripts/tests/test_h1_compare.py`/`test_h2_compare.py` (importam dos juízes,
 que reexportam `Frame`/`ler_log` daqui).
 """
 

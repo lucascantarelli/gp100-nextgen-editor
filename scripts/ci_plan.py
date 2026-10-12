@@ -15,7 +15,7 @@ Contrato de saída (lido pelo `plan` do .github/workflows/ci.yml):
     branch-class     develop | main | dev | release | hotfix | tag | schedule
     scope-rust       gp100-core/cli/ui mudaram?
     scope-front      packages/app/ui mudou?
-    scope-spec       analysis|docs|pyproject mudaram?
+    scope-spec       docs|scripts|pyproject mudaram?
     stage-test       Testes rodam?
     stage-coverage   Cobertura roda?
     stage-security   Segurança roda?
@@ -145,12 +145,12 @@ def scopes(changed: str) -> dict[str, bool]:
         "rust": has(r"^(Cargo\.toml$|Cargo\.lock$|rust-toolchain\.toml$|%s)" % CRATES_RUST),
         "front": has(r"^packages/app/ui/"),
         # `scripts/` entrou no escopo da especificacao em #21. A razao e um
-        # gate que nao disparava: `analysis/tests/test_h1_compare.py` testa
+        # gate que nao disparava: `scripts/tests/test_h1_compare.py` testa
         # `scripts/h1_compare.py`, e sem esta linha mexer SO no script
         # deixaria o job de pytest como `skipped` — os testes ficariam
         # verdes sem nunca rodarem contra a mudanca. Teste que nao
         # re-executa nao e teste.
-        "spec": has(r"^(analysis/|docs/|scripts/|pyproject\.toml$|uv\.lock$)"),
+        "spec": has(r"^(docs/|scripts/|pyproject\.toml$|uv\.lock$)"),
     }
 
 

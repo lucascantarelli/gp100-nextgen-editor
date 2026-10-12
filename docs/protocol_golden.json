@@ -1,7 +1,7 @@
 {
   "_meta": {
     "title": "GP-100 protocol golden-file (especificação executável)",
-    "generated_by": "analysis/build_golden.py",
+    "generated_by": "scripts/build_golden.py",
     "wire_header": "F0 21 25 7F 47 50 2D 64 | FUNC | ADDR(4B BE) | DATA | F7",
     "func": {
       "0x11": "READ request",

@@ -21,7 +21,7 @@
 |---|---|---|---|
 | **Rust** (`core`·`cli`·`library`·`shell`) | `packages/*/tests/*.rs` + `#[cfg(test)]` dentro de `src/` | protocolo/codec byte-a-byte, FSM de sessão, round-trip `.prst`, travas de valor e de escrita, boot, MockDevice | golden §13 · fixtures `packages/core/data/fixtures/` · ADRs |
 | **Unit do front** (vitest/jsdom) | `packages/app/ui/tests/` | componentes, hooks, contratos IPC, i18n (4 idiomas), acessibilidade | [`UI_REFERENCE.md`](UI_REFERENCE.md) · tokens (`design/tokens.ts`) |
-| **Spec** (pytest) | `analysis/tests/` | travas da especificação (golden/baseline), gates de script, faixas ADR-10, juízes de campo H1/H2/H3 | `docs/protocol_golden.json` · `analysis/baseline.json` |
+| **Spec** (pytest) | `scripts/tests/` | travas da especificação (golden/baseline), gates de script, faixas ADR-10, juízes de campo H1/H2/H3 | `docs/protocol_golden.json` · `scripts/baseline.json` |
 | **E2E** (Playwright) | `packages/app/ui/e2e/` | fluxos vivos da casca (roteiros R1–R7), regressão visual, falhas de IPC | [`UI_TEST_PLAN.md`](UI_TEST_PLAN.md) (fonte dos roteiros) |
 
 Cada suíte tem um **juiz independente** — passar numa não cobre outra. A CI roda as
@@ -106,9 +106,10 @@ Regra de **exclusão** — o coração da #166. Isto aqui não nasce teste novo:
    (MockDevice fiel #157, modelo tipado HW-2) nasce nas issues HW-1/2/4. Enquanto
    não existir, o arquivo **fica** (a issue manda: aponta o substituto, não abre
    buraco); mas **novo** teste nesse espelho não entra.
-2. **Dado de `analysis/` como insumo.** Fixtures moram em
+2. **Dado da RE como insumo.** Fixtures moram em
    `packages/core/data/fixtures/` (migração #163); `guard_dados_canonicos.rs`
-   garante `git grep "analysis/" packages/` = 0. Teste que lê da RE para dado de
+   garante `git grep "analysis/" packages/` = 0 (o literal inclui o caminho novo
+   `docs/arquivo/analysis/`, que contém a mesma sequência). Teste que lê da RE para dado de
    entrada viola o DoD #3 e o guard.
 3. **Protocolo adivinhado (R1).** Assert sem respaldo em golden/§13 não entra —
    "o byte é assim porque a captura mostrou" exige a captura na fonte, não
@@ -127,10 +128,10 @@ piso de segurança do projeto; se uma falhar, é incidente, não refator:
 | Proteção | Teste que a materializa | O que ela impede |
 |---|---|---|
 | **Round-trip `.prst` (R4)** | `roundtrip_prst.rs` | byte-idêntico ao exportar/reimportar — o formato de arquivo não pode corromper |
-| **Trava de valor (ADR-10)** | `value_gate.rs` + `analysis/tests/test_param_ranges.py` | valor fora da faixa não vai para o aparelho (firmware trava) |
+| **Trava de valor (ADR-10)** | `value_gate.rs` + `scripts/tests/test_param_ranges.py` | valor fora da faixa não vai para o aparelho (firmware trava) |
 | **Trava de escrita (ADR-5)** | `write_gate.rs` | escrita só em binário `write-verified` — sem flag/ambient que contorne |
 | **Segurança do boot** | `boot_mock.rs` | o boot não emite escrita nenhuma |
-| **Guard HW-3 (dados canônicos)** | `guard_dados_canonicos.rs` | `packages/` não volta a depender de `analysis/` |
+| **Guard HW-3 (dados canônicos)** | `guard_dados_canonicos.rs` | `packages/` não volta a depender de `analysis/` (nem do arquivo novo `docs/arquivo/analysis/`) |
 | **Inventário do aparelho (ADR-12)** | `inventario_banco_slot.rs` | 99 presets/bancos lidos e enumerados sem saltos |
 
 Proteções do DoD #5 foram verificadas verdes na baseline de 11/10 (triagem da

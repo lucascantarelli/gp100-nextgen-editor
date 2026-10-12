@@ -36,7 +36,7 @@ documentada. Nossas capturas batem: o scan de boot percorre o espaço de pp
 
 - **Dois bancos separados:** USER `P01–P99` e FACTORY `F01–F99` (1-based no
   display; o wire usa `0000..0062`/`0100..0162`). Fonte: manual §"two patch
-  banks" + `analysis/captures/session{1..4}.jsonl` (796 selects).
+  banks" + `docs/arquivo/analysis/captures/session{1..4}.jsonl` (796 selects).
 - **Nome do preset:** gravado em **pg0 offset 2**, 12 bytes, terminado em NUL.
   O device **não zera o rabo** ao renomear (medido no H4/2026-10-09:
   `H2 TESTE\0` + `'0'` 0x30 stale de "It's GP100") — o objeto preset é o
@@ -131,11 +131,11 @@ pedal) · export .prst↔JSON↔PDF · A/B blind · ponte MIDI/DAW · gain-stagi
 ## 8. Fontes
 
 - Manual Valeton GP-100 firmware **V1.9** (Scribd host copy) + **V1.8/V2.1**
-  (extração local `analysis/manual_streams.txt`, nem todo texto sai legível).
+  (extração local `docs/arquivo/analysis/manual_streams.txt`, nem todo texto sai legível).
 - [Página do produto Valeton GP-100](https://www.valeton.net/product/gp-100/)
   (99+99 presets, 20 IRs, editor PC/Mac, USB 2.0 Type-B).
 - Nossas medições: `docs/PROTOCOL.md` §13 · `docs/protocol_golden.json` (39
-  templates) · `analysis/captures/session{1..4}.jsonl` · campo 07/10 e 09/10
+  templates) · `docs/arquivo/analysis/captures/session{1..4}.jsonl` · campo 07/10 e 09/10
   (H4) · `docs/audit_era_real_2026-10-07.md`.
 - Reviews de usuário (TDPRI, Reddit) — comportamento relatado, não medido;
   marcado como tal.

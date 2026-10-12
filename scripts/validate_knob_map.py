@@ -3,7 +3,7 @@
 
 Cruza os writes 10[mod]0002 (payload nibble-expandido, 10 bytes reais)
 com packages/core/data/parameters.json (nomes/ranges de controls[pos]) e com os
-.prst (match do preset por módulo→alg). Emite analysis/knob_map.json.
+.prst (match do preset por módulo→alg). Emite scripts/knob_map.json.
 
 Layout do payload real (10 bytes):
   [0..3] effectCode u32 LE  (= nibble<<24 | index, igual ao .prst)
@@ -19,7 +19,7 @@ HDR = "f021257f47502d64"
 # Caminhos relativos à RAIZ do repo (independem do cwd e de máquina — CI incluído)
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
-CAP = os.path.join(ROOT, "analysis", "captures", "session3.jsonl")
+CAP = os.path.join(ROOT, "docs", "arquivo", "analysis", "captures", "session3.jsonl")
 PARAMS = os.path.join(ROOT, "packages", "core", "data", "parameters.json")
 PATCHES = os.path.join(ROOT, "files", "patches")
 SLOTS = {1: "PRE", 2: "DST", 3: "AMP", 4: "NR", 5: "CAB",
@@ -165,7 +165,7 @@ def main():
     # newline="\n" explícito: sem ele, o modo texto do Windows traduz para CRLF e
     # suja a árvore de trabalho a cada `pytest` (o repo normaliza para LF em
     # .gitattributes: `* text=auto eol=lf`). Ver auditoria 07/10, F-12.
-    with open(os.path.join("analysis", "knob_map.json"), "w", encoding="utf8",
+    with open(os.path.join("scripts", "knob_map.json"), "w", encoding="utf8",
               newline="\n") as fh:
         json.dump(out, fh, ensure_ascii=False, indent=2)
     print(f"\nknob_map.json salvo ({len(edits)} edits). erros: {len(errs)}")

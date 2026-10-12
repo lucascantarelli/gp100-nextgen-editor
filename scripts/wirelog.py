@@ -5,7 +5,7 @@ Por que este modulo existe
 -------------------------
 O projeto tem DOIS formatos de log de fio nao intercambiaveis:
 
-  * **captura do Suite** (`analysis/captures/session*.jsonl`), gravada pelo
+  * **captura do Suite** (`docs/arquivo/analysis/captures/session*.jsonl`), gravada pelo
     proxy/Suite: `{"dir":"out_long"|"in_long", "ts":<ms>, "hex":"<envelope
     SysEx completo>"}`. E o que `build_golden.py` e `validate_golden.py`
     comem.
@@ -261,7 +261,7 @@ def main(argv: list[str] | None = None) -> int:
     for k, v in diag.items():
         print(f"{k:16}: {v}")
     if not evs:
-        print("\n0 EVENTOS. O arquivo esta no schema errado? Use analysis/wirelog.py.")
+        print("\n0 EVENTOS. O arquivo esta no schema errado? Use scripts/wirelog.py.")
         return 1
     print("\nprimeiros 5:")
     for e in evs[:5]:
