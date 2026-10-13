@@ -369,7 +369,7 @@ o código.
 ## 7. O que a #17 já tem e o que falta
 
 Já tem: plano de release, empacotamento (`PACKAGING.md`), `simulate_release`
-verde, 13 gates, baseline do golden versionada, e o histórico do PR
+verde, gates locais verdes, baseline do golden versionada, e o histórico do PR
 `#112` provando que a build de campo da CI é sadia.
 
 Falta, e é o que decide o go/no-go:
