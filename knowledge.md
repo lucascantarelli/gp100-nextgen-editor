@@ -17,9 +17,9 @@ comentário NA ISSUE e a fila avança.
 ## Estado vivo (atualizar a cada marco — 1–3 linhas, sem prosa)
 
 - 13/10 — **#168 (`scripts/` dissolvida)**: CI/gates → `.github/scripts/`;
-  spec/dados → `tools/` (suíte Spec em `tools/tests/`); empacotamento →
+  spec/dados → `tools/` (suíte Spec em  `tools/tests/`); empacotamento →
   `packaging/`; RE → `docs/arquivo/scripts-era-RE/`. `uv run python
-  .github/scripts/gates.py` roda os 13 gates. Armadilhas novas: root em
+  .github/scripts/gates.py` roda a suíte de gates (contagem no INDEX §6). Armadilhas novas: root em
   `.github/scripts/` é `parents[2]` de `__file__`; `simulate_release` resolve
   o git-bash via `shutil.which` (System32/WSL precede o PATH) e traduz
   `python3`→`python` no sandbox Windows.

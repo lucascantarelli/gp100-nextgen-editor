@@ -177,7 +177,7 @@ reprova qualquer `analysis/` dentro de `packages/`.
 | `check_commits.py` | Conventional commits (`--no-merges`) | `Lint · mensagens de commit` |
 | `ci_report.py` / `security_report.py` / `ci_timings.py` | Step summary, achado de segurança como issue, medição de tempos | `Relatório · resumo` / `Segurança · auditorias` |
 | `packaging/make_icon.py` | Gera a fonte 1024² do ícone a partir dos tokens do tema | local (`tauri icon` deriva o set) |
-| `gates.py` | **Roda todos os gates de script de uma vez**, na ordem do CI (`--list` mostra a lista) | local (`python3 .github/scripts/gates.py`) |
+| `gates.py` | **Roda todos os gates de script de uma vez**, na ordem do CI (`--list` mostra a lista) | local (`uv run python .github/scripts/gates.py`) |
 | `packaging/make_sdist.py` | Tarball de fonte com o `ui/dist` embutido — insumo do PKGBUILD | `Distribuição · tarball de fonte` |
 | `sync_version.py` | Os 5 manifests de versão em sincronia (`--check` é o gate) | `Lint · contratos do pipeline` |
 | `check_deadcode.py` | Todo `export` de `src/` tem consumidor fora do arquivo — cobertura 100% não prova que o contrato é consumível (#78) | `Lint · UI` |
@@ -299,15 +299,15 @@ O Tauri não gera pacote Arch: a unidade de distribuição **é** a receita vers
 | **#126** (release) | ✅ **face (A) de leitura**: o `dist-ui` constrói com `--features real-device` (caminho `../ui` corrigido — o step antigo morria antes de compilar, `libasound2-dev` no Linux), a **política de escrita está na tela** (`escritaLiberada()`: knob/IR/SnapTone desabilitados COM O MOTIVO, select liberado por ser `WireKind::Read`) e o **keepalive do boot é omitido com a trava fechada** (ADR-5 rev. 06/10) |
 | **M3** (#116) | ✅ **A/B com blind test** (parte sem aparelho): o par vem do histórico versionado (#113), a troca desenha no palco e manda só os knobs graváveis de slots de mesmo algoritmo (o `0x47` não tem formato capturado — BLOCKERS 10b, e a tela diz), o **nível é POSIÇÃO** com método e limitação impressos ao lado do número, a **calibração** iguala o lado alto ao baixo (medido: delta 40.0 → 0.0) e o **blind** esconde rótulo/versão/nível/relatório até o palpite (o teste de UI prova a AUSÊNCIA). **Medição em campo pendente de aparelho** |
 
-### Contagem de testes (front re-medido em `develop` 08/10; demais em 06/10)
+### Contagem de testes (front re-medido em `develop` 08/10; gates e Spec re-medidos em 13/10 pós-#168; Rust/e2e em 06/10)
 | Suíte | Comando | Contagem |
 |---|---|---|
 | Unit do front | `pnpm exec vitest run` | **513** em **38** arquivos (513 passando) · *08/10* |
 | Cobertura do front | `pnpm run test:coverage` | **87,62%** stmts · **81,25%** branch · **86,78%** funcs · **90,04%** linhas · *08/10* |
 | E2E (Playwright) | `pnpm exec playwright test --list` | **90** testes em **12** arquivos · **96** baselines · *08/10* |
 | Rust (core + cli + library) | `cargo test --workspace` | **309** testes em **36** suítes (34 binários de teste + 2 suites de doc-test) |
-| Spec (pytest) | `.venv/Scripts/python.exe -m pytest` | **92** |
-| Gates locais | `python .github/scripts/gates.py` | **13** |
+| Spec (pytest) | `uv run pytest` | **47** em **4** arquivos · *13/10, pós-#168: os juízes H arquivados saíram da suíte* |
+| Gates locais | `uv run python .github/scripts/gates.py` | **13** · *re-medidos em 13/10 pós-#168 (`--list`)* |
 
 > ✅ **Tempo da suíte do front (medido 08/10 na mesma base `develop`):**
 > `pnpm exec vitest run` caiu de **84,7s → 52,3s** com `pool: 'vmThreads'` (#145, F-10):
