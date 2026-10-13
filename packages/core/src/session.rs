@@ -1279,13 +1279,14 @@ impl Forma<'_> {
     fn valida(&self, func: u8, addr: &[u8; 4], payload: &[u8]) -> Result<(), ProtocolError> {
         match self {
             Forma::Golden(g) => {
-                g.match_shape(func, addr, payload).ok_or_else(|| ProtocolError::InvalidShape {
-                    expected: format!(
-                        "forma de resposta do golden em {func:02x}/{}",
-                        addr_hex(addr)
-                    ),
-                    got: hex_short(payload),
-                })?;
+                g.match_shape(func, addr, payload)
+                    .ok_or_else(|| ProtocolError::InvalidShape {
+                        expected: format!(
+                            "forma de resposta do golden em {func:02x}/{}",
+                            addr_hex(addr)
+                        ),
+                        got: hex_short(payload),
+                    })?;
                 Ok(())
             }
             Forma::Medido(lens) => {

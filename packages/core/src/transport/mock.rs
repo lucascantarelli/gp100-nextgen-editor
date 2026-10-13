@@ -167,6 +167,7 @@ fn defaults_globais() -> HashMap<[u8; 4], Vec<u8>> {
     m.insert([0x00, 0x02, 0x00, 0x0a], vec![0, 0, 0, 0]); // gNoCabLeft
     m.insert([0x00, 0x02, 0x00, 0x0b], vec![0, 0, 0, 0]); // gNoCabRight
     m.insert([0x00, 0x02, 0x00, 0x11], vec![0u8; 8]); // Global EQ enable (8B)
+
     // família DRUM 000102xx
     m.insert([0x00, 0x01, 0x02, 0x01], vec![0, 0, 0, 0]); // drumPlayStyle
     m.insert([0x00, 0x01, 0x02, 0x03], nib(120)); // drumBpm
@@ -545,7 +546,8 @@ impl MockDevice {
             if let Some(valor) = self.state.globals.get(&addr) {
                 return match (func, payload.len()) {
                     (0x11, 0) => {
-                        let mut msg = Vec::with_capacity(crate::SYSEX_HEADER.len() + 6 + valor.len());
+                        let mut msg =
+                            Vec::with_capacity(crate::SYSEX_HEADER.len() + 6 + valor.len());
                         msg.extend_from_slice(&crate::SYSEX_HEADER);
                         msg.push(0x12);
                         msg.extend_from_slice(&addr);

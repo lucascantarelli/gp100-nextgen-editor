@@ -415,6 +415,7 @@ mod tests {
         assert_eq!(nibble_pair_value(&[0x02, 0x01, 0, 0]), Some(33));
         assert_eq!(nibble_pair_value(&[0x06, 0x03, 0, 0]), Some(99));
         assert_eq!(nibble_pair_value(&[0x0F, 0x0F, 0, 0]), Some(255)); // teto "off"
+
         // payload que NÃO é contador nibble-par (ex.: 0xFF de tabela vazia)
         assert_eq!(nibble_pair_value(&[0xFF, 0x00]), None);
         assert_eq!(nibble_pair_value(&[0x00]), None);
@@ -439,7 +440,10 @@ mod tests {
         let frame = read_frame(&[0x00, 0x02, 0x00, 0x03]);
         assert_eq!(&frame[..SYSEX_HEADER.len()], SYSEX_HEADER);
         assert_eq!(frame[SYSEX_HEADER.len()], 0x11);
-        assert_eq!(&frame[SYSEX_HEADER.len() + 1..SYSEX_HEADER.len() + 5], &[0x00, 0x02, 0x00, 0x03]);
+        assert_eq!(
+            &frame[SYSEX_HEADER.len() + 1..SYSEX_HEADER.len() + 5],
+            &[0x00, 0x02, 0x00, 0x03]
+        );
         assert_eq!(*frame.last().unwrap(), 0xF7);
         assert_eq!(frame.len(), SYSEX_HEADER.len() + 6);
     }

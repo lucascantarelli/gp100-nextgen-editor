@@ -1,43 +1,29 @@
 /**
  * App — casca do editor em VIEWPORT ÚNICA: navbar (logo/conexão/boot/
- * DRUM/Master+kill) → meio com scroll próprio (looper, pushes,
- * biblioteca + palco) → rodapé da pedaleira (IN · marca · ⚙ · OUT).
- * A biblioteca de FÁBRICA é real (99 presets do all.prst; abrir = select
- * no device), o board mostra os 9 lugares (display LED — o rótulo do patch
- * corrente mora LÁ, não na navbar, que perdeu o cluster ◀ ▶ por decisão do
- * dono 12/10) e o modal Settings persiste local (badge "prévia local").
- * O boot vive INTEGRADO à navbar: progresso e erro aparecem só durante
- * o boot/falha (a seção de conexão permanente foi removida: duplicava a
- * navbar). A trava ⇄ mover pertence ao PALCO (EmptyBoard); o rodapé
- * é o chassi da pedaleira (IN · GP · OUT) — ações globais na navbar.
+ * DRUM/Master+kill) → meio (looper, pushes, biblioteca + palco) → rodapé
+ * da pedaleira (IN · marca · OUT). Biblioteca de FÁBRICA é real (select no
+ * device), o display LED do patch mora no palco, o Settings persiste local
+ * (badge "prévia local"), o boot é INTEGRADO à navbar e a trava ⇄ mover
+ * pertence ao PALCO (EmptyBoard).
  *
- * O board é REAL (`device_board`): o palco desenha os 9 PEDAIS REAIS da
- * cadeia numa fileira (visão completa; o modelo de cada efeito vem do
- * catálogo fxModels). Knob numérico vira `device_set_param`;
- * toggle e switch/combox ainda são prévia local (sem comando no protocolo).
+ * O board é REAL (`device_board`): 9 PEDAIS REAIS da cadeia (modelo do
+ * catálogo fxModels); knob vira `device_set_param`, toggle/switch/combox
+ * ainda são prévia local (sem comando no protocolo).
  *
  * Atalhos globais (doc na aba Help do Settings): Espaço = drum play/stop,
  * R = REC do looper, Esc = fecha o painel do topo (Settings → Drum → pushes).
  *
  * ── POR QUE ESTE ARQUIVO É FINO (#82) ─────────────────────────────────────
- * A #82 mediu 514 linhas aqui e 1027 no teste que o cobre — o sintoma de um
- * componente que passou a hora de virar hook. O corte não foi "arquivo
- * pequeno", foi **coesão**:
- *
- *   - `useStage` — o que está no palco e as operações sobre isso (abrir
- *     preset/patch, knob, efeito, footswitch, o banner de erro com retry).
- *     Patch de usuário e preset de fábrica são o mesmo `BoardView`, então as
- *     operações dos dois vivem juntas.
- *   - `usePrefs` — o que sobrevive ao fechar a janela (master, drum, tuner,
- *     looper, settings/idioma), todo com persistência local.
- *
- * O que fica AQUI é o que só o App tem: o boot, o log de pushes, os atalhos,
- * quais modais estão abertos e o JSX. `docs/ARCHITECTURE.md` tem o mapa.
+ * A #82 mediu 514 linhas aqui — o sintoma de um componente que passou a
+ * hora de virar hook. O corte foi **coesão**: `useStage` (palco + operações),
+ * `usePrefs` (persistência local), `useGlobals` (registradores §13.13:
+ * seed do aparelho + write-through). O que fica AQUI é o que só o App tem:
+ * boot, log de pushes, atalhos, quais modais estão abertos e o JSX.
+ * `docs/ARCHITECTURE.md` tem o mapa.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { DeviceInfo } from "./ipc/types";
-import { deviceGlobals, deviceInfo, deviceSetGlobal, escritaLiberada } from "./ipc/device";
-import type { DrumState } from "./components/DrumPanel";
+import { deviceInfo, escritaLiberada } from "./ipc/device";
 import { useBoot } from "./hooks/useBoot";
 import { usePushLog } from "./hooks/usePushLog";
 import { useGlobalShortcuts } from "./hooks/useGlobalShortcuts";
@@ -46,6 +32,7 @@ import { useTones } from "./hooks/useTones";
 import { useIrs } from "./hooks/useIrs";
 import { useContentMenu } from "./hooks/useContentMenu";
 import { usePrefs } from "./hooks/usePrefs";
+import { useGlobals } from "./hooks/useGlobals";
 import { TopBar } from "./components/TopBar";
 import { BootGate } from "./components/BootGate";
 import { ErrorBanner } from "./components/ErrorBanner";
@@ -84,15 +71,10 @@ export default function App() {
   // 12/10): o useStage só pode pedi-la quando o boot validou o relatório
   // (#161). Pedir antes era correr a fila do actor contra o script de 25 s.
   const stage = useStage(onPresetChanged, boot.state.kind === "ready");
-  // O gestor de tons (#25) tem o estado no hook inteiro: a lista, o A/B e o
-  // envio em andamento vivem la porque sao coisas que sobrevivem ao fechar e
-  // reabrir a tela — perder o "enviando…" ao clicar fora mandaria um segundo
-  // stream para o aparelho.
+  // O gestor de tons (#25) e o laboratório de IRs (#24) têm o estado no
+  // hook inteiro: lista, A/B e envio EM ANDAMENTO (minutos) sobrevivem ao
+  // fechar/reabrir a tela — perder o "enviando…" mandaria um 2º stream.
   const tones = useTones();
-  // O laboratorio de IRs (#24) tem o mesmo dono-do-estado: a lista do dono, a
-  // tabela que o APARELHO relata e o envio em andamento (que pode levar
-  // minutos) vivem no hook porque precisam sobreviver ao fechar e reabrir a
-  // tela — perder o "enviando…" mandaria um segundo stream para o aparelho.
   const irs = useIrs();
   // A PORTA do conteudo (#24/#25/#114) fica no hook porque e ela que decide qual
   // das telas abre (botao na navbar estoura em 1280); o preset vem por `stage`.
@@ -170,60 +152,16 @@ export default function App() {
   // no erro o LED fica off até o gate liberar a casca.
   const pronto = boot.state.kind === "ready";
 
-  // Herda os registradores globais do device (§13.13): master e DRUM vêm
-  // DO aparelho no boot validado (decode medido nibble-par) — o localStorage
-  // é o fallback de quem não tem device. Re-ler no ⟳ é de propósito (o
-  // re-scan relê o device). Falha aqui NÃO vira banner: o palco já está no
-  // estado do device (#150) e este enriquecimento é opcional — o retry
-  // natural é o próprio ⟳.
-  useEffect(() => {
-    if (!pronto) return;
-    void deviceGlobals()
-      .then((g) => {
-        if (g.volume != null) setMasterVol(Math.max(0, Math.min(99, g.volume)));
-        if (g.drumBpm != null || g.drumVolume != null) {
-          setDrum((d) => ({
-            ...d,
-            ...(g.drumBpm != null ? { bpm: Math.max(40, Math.min(240, g.drumBpm)) } : {}),
-            ...(g.drumVolume != null ? { volume: Math.max(0, Math.min(100, g.drumVolume)) } : {}),
-          }));
-        }
-      })
-      .catch((e: unknown) => {
-        console.error("device_globals indisponível (localStorage segue):", e);
-      });
-  }, [pronto]);
-
-  // Master VOL: prévia local SEMPRE + escrita no registrador gVolume quando
-  // o build permite (ADR-5: sem write-verified o transporte recusa antes do
-  // driver e o erro fica no console — a UI segue no valor local, mesmo
-  // tratamento do knob).
-  const mudaMaster = (v: number) => {
-    setMasterVol(v);
-    if (info?.writeVerified) {
-      void deviceSetGlobal("gVolume", v).catch((e: unknown) => {
-        console.error("gVolume write falhou (prévia local):", e);
-      });
-    }
-  };
-
-  // DRUM: idem para os registradores medidos drumBpm/drumVolume — só o que
-  // MUDOU dispara write (os botões ±/slider mandam estado inteiro).
-  const mudaDrum = (d: DrumState) => {
-    const anterior = drum;
-    setDrum(d);
-    if (!info?.writeVerified) return;
-    if (d.bpm !== anterior.bpm) {
-      void deviceSetGlobal("drumBpm", d.bpm).catch((e: unknown) => {
-        console.error("drumBpm write falhou (prévia local):", e);
-      });
-    }
-    if (d.volume !== anterior.volume) {
-      void deviceSetGlobal("drumVolume", d.volume).catch((e: unknown) => {
-        console.error("drumVolume write falhou (prévia local):", e);
-      });
-    }
-  };
+  // §13.13: master/DRUM herdados do APARELHO no boot + write-through quando
+  // o build permite (ADR-5). O acoplamento device×prefs mora no hook (#82:
+  // App fino — coesão de vizinhos, não do casco).
+  const { mudaMaster, mudaDrum } = useGlobals({
+    pronto,
+    writeVerified: info?.writeVerified ?? false,
+    setMasterVol,
+    drum,
+    setDrum,
+  });
   // Conexão VALIDADA pelo boot (fórmula do cluster antigo, #161): device_info
   // respondendo não é conexão — boot falho mantém o LED off, senão a navbar
   // mentiria sobre um device que o gate recusou (e2e mid-boot).

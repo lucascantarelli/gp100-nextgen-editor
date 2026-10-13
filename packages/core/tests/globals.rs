@@ -76,7 +76,9 @@ fn read_register_rejeita_payload_fora_do_medido() {
     let mut mock = MockDevice::new().expect("mock montado");
     mock.open().expect("mock aberto");
     let mut session = Session::new(&mut mock);
-    let err = session.read_register(G_VOLUME, &[6]).expect_err("6B não é forma medida");
+    let err = session
+        .read_register(G_VOLUME, &[6])
+        .expect_err("6B não é forma medida");
     assert!(
         err.to_string().contains("medido"),
         "erro cita a origem da forma: {err}"
