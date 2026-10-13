@@ -80,6 +80,11 @@ rust-toolchain.toml  # stable pinado (P2)
 - effectCode no fio = u32 **LE** (b0=LSB do índice, b3=nibble); nos .prst é decimal.
 - pp/PG/CRC no fio = **BE**; float32 de valor = **LE**.
 - Payloads de objeto (set-param, IR) = **nibble-expandidos**, hi-nibble primeiro.
+- **`state_page(pg)` devolve `raw[3] == PG+1` (§13.10)**: um laço 0..8
+  alimentando `preset_pages::decode` derruba com "página fora de ordem:
+  esperada 0, achada 1" — o slot 0 vem do `open`, não do req de página.
+  Quem relê as 9 páginas em ciclo usa `Session::reload_paginas_correntes`
+  (a sequência do boot; #164/ADR-15, `PROTOCOL.md` §13.15).
 - Log de captura é append-only e tem truncamentos SEM-HDR (ring buffer) — fixtures
   já tratam isso (P4); não "corrigir" no codec.
 - Terminal novo sem cargo no PATH: fix permanente `scripts/add_cargo_path.ps1`

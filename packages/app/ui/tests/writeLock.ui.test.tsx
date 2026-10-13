@@ -58,6 +58,8 @@ const info = (writeVerified: boolean): DeviceInfo => ({
   irSlotsWithCrc: 20,
   irSlots: [],
   writeVerified,
+  sync: "sync",
+  syncDetail: "",
 });
 
 describe("escritaLiberada — a política num lugar só", () => {

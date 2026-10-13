@@ -38,6 +38,7 @@
 # ═══════════════════════════════════════════════════════════════════════════
 
 name: Baselines visuais
+# touch: força o re-ingest do workflow pelo GitHub (não aparecia registrado)
 
 on:
   # Só dispatch. Sem inputs: a ref alvo é a que o dispatch já carrega.

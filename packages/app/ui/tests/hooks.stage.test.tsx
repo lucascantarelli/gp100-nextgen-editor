@@ -24,6 +24,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { BoardSlot, BoardView } from "../src/ipc/types";
 import type { LibraryPreset } from "../src/ipc/library";
 import { resetaFallback } from "../src/ipc/library";
+import { emitSync } from "../src/ipc/sync";
 import { useStage } from "../src/hooks/useStage";
 import { usePrefs } from "../src/hooks/usePrefs";
 import { MSG } from "../src/i18n/messages";
@@ -254,6 +255,13 @@ describe("useStage", () => {
     // monta em StrictMode também): o que NÃO pode é o número crescer.
     expect(abertas.length).toBeLessThanOrEqual(2);
     expect(mocks.deviceSelectPreset.mock.calls.length).toBeLessThanOrEqual(2);
+    // Desmonta: esta raiz FOGE do `raizAnterior` do `montarStage`, e o
+    // listener de `device://sync` do palco (#164) sobreviveria ao teste —
+    // um emitSync dos testes seguintes chamaria `device_board` POR TRÁS,
+    // escreveria no `stage` global e contaria chamada a mais.
+    await act(async () => {
+      root.unmount();
+    });
   });
 
   it("NÃO é otimista: select que falha não muda pp nem board", async () => {
@@ -444,6 +452,43 @@ describe("useStage", () => {
     expect(stage!.openUserId).toBeNull();
     expect(stage!.lib.stats?.user ?? 0).toBe(0);
     expect(mocks.deviceSelectPreset).toHaveBeenCalled();
+  });
+
+  // #164 — reconciliação: o read-back do backend divergiu do cache
+  // (`changed = true`). O APARELHO vence: o palco RELÊ o board (device_board)
+  // em vez de continuar com o valor que o app quis escrever.
+  it("read-back divergente reconcilia o palco com o APARELHO (#164)", async () => {
+    await montarStage();
+    const antes = mocks.deviceBoard.mock.calls.length;
+    // o device mudou por baixo do app (knob no pedal): a releitura traz outro nome
+    mocks.deviceBoard.mockImplementation(async (target: number) => boardDe(target, "DO-APARELHO"));
+    await act(async () => {
+      emitSync({ status: "sync", changed: true, detail: "" });
+      await Promise.resolve();
+    });
+    expect(mocks.deviceBoard.mock.calls.length).toBe(antes + 1);
+    expect(stage!.presetName).toBe("DO-APARELHO");
+  });
+
+  it("changed com patch de USUÁRIO aberto NÃO sobrescreve o retrato (#164)", async () => {
+    await montarStage();
+    await act(async () => {
+      stage!.saveUserPatch("meu patch");
+    });
+    const linha = await primeiroDoDono();
+    await act(async () => {
+      await stage!.openUserPatch(linha.id, 0);
+    });
+    mocks.deviceBoard.mockClear();
+    await act(async () => {
+      emitSync({ status: "sync", changed: true, detail: "" });
+      await Promise.resolve();
+    });
+    // o palco desenha o ARQUIVO local — reconciliar com o device aqui seria
+    // perder o retrato do dono na tela.
+    expect(mocks.deviceBoard).not.toHaveBeenCalled();
+    expect(stage!.presetName).toBe("meu patch");
+    expect(stage!.openUserId).toBe(linha.id);
   });
 
   it("apagar patch que NÃO está aberto não mexe no palco", async () => {

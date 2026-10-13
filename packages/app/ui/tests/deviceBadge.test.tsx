@@ -45,6 +45,10 @@ function info(patch: Partial<DeviceInfo> = {}): DeviceInfo {
     irSlotsWithCrc: 0,
     irSlots: [],
     writeVerified: true,
+    // estado de sincronização (#164) — o badge não lê, mas o DTO exige:
+    // a fonte é o actor, nunca um literal na UI.
+    sync: "sync",
+    syncDetail: "",
     ...patch,
   };
 }

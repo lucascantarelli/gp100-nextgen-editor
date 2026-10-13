@@ -16,6 +16,13 @@ comentário NA ISSUE e a fila avança.
 
 ## Estado vivo (atualizar a cada marco — 1–3 linhas, sem prosa)
 
+- 13/10 — **#164 (sync bilateral) entregue**: estado tipado único no actor
+  (`idle/sync/pending/failed/offline`; `device_info` semeia e `device://sync`
+  transiciona), read-back pós-escrita (debounce 800 ms) + refresh de 10 s pela
+  sequência do boot (`reload_paginas_correntes` — `PROTOCOL.md` §13.15,
+  ADR-15), chip na navbar com ação reler/reconectar e reconciliação "o
+  aparelho vence". Limite honesto: knob físico não emite SysEx — é poll,
+  não push.
 - 13/10 — **regeneração de baseline virou workflow dedicado** (#204):
   `visual-baselines.yml` (`workflow_dispatch` sem inputs, `contents: read`)
   regenera as baselines `-linux`; o input `update-snapshots` saiu do `ci.yml`.

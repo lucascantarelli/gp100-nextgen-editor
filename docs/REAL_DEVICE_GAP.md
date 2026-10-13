@@ -164,6 +164,13 @@ Isto não precisa ser refeito para o app falar com a pedaleira:
 - **A política de escrita do CLI funciona**: `--real` exige
   `--i-know-what-im-doing` **e** a feature de compilação, e a CI já constrói e faz
   smoke do binário com e sem `write-verified`.
+- **A sincronização bilateral existe e é tipada** (#164, ADR-15): escrita vira
+  `pending`, o read-back de 800 ms rele as 9 páginas (10 transações, todas de
+  leitura) e reconcilia com o APARELHO vencendo; refresh de 10 s cobre o que
+  mudou no pedal; queda vira `offline` legível com reconexão. O limite é do
+  protocolo e está no `PROTOCOL.md` §13.15: **knob físico não emite SysEx —
+  "tempo real" aqui é poll + read-back, nunca notificação espontânea**.
+  O custo em repouso (10 tx/10 s) é número para o gate H5 medir.
 
 
 ### A cobertura do caminho real (e por que o CLI ainda existe)

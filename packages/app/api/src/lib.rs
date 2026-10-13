@@ -210,6 +210,7 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
         .invoke_handler(tauri::generate_handler![
             commands::device_info,
             commands::device_conectar,
+            commands::device_sync_now,
             commands::device_globals,
             commands::device_set_global,
             commands::device_board,
@@ -280,6 +281,22 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
         actor: actor.clone(),
         library: std::sync::Mutex::new(library),
     });
+
+    // Eventos de sincronização (#164): o actor roda numa thread sem handle
+    // do Tauri (mesmo motivo do `device://progress`), então ele manda por um
+    // canal proprio e ESTE ponto reemite como `device://sync` — é o mesmo
+    // padrão do progresso, com o `run()` como tradutor.
+    let (sync_tx, sync_rx) = std::sync::mpsc::channel::<actor::SyncEvent>();
+    actor.set_sync_sink(sync_tx);
+    {
+        let handle = app.handle().clone();
+        std::thread::spawn(move || {
+            use tauri::Emitter;
+            while let Ok(ev) = sync_rx.recv() {
+                let _ = handle.emit("device://sync", &ev);
+            }
+        });
+    }
 
     // **LOG DE FIO AUTOMÁTICO NO CAMPO (06/10/2026).** Em 06/10 o app de campo
     // assertou o firmware do GP-100 (`CODE:PresetNum < TOTAL_PA`,

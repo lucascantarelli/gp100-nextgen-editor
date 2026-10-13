@@ -49,8 +49,11 @@ interface Props {
   conectado: boolean;
 }
 
-/* O badge inteiro é compacto (linha da navbar, ~32px de altura). */
-const wrap: CSSProperties = { display: "inline-flex", alignItems: "center", gap: "var(--space-8)" };
+/* O badge inteiro é compacto (linha da navbar, ~32px de altura). `minWidth: 0`
+   deixa o flex do cluster ENCOLHER o badge (a linha informativa corta com
+   ellipsis) em vez de vazar a célula do rack e cobrir o ⟳ — o defeito do
+   R5 no CI, onde as fontes são mais largas. */
+const wrap: CSSProperties = { display: "inline-flex", alignItems: "center", gap: "var(--space-8)", minWidth: 0 };
 
 /* Linha de status: mono, uppercase e tabular — o número não "treme" quando o
  * inventário muda entre um boot e outro. */
@@ -61,6 +64,11 @@ const status: CSSProperties = {
   textTransform: "uppercase",
   color: "var(--text-muted)",
   whiteSpace: "nowrap",
+  /* a linha corta com ellipsis quando a célula aperta (o texto completo
+     continua no `title`) — em vez de empurrar o ⟳ para fora do cluster */
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  minWidth: 0,
 };
 
 /** Números tabulares no meio do status (presetCount). */
@@ -77,6 +85,8 @@ const badge: CSSProperties = {
   border: "1px solid color-mix(in srgb, var(--accent) 45%, transparent)",
   background: "color-mix(in srgb, var(--accent) 12%, transparent)",
   whiteSpace: "nowrap",
+  /* etiqueta de estado não encolhe: quem cede espaço é a linha informativa */
+  flexShrink: 0,
 };
 
 /* ── o que cada estado do dot significa ────────────────────────────────── */

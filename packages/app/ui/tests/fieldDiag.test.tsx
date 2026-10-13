@@ -67,6 +67,8 @@ const REAL: DeviceInfo = {
   irSlotsWithCrc: 0,
   irSlots: [],
   writeVerified: true,
+  sync: "sync",
+  syncDetail: "",
 };
 
 const LEITURA: DeviceInfo = { ...REAL, writeVerified: false };

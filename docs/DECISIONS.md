@@ -919,3 +919,61 @@ declarar, para cada coisa que sobrou, quem é dona e por quê.
   Aceito: o issue manda e os relatórios H apontam para cá. Se um dia a evidência
   virar volume (H5), ela sai para um lugar próprio — com o apontador atualizado,
   nunca com o doc apontando para nada.
+
+---
+
+## ADR-15 — Sincronização por poll + read-back: estado tipado único no actor, "tempo real" sem notificação espontânea (#164)
+
+> **Criado em:** 13/10/2026 · **Status:** aceito · **Vincula:** #164 (HW-4),
+> EPIC #171, ADR-4 (sessão viva), ADR-5 (write-verified), ADR-10 (trava de
+> faixa), ADR-12 (inventário), H5_CHECKLIST (#172, gate de campo),
+> `PROTOCOL.md` §13.15
+
+**Contexto.** O app escrevia no aparelho sem nunca confirmar: o knob mandava
+`12/10xx0002` fire-and-forget (D4 — a captura não tem resposta) e a tela
+ficava com o valor DESEJADO até um `select` manual. Não existe notificação
+espontânea de edição no fio (medido): o knob físico não emite SysEx. A pergunta
+da issue era o que "tempo real" significa neste protocolo — e a resposta
+tem de estar na doc, não escondida.
+
+**Decisão — sincronização por releitura, com fonte única de estado:**
+
+1. **Estados tipados no actor** (`idle`/`sync`/`pending`/`failed`/`offline`)
+   são a ÚNICA verdade. `device_info` semeia a UI (o chip nunca tem um
+   segundo estado) e o evento `device://sync` é cada transição.
+2. **Escrita → read-back (debounce 800 ms, `READBACK_DEBOUNCE`).** Como o
+   set de knob não tem ACK, a confirmação é a releitura: `pending` até o
+   read-back devolver `sync` (divergiu → `changed: true`) ou `failed`.
+3. **Refresh periódico (10 s, `REFRESH_INTERVAL`)** cobre o device→app em
+   repouso (save feito no pedal, knob girado no hardware). Sob demanda, o
+   command `device_sync_now` adianta o MESMO prazo (ação "Reler agora").
+4. **O read-back é a sequência do boot** (`Session::reload_paginas_correntes`:
+   select + open + PG 0..7, §13.10 — 10 transações, todas `WireKind::Read`).
+   O caminho NÃO é um laço de `state_page`: aquela devolve `raw[3] == PG+1` e
+   o slot 0 do `decode` só vem do `open` (o laço provou o contrário com o
+   teste "página fora de ordem: esperada 0, achada 1").
+5. **Reconciliação: o APARELHO vence.** `changed: true` → o front relê o
+   `device_board`; com patch de usuário aberto o palco desenha o arquivo
+   local e não reconcilia (sobrescrever seria perder o retrato do dono).
+6. **Anti-brick provado, não prometido:** o boot só lê — a única escrita
+   tolerada é o keepalive T4 `12/00020001` ×2 (D4, decisão do owner 06/10),
+   e o teste decodifica cada frame de escrita do boot: qualquer outro
+   (SetParam/save/meta/IR) reprova.
+7. **Queda:** `DeviceGone` → `offline` com motivo legível; a sessão fica
+   viva (ADR-4) e a escrita seguinte falha ANTES do fio. O chip oferece
+   "Reconectar" (`device_conectar`); `failed` oferece "Reler agora".
+
+**Consequências.**
+- (+) A tela nunca mostra valor que o aparelho não confirmou — o invariant
+  "nada de estado otimista" do palco passa a valer também contra o device.
+- (+) O ciclo inteiro é testável sem hardware (MockDevice com mutação de
+  página: escrita → read-back divergente → reconciliação; queda no meio).
+- (−) **Custo em repouso: 10 transações a cada 10 s** enquanto o app está
+  aberto com o aparelho ligado — número que o gate H5 (#172) mede no fio de
+  campo e pode rebalar se o custo real for caro.
+- (−) Mudança feita no PEDAL aparece na tela com atraso de até 10 s (e a
+  do knob físico no app NUNCA aparece por push — não existe o frame). Quem
+  quiser o valor imediato usa "Reler agora".
+- (−) O push medido do bloco `00020003..1f` (§13.13.1) continua mapeado só
+  em parte: virar canal de sync exige fechar a semântica antes (ADR-13 —
+  sem evidência, não vira semântica).

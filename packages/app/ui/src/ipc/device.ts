@@ -1,17 +1,16 @@
 /**
- * ipc/device — ÚNICA porta do front para os commands/eventos de device
- * (Porta única do front: componentes NUNCA chamam `invoke`/`listen` espalhado
- * nem importam gp100-core — o lint bloqueia import direto de @tauri-apps).
+ * ipc/device — porta dos commands/eventos de device (componentes NUNCA
+ * chamam `invoke`/`listen` espalhado nem importam gp100-core — o lint
+ * bloqueia import direto de @tauri-apps).
  *
- * Fora do webview do Tauri (vitest/jsdom), `window.__TAURI_INTERNALS__`
- * não existe — o fallback de DEV/TESTE usa o MESMO shape do backend real
- * (MockDevice) e SIMULA o boot com progresso determinístico (mesmos totais
- * do script real: 2297 transações no inventário default), para a faixa de
- * progresso do boot e o log de pushes serem exercitados fora do shell.
+ * Fora do webview do Tauri (vitest/jsdom) `window.__TAURI_INTERNALS__` não
+ * existe — o fallback de DEV/TESTE usa o MESMO shape do backend real
+ * (MockDevice) e SIMULA o boot com progresso determinístico (2297 transações
+ * no inventário default), p/ faixa de progresso e log de pushes fora do shell.
  *
- * Todo command passa por RETRY COM BACKOFF + TIMEOUT por tentativa (issue
- * #20): falha transitória (USB instável) não chega ao usuário; falha
- * permanente vira erro visível com recuperação — nunca spinner eterno.
+ * Todo command passa por RETRY COM BACKOFF + TIMEOUT por tentativa (#20):
+ * falha transitória não chega ao usuário; falha vira erro visível com
+ * recuperação — nunca spinner eterno.
  */
 import type {
   BoardView,
@@ -322,6 +321,10 @@ function localMockInfo(): DeviceInfo {
     // transporte real). Aqui o valor e `true` pelo mesmo motivo — salvo o
     // gancho `gp100.debug.writeVerified`, que simula o build de leitura.
     writeVerified: !leituraSimulada(),
+    // O mock local "funciona": o boot simulado leu tudo e nada divergiu —
+    // mesma verdade que o MockDevice do backend diria (#164).
+    sync: "sync",
+    syncDetail: "",
   };
 }
 
@@ -593,3 +596,5 @@ export async function onDevicePush(cb: (hex: string) => void): Promise<() => voi
     pushListeners.delete(cb);
   };
 }
+
+/* Sync (#164: onDeviceSync/emitSync/device_sync_now) saiu para `ipc/sync.ts`. */

@@ -24,6 +24,7 @@ import { useEffect, useRef } from "react";
 import type { CSSProperties } from "react";
 import { DrumPanel } from "./DrumPanel";
 import type { DrumState } from "./DrumPanel";
+import { SyncChip } from "./SyncChip";
 import { DeviceBadge } from "./DeviceBadge";
 import type { DeviceInfo } from "../ipc/types";
 import { MSG } from "../i18n/messages";
@@ -252,9 +253,14 @@ export function TopBar({
       <div className="gp-surface gp-surface--flat gp-specular nb-cluster" role="status" aria-label={MSG.connClusterAria}>
         <DeviceBadge info={info} conectado={conectado} />
         <span className="nb-div" style={divider} aria-hidden="true" />
+        {/* sincronização com o APARELHO (#164) — o device é quem vence:
+            o chip se conecta sozinho (estado + ações), e o cluster mostra
+            o estado que o backend afirmou, com recuperação quando há erro */}
+        <SyncChip />
+        <span className="nb-div" style={divider} aria-hidden="true" />
         <button
           className="gp-btn nb-icon-btn"
-          style={{ ...nbBtn, fontFamily: "var(--font-mono)", fontSize: "var(--text-md)" }}
+          style={{ ...nbBtn, fontFamily: "var(--font-mono)", fontSize: "var(--text-md)", flex: "0 0 auto" }}
           onClick={onBoot}
           disabled={booting}
           aria-busy={booting}

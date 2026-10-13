@@ -52,6 +52,33 @@ export interface DeviceInfo {
    * explicação, em vez de o operador descobrir a recusa depois de clicar.
    */
   writeVerified: boolean;
+  /**
+   * Estado de sincronização (#164): o MESMO vocabulário do actor — o chip
+   * nasce com a verdade do backend, sem um segundo estado de verdade na UI.
+   */
+  sync: SyncStatus;
+  /** Detalhe humano de `failed`/`offline` (vazio nos outros estados). */
+  syncDetail: string;
+}
+
+/**
+ * Estado de sincronização com o APARELHO (#164) — evento `device://sync`.
+ *
+ * Limite honesto do protocolo: o knob físico NÃO emite SysEx, então não
+ * existe notificação espontânea — estes estados vêm do poll/read-back do
+ * backend. `sync` = a última releitura bateu com o cache; `pending` =
+ * escrita aguardando o read-back confirmar; `failed` = a releitura errou
+ * (detalhe); `offline` = o transporte caiu (detalhe).
+ */
+export type SyncStatus = "idle" | "sync" | "pending" | "failed" | "offline";
+
+/** Payload do evento `device://sync` (#164). */
+export interface SyncEvent {
+  status: SyncStatus;
+  /** `true` quando o read-back divergiu do cache — o APARELHO vence. */
+  changed: boolean;
+  /** Detalhe humano de `failed`/`offline` (vazio nos outros estados). */
+  detail: string;
 }
 
 /**
