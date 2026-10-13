@@ -5,7 +5,10 @@
   "version": "0.1.0",
   "identifier": "com.gp100.nextgen.editor",
   "build": {
-    "beforeDevCommand": "",
+    "beforeDevCommand": {
+      "script": "pnpm dev",
+      "cwd": "../ui"
+    },
     "devUrl": "http://localhost:5173",
     "beforeBuildCommand": "",
     "frontendDist": "../ui/dist"

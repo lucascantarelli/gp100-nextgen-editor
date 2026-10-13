@@ -14,7 +14,11 @@ O QUE ESTE ARQUIVO PEGA (e por quê cada um já aconteceu ou é plausível):
 - `targets` da config sem o bundle que o `Distribuição · instalador` pede: o job
   passa `--bundles`, que SOBRESCREVE a config, então a divergência só aparece
   quando alguém builda local sem o `--bundles`;
-- `.deb` sem `libwebkit2gtk-4.1-0`: o pacote instala "limpo" e o app não abre.
+- `.deb` sem `libwebkit2gtk-4-1-0`: o pacote instala "limpo" e o app não abre.
+- `beforeDevCommand` vazio: o `tauri dev` (debug do VS Code e terminal) fica
+  para sempre em "Waiting for your frontend dev server" e NUNCA abre a janela
+  nativa — ninguém sobe o vite (#192). O CI não pega, porque nenhum job roda
+  `tauri dev`; só o dono no host.
 
 A validação contra o schema do Tauri usa a rede (o schema não é versionado
 aqui). Sem rede, vira AVISO e o resto dos checks segue — um gate que reprova
@@ -119,6 +123,29 @@ def check_deb(conf: dict) -> None:
     for lib in ("libwebkit2gtk-4.1-0", "libgtk-3-0"):
         if not any(d.startswith(lib) for d in depends):
             fail(f"linux.deb.depends sem `{lib}` — o pacote instala e o app nao abre")
+
+
+def check_dev_command(conf: dict) -> None:
+    """`build.beforeDevCommand` vazio deixa o `tauri dev` órfão (#192).
+
+    O Tauri não sobe o dev server por conta própria: com o campo vazio, o CLI
+    espera o vite na `devUrl` para sempre e a janela nativa nunca abre. O CI
+    nunca pega (nenhum job roda `tauri dev` — dist usa `tauri build`), então a
+    única garantia é este gate: a mesma classe do check #71, um contrato que
+    apodreceria em silêncio até o dono tentar debugar de novo.
+    """
+    bdc = (conf.get("build") or {}).get("beforeDevCommand")
+    # Schema do Tauri v2 aceita string OU objeto {script, cwd} — o objeto e o
+    # caminho portavel (o `cwd` resolve relativo ao proprio conf, sem depender
+    # de como a CLI foi invocada). Os dois precisam estar preenchidos.
+    if isinstance(bdc, dict):
+        bdc = bdc.get("script")
+    if not (isinstance(bdc, str) and bdc.strip()):
+        fail(
+            "build.beforeDevCommand vazio — o `tauri dev` fica em "
+            '"Waiting for your frontend dev server" para sempre e a janela '
+            "nunca abre (#192)"
+        )
 
 
 def check_targets_vs_workflow(conf: dict) -> None:
@@ -276,6 +303,7 @@ def main() -> int:
 
     check_icons(conf, root)
     check_deb(conf)
+    check_dev_command(conf)
     check_targets_vs_workflow(conf)
     check_arch(conf, root)
     check_schema(conf)
