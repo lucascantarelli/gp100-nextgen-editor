@@ -55,7 +55,15 @@ test("drum: volume e speed refletem e persistem no localStorage", async ({ page 
 
   await shell.reload();
   await shell.drum.open();
-  await expect(shell.drum.volume()).toHaveValue("55");
+  // CONTRATO #200/#201 (igual ao master acima, que espera 99): no boot
+  // VALIDADO o registrador do device é a fonte — o seed device→UI devolve o
+  // drumVolume LIDO (o fallback devolve 80), não o editado. O localStorage
+  // só manda quando o boot não completa. A expectativa antiga (volume 55
+  // após reload) contrariava o contrato e só passava quando o assert corria
+  // mais rápido que o seed (~0,4s): sob carga o seed vencia e o teste
+  // flakava (CI 38441218878 / 38473816722; #211).
+  await expect(shell.drum.volume()).toHaveValue("80");
+  // speed NÃO é semeado (o seed cobre só bpm/volume) — a edição persiste.
   await expect(shell.drum.speed()).toHaveValue("30");
 });
 
