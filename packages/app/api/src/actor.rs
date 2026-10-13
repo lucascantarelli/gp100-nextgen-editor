@@ -855,7 +855,11 @@ impl DeviceActor {
                             let _ = reply.send(Err("session do actor ausente".into()));
                         }
                     },
-                    Request::SetGlobal { addr, payload, reply } => match session.as_mut() {
+                    Request::SetGlobal {
+                        addr,
+                        payload,
+                        reply,
+                    } => match session.as_mut() {
                         Some(s) => {
                             let r = s.write_register(addr, &payload).map_err(|e| e.to_string());
                             let _ = reply.send(r);
@@ -909,7 +913,8 @@ impl DeviceActor {
                                             }
                                         }
                                         if let (Some(dict), Some(off)) = (&dict, &off) {
-                                            if let Ok(dec) = gp100_core::preset_pages::decode(pags) {
+                                            if let Ok(dec) = gp100_core::preset_pages::decode(pags)
+                                            {
                                                 if let Ok(b) = dec.slots(pp, dict, off) {
                                                     boards.insert(pp, b);
                                                 }
@@ -1680,11 +1685,16 @@ mod tests {
             "o nome do corrente vem do cache do scan"
         );
         let lib = actor.library().expect("library");
-        assert!(!lib.entries.is_empty(), "a biblioteca é o inventário do aparelho");
+        assert!(
+            !lib.entries.is_empty(),
+            "a biblioteca é o inventário do aparelho"
+        );
 
         // SEM o cache do actor este `board` ERRARIA: o backend Real não
         // projeta o artefato, e as páginas da Session já foram descartadas.
-        let b = actor.board(Some(0x0000)).expect("board sobrevive aos snapshots");
+        let b = actor
+            .board(Some(0x0000))
+            .expect("board sobrevive aos snapshots");
         assert_eq!(b.pp, 0x0000, "o palco é do pp pedido");
         assert!(!b.slots.is_empty(), "a cadeia vem do decode do scan");
         actor.shutdown();

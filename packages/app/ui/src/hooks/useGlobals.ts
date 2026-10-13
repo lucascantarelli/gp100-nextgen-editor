@@ -26,7 +26,7 @@ import type { DrumState } from "../components/DrumPanel";
 
 /** O que o hook precisa dos dois lados: o `writeVerified` do device_info e
  *  os setters de persistência do `usePrefs`. */
-export interface GlobalsDeps {
+interface GlobalsDeps {
   /** Boot validado — sem ele o seed não roda (o aparelho ainda não leu). */
   pronto: boolean;
   /** `device_info` corrente (null antes do primeiro response). */
@@ -36,7 +36,7 @@ export interface GlobalsDeps {
   setDrum: Dispatch<SetStateAction<DrumState>>;
 }
 
-export interface GlobalsApi {
+interface GlobalsApi {
   /** Master VOL: prévia local + write do gVolume (quando liberado). */
   mudaMaster: (v: number) => void;
   /** DRUM: prévia local + write do que mudou (drumBpm/drumVolume). */

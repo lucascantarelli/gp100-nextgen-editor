@@ -681,8 +681,14 @@ mod tests {
         assert_eq!(addr_global("gVolume").unwrap(), [0x00, 0x02, 0x00, 0x03]);
         assert_eq!(addr_global("drumBpm").unwrap(), [0x00, 0x01, 0x02, 0x03]);
         assert_eq!(addr_global("drumVolume").unwrap(), [0x00, 0x01, 0x02, 0x04]);
-        assert!(addr_global("0002001f").is_err(), "sem endereço cru vindo do front");
-        assert!(addr_global("gNoCabLeft").is_err(), "fora do escopo do 1º passo");
+        assert!(
+            addr_global("0002001f").is_err(),
+            "sem endereço cru vindo do front"
+        );
+        assert!(
+            addr_global("gNoCabLeft").is_err(),
+            "fora do escopo do 1º passo"
+        );
     }
 
     /// O DTO do command é derivado do snapshot REAL do actor (nunca de
