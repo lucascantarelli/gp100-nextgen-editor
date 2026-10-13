@@ -10,7 +10,7 @@ ser 514.
 O gate é deliberadamente burro: conta LINHAS FISICAS. Ele não julga qualidade,
 não lê AST e não tenta adivinhar intenção. O que ele faz é tornar visível, no
 momento do erro, a hora em que um arquivo passou do combinado — e o mapa de onde
-cada camada do front pode (e não pode) crescer está em `docs/ARCHITECTURE.md` §1.
+cada camada do front pode (e não pode) crescer está em `docs/dev/ARCHITECTURE.md` §1.
 
 TETO. O número é o teto de LINHAS (inclusive comentários e linhas em branco).
 Contar só código daria um número que sobe e desce com o estilo de formatação, e
@@ -121,13 +121,13 @@ def main() -> int:
             print(f"  {rel} — o teto dele sumiu junto com o arquivo", file=sys.stderr)
         print(
             "[check_module_size] Ou o arquivo foi renomeado (atualize o gate), ou "
-            "ele saiu do front de proposito (atualize docs/ARCHITECTURE.md secao 4).",
+            "ele saiu do front de proposito (atualize docs/dev/ARCHITECTURE.md secao 4).",
             file=sys.stderr,
         )
         return 1
 
     if excessos:
-        print("[check_module_size] Acima do teto (docs/ARCHITECTURE.md §4):", file=sys.stderr)
+        print("[check_module_size] Acima do teto (docs/dev/ARCHITECTURE.md §4):", file=sys.stderr)
         for rel, linhas, teto in excessos:
             print(f"  {rel}: {linhas} > {teto} ({linhas - teto:+d})", file=sys.stderr)
         print(

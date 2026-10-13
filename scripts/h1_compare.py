@@ -4,7 +4,7 @@
 POR QUE ISTO EXISTE. O `scripts/h1_field.sh` automatizou as FASES A e B
 (rodar o roteiro de leitura). A FASE C — comparar o log de campo com a
 referencia do mock, classificar a divergencia nos 3 niveis do
-`docs/H1_CHECKLIST.md` §4 e escrever a tabela do §5 — continuava sendo um
+`docs/arquivo/H1_CHECKLIST.md` §4 e escrever a tabela do §5 — continuava sendo um
 lembrete em texto para o humano fazer na mao, DEPOIS de desligar a
 pedaleira. E e o pior momento possivel para improvisar: o operador esta com
 o device na mao, o roteiro ja rodou, e a unica coisa que falta decidir e se
@@ -24,7 +24,7 @@ referencia do mock como unica fonte, o gate passaria junto com o mock: um
 `MockDevice` que passasse a responder pagina de 197B geraria uma referencia
 de 197B, e o "divergente" em campo viraria "identico ao mock". O nivel 3 e
 por isso conferido contra a tabela `FORMAS_13` abaixo, transcrita do §13 do
-`docs/PROTOCOL.md` — a especo viva, nao o codigo que a implementa. O
+`docs/tecnico/PROTOCOL.md` — a especo viva, nao o codigo que a implementa. O
 `--self-check` roda essa conferencia no proprio conjunto de referencia, e e
 gate no CI: e o que impede mock e §13 de sairem de sincronia em silencio.
 
@@ -87,7 +87,7 @@ EXIT_DRIFT = 3
 #
 # (dir, func, addr) -> tamanhos de payload ACEITOS, em bytes. Transcrito do
 # §13.10 (bloco 13xx) e do §13.12 (tabela dos 20 User IRs), e conferido
-# contra o `docs/H1_CHECKLIST.md` §4 ("meta6 6B, paginas 196/32B, fim 4B").
+# contra o `docs/arquivo/H1_CHECKLIST.md` §4 ("meta6 6B, paginas 196/32B, fim 4B").
 #
 # `13010003` aceita 196 E 32 de proposito: o §13.10 diz que a pagina 8 vem
 # truncada em 32B quando o preset e o ultimo do banco. Um jogo de dados
@@ -450,7 +450,7 @@ def veredito(resultados: list[Resultado], ensaio: bool = False) -> int:
     )
     if sem:
         print("  Passos SEM EVIDENCIA nao contam como 'passaram': leia o display.")
-    print("  Copie a tabela do §5 para o docs/H1_REPORT.md e arquive a sessao.")
+    print("  Copie a tabela do §5 para o docs/arquivo/H1_REPORT.md e arquive a sessao.")
     return 0
 
 

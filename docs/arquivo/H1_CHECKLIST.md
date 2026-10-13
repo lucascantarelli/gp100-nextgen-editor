@@ -6,9 +6,9 @@
 > CLI · referências do mock em `docs/arquivo/analysis/h1_reference/` · runbook
 > `scripts/h1_field.sh rehearsal|field` · **juiz da Fase C
 > `scripts/h1_compare.py`** (classifica a sessão nos 3 níveis do §4 e imprime a
-> tabela do §5) · relatório `docs/H1_REPORT.md` com o **plano de backup fixo** (§7)
+> tabela do §5) · relatório `docs/arquivo/H1_REPORT.md` com o **plano de backup fixo** (§7)
 > — decidido ANTES de ligar a pedaleira.
-> **Fontes:** `docs/ROADMAP.md` (issue H1, regra R3), `docs/VISION.md` §7 (brick-proof), `docs/BLOCKERS.md` §4, ADR-3/ADR-4/ADR-6 (`docs/DECISIONS.md`), `docs/PROTOCOL.md` §13, `knowledge.md` (armadilhas de captura).
+> **Fontes:** `docs/planejamento/ROADMAP.md` (issue H1, regra R3), `docs/planejamento/VISION.md` §7 (brick-proof), `docs/planejamento/BLOCKERS.md` §4, ADR-3/ADR-4/ADR-6 (`docs/dev/DECISIONS.md`), `docs/tecnico/PROTOCOL.md` §13, `knowledge.md` (armadilhas de captura).
 > **Regra deste gate:** **LER é seguro; ESCREVER é H2.** Nenhum byte de escrita sai
 > nesta sessão (`set-param`/`save`/`upload-ir` proibidos MESMO com dry-run) e
 > firmware update continua fora de escopo (política V2+).
@@ -94,7 +94,7 @@ automático, D6)
 - [ ] Conferir a **tabela do §5** que o juiz imprimiu (nível 1/3 = R3; nível 2 =
       estado, documentar). O juiz separa os três; a conferência humana é sobre o
       *conteúdo* das linhas de nível 2, não sobre recontar diffs.
-- [ ] Preencher `docs/H1_REPORT.md` e arquivar (§7; plano de backup no §7 dele)
+- [ ] Preencher `docs/arquivo/H1_REPORT.md` e arquivar (§7; plano de backup no §7 dele)
 
 **PROIBIDO nesta sessão:** qualquer escrita (mesmo dry-run — é H2), update de
 firmware, e "testinhas" fora do roteiro. Curiosidade custa pedaleira.
@@ -125,7 +125,7 @@ para drift de **conteúdo**; drift de **forma** recusa e manda para o R3.
 Desempate "protocolo × estado": repetir a MESMA leitura 2× — protocolo é
 determinístico (diverge igual nas duas), estado não muda entre leituras.
 
-## 5. Log de divergência (1 linha por ocorrência; vai para `docs/H1_REPORT.md`)
+## 5. Log de divergência (1 linha por ocorrência; vai para `docs/arquivo/H1_REPORT.md`)
 
 | # | Passo | Endpoint (func/addr) | Nível | Esperado (golden/mock) | Obtido (hex curto) | Hipótese | Severidade | Ação |
 |---|---|---|---|---|---|---|---|---|
@@ -154,7 +154,7 @@ determinístico (diverge igual nas duas), estado não muda entre leituras.
       idêntica ao mock no framing")
 - [ ] Toda divergência classificada: `estado` documentada no H1_REPORT;
       `bloqueia-H1` tratada via R3 e H1 re-executado
-- [ ] `docs/H1_REPORT.md` arquivado + linha no `knowledge.md` (estado vivo)
+- [ ] `docs/arquivo/H1_REPORT.md` arquivado + linha no `knowledge.md` (estado vivo)
 - [ ] ROADMAP: H1 ✅ com data (ou itens R3 abertos como issues)
 - [ ] `sessionH1.jsonl` preservado (matéria-prima para o H3/golden v1.1)
 

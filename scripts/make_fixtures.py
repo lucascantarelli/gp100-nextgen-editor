@@ -38,7 +38,7 @@ _spec.loader.exec_module(BG)
 
 CAPS = {f"S{i}": os.path.join(HERE, "..", "docs", "arquivo", "analysis", "captures", f"session{i}.jsonl") for i in (1, 2, 3, 4)}
 FIXTURES = os.path.join(HERE, "..", "packages", "core", "data", "fixtures")
-GOLDEN = os.path.join(HERE, os.pardir, "docs", "protocol_golden.json")
+GOLDEN = os.path.join(HERE, os.pardir, "docs", "referencias", "protocol_golden.json")
 # O hash da baseline NÃO mora aqui como literal (#23): vem de
 # `scripts/baseline.json`, que é o registro com versão, data, motivo e
 # histórico. Um literal aqui obrigava a colar o hash novo em DOIS lugares
@@ -262,8 +262,8 @@ def main():
                         "sao excluidas e contadas por fase",
             "golden_sha256": sha,
             "golden_baseline": GOLDEN_BASELINE_SHA,
-            "reference": "docs/PROTOCOL.md §13.1-13.12; docs/ROADMAP.md P4; "
-                         "docs/protocol_golden.json",
+            "reference": "docs/tecnico/PROTOCOL.md §13.1-13.12; docs/planejamento/ROADMAP.md P4; "
+                         "docs/referencias/protocol_golden.json",
             "note": "se o golden mudar (fluxo R2/R3), REGENERAR as fixtures",
         },
         "fixtures": files,

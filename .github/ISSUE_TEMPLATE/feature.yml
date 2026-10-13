@@ -63,7 +63,7 @@ body:
     attributes:
       label: "Referências"
       description: "Docs do projeto (caminho + seção) e skills do agente"
-      placeholder: "docs/GP100_DEVICE.md §6 · docs/DECISIONS.md ADR-13 · skills: core-dev, testing"
+      placeholder: "docs/referencias/GP100_DEVICE.md §6 · docs/dev/DECISIONS.md ADR-13 · skills: core-dev, testing"
     validations:
       required: true
   - type: textarea

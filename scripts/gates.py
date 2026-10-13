@@ -58,7 +58,7 @@ GATES: list[tuple[str, list[str], str]] = [
     (
         "check_module_size",
         [sys.executable, "scripts/check_module_size.py"],
-        "orcamento de tamanho do front (App.tsx < 300; docs/ARCHITECTURE.md §4)",
+        "orcamento de tamanho do front (App.tsx < 300; docs/dev/ARCHITECTURE.md §4)",
     ),
     (
         "h1_compare",

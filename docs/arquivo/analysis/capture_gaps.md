@@ -27,7 +27,7 @@
   **prefixo** da captura cortada. A v1.1 removeu o template em vez de repetir a
   mentira (R1).
 - **Fecha com:** o `--log` do `gp100-cli`, que grava o frame inteiro, e o juiz
-  `analysis/validate_core_capture.py`. Roteiro: `docs/H3_CHECKLIST.md` §2
+  `analysis/validate_core_capture.py`. Roteiro: `docs/arquivo/H3_CHECKLIST.md` §2
   sessão 1.
 
 ## G8. Resync do save (o lado IN) — ❌ ABERTO (#23)
@@ -41,7 +41,7 @@
   `12000001`) é gap.
 - **Fecha com:** `gp100-cli … save … --log` (precisa da feature `write-verified`
   do #22, ou seja: H2 tem que passar primeiro) e o juiz. Roteiro:
-  `docs/H3_CHECKLIST.md` §2 sessão 3.
+  `docs/arquivo/H3_CHECKLIST.md` §2 sessão 3.
 
 ## G9. Baseline derivada do gp100-core — ❌ ABERTO (#23)
 - É o DoD literal do H3 e era **impossível**: `build_golden` aceitava só o
@@ -54,12 +54,12 @@
 - **Bloco de registros `00020003..0002001f`** (READ 11/… + WRITE 12/… + PUSH
   IN device→host dos 22 endereços) = o estado global sincronizado em bloco.
   Mais `00000000`/`00000005`/`00001000` e o slider duplo `00010203/04`.
-  Detalhe de forma em `docs/PROTOCOL.md` §13.13.
+  Detalhe de forma em `docs/tecnico/PROTOCOL.md` §13.13.
 - **Mapa ação→endereço FECHADO (11/10, diff controlado — `sessionMap.jsonl`):**
   `00010203` = **drum BPM** · `00020004` = **Input Level** · `00020012` (família
   8B `00020011..1f`) = **Global EQ** por banda. Detalhe em PROTOCOL §13.13.4.
 - **Nomes FECHADOS por RE do binário do Suite (11/10, só leitura —
-  `docs/PROTOCOL.md` §13.13.7, prova A/B/C):** `00010204`=`drumVolume` ·
+  `docs/tecnico/PROTOCOL.md` §13.13.7, prova A/B/C):** `00010204`=`drumVolume` ·
   `00000000..05`=ppCtrl `c11..c23` · `00001000`=bloco de config EXP (16B) ·
   `00020003`=`gVolume` · `00020005`=`gUsbGain` · `00020006`=`gUsbMonitorVol` ·
   `00020009`=`gTapTempoSetting`; família `0002xxxx` inteira nomeada

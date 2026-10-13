@@ -13,7 +13,7 @@ repo e trabalhar **sem briefing extra**. Três peças + uma memória:
 │   ├── ui-ux-practices/   front (tokens, a11y, estados, gates)
 │   ├── testing/           o que a suíte testa e onde cada teste vive
 │   ├── hardware-dev/      aparelho real: leitura livre, escrita travada, evidência
-│   ├── device-reference/  o QUE a GP-100 é (vocabulário → docs/GP100_DEVICE.md)
+│   ├── device-reference/  o QUE a GP-100 é (vocabulário → docs/referencias/GP100_DEVICE.md)
 │   ├── release/           cadeia rc → promote → tag e artefatos
 │   └── docs-sync/         sincronização de doc ao fechar marco
 └── prompts/           # O QUE executar (templates para colar; vinculam skills)

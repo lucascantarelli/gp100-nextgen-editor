@@ -23,7 +23,7 @@ import { MSG } from "../i18n/messages";
 /**
  * Famílias que desenham pedal REAL no palco: a CADEIA INTEIRA (visão
  * completa das 9 posições — cada família tem modelo próprio em fxModels).
- * A validação de ESCRITA por família (roteiro R7, docs/UI_TEST_PLAN.md)
+ * A validação de ESCRITA por família (roteiro R7, docs/dev/UI_TEST_PLAN.md)
  * segue manual e NÃO esconde mais o pedal: a escrita é a mesma cadeia
  * genérica `device_set_param` (§13.11).
  */

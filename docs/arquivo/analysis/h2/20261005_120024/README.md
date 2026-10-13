@@ -1,7 +1,7 @@
 # Sessão H2 real — 05/10/2026, GP-100 V2.1
 
 Evidência do gate H2 de escrita real. O veredito está em
-[docs/H2_REPORT.md](../../../docs/H2_REPORT.md); este README só diz **qual log
+[docs/arquivo/H2_REPORT.md](../../../H2_REPORT.md); este README só diz **qual log
 é o quê** e **em que ordem as coisas aconteceram**.
 
 ## Linha do tempo (todas as vezes em 05/10/2026)

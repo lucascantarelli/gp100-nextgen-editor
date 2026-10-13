@@ -173,7 +173,7 @@ def matrices(sc: dict[str, bool]) -> tuple[str, str]:
       fecham no CoreMIDI. Sem esta entrada, o caminho do aparelho real do
       APP em macOS é código que só a máquina de quem tem a pedaleira
       compila — e era esse o ÚNICO motivo técnico que sobrava para o
-      `gp100-cli` continuar existindo (`docs/REAL_DEVICE_GAP.md` §6, passo
+      `gp100-cli` continuar existindo (`docs/referencias/REAL_DEVICE_GAP.md` §6, passo
       6b).
 
     **POR QUE O ARCH ENTRA SÓ NO CORE/CLI E NO FRONT (11/10, #169).** O Arch

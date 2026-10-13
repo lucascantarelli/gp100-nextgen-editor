@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# h1_field.sh — runbook de campo do gate H1 (docs/H1_CHECKLIST.md).
+# h1_field.sh — runbook de campo do gate H1 (docs/arquivo/H1_CHECKLIST.md).
 #
 # Uso:
 #   ./scripts/h1_field.sh rehearsal                       # ensaio HOJE contra o MOCK
@@ -135,7 +135,7 @@ do_field() {
         echo "    bump de baseline nos 5 lugares → retomar o código → H1 do zero."
     fi
     echo
-    echo "    Preencher docs/H1_REPORT.md com a tabela do §5 acima e arquivar."
+    echo "    Preencher docs/arquivo/H1_REPORT.md com a tabela do §5 acima e arquivar."
     return $rc
 }
 
@@ -228,7 +228,7 @@ veredito sem re-rodar o roteiro:
   python3 scripts/h1_compare.py docs/arquivo/analysis/h1_field_<tag> --markdown
   python3 scripts/h1_compare.py --self-check   # gate: referência x §13
 
-Referências do mock: docs/arquivo/analysis/h1_reference/ · Checklist: docs/H1_CHECKLIST.md
+Referências do mock: docs/arquivo/analysis/h1_reference/ · Checklist: docs/arquivo/H1_CHECKLIST.md
 USAGE
     ;;
 esac

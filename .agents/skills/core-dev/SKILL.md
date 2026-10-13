@@ -1,6 +1,6 @@
 ---
 name: core-dev
-description: Implementação no gp100-core/gp100-cli em Rust na Era Hardware — o aparelho real é a fonte (ADR-13), round-trip .prst sagrado, mock por default nos testes, travas de escrita. Use ao executar issue de core/cli (uma por vez), dentro das decisões de docs/DECISIONS.md.
+description: Implementação no gp100-core/gp100-cli em Rust na Era Hardware — o aparelho real é a fonte (ADR-13), round-trip .prst sagrado, mock por default nos testes, travas de escrita. Use ao executar issue de core/cli (uma por vez), dentro das decisões de docs/dev/DECISIONS.md.
 metadata:
   category: development
 ---
@@ -12,7 +12,7 @@ UMA por vez, na ordem — o ciclo issue→branch→PR→merge é a skill `github
 e o formato de execução canônico é o prompt `.agents/prompts/implementar-issue.md`.
 
 ## Regras de ouro (não negociáveis)
-1. **Nunca adivinhar protocolo**: todo byte vem de `docs/protocol_golden.json`
+1. **Nunca adivinhar protocolo**: todo byte vem de `docs/referencias/protocol_golden.json`
    (baseline com hash no §13 do PROTOCOL.md) e das narrativas §13.10–13.12.
    Premissa ausente? Parar e registrar a dúvida — nunca "resolver" com palpite.
    **O aparelho real está ligado e é consultável a qualquer sessão** (CLI de
@@ -26,7 +26,7 @@ e o formato de execução canônico é o prompt `.agents/prompts/implementar-iss
    Toda regra de "padrão" nasce de byte OBSERVADO no aparelho, não de suposição
    de fábrica — o H4 (#177) cobrou caro exatamente isso.
 2. **Golden é spec de FORMA, não fonte de valor (ADR-13)**:
-   `docs/protocol_golden.json` descreve o FORMATO do fio; cada espaço de VALOR
+   `docs/referencias/protocol_golden.json` descreve o FORMATO do fio; cada espaço de VALOR
    (default de knob, faixa, semântica) nasce de byte OBSERVADO no aparelho e
    ganha o próprio modelo/teste (precedentes: knobs #110, pp #148). Mudar a
    baseline é processo raro, com evidência de campo — ver skill `hardware-dev`.
@@ -59,7 +59,7 @@ e o formato de execução canônico é o prompt `.agents/prompts/implementar-iss
 ## Checklist por issue
 1. Ler a issue no GitHub (DoD define "pronto", não o feeling); branch/PR pela
    skill `github-flow`.
-2. Ler P5 (`docs/DECISIONS.md`) antes de escolher estrutura/API.
+2. Ler P5 (`docs/dev/DECISIONS.md`) antes de escolher estrutura/API.
 3. Implementar + testes vetorizados com exemplos do golden.
 4. `cargo fmt && cargo clippy -- -D warnings && cargo test` — gates e estilo
    detalhados em `.agents/skills/rust-practices/SKILL.md` (doc-comments PT-BR

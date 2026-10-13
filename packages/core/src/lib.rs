@@ -11,11 +11,11 @@
 //! ```
 //!
 //! **Fontes de verdade** — regra de ouro R1: NUNCA adivinhar protocolo.
-//! - [docs/protocol_golden.json](../../docs/protocol_golden.json) — especificação
+//! - [docs/referencias/protocol_golden.json](../../docs/referencias/protocol_golden.json) — especificação
 //!   executável (40 templates; Baseline v1.0 com sha256 no §13 do PROTOCOL.md);
-//! - [docs/PROTOCOL.md](../../docs/PROTOCOL.md) §13 — narrativa de campo do fio
+//! - [docs/tecnico/PROTOCOL.md](../../docs/tecnico/PROTOCOL.md) §13 — narrativa de campo do fio
 //!   (SysEx Valeton; envelope em §13.1);
-//! - [docs/DECISIONS.md](../../docs/DECISIONS.md) — ADR-1..5 pré-assinados
+//! - [docs/dev/DECISIONS.md](../../docs/dev/DECISIONS.md) — ADR-1..5 pré-assinados
 //!   (endian/nibble, `ProtocolError`, timeout 3s, trait `DeviceTransport`,
 //!   `WRITE_VERIFIED`);
 //! - [fixtures do fio](../data/fixtures) (packages/core/data/fixtures,
@@ -65,7 +65,7 @@ pub const SYSEX_HEADER: [u8; 8] = [0xF0, 0x21, 0x25, 0x7F, 0x47, 0x50, 0x2D, 0x6
 /// nas fixtures do P4 consumidas pelos testes de replay.
 pub const SYSEX_EOX: u8 = 0xF7;
 
-/// Erro de PROTOCOLO tipado (ADR-2 de `docs/DECISIONS.md`): toda falha de
+/// Erro de PROTOCOLO tipado (ADR-2 de `docs/dev/DECISIONS.md`): toda falha de
 /// framing/timeout/FSM desta crate é esta enum — nunca `unwrap`/`panic!`.
 ///
 /// Erros de I/O do transporte ficarão num `TransportError` separado (ADR-4); variantes novas entram aqui por decisão registrada (novo ADR).

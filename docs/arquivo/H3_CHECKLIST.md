@@ -33,7 +33,7 @@ normaliza os dois formatos.
 | `12001002` resync | 32 ACKs de 4 bytes | **Fabricados.** As 592 instâncias reais de 4 bytes são os ACKs do upload de IR (§13.7). |
 | `11000008` resync | 31 "registros de usuário" | **Fabricados** (14 bytes que saíram de um buffer cheio de `ff`). |
 
-Detalhes e a conta inteira em [`PROTOCOL.md`](PROTOCOL.md) §13.14. A v1.1 está
+Detalhes e a conta inteira em [`PROTOCOL.md`](../tecnico/PROTOCOL.md) §13.14. A v1.1 está
 registrada em `scripts/baseline.json`, com motivo e histórico.
 
 > **O número 77 da prova de save virou 14, e isso NÃO é uma regressão.** As 63
@@ -128,7 +128,7 @@ Só depois de 1–3, e **não antes**:
 - [ ] Baseline em v1.2 com motivo escrito e histórico mostrando v1.0 → v1.1 → v1.2
 - [ ] Os gaps do §13.14 marcados como fechados (ou re-declarados como abertos,
       com o motivo)
-- [ ] `docs/H3_REPORT.md` preenchido e arquivado
+- [ ] `docs/arquivo/H3_REPORT.md` preenchido e arquivado
 
 ### Se algum fluxo falhar
 
@@ -162,9 +162,9 @@ templates e o aparelho tem mais endereços do que isso.
 
 ## 5. Fontes
 
-- [`docs/PROTOCOL.md`](PROTOCOL.md) §13.14 — a conta completa da v1.1 e os gaps
+- [`docs/tecnico/PROTOCOL.md`](../tecnico/PROTOCOL.md) §13.14 — a conta completa da v1.1 e os gaps
 - `scripts/baseline.json` · `uv run python scripts/baseline.py show`
-- [`docs/H1_CHECKLIST.md`](H1_CHECKLIST.md) (leitura, fluxo R3) ·
-  [`docs/H2_CHECKLIST.md`](H2_CHECKLIST.md) (**escreve** — a sessão 3 depende dele)
+- [`docs/arquivo/H1_CHECKLIST.md`](H1_CHECKLIST.md) (leitura, fluxo R3) ·
+  [`docs/arquivo/H2_CHECKLIST.md`](H2_CHECKLIST.md) (**escreve** — a sessão 3 depende dele)
 - `scripts/wirelog.py` (normalizador) · `scripts/validate_core_capture.py`
   (juiz) · `scripts/tests/test_h3_baseline.py` (19 testes, mutation-provados)

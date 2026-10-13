@@ -99,5 +99,5 @@ O golden **não** muda nesta sessão: nenhuma captura nova entra no baseline
 
 - [H4_CHECKLIST.md](H4_CHECKLIST.md) — o roteiro desta sessão
 - [#155](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/155) · [#152](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/152)
-- [REAL_DEVICE_GAP.md](REAL_DEVICE_GAP.md) §6 passo 7 (a sessão de campo) e §4b.1 (o log automático)
+- [REAL_DEVICE_GAP.md](../referencias/REAL_DEVICE_GAP.md) §6 passo 7 (a sessão de campo) e §4b.1 (o log automático)
 - [H1_REPORT.md](H1_REPORT.md) · [H2_REPORT.md](H2_REPORT.md) · [H3_REPORT.md](H3_REPORT.md)

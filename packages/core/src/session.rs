@@ -1,5 +1,5 @@
 //! session — FSM de sessão sobre o transporte (**ADR-6 rev.3** de
-//! `docs/DECISIONS.md` — FONTE ÚNICA das assinaturas).
+//! `docs/dev/DECISIONS.md` — FONTE ÚNICA das assinaturas).
 //!
 //! O replay byte-a-byte das fixtures P4 (diff hex na divergência) prova a FSM.
 //!
@@ -47,7 +47,7 @@ pub enum BootStage {
     Probe,
     /// T2 — 5 leituras de `11/12001012` (44B cada). O repo a chama(va) de
     /// "setlist", mas a GP-100 **não tem função setlist** no manual
-    /// (`docs/GP100_DEVICE.md` §5#1). Renomeado para `State5` (5 entradas de
+    /// (`docs/referencias/GP100_DEVICE.md` §5#1). Renomeado para `State5` (5 entradas de
     /// estado) até a semântica fina ser decifrada em campo — não expor como
     /// produto.
     State5,
@@ -1138,7 +1138,7 @@ impl<T: DeviceTransport> Session<T> {
     ///
     /// É a etapa que o repo chamava de "setlist" e agora se chama
     /// [`BootStage::State5`]: a GP-100 **não tem função setlist** no manual
-    /// (`docs/GP100_DEVICE.md` §5#1). O payload é 44B nibble-exp com cara de
+    /// (`docs/referencias/GP100_DEVICE.md` §5#1). O payload é 44B nibble-exp com cara de
     /// `12 10 2c 00 [i] 00 01 …` (PROTOCOL §13.3) — a semântica fina ainda NÃO
     /// está decifrada; este método existe justamente para medir em campo
     /// (CLI `read-state5 --log`) sem inventar decode.

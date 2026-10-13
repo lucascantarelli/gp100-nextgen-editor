@@ -1,5 +1,5 @@
 /**
- * Roteiros de teste manual (docs/UI_TEST_PLAN.md) executados no Chromium.
+ * Roteiros de teste manual (docs/dev/UI_TEST_PLAN.md) executados no Chromium.
  * Cada teste referencia o ID do roteiro (R1–R7 + drum/looper). O resultado
  * desta suíte é registrado na tabela de execução do próprio UI_TEST_PLAN.
  *

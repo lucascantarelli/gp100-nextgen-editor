@@ -1,8 +1,8 @@
 # gp100-core — núcleo de protocolo (lib Rust)
 
-> **Fontes de verdade:** [docs/protocol_golden.json](../../docs/protocol_golden.json)
-> (spec executável, 40 templates) · [docs/PROTOCOL.md](../../docs/PROTOCOL.md) §13
-> (narrativa do fio) · [docs/DECISIONS.md](../../docs/DECISIONS.md) (ADR-1..6) ·
+> **Fontes de verdade:** [docs/referencias/protocol_golden.json](../../docs/referencias/protocol_golden.json)
+> (spec executável, 40 templates) · [docs/tecnico/PROTOCOL.md](../../docs/tecnico/PROTOCOL.md) §13
+> (narrativa do fio) · [docs/dev/DECISIONS.md](../../docs/dev/DECISIONS.md) (ADR-1..6) ·
 > [fixtures do fio](data/fixtures) (replay — casa canônica desde #163)
 
 Biblioteca de protocolo e presets da pedaleira Valeton GP-100, construída por

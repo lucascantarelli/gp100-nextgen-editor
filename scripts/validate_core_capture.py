@@ -37,7 +37,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import wirelog  # noqa: E402
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-GOLDEN = os.path.join(ROOT, "docs", "protocol_golden.json")
+GOLDEN = os.path.join(ROOT, "docs", "referencias", "protocol_golden.json")
 
 # Um payload 'var' casa com qualquer valor. Aceitar um payload 100% variavel
 # como 'ok' seria exatamente o erro do golden v1.0 (validar um padrao derivado

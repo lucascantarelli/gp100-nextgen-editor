@@ -1,6 +1,6 @@
 # 🎨 UI_DESIGN — Design tokens e sistema visual (FONTE ÚNICA de valores)
 
-> **Status:** ✅ atual (M1.0 · #9 — luz/profundidade 02/10) · **Última revisão:** 2026-10-02 · **Complementos:** [docs/UI_PLAN.md](UI_PLAN.md) (arquitetura/issues) · [.agents/skills/ui-ux-practices/SKILL.md](../.agents/skills/ui-ux-practices/SKILL.md) (gates/estilo)
+> **Status:** ✅ atual (M1.0 · #9 — luz/profundidade 02/10) · **Última revisão:** 2026-10-02 · **Complementos:** [docs/dev/UI_PLAN.md](UI_PLAN.md) (arquitetura/issues) · [.agents/skills/ui-ux-practices/SKILL.md](../../.agents/skills/ui-ux-practices/SKILL.md) (gates/estilo)
 >
 > Este documento fixa os VALORES (escala, cores, rácios de contraste medidos,
 > tipografia, motion). Os valores vivem em `ui/src/design/tokens.ts` +

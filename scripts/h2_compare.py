@@ -785,7 +785,7 @@ def main(argv: list[str]) -> int:
     print(f"os 3 fluxos obedeceram o §13. O VEREDITO DO DISPLAY ainda e do")
     print("operador: o fio nao sabe se o knob girou nem se o nome persistiu")
     print("(D3/D4: sao fire-and-forget, sem read-back). Copie a tabela do §6")
-    print("para o docs/H2_REPORT.md com o veredito de cada um.")
+    print("para o docs/arquivo/H2_REPORT.md com o veredito de cada um.")
     return 0
 
 

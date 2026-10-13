@@ -10,7 +10,7 @@ metadata:
 O fluxo humano compõe: **rc → teste do prerelease → promote → tag final na
 `main`**. Tudo por `workflow_dispatch` no `ci.yml` (nunca por push — versionar
 no push é a receita de tag prematura). Detalhe humano:
-`docs/CONTRIBUTING.md` §6; empacotamento: `docs/PACKAGING.md`.
+`docs/CONTRIBUTING.md` §6; empacotamento: `docs/tecnico/PACKAGING.md`.
 
 ## A cadeia
 

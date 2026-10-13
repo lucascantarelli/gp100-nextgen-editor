@@ -34,7 +34,7 @@
 - [ ] **R1** — nenhum byte de protocolo "adivinhado": golden/§13 consultados como insumo
 - [ ] **R2/R3** — se tocou spec/capturas: captura nova → `build_golden` → `validate_golden` 100% → bump de hash no §13
 - [ ] **R4** — round-trip `.prst` byte-idêntico preservado (se a mudança toca o modelo de preset)
-- [ ] **ADR** — se mudou decisão de `docs/DECISIONS.md`: novo ADR marcando o anterior como Superseded
+- [ ] **ADR** — se mudou decisão de `docs/dev/DECISIONS.md`: novo ADR marcando o anterior como Superseded
 
 ## Política de conteúdo (README §7)
 

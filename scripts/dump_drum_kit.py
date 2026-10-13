@@ -6,7 +6,7 @@ Fonte: files/firmware/GP-100 Firmware V2.1.bin — a tabela de estilos fica
 entre as divisões de nota (1/8T) e os compassos (2/4…9/8). O firmware NÃO
 traz rótulos de gênero; o agrupamento por conteúdo é evidente na ordem
 (Electronic → Rock → Pop/Blues → World → Jazz) e os rótulos são INFERIDOS
-(documentado em docs/UI_REFERENCE.md §8).
+(documentado em docs/referencias/UI_REFERENCE.md §8).
 
 Regenerar: uv run python scripts/dump_drum_kit.py
 """

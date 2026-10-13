@@ -14,7 +14,7 @@ Rode `python analysis/check_orphans.py` para ver a lista viva.
 |---|---|---|
 | `parse_algorithm_xml.py` | `algorithm_dict.json` · `algorithm_dict.csv` | O dicionário de algoritmos/parâmetros destilado do `algorithm.xml` oficial |
 | `validate_knob_map.py` | `knob_map.json` | O mapa knob→fio da sessão 3 (89 edits) cruzado com `parameters.json` |
-| `build_golden.py` | `docs/protocol_golden.json` | **A especificação executável** — ver `docs/PROTOCOL.md` §13 |
+| `build_golden.py` | `docs/referencias/protocol_golden.json` | **A especificação executável** — ver `docs/tecnico/PROTOCOL.md` §13 |
 | `make_fixtures.py` | `analysis/fixtures/*.jsonl` + `manifest.json` | As fixtures que o `gp100-core` usa nos replays |
 | `baseline.py` | `baseline.json` | A baseline do golden (versão + hash + motivo) — gate R2/R3 |
 | `derive_save_ops.py` | — (deriva os ops do §13.12) | A sequência `00020000` do `save` |

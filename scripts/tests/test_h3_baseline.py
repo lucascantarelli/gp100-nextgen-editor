@@ -314,12 +314,12 @@ def test_build_golden_nao_fabrica_frames():
     captura cortada. Este teste e o guarda: se alguem reintroduzir a
     reconstrucao por rfind, o golden volta a ter template sem evidencia.
     """
-    g = json.load(open(os.path.join(ROOT, "docs", "protocol_golden.json"), encoding="utf-8"))
+    g = json.load(open(os.path.join(ROOT, "docs", "referencias", "protocol_golden.json"), encoding="utf-8"))
     addrs = {(t.get("out") or t.get("in") or {}).get("addr") for t in g["transactions"]}
     assert "13000000" not in addrs, (
         "push 13000000 voltou ao golden sem captura completa: a resposta real "
         "a esse endereco nunca foi capturada (o proxy corta em 256 bytes). "
-        "Ver docs/PROTOCOL.md 13.14."
+        "Ver docs/tecnico/PROTOCOL.md 13.14."
     )
     excl = g["_meta"].get("excluded", {})
     assert "linhas_cortadas" in excl, (

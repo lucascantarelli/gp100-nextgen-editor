@@ -34,8 +34,8 @@ mock com o nome de release.
 
 ### Como está hoje
 
-[`packages/app/api/src/lib.rs`](../packages/app/api/src/lib.rs) — o `run()` delega
-para [`abrir_backend()`](../packages/app/api/src/lib.rs):
+[`packages/app/api/src/lib.rs`](../../packages/app/api/src/lib.rs) — o `run()` delega
+para [`abrir_backend()`](../../packages/app/api/src/lib.rs):
 
 ```rust
 fn abrir_backend() -> Result<abrir_backend::Escolha, Box<dyn std::error::Error>> {
@@ -83,7 +83,7 @@ janela nativa (MSVC no host, ADR-7). O CLI seguiu explícito e ganhou
    [#126](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/126)
    (face (A), decisão do owner).** O `dist-ui` agora roda
    `tauri build --features real-device ${{ matrix.args }}`
-   ([`ci.yml`](../.github/workflows/ci.yml), step `build do instalador`). Dois
+   ([`ci.yml`](../../.github/workflows/ci.yml), step `build do instalador`). Dois
    defeitos na mesma linha, e o segundo era invisível pelo primeiro:
 
    - o caminho era `../../ui/node_modules/.bin/tauri`, que de
@@ -96,7 +96,7 @@ janela nativa (MSVC no host, ADR-7). O CLI seguiu explícito e ganhou
    O instalador passa a ser build de **leitura**: fala com a pedaleira e recusa a
    escrita antes do driver (ADR-5), com o motivo na tela (§6 passo 3). **A prova
    do step só existe na próxima tag** — `stage-dist` é `tag` em
-   [`ci_plan.py`](../scripts/ci_plan.py); em PR o caminho real é coberto pelo
+   [`ci_plan.py`](../../scripts/ci_plan.py); em PR o caminho real é coberto pelo
    `ui-rust` nos três SOs. Restava antes do campo:
 2. **Nenhuma sessão de campo partiu do APP.** O H1/H2 provaram o core e o CLI;
    `ir_send`, `tone_send` e o knob do **editor** não foram medidos. É o passo 7
@@ -148,12 +148,12 @@ com o inventário da captura, sem ninguém chamar `set_inventory` à mão — e 
 Isto não precisa ser refeito para o app falar com a pedaleira:
 
 - **`RealDevice` está implementado e completo** —
-  [`packages/core/src/transport/real.rs`](../packages/core/src/transport/real.rs),
+  [`packages/core/src/transport/real.rs`](../../packages/core/src/transport/real.rs),
   253 linhas: RX por callback com trim no 1º `F7`, TX por SysEx completo,
   despacho de porta por nome contendo `gp-100`, reconexão no mesmo objeto, e a
   trava `WRITE_VERIFIED` do ADR-5 **antes do driver**.
 - **As leituras foram provadas em campo** — a sessão H1 real
-  ([`docs/arquivo/analysis/captures/sessionH1/`](../docs/arquivo/analysis/captures/sessionH1/)) tem as 20
+  ([`docs/arquivo/analysis/captures/sessionH1/`](../arquivo/analysis/captures/sessionH1/)) tem as 20
   respostas de `list-user-irs` e as 5 transações de `dump-preset` gravadas.
 - **As escritas foram provadas em campo** — o gate H2 (05/10) fechou os 3 fluxos:
   F1 knob (1 frame OUT), F2 save (9 frames, persistiu), F3 upload de IR (295
@@ -219,7 +219,7 @@ mesmo código. Uma sessão de teste no aparelho é a única forma de medi-los:
    > literal. O que sobra é **medir** o que deixa de ser verdade quando a fonte
    > muda — é isso que a sessão do passo 7 preenche.
 2. **O palco (`device_board`) mostra o arquivo embutido, não o aparelho.**
-   [`Request::Board`](../packages/app/api/src/actor.rs) faz
+   [`Request::Board`](../../packages/app/api/src/actor.rs) faz
    `embedded_document()` — projeção pura de `all.prst`, **zero tráfego de fio**.
    Consequências com o aparelho real: um preset de usuário (`U01`…) não existe no
    arquivo embutido; e o valor do knob que o palco mostra é o do arquivo, não o

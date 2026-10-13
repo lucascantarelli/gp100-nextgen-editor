@@ -13,7 +13,7 @@ de `scripts/tests/test_protocol.py`. Isso trava a mudanca, mas tem dois furos:
    literal do teste e o gate passava. A regra R2/R3 ("captura -> build ->
    validate -> bump com justificativa") era um texto, nao uma verificacao.
 
-O `docs/PROTOCOL.md` §13 e a memoria do protocolo; este arquivo e a memoria
+O `docs/tecnico/PROTOCOL.md` §13 e a memoria do protocolo; este arquivo e a memoria
 **da baseline**, com as duas coisas que faltavam: numero de versao e motivo.
 
     uv run python scripts/baseline.py --check        # gate (CI)
@@ -32,7 +32,7 @@ import os
 import sys
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-GOLDEN = os.path.join(ROOT, "docs", "protocol_golden.json")
+GOLDEN = os.path.join(ROOT, "docs", "referencias", "protocol_golden.json")
 REGISTRO = os.path.join(ROOT, "scripts", "baseline.json")
 
 
@@ -67,7 +67,7 @@ def problemas(reg: dict, hash_atual: str) -> list[str]:
         p.append("registro sem 'versao'")
     if reg.get("hash") != hash_atual:
         p.append(
-            f"docs/protocol_golden.json mudou sem bump: registro diz "
+            f"docs/referencias/protocol_golden.json mudou sem bump: registro diz "
             f"{str(reg.get('hash'))[:12]}…, arquivo e {hash_atual[:12]}…\n"
             f"    Fluxo: captura -> build_golden -> validate 100% -> "
             f"baseline.py bump --motivo '...' --issue '#N' (R2/R3)"
@@ -180,7 +180,7 @@ def cmd_bump(motivo: str, issue: str, data: str) -> int:
     if issue.strip():
         print(f"  issue  : {issue.strip()}")
     print(f"  {len(hist)} versao(oes) no historico.")
-    print("\nAgora atualize o §13 do docs/PROTOCOL.md com a mesma justificativa.")
+    print("\nAgora atualize o §13 do docs/tecnico/PROTOCOL.md com a mesma justificativa.")
     return 0
 
 

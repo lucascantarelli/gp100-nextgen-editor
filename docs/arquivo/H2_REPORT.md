@@ -1,6 +1,6 @@
 # 🧾 H2_REPORT — Relatório do gate H2 (escrita real dos 3 fluxos)
 
-> **Status:** ✅ **H2 OK — sessão real de 05/10/2026.** Os 3 fluxos passaram no fio **e** no aparelho; o preset `0x0000` foi sobrescrito com o nome `H2 TESTE` e persiste. Evidência versionada em [`docs/arquivo/analysis/h2/20261005_120024/`](../docs/arquivo/analysis/h2/20261005_120024/).
+> **Status:** ✅ **H2 OK — sessão real de 05/10/2026.** Os 3 fluxos passaram no fio **e** no aparelho; o preset `0x0000` foi sobrescrito com o nome `H2 TESTE` e persiste. Evidência versionada em [`docs/arquivo/analysis/h2/20261005_120024/`](analysis/h2/20261005_120024/).
 > ([H2_CHECKLIST.md](H2_CHECKLIST.md)) e arquivar como evidência da issue H2.
 >
 > ⚠️ Este relatório é sobre **alteração de estado de um aparelho do usuário**.
@@ -8,7 +8,7 @@
 > falha mais caro deste projeto: o preset gravado errado não volta sozinho.
 >
 > **A Fase C é automatizada (issue #22).** O juiz
-> [`scripts/h2_compare.py`](../scripts/h2_compare.py) confere os invariantes do
+> [`scripts/h2_compare.py`](../../scripts/h2_compare.py) confere os invariantes do
 > §13 nos 3 logs e imprime a tabela do §3.0 — inclusive o **valor que o display
 > DEVERIA mostrar**, para o veredito abaixo ser uma comparação e não uma
 > impressão. O que o fio não preenche é a última coluna, e é a única que
@@ -40,7 +40,7 @@ python3 scripts/h2_compare.py docs/arquivo/analysis/h2/<sessão> --markdown
 | Commit do repo no binário | `ef3a1a3` (branch `feat/22-h2-kit`) |
 | sha256 do `gp100-cli.exe` | `cab0d23c0ebd7169…` |
 | Comando de build | `cargo build --release -p gp100-cli --features real-device,write-verified` |
-| H1 anterior | [`docs/arquivo/analysis/captures/sessionH1/`](../docs/arquivo/analysis/captures/sessionH1/) (05/10/2026, entrada pelo PR #109) |
+| H1 anterior | [`docs/arquivo/analysis/captures/sessionH1/`](analysis/captures/sessionH1/) (05/10/2026, entrada pelo PR #109) |
 | Device (firmware/display) | GP-100 **V2.1** (o assert do firmware é dessa versão) · pp 0 |
 | Slot de IR escolhido | **2** · **estava vazio?** sim (`(vazio)`) |
 | Preset alvo do `save` | `0x0000` · **é descartável?** sim — o owner autorizou a sobrescrita na sessão |
@@ -73,7 +73,7 @@ Observação: o fluxo não tem read-back no fio (D4). A conferência é visual �
 **e foi duplicada por máquina**: o `dump-preset` antes/depois mostra o `f32`
 do knob mudando de **99.0 → 15.0** na página 0, com o CRC da página
 recalculado (`ec 36 75 d0` → `98 17 3d 35`). Ver
-[`decode_dump_diff.py`](../docs/arquivo/analysis/h2/20261005_120024/) —
+[`decode_dump_diff.py`](analysis/h2/20261005_120024/) —
 reproduce com `python docs/arquivo/analysis/h2/20261005_120024/decode_dump_diff.py`.
 
 > 🛑 **O PRIMEIRO F1 DESTA SESSÃO TRAVOU O APARELHO, E O CULPADO FOI O RUNBOOK.**

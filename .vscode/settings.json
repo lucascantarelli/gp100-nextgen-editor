@@ -1,7 +1,7 @@
 {
   // Rust: o rustfmt do editor usa a toolchain do rust-toolchain.toml (gnu
-  // na raiz; MSVC em src-tauri tem o próprio). rust-analyzer nos dois
-  // workspaces (raiz = core/cli; src-tauri = workspace próprio).
+  // na raiz; MSVC no shell do Tauri, packages/app/api — ADR-7). rust-analyzer nos dois
+  // workspaces (raiz = core/cli/library; api = workspace próprio do Tauri).
   "rust-analyzer.linkedProjects": [
     "Cargo.toml",
     "packages/app/api/Cargo.toml"

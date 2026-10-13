@@ -98,7 +98,7 @@ def test_golden_save_100():
 
     Entao o alvo e 14: o lado OUT (9 frames do S4 + 5 do S2, derivados do
     `.prst`), que e byte-a-byte e continua provado. O lado IN e um GAP de
-    captura — `docs/PROTOCOL.md` §13.14 e o runbook de campo. Este numero NAO
+    captura — `docs/tecnico/PROTOCOL.md` §13.14 e o runbook de campo. Este numero NAO
     volta a 77 por ajuste de codigo: volta com captura nova (R2).
     """
     _, nums = _load_golden_summary()

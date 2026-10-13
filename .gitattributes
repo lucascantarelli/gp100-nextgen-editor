@@ -19,7 +19,7 @@
 # e, ao editar esta lista, rodar `git add --renormalize .`.
 #
 # Classe 1 — especificação executável:
-docs/protocol_golden.json -text
+docs/referencias/protocol_golden.json -text
 # Classe 2 — patches de referência (round-trip R4):
 files/patches/*.prst -text
 # Classe 3 — evidência de campo (capturas; ir_slot*.bin já coberto por *.bin):

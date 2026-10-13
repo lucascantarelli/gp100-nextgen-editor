@@ -37,7 +37,7 @@ pub struct AppState {
 pub struct DeviceInfo {
     /// Backend ativo: "mock" no build de desenvolvimento, "real" no build
     /// de campo, "none" no app sem aparelho (issue #150). **Nunca mais um
-    /// literal** — ver `docs/REAL_DEVICE_GAP.md` §1.
+    /// literal** — ver `docs/referencias/REAL_DEVICE_GAP.md` §1.
     pub backend: &'static str,
     /// Motivo humano quando `backend` é `"none"` (issue #150): "aparelho não
     /// conectado via USB…" ou "build sem o transporte…". Vazio quando a
@@ -107,7 +107,7 @@ pub struct BootProgressDto {
     /// Etapa do script (§13.10): "tables" | "scan" | "probe" | "state5" |
     /// "names" | "keepalive" — literal estável para o front. (`state5` = as 5
     /// leituras de `12001012`; era "setlist", mas a GP-100 não tem setlist —
-    /// `docs/GP100_DEVICE.md` §5#1.)
+    /// `docs/referencias/GP100_DEVICE.md` §5#1.)
     pub stage: &'static str,
     /// Transações completas até agora.
     pub done: usize,

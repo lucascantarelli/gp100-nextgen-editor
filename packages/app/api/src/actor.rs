@@ -203,7 +203,7 @@ pub trait DeviceBackend: DeviceTransport + Send {
     /// numa fila interna de RX e nao expoe peek, entao devolve vazio. O log de
     /// pushes da UI (`pending_pushes`) e por isso **mock-only por enquanto** —
     /// o espelho fiel no aparelho precisa de um `peek` no `real.rs`, e isso
-    /// esta anotado em `docs/REAL_DEVICE_GAP.md` §6.
+    /// esta anotado em `docs/referencias/REAL_DEVICE_GAP.md` §6.
     fn drain_inbox(&mut self) -> Vec<Vec<u8>>;
 }
 
@@ -409,7 +409,7 @@ pub struct DeviceSnapshot {
     /// preencher com sessão viva seria inventar aviso.
     pub detail: String,
     /// Nº de presets. No mock, o do `all.prst`; no real, o **inventário que
-    /// o boot percorreu** (ver `docs/REAL_DEVICE_GAP.md` §4.3 — hoje é o
+    /// o boot percorreu** (ver `docs/referencias/REAL_DEVICE_GAP.md` §4.3 — hoje é o
     /// default 0..198, não uma contagem descoberta no aparelho).
     pub preset_count: usize,
     /// pp corrente (lido da Session nos dois backends).

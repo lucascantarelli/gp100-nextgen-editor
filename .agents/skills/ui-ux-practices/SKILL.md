@@ -10,8 +10,8 @@ metadata:
 Use ao escrever ou revisar QUALQUER código de front do projeto (issues do
 GitHub, milestone `v1.0.0`; fases UI no ROADMAP/UI_PLAN — branch/PR pela skill
 `github-flow`). Complementa a skill `rust-practices` (gates do lado Rust) e os
-ADRs de `docs/DECISIONS.md`. Fontes: [docs/UI_DESIGN.md](../../../docs/UI_DESIGN.md)
-(tokens — FONTE ÚNICA de valores), [docs/UI_PLAN.md](../../../docs/UI_PLAN.md)
+ADRs de `docs/dev/DECISIONS.md`. Fontes: [docs/dev/UI_DESIGN.md](../../../docs/dev/UI_DESIGN.md)
+(tokens — FONTE ÚNICA de valores), [docs/dev/UI_PLAN.md](../../../docs/dev/UI_PLAN.md)
 (arquitetura/issues) e as práticas citadas em cada seção (WCAG 2.2, Fitts,
 Miller, escala 8pt/Fibonacci).
 
@@ -25,7 +25,7 @@ Miller, escala 8pt/Fibonacci).
 3. `invoke` centralizado em `ui/src/ipc/` (um módulo por domínio: device,
    presets, ir) — componentes nunca chamam `invoke` espalhado.
 
-## Design tokens (FONTE ÚNICA = docs/UI_DESIGN.md + ui/src/design/tokens.ts)
+## Design tokens (FONTE ÚNICA = docs/dev/UI_DESIGN.md + ui/src/design/tokens.ts)
 
 - **Escala de Fibonacci sobre base 4** para ESPAÇOS: 4 · 8 · 12 · 20 · 32 · 52
   · 84 (F4–F13, arredondados ao múltiplo de 4). Nada de valor "meio termo"

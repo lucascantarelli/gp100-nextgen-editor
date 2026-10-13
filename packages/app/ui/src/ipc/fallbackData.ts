@@ -10,7 +10,7 @@
  * arquivo é só a mesa de teste do front.
  *
  * Saiu de `ipc/device.ts` na #150 para a PORTA caber no teto de tamanho
- * (docs/ARCHITECTURE.md §4): a porta cresce por operação de device, e
+ * (docs/dev/ARCHITECTURE.md §4): a porta cresce por operação de device, e
  * fixture de teste não é operação de device.
  */
 import { FX_MODULES } from "../artifacts/fxData";

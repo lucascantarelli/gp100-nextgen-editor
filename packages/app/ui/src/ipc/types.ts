@@ -10,7 +10,7 @@ export interface DeviceInfo {
   /**
    * Backend ativo: `mock` no build de desenvolvimento, `real` no build de
    * campo (`--features real-device`), `none` no app SEM aparelho (issue
-   * #150). Nunca mais um literal do backend — ver `docs/REAL_DEVICE_GAP.md` §1.
+   * #150). Nunca mais um literal do backend — ver `docs/referencias/REAL_DEVICE_GAP.md` §1.
    */
   backend: "mock" | "real" | "none";
   /**

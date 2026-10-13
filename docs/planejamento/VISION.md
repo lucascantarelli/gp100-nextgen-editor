@@ -3,8 +3,8 @@
 
 > ✅ **Status: atual (rev. v1.2, 29/09).** §3 e §10 registram a RE concluída com as
 > evidências das capturas 1–4; §10.6 (round-trip Rust) já executado na M0.2; §11
-> é o roadmap vigente — execução issue-a-issue em `docs/ROADMAP.md` (P/M0/H) e
-> `docs/UI_PLAN.md` (M1). Mapa geral: `docs/INDEX.md`.
+> é o roadmap vigente — execução issue-a-issue em `docs/planejamento/ROADMAP.md` (P/M0/H) e
+> `docs/dev/UI_PLAN.md` (M1). Mapa geral: `docs/INDEX.md`.
 **Versão:** 1.1 · **Data:** 2026-09-28 (rev. pós-sessões de captura 1–4: fases R1–R4 concluídas, roadmap reescrito) · **Classificação:** Interno / Engenharia
 **Autor:** Buffy — Arquitetura & Engenharia Reversa
 
@@ -25,7 +25,7 @@ A fase de **reconhecimento estático já foi executada** com sucesso sobre os ar
 | Funcionalidade oculta | **SnapTone (V2.0+): importação de modelos NAM** no módulo AMP, slots 1–5 | `docs/arquivo/analysis/release_note.txt` + strings `0x002803AD` |
 | Changelog oficial V1.3→V2.1 | Extraído do RTF | `docs/arquivo/analysis/release_note.txt` |
 | Stack do app oficial | Shell CEF/web + MFC; driver ASIO via MSI (`Valeton_UsbAudio_v5.57.2`) | análise de strings do instalador |
-| **Protocolo de FIO (§13.1–13.12)** | SysEx Valeton confirmado em campo: ler/editar/salvar/IR | capturas 1–4 + `docs/protocol_golden.json` (40 templates, validação 100%) |
+| **Protocolo de FIO (§13.1–13.12)** | SysEx Valeton confirmado em campo: ler/editar/salvar/IR | capturas 1–4 + `docs/referencias/protocol_golden.json` (40 templates, validação 100%) |
 | **Envelope do knob (§13.11)** | write semântico `[effectCode u32LE][ctrl][00][f32 LE]` | `scripts/knob_map.json`: 89/89 edits regeneradas byte-a-byte |
 
 **Riscos neutralizados:** o formato de preset é **XML de texto legível** — não há necessidade de sniffing USB para a camada de dados; a correlação firmware↔patch já é possível hoje. **E, com as capturas 1–4 (proxy winmm), o protocolo de fio completo foi confirmado em campo e validado byte-a-byte (§13 + golden-file) — a última dependência de hardware foi eliminada.**
@@ -79,7 +79,7 @@ Diretório de trabalho: `docs/arquivo/analysis/` (scripts + produtos). Ferrament
 - ✅ Hipótese confirmada: USB-MIDI class-compliant + SysEx vendor `F0 21 25 7F 47 50 2D 64`.
 - ✅ **Proxy winmm.dll** (129 exports, hooks de 4 APIs) instrumentou o Suite oficial sem risco ao device.
 - ✅ **4 sessões de captura** analisadas: boot/scan (S1), upload de IR (S2), edição por UI (S3), save + persistência (S4, confirmada no display da pedaleira).
-- ✅ Entregável completo: `docs/PROTOCOL.md` §13.1–13.12 + **`docs/protocol_golden.json`** (40 templates, validação byte-a-byte 100% nos fluxos de knob e boot/scan; IN 100% no accounting).
+- ✅ Entregável completo: `docs/tecnico/PROTOCOL.md` §13.1–13.12 + **`docs/referencias/protocol_golden.json`** (40 templates, validação byte-a-byte 100% nos fluxos de knob e boot/scan; IN 100% no accounting).
 - ⏳ Apenas firmware-update (bootloader) permanece diferido por política de segurança (V2+).
 
 ---
@@ -263,17 +263,17 @@ Diretório de trabalho: `docs/arquivo/analysis/` (scripts + produtos). Ferrament
   + MockDevice D1–D8 (M0.5), FSM de sessão com replay byte-a-byte das 4
   fixtures (M0.6), gp100-cli com `--log` no schema P4 (M0.7) e docs do core
   com contrato de exemplos que rodam (M0.8).
-  **Execução issue-a-issue, status e achados: `docs/ROADMAP.md`** (aqui fica
+  **Execução issue-a-issue, status e achados: `docs/planejamento/ROADMAP.md`** (aqui fica
   só o panorama).
 - **H — gate de hardware (entre M0 e a escrita real):** H1 (leitura real) →
   H2 (escrita dos 3 fluxos capturados) → H3 (golden v1.1 se houver ajuste).
-- **M1 — Editor UI (Tauri 2 + React/TS) — ⏳ planejado (`docs/UI_PLAN.md`):**
+- **M1 — Editor UI (Tauri 2 + React/TS) — ⏳ planejado (`docs/dev/UI_PLAN.md`):**
   biblioteca (import `all.prst`), editor de cadeia 9 slots, knobs com ranges
   reais do dicionário, diff/undo; device mock primeiro, hardware depois
   (set/save/IR já verificados em campo). `WRITE_VERIFIED=true` para os
   3 fluxos capturados; todo fluxo novo nasce atrás de feature-flag até ter
   captura própria. **Pode começar em paralelo (mock); o modo real só após
-  H1/H2** — issues M1.0–M1.6 com DoD no `docs/UI_PLAN.md`.
+  H1/H2** — issues M1.0–M1.6 com DoD no `docs/dev/UI_PLAN.md`.
 - **M2 — IR lab + SnapTone manager + empacotamento:** laboratório de IRs (upload §13.7
   já funcional; visualização/normalização local), gestor de NAM (5 slots), i18n (reusar
   strings EN/CN da firmware + pt-BR), pacotes MSI/AppImage/dmg.

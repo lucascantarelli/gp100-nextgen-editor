@@ -1,7 +1,7 @@
 # 🎛️ MANUAL_COVERAGE — cobertura do manual oficial na UI (Fase 1)
 
 > **Status:** 🔨 vivo · **Criado:** 30/09/2026
-> **Fontes:** docs/UI_REFERENCE.md §1 (app oficial + manual), `files/GP-100_Online Manual_EN_Firmware V2.0.pdf`
+> **Fontes:** docs/referencias/UI_REFERENCE.md §1 (app oficial + manual), `files/GP-100_Online Manual_EN_Firmware V2.0.pdf`
 > (extração em `docs/arquivo/analysis/manual_streams.txt`), firmware V2.1 (drum/looper/Global EQ), all.prst (99 presets).
 > **Regra do owner (30/09):** toda funcionalidade do manual deve estar implementada E testada
 > antes de avançar de fase. Esta matriz é a prova viva — nada passa para a Fase 2 com 🔴/🟡.

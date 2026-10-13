@@ -2,7 +2,7 @@
 
 > **Status:** 🔨 vivo · **Criado:** 30/09/2026 · **Como usar:** executar no browser
 > (`pnpm dev` em `packages/app/ui`, porta 5173) OU no shell Tauri. Marcar ✅/❌ por
-> item e devolver os achados para `docs/UI_REFERENCE.md` §3. Cada fase só passa
+> item e devolver os achados para `docs/referencias/UI_REFERENCE.md` §3. Cada fase só passa
 > para a próxima com a aprovação do owner (decisão 30/09).
 
 ---
@@ -169,7 +169,7 @@ consequências que os testes revelaram ao deixar de mentir:
 > Escopo definido com o owner: UI inteira da lista de efeitos por pedal, em
 > prévia local, morando como painel lateral do `PedalModal` (o palco fica
 > limpo). Só a escrita no device espera a captura do `0x47`
-> (`docs/CAPTURE_PLAN.md`, CAPTURA 5).
+> (`docs/arquivo/CAPTURE_PLAN.md`, CAPTURA 5).
 >
 > **Resultado: 155 unit ✅ (13 arquivos) · 78 e2e ✅ · cobertura 90,3% stmts /
 > 86,5% branch** (gate 85). `effects.ts` e `PedalModal.tsx` em 100% de linhas.
@@ -245,7 +245,7 @@ REC→PLAY, digitação não dispara, precedência do Esc).
    em sincronia) — estava no plano da Fase 1 e faltava.
 4. Strict mode: novo `role="status"` da fita colidiu com o do modo — asserts do
    looper escopados por `filter({ hasText: "●" })`.
-5. Matriz de cobertura do manual: `docs/MANUAL_COVERAGE.md` (33 ✅ · 5 🟡 · 5 🔴 —
+5. Matriz de cobertura do manual: `docs/referencias/MANUAL_COVERAGE.md` (33 ✅ · 5 🟡 · 5 🔴 —
    nada silencioso; 🔴 = Fase 2/3 documentadas).
 
 **CI (`.github/workflows/ci.yml`, um workflow de pipeline desde a #68 — mais o
@@ -566,7 +566,7 @@ formatadores (chamados com placeholders), e o seletor em Settings → General.
 **Status:** ✅ 178 unit (15 arquivos, +14 de i18n) · 78 e2e verdes sem mexer
 em baseline · cobertura 91,7%/86,7% (gate 85%) · tsc + eslint limpos.
 
-## Registro de rodada (colar no fim de docs/UI_REFERENCE.md §3)
+## Registro de rodada (colar no fim de docs/referencias/UI_REFERENCE.md §3)
 
 ```
 Rodada: <data> · Efeito: <nome> · Posições testadas: 1..9

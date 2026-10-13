@@ -13,7 +13,7 @@
    [refactor](../.github/ISSUE_TEMPLATE/refactor.yml) ·
    [epic](../.github/ISSUE_TEMPLATE/epic.yml) ·
    [protocolo](../.github/ISSUE_TEMPLATE/protocolo.yml)) ou pegue uma da
-   [FASE ACHADOS](ROADMAP.md) (prioridade máxima).
+   [FASE ACHADOS](planejamento/ROADMAP.md) (prioridade máxima).
 2. **Branch** GitFlow a partir de `develop` (§2).
 3. **Commits** no padrão conventional (§3) — o gate da CI rejeita fora do padrão.
 4. **Gates locais** da sua área (§4) — o PR nasce verde.
@@ -143,7 +143,7 @@ Só a área que você tocou — o CI filtra o resto por caminhos.
   pega erro de expressão (`${{ }}`, `secrets`, `inputs`) que o YAML aceitaria.
 - **Teste acompanha código novo** — padrão de DoD das issues; coverage caiu
   abaixo de 85%? O gate falha e pede teste, não exceção.
-- Regras **R1–R4** do [ROADMAP](ROADMAP.md) continuam valendo (protocolo
+- Regras **R1–R4** do [ROADMAP](planejamento/ROADMAP.md) continuam valendo (protocolo
   adivinhado não entra; round-trip `.prst` é sagrado).
 
 ---
@@ -190,14 +190,14 @@ prova que nada de escrita entrou por acidente; o ligado prova que a trava não
 virou erro de compilação nem de runtime. `cargo test --workspace` roda os dois
 (14 testes de CLI em cada modo).
 
-Runbooks: [H1_CHECKLIST.md](H1_CHECKLIST.md) (leitura),
-[H2_CHECKLIST.md](H2_CHECKLIST.md) (escrita — **muda estado do aparelho do
+Runbooks: [H1_CHECKLIST.md](arquivo/H1_CHECKLIST.md) (leitura),
+[H2_CHECKLIST.md](arquivo/H2_CHECKLIST.md) (escrita — **muda estado do aparelho do
 usuário**; os 3 fluxos são um por vez, com verificação no display) e
-[H3_CHECKLIST.md](H3_CHECKLIST.md) (congelamento da especificação).
+[H3_CHECKLIST.md](arquivo/H3_CHECKLIST.md) (congelamento da especificação).
 
 ### A baseline da especificação tem versão e motivo
 
-`docs/protocol_golden.json` é **derivado**; o que é congelado é o par
+`docs/referencias/protocol_golden.json` é **derivado**; o que é congelado é o par
 (golden, hash) registrado em **`scripts/baseline.json`**. Antes da #23 o hash
 era um literal dentro de um teste — e colar o hash novo passava, sem ninguém
 explicar por quê.
@@ -210,7 +210,7 @@ uv run python scripts/baseline.py bump --motivo "<por que>" --issue "#23"
 
 O `bump` **recusa** escrever sem `--motivo` — de propósito. O fluxo é sempre
 captura → `build_golden` → `validate_golden` 100% → bump com motivo, e a mesma
-justificativa vai para o §13 do [PROTOCOL.md](PROTOCOL.md).
+justificativa vai para o §13 do [PROTOCOL.md](tecnico/PROTOCOL.md).
 
 ### Log de fio: os dois schemas, um normalizador
 
@@ -445,7 +445,7 @@ job: virou camada da imagem publicada no ghcr.io.
 
 | Documento | Quando tocar |
 |---|---|
-| [ROADMAP.md](ROADMAP.md) | status de issue/fase concluída (com prova e data) |
-| [UI_TEST_PLAN.md](UI_TEST_PLAN.md) | nova rodada de testes/ajustes de UI |
+| [ROADMAP.md](planejamento/ROADMAP.md) | status de issue/fase concluída (com prova e data) |
+| [UI_TEST_PLAN.md](dev/UI_TEST_PLAN.md) | nova rodada de testes/ajustes de UI |
 | [INDEX.md](INDEX.md) | documento novo ou papel alterado (é o mapa de navegação) |
-| [DECISIONS.md](DECISIONS.md) | decisão supersedida → novo ADR marcando o anterior |
+| [DECISIONS.md](dev/DECISIONS.md) | decisão supersedida → novo ADR marcando o anterior |

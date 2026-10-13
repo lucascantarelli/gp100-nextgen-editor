@@ -7,8 +7,8 @@
 > virar hook/container.
 >
 > **Escopo.** Só o `packages/app/ui` (Tauri + React + TypeScript). O core Rust
-> tem decisão própria em `docs/DECISIONS.md` (ADR-1..8); a fronteira entre os dois
-> é o comando Tauri, descrito em `docs/UI_PLAN.md`.
+> tem decisão própria em `docs/dev/DECISIONS.md` (ADR-1..8); a fronteira entre os dois
+> é o comando Tauri, descrito em `docs/dev/UI_PLAN.md`.
 
 ---
 

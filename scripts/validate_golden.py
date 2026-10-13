@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""validate_golden.py — valida docs/protocol_golden.json contra as capturas.
+"""validate_golden.py — valida docs/referencias/protocol_golden.json contra as capturas.
 
 Três provas:
   A. ACCOUNTING — toda mensagem das capturas deve ser explicada por um template
@@ -45,7 +45,7 @@ def match_pattern(pat, data):
     return pos == len(data)
 
 def load_golden():
-    doc = json.load(open(os.path.join(HERE, "..", "docs", "protocol_golden.json"), encoding="utf8"))
+    doc = json.load(open(os.path.join(HERE, "..", "docs", "referencias", "protocol_golden.json"), encoding="utf8"))
     out_idx, in_idx = defaultdict(list), defaultdict(list)
     for t in doc["transactions"]:
         if t["type"] in ("write", "req"):

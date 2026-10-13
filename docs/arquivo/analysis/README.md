@@ -4,7 +4,7 @@
 > inteira na dissolução da **#163** (11/10/2026) **preservando a estrutura**:
 > tudo que os relatórios H1–H4, o `PROTOCOL.md` §13 e o golden citam continua
 > encontrável trocando o prefixo `analysis/` → `docs/arquivo/analysis/`.
-> As casas do que continua vivo estão no **ADR-14** (`docs/DECISIONS.md`).
+> As casas do que continua vivo estão no **ADR-14** (`docs/dev/DECISIONS.md`).
 
 ## Para onde foi o que era vivo
 

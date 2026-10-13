@@ -1,4 +1,4 @@
-//! golden — consumidor de `docs/protocol_golden.json`.
+//! golden — consumidor de `docs/referencias/protocol_golden.json`.
 //!
 //! **Insumo:** o golden é a especificação executável do protocolo (Baseline
 //! v1.0, hash no §13 do PROTOCOL.md, regime de bytes `-text`). Este módulo
@@ -38,7 +38,7 @@ use crate::{ProtocolError, SYSEX_EOX, SYSEX_HEADER};
 
 /// O golden embutido no binário (`include_str!` — spec é insumo, R1;
 /// bytes congelados pelo `-text` do .gitattributes).
-pub const GOLDEN_JSON: &str = include_str!("../../../docs/protocol_golden.json");
+pub const GOLDEN_JSON: &str = include_str!("../../../docs/referencias/protocol_golden.json");
 
 /// Constrói `ProtocolError::InvalidShape` (helper local).
 fn shape(expected: impl Into<String>, got: impl Into<String>) -> ProtocolError {

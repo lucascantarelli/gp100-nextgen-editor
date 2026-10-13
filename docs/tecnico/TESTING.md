@@ -5,12 +5,12 @@
 > Este é o **mapa e o contrato** da suíte: o que ela cobre, como rodar, **o que um
 > teste novo precisa provar**, **o que não entra** e **as proteções que não podem
 > cair**. Ele não substitui — **aponta**: gates por área em
-> [`CONTRIBUTING.md` §4](CONTRIBUTING.md), roteiros e2e em
-> [`UI_TEST_PLAN.md`](UI_TEST_PLAN.md), como escrever Rust/UI em
+> [`CONTRIBUTING.md` §4](../CONTRIBUTING.md), roteiros e2e em
+> [`UI_TEST_PLAN.md`](../dev/UI_TEST_PLAN.md), como escrever Rust/UI em
 > `.agents/skills/{rust-practices,ui-ux-practices}/SKILL.md`.
 >
 > **Contadores** (nº de testes, cobertura, baselines) vivem em
-> [`INDEX.md` §6](INDEX.md) — fonte única (regra do `docs-sync` #81). Não os repita
+> [`INDEX.md` §6](../INDEX.md) — fonte única (regra do `docs-sync` #81). Não os repita
 > aqui nem em outro doc: um número em dois lugares é dívida garantida.
 
 ---
@@ -20,9 +20,9 @@
 | Suíte | Onde | O que ela prova | Fonte da verdade |
 |---|---|---|---|
 | **Rust** (`core`·`cli`·`library`·`shell`) | `packages/*/tests/*.rs` + `#[cfg(test)]` dentro de `src/` | protocolo/codec byte-a-byte, FSM de sessão, round-trip `.prst`, travas de valor e de escrita, boot, MockDevice | golden §13 · fixtures `packages/core/data/fixtures/` · ADRs |
-| **Unit do front** (vitest/jsdom) | `packages/app/ui/tests/` | componentes, hooks, contratos IPC, i18n (4 idiomas), acessibilidade | [`UI_REFERENCE.md`](UI_REFERENCE.md) · tokens (`design/tokens.ts`) |
-| **Spec** (pytest) | `scripts/tests/` | travas da especificação (golden/baseline), gates de script, faixas ADR-10, juízes de campo H1/H2/H3 | `docs/protocol_golden.json` · `scripts/baseline.json` |
-| **E2E** (Playwright) | `packages/app/ui/e2e/` | fluxos vivos da casca (roteiros R1–R7), regressão visual, falhas de IPC | [`UI_TEST_PLAN.md`](UI_TEST_PLAN.md) (fonte dos roteiros) |
+| **Unit do front** (vitest/jsdom) | `packages/app/ui/tests/` | componentes, hooks, contratos IPC, i18n (4 idiomas), acessibilidade | [`UI_REFERENCE.md`](../referencias/UI_REFERENCE.md) · tokens (`design/tokens.ts`) |
+| **Spec** (pytest) | `scripts/tests/` | travas da especificação (golden/baseline), gates de script, faixas ADR-10, juízes de campo H1/H2/H3 | `docs/referencias/protocol_golden.json` · `scripts/baseline.json` |
+| **E2E** (Playwright) | `packages/app/ui/e2e/` | fluxos vivos da casca (roteiros R1–R7), regressão visual, falhas de IPC | [`UI_TEST_PLAN.md`](../dev/UI_TEST_PLAN.md) (fonte dos roteiros) |
 
 Cada suíte tem um **juiz independente** — passar numa não cobre outra. A CI roda as
 quatro em jobs separados (`.github/workflows/ci.yml`), filtradas por caminho
@@ -33,7 +33,7 @@ quatro em jobs separados (`.github/workflows/ci.yml`), filtradas por caminho
 ## 2. Como rodar
 
 Comandos de nível de **suíte** (a régua por **área** é a
-[§4 do CONTRIBUTING](CONTRIBUTING.md); o CI espelha essa ordem):
+[§4 do CONTRIBUTING](../CONTRIBUTING.md); o CI espelha essa ordem):
 
 ```bash
 # Rust — unit + contratos + DOC-TESTS (exemplos de /// compilam e rodam)
@@ -57,7 +57,7 @@ python scripts/gates.py                 # --list mostra a lista; nomes de gate f
 ```
 
 - **Mudou só uma área?** A CI filtra por caminho; rode só os gates dessa área
-  (tabela do [CONTRIBUTING §4](CONTRIBUTING.md)).
+  (tabela do [CONTRIBUTING §4](../CONTRIBUTING.md)).
 - **Cobertura do front caiu de 85%?** O gate falha e **pede teste, não exceção**.
 - **`gates.py`** é o atalho para os gates de script (pipeline, empacotamento,
   versão, spec, release).
@@ -143,10 +143,10 @@ Proteções do DoD #5 foram verificadas verdes na baseline de 11/10 (triagem da
 
 | Preciso de… | Vá para |
 |---|---|
-| Gates por área antes do PR | [`CONTRIBUTING.md` §4](CONTRIBUTING.md) |
-| Roteiros e2e (R1–R7) e baselines visuais | [`UI_TEST_PLAN.md`](UI_TEST_PLAN.md) |
+| Gates por área antes do PR | [`CONTRIBUTING.md` §4](../CONTRIBUTING.md) |
+| Roteiros e2e (R1–R7) e baselines visuais | [`UI_TEST_PLAN.md`](../dev/UI_TEST_PLAN.md) |
 | Como organizar teste Rust (unit × contrato) | `.agents/skills/rust-practices/SKILL.md` |
 | Gates/a11y do front | `.agents/skills/ui-ux-practices/SKILL.md` |
-| Número de testes / cobertura (fonte única) | [`INDEX.md` §6](INDEX.md) |
-| Decisões de arquitetura (ADR-1..13) | [`DECISIONS.md`](DECISIONS.md) |
+| Número de testes / cobertura (fonte única) | [`INDEX.md` §6](../INDEX.md) |
+| Decisões de arquitetura (ADR-1..13) | [`DECISIONS.md`](../dev/DECISIONS.md) |
 | Triagem detalhada da #166 (veredito arquivo a arquivo) | issue [#166](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/166) |

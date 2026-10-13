@@ -7,7 +7,7 @@ metadata:
 
 # Validação do protocolo (gate de qualidade)
 
-Use antes de: merge/PR que toque `docs/protocol_golden.json`, `PROTOCOL.md`,
+Use antes de: merge/PR que toque `docs/referencias/protocol_golden.json`, `PROTOCOL.md`,
 decoders, capturas ou o gp100-core; após rodar `build_golden.py`; após qualquer
 captura nova; e no fim das issues M0.6/M0.8.
 
@@ -40,14 +40,14 @@ mudar um byte lógico** — a CI chegou a falhar por isso (`18ccf068…` no blob
 do repo).
 
 Regras permanentes:
-1. `docs/protocol_golden.json` está protegido com `-text` no `.gitattributes`:
+1. `docs/referencias/protocol_golden.json` está protegido com `-text` no `.gitattributes`:
    **nunca remover** a linha nem renormalizar o arquivo (é a spec executável).
 2. Um **bump de baseline** (fluxo R2/R3) também atualiza: o hash no §13 do
    PROTOCOL.md, `GOLDEN_BASELINE_SHA` em `make_fixtures.py`, o assert em
    `test_protocol.py` e os exemplos em `DECISIONS.md`/INDEX — os 5 lugares
    citam o MESMO hash.
 3. Se um hash de baseline falhar, PRIMEIRA suspeita é EOL/bytes, não conteúdo:
-   comparar `git show :docs/protocol_golden.json | sha256sum` com o disco antes
+   comparar `git show :docs/referencias/protocol_golden.json | sha256sum` com o disco antes
    de qualquer conclusão dramática.
 4. Scripts de análise usam caminhos **relativos à raiz do repo** (nunca
    absolutos tipo `D:\GP-100 app` — quebrou a CI no runner, mordida 29/09).
