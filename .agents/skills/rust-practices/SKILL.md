@@ -1,6 +1,6 @@
 ---
 name: rust-practices
-description: Boas práticas de Rust para gp100-core/gp100-cli — gates de qualidade (fmt/clippy/test/doc-tests), política de CI, estilo de documentação PT-BR, erros tipados, testes vetorizados e política de features.
+description: Boas práticas de Rust para os crates gp100-core e gp100-cli (packages/core, packages/cli) — gates de qualidade (fmt/clippy/test/doc-tests), política de CI, estilo de documentação PT-BR, erros tipados, testes vetorizados e política de features.
 metadata:
   category: development
 ---
@@ -136,7 +136,8 @@ nem inconsistência a "limpar". A divisão obrigatória:
    lá; testá-los fora exigiria torná-los pub (piora a API). `#[cfg(test)]`
    não entra no build de release (zero custo) e a CI cobre os dois lados
    no mesmo `cargo test`.
-2. **Contratos → `gp100-core/tests/<assunto>.rs`** (caixa-preta, só API
+2. **Contratos → `packages/core/tests/<assunto>.rs`** (crate `gp100-core`;
+   caixa-preta, só API
    `pub`): provam comportamento contra EVIDÊNCIA de campo — golden,
    fixtures P4, round-trip R4. Cada arquivo é um binário de teste; helpers
    em `tests/common/mod.rs` (≈ conftest.py; o nome `mod.rs` evita binário).
@@ -149,7 +150,7 @@ nem inconsistência a "limpar". A divisão obrigatória:
 ### Exemplo vivo (M0.4 — codec de fio)
 
 ```text
-gp100-core/
+packages/core/            # crate gp100-core
 ├── src/
 │   ├── lib.rs                  # SEM unitários: consts/erros/envelope — os 3
 │   │                           #   do P2 migraram p/ tests/wire_envelope.rs
