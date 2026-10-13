@@ -44,7 +44,30 @@ REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 # No Windows o CreateProcess procura System32 ANTES do PATH: um `bash` solto
 # cai no bash.exe do WSL (nem sempre funcional neste host) em vez do git-bash.
 # `shutil.which` respeita o PATH de verdade — o mesmo bash que o Actions usa.
-BASH = shutil.which("bash") or "bash"
+def _bash() -> str:
+    """Bash real do host — NUNCA o launcher do WSL (#206).
+
+    No Windows o CreateProcess procura System32 ANTES do PATH, e o
+    `C:\\Windows\\System32\\bash.exe` é o launcher do WSL: em host sem distro
+    todo `sh()` falha com "Falha ao anexar o disco"; em host COM distro o bash
+    seria o da distro, não o do repo. `shutil.which`/`where` respeitam o PATH,
+    mas num PATH padrão do Windows o System32 vem primeiro — então varremos o
+    PATH na ordem e pegamos o primeiro `bash.exe` que NÃO é do System32 nem o
+    alias da Microsoft Store (WindowsApps, que também intercepta). Sem
+    candidato (runner ubuntu da CI), cai no `bash` do PATH, que é o da distro.
+    """
+    if os.name == "nt":
+        for pasta in os.environ.get("PATH", "").split(os.pathsep):
+            base = os.path.basename(pasta.rstrip("\\/")).lower()
+            if base in ("system32", "windowsapps"):
+                continue
+            cand = os.path.join(pasta, "bash.exe")
+            if os.path.isfile(cand):
+                return cand
+    return shutil.which("bash") or "bash"
+
+
+BASH = _bash()
 
 WF = os.path.join(REPO, ".github", "workflows", "ci.yml")
 JOBS = {"rc": "release-rc", "promote": "release-promote"}
