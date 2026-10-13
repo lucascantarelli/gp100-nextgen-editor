@@ -52,3 +52,26 @@ repo e trabalhar **sem briefing extra**. Três peças + uma memória:
   recorrente); skill morta vai para `docs/arquivo/`, nunca é apagada.
 - Ao fechar marco: `docs-sync` (commit próprio na mesma PR) mantém
   INDEX/ROADMAP/knowledge honestos.
+
+## Modo ausente do dono (#202)
+
+Quando o dono diz "estarei ausente, execute as ações recomendadas", o agente
+opera **sem perguntar** — mas com a linha divisória escrita:
+
+1. **Fila:** execute as issues ABERTAS do milestone na ordem de prioridade
+   (formato do prompt `executar-issues-em-sequencia.md`), UMA por PR.
+2. **Rotineiro — executa direto:** commit, push, PR, gates locais, re-run de
+   CI flake (verde prévio + falha de ambiente), merge squash com **CI verde**,
+   delete de branch **já mergeada**, comentário de entrega na issue.
+3. **Crítico — comenta NA ISSUE e passa adiante** (NÃO executa):
+   - merge com gate vermelho (mesmo "provavelmente flake");
+   - escopo novo / criação de issue de produto;
+   - delete de trabalho **não mergeado** (branch, stash, arquivo);
+   - release, tag ou qualquer push em `main`;
+   - fechar issue cujo PR não foi mergeado.
+4. **Fim da sessão:** relatório no resumo para o dono — fechadas / em aberto /
+   bloqueadas (com o motivo e o link da issue comentada).
+
+O modo não muda gates nem escopo: só remove a espera por aprovação nas
+rotinas. Toda decisão crítica continua registrada na issue, que é a memória
+do projeto.

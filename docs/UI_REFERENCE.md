@@ -544,8 +544,8 @@ arquivo.
 
 **As 18 baselines de `board-*`/`lib-*` foram renovadas** (o rodapé ficou 30px
 mais baixo, o que move os dois painéis por `stretch`). Renovadas pelo caminho
-documentado: `--update-snapshots=all` local (só `win32`) + input
-`update-snapshots` do workflow para as de `linux`. `looper-*`, `topbar-*` e
+documentado: `--update-snapshots=all` local (só `win32`) + workflow dedicado
+`visual-baselines.yml` para as de `linux`. `looper-*`, `topbar-*` e
 `erro-*` NÃO foram tocadas — o que prova que a mudança ficou no rodapé e não
 na casca.
 

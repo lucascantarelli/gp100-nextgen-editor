@@ -1,6 +1,15 @@
 # ═══════════════════════════════════════════════════════════════════════════
 # CI — o pipeline inteiro do projeto em UM workflow.
 #
+# EXCEÇÃO DOCUMENTADA: a regeneração das baselines visuais tem um workflow
+# próprio (visual-baselines.yml). NÃO é pipeline, é operação de teste manual,
+# e ela saiu daqui porque dividir o `workflow_dispatch` com os jobs de
+# release fazia o `default: release` do input `action` cortar tag junto com
+# uma regeneração de baseline (run 38070949933; repetido no incidente rc.5
+# de 13/10 — issue #204). Um arquivo separado com `contents: read` e ZERO
+# inputs é a única forma que não depende de ninguém lembrar de preencher
+# nada. Os contratos do par ficam no validate_workflows.py.
+#
 # Substitui ci.yml + _validate.yml + _publish.yml + release.yml + security.yml
 # + container.yml (issue #68). Motivo: seis arquivos para um projeto de quatro
 # produtos faz a mesma regra morar em seis lugares, e o nome do arquivo dentro
@@ -128,10 +137,15 @@ on:
         description: "(release/promote) versão alvo sem o v, ex.: 0.2.0 — vazio = calcular pelos commits"
         type: string
         required: false
-      update-snapshots:
-        description: "(test) regenerar as baselines visuais de linux"
-        type: boolean
-        default: false
+      # O input `update-snapshots` morava aqui e saiu (workflow
+      # visual-baselines.yml): regenerar baseline é OPERAÇÃO DE TESTE e não
+      # dividia o dispatch com release por acaso — o `action` de cima tem
+      # `default: release`, então um dispatch com `action` vazio APLICava o
+      # default e o `Release · RC` executava junto (run 38070949933 criou
+      # branch release/0.2.0 + tag v0.2.0-rc.5 de um dispatch de baseline;
+      # em 13/10 o mesmo default cortou o rc.5 de novo — revertido, issue
+      # #204). Agora a regeneração tem workflow próprio, `contents: read`,
+      # sem nenhum input de release para esquecer de preencher.
       publish-tag:
         description: "(opcional) publicar uma tag v* EXISTENTE (emergência)"
         type: string
@@ -967,20 +981,18 @@ jobs:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-node-pnpm
       - uses: ./.github/actions/playwright-setup
-      - name: comparar (ou regenerar com o input update-snapshots)
+      - name: comparar (o CI só compara — regenerar é outro workflow)
         working-directory: packages/app/ui
-        # `--update-snapshots=all` é o ÚNICO caminho de escrita no CI: o
-        # default lá é comparar e FALHAR no que faltar.
-        #
-        # `inputs['update-snapshots']` e NAO `inputs.update-snapshots`: o hífen
-        # quebra o acesso por propriedade na expressão (o GitHub lê
-        # `inputs.update`). E o input e do tipo BOOLEAN, então o flag e
-        # testado pela VERDADE (`&& ... || ''`), nunca por `== 'true'` — a
-        # comparação de um booleano com a string 'true' dá falso e a
-        # regeneração documentada rodava como comparação, que é o oposto do
-        # que se pede. Os dois erros juntos: o job falhava do mesmo jeito, com
-        # o artefato cheio de baseline velho.
-        run: pnpm exec playwright test visual.spec.ts ${{ inputs['update-snapshots'] && '--update-snapshots=all' || '' }}
+        # A comparação é o ÚNICO papel deste job: o default do playwright é
+        # comparar e FALHAR no que faltar, e o ci.yml não tem mais alavanca de
+        # escrita nenhuma (a expressão `inputs['update-snapshots'] && ...` saiu
+        # junto com o input). Regenerar as baselines `-linux` é o workflow
+        # dedicado `visual-baselines.yml` — dispatch próprio, contents: read,
+        # sem input de release ao lado. Motivo do corte: o dispatch com o
+        # input vazio aplicava o `default: release` do `action` e o job
+        # `Release · RC` cortava tag junto com a regeneração (runs 38070949933
+        # e a do incidente rc.5 de 13/10, issue #204).
+        run: pnpm exec playwright test visual.spec.ts
       - name: baselines/diffs como artefato
         if: always()
         uses: actions/upload-artifact@v7

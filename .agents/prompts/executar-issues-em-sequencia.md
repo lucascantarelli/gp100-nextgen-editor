@@ -26,3 +26,7 @@ do milestone v1.1.0 (ou a lista que eu passar), UMA por vez, na ordem de priorid
 Ao final: resumo da fila (fechadas / em aberto / bloqueadas, com motivo) e o estado da
 develop (última run verde).
 ```
+
+> **Dona ausente?** vire o **Modo ausente do dono** (`.agents/README.md`): as
+> rotinas seguem direto; decisão crítica vira comentário NA ISSUE e a fila
+> avança — o relatório final conta o que ficou pendente.

@@ -114,7 +114,7 @@ Só a área que você tocou — o CI filtra o resto por caminhos.
 | Área | Gates |
 |---|---|
 | **Front** (`packages/app/ui`) | `npx tsc -b` · `pnpm lint` · **`pnpm test:coverage`** (gate 85% statements/functions/lines — [vite.config.ts](../packages/app/ui/vite.config.ts)) · `pnpm build` · `pnpm exec playwright test` (e2e completo) |
-| **Baselines visuais** (mudou layout/paleta) | `pnpm exec playwright test visual.spec.ts --update-snapshots` → inspecione os diffs → commite os PNGs |
+| **Baselines visuais** (mudou layout/paleta) | `pnpm exec playwright test visual.spec.ts --update-snapshots` → inspecione os diffs → commite os PNGs (`-linux` pelo workflow `visual-baselines.yml`: `gh workflow run visual-baselines.yml --ref <branch>` → artefato `visual-snapshots`) |
 | **Rust core/cli** (raiz) | `cargo fmt --check` · `cargo clippy --workspace --all-targets -- -D warnings` · `cargo test` |
 | **Shell Tauri** (`packages/app/api`) | gates do front (`ui/dist` alimenta o binário) + `cargo clippy/test -p gp100-ui` |
 | **Spec** (`docs/arquivo/analysis/`, `scripts/`, golden) | `uv run pytest` (trava da especificação, incluindo a suite do H3) · `python3 scripts/gates.py baseline` (versão + hash + motivo da baseline) |
@@ -233,10 +233,22 @@ tabela **antes → depois** · tabela de **gates executados** (marque o que rodo
 · ambiente verificado · R1–R4 · política de conteúdo (nenhum material
 proprietário do device).
 
-**CI — DOIS workflows: o pipeline (10 tipos de job) + o Fechamento**
-(consolidado na #68; a divisão anterior em 6 arquivos por função veio da
-#31–#34 e da imagem de container da #41; a separação do Fechamento veio da
-#169):
+**CI — TRÊS workflows: o pipeline (10 tipos de job) + o Fechamento + as
+Baselines visuais** (consolidado na #68; a divisão anterior em 6 arquivos por
+função veio da #31–#34 e da imagem de container da #41; a separação do
+Fechamento veio da #169; a das Baselines veio da #204):
+
+Existem dois arquivos além do pipeline, e ambos são deliberados. O
+`issues-fechamento.yml` fecha issues do PR mergeado com gatilho próprio
+(#169). O `visual-baselines.yml` regenera as baselines `-linux` por dispatch,
+porque a regeneração é uma operação de TESTE manual que saiu do `ci.yml`: o
+dividir o `workflow_dispatch` com os jobs de release fazia o `default:
+release` do input `action` cortar rc junto com uma regeneração (runs
+38070949933 e a do incidente rc.5 de 13/10 — #204). Os dois arquivos são
+`workflow_dispatch` sem inputs e `contents: read` — incapazes de commitar/
+tagar — e o contrato dos três mora no `validate_workflows.py` (seção 14): os
+três existem, e os dois satélites não podem ganhar input nem permissão de
+escrita.
 
 O `name:` de cada job é `Tipo · o que é`, sem número. O GitHub não tem
 `stages:` como o GitLab — a doc de migração do próprio GitHub diz que o

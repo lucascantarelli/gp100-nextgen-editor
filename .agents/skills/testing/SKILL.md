@@ -45,8 +45,11 @@ crate externo e não enxerga internals (detalhe na skill `rust-practices`).
   declarado no `playwright.config.ts`):
   - `shell.roteiros.spec.ts` · `estados.spec.ts` · `ipc.edge.spec.ts` — shell;
   - `visual.spec.ts` — baselines POR PLATAFORMA; comparar é o default (falha no
-    que faltar); regenerar **só** pelo input `update-snapshots` do
-    `workflow_dispatch` (`--update-snapshots=all` é o único caminho de escrita);
+    que faltar); regenerar **só** pelo workflow dedicado `visual-baselines.yml`
+    (`gh workflow run visual-baselines.yml --ref <branch>`, sem inputs,
+    `contents: read` — #204: saiu do dispatch do `ci.yml` porque o `default:
+    release` do input `action` cortava rc junto); `--update-snapshots=all` é o
+    único caminho de escrita;
   - `e2e/tauri.smoke.mjs` — webview REAL (xvfb + `tauri-driver`, container
     `ci-linux`), prova o shell Tauri de verdade.
 - Rodar local: `cd packages/app/ui && pnpm exec playwright test` (o config sobe

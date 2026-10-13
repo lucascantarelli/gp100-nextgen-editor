@@ -10,9 +10,18 @@ de marketing ou de engenharia reversa. Resposta ao usuário SEMPRE em PT-BR.
 
 Habilidade de entrada: `.agents/README.md` (mapa do harness — skills, prompts,
 ordem de leitura). O fluxo de trabalho é `.agents/skills/github-flow/SKILL.md`.
+Dona ausente? **Modo ausente do dono** (mesmo `.agents/README.md`): fila
+autônoma na ordem de prioridade, UMA issue por PR; decisão crítica vira
+comentário NA ISSUE e a fila avança.
 
 ## Estado vivo (atualizar a cada marco — 1–3 linhas, sem prosa)
 
+- 13/10 — **regeneração de baseline virou workflow dedicado** (#204):
+  `visual-baselines.yml` (`workflow_dispatch` sem inputs, `contents: read`)
+  regenera as baselines `-linux`; o input `update-snapshots` saiu do `ci.yml`.
+  Motivo: o `default: release` do input `action` fazia o dispatch de baseline
+  cortar rc junto (runs 38070949933 e a do incidente rc.5 de 13/10 — revertido).
+  Contrato dos 3 workflows no `validate_workflows.py` (seção 14).
 - 12/10 — **Navbar enxuta (diretriz do dono)**: cluster de PATCH (◀ ▶ + nome)
   removido da navbar — troca vive na LISTA e o rótulo no display LED do palco;
   DeviceBadge sem miniatura SVG (dot `.live-dot`/`.idle-dot` + status honesto).
@@ -132,9 +141,13 @@ ordem de leitura). O fluxo de trabalho é `.agents/skills/github-flow/SKILL.md`.
 - **Bump de versão**: `python3 scripts/sync_version.py --set X` + `--check`
   (5 manifests sincronizados). Release: só por `workflow_dispatch`
   (rc → promote) — skill `release`.
-- **Baseline visual**: regenerar só por dispatch `update-snapshots=true`
-  (linux) e `--update-snapshots=changed` (local); o CI nunca escreve baseline
-  sozinho — ver `testing`.
+- **Baseline visual**: regenerar SÓ pelo workflow dedicado
+  `visual-baselines.yml` (`gh workflow run visual-baselines.yml --ref <branch>`,
+  `contents: read`, sem inputs) e `--update-snapshots=changed` (local); o CI
+  nunca escreve baseline sozinho — ver `testing`. Motivo (#204): a regeneração
+  saiu do dispatch do `ci.yml` porque o `default: release` do input `action`
+  cortava rc junto com uma regeneração de baseline (runs 38070949933 e a do
+  incidente rc.5 de 13/10).
 - **docs-sync**: ao fechar marco, commit próprio na mesma PR atualizando
   INDEX/ROADMAP/knowledge — skill `docs-sync`.
 
