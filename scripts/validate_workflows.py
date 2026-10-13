@@ -12,8 +12,10 @@ Os testes de INTEGRAÇÃO reais acontecem onde o workflow é a própria prova: o
 fechamento de issues roda no merge, e `scripts/simulate_release.py` executa de
  verdade os blocos `run:` da rc/promote num sandbox git. Aqui travamos o que é
 estrutura — e, desde a #68, que a ESTRUTURA nova é o que o projeto adoptou.Contratos verificados:
-  1. existem DOIS workflows (.github/workflows/ci.yml + issues-fechamento.yml)
-     e os cinco legados sumiram (#169 tirou o Fechamento do CI);
+  1. existem EXATAMENTE TRÊS workflows (.github/workflows/ci.yml +
+     issues-fechamento.yml + visual-baselines.yml) e os cinco legados sumiram
+     (#169 tirou o Fechamento do CI; o #204 tirou a regeneração de baseline
+     do dispatch do ci.yml);
   2. gatilhos: push SO em develop/main + tag v*; PR em develop/main SEM o tipo
      `closed` (ele agora mora no issues-fechamento.yml — arrastá-lo no CI
      rodava o pipeline inteiro só para jobs `skipped`). Branch de trabalho
@@ -218,7 +220,11 @@ def main() -> int:
     for legacy in LEGACY:
         if f".github/workflows/{legacy}" in docs:
             FAILURES.append(f".github/workflows/{legacy}: legado ainda existe (a #68 consolidou tudo em workflows próprios)")
-    esperados = {".github/workflows/ci.yml", ".github/workflows/issues-fechamento.yml"}
+    esperados = {
+        ".github/workflows/ci.yml",
+        ".github/workflows/issues-fechamento.yml",
+        ".github/workflows/visual-baselines.yml",
+    }
     if set(workflows) != esperados:
         FAILURES.append(f"esperado exatamente 2 workflows {sorted(esperados)}; existem: {workflows}")
 
@@ -579,6 +585,65 @@ def main() -> int:
                     f"`always() && {guard}` — o success() implícito pula o job (actions/runner#2205)"
                 )
 
+    # ── 14. visual-baselines: regeneração SEM alavanca de release (#204) ──
+    # O workflow existe por causa de DUAS runs reais (38070949933 e a do
+    # incidente rc.5 de 13/10): um dispatch para regenerar baselines com
+    # `action` vazio APLICou o `default: release` do ci.yml e o job
+    # `Release · RC` criou branch + tag que não existiam. O arquivo separado
+    # resolve por construção — e ESTE contrato é o que impede ele de
+    # reengravidar: se um dia alguém acrescentar um input, uma permissão
+    # `write` ou um `git push` aqui, o gate falha antes de qualquer dispatch.
+    vb = docs.get(".github/workflows/visual-baselines.yml")
+    if not vb:
+        FAILURES.append("visual-baselines.yml: ausente (a regeneração de baseline voltaria para dentro do ci.yml)")
+    else:
+        vb_on = triggers(vb)
+        gatilhos_vb = set(vb_on) - {None}
+        if gatilhos_vb != {"workflow_dispatch"}:
+            FAILURES.append(
+                "visual-baselines: gatilhos precisam ser SÓ workflow_dispatch "
+                f"(encontrado: {sorted(str(g) for g in gatilhos_vb)}) — push/schedule/tag dariam "
+                "gatilho automático a uma operação manual de teste"
+            )
+        vb_inputs = (vb_on.get("workflow_dispatch") or {}).get("inputs") or {}
+        if vb_inputs:
+            FAILURES.append(
+                "visual-baselines: workflow_dispatch não pode ter inputs "
+                f"(encontrado: {sorted(vb_inputs)}) — é o input esquecido que causou os incidentes "
+                "das runs 38070949933 e rc.5; a ref alvo vem do próprio dispatch"
+            )
+        vb_perms = vb.get("permissions") or {}
+        if vb_perms.get("contents") != "read":
+            FAILURES.append(
+                "visual-baselines: permissions.contents no topo precisa ser 'read' — a trava "
+                "de fábrica que impede commit/tag/push neste workflow"
+            )
+        vb_raw = raw(".github/workflows/visual-baselines.yml")
+        # Proibidos em QUALQUER lugar do arquivo (topo ou job): a segurança é
+        # do arquivo inteiro, não de uma declaração que alguém pode mover.
+        for proibido in ("contents: write", "git push", "git tag", "action-gh-release", "gh release"):
+            if proibido in vb_raw:
+                FAILURES.append(
+                    f"visual-baselines: contém {proibido!r} — este workflow regenera baseline, "
+                    "nunca escreve no repositório nem publica nada"
+                )
+        # O produto do workflow: o flag de escrita e o artefato que o entrega.
+        if "--update-snapshots=all" not in vb_raw:
+            FAILURES.append(
+                "visual-baselines: sem `--update-snapshots=all` — sem ele o playwright COMPARA "
+                "(papel do ci.yml) e o workflow não regenera nada"
+            )
+        if "visual-snapshots" not in vb_raw:
+            FAILURES.append(
+                "visual-baselines: sem o artefato `visual-snapshots` — a saída é o produto; "
+                "sem artefato o workflow regenera e joga fora"
+            )
+        if "if-no-files-found: error" not in vb_raw:
+            FAILURES.append(
+                "visual-baselines: artefato precisa de `if-no-files-found: error` — aqui o "
+                "artefato é o produto, e verde sem nada gerado é a mentira mais cara"
+            )
+
     # ── relatório ───────────────────────────────────────────────────────
     for path in sorted(docs):
         print(("ERR " if path == ".github/workflows/ci.yml" and FAILURES else "OK  "), path)
@@ -587,7 +652,7 @@ def main() -> int:
         for failure in FAILURES:
             print(" -", failure)
         return 1
-    print("\n2 workflows + 5 actions compostas + 2 imagens: YAML válido e contratos preservados.")
+    print("\n3 workflows + 5 actions compostas + 2 imagens: YAML válido e contratos preservados.")
     return 0
 
 

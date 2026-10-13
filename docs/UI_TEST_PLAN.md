@@ -247,12 +247,16 @@ REC→PLAY, digitação não dispara, precedência do Esc).
 5. Matriz de cobertura do manual: `docs/MANUAL_COVERAGE.md` (33 ✅ · 5 🟡 · 5 🔴 —
    nada silencioso; 🔴 = Fase 2/3 documentadas).
 
-**CI (`.github/workflows/ci.yml`, um workflow só desde a #68):** job
+**CI (`.github/workflows/ci.yml`, um workflow de pipeline desde a #68 — mais o
+workflow de manutenção `visual-baselines.yml`, ver abaixo):** job
 `Testes · E2E shell (Chromium)` = setup pnpm → `playwright install --with-deps
 chromium` → `playwright test` (o `webServer` sobe o `pnpm dev` na :5173).
 O job `Testes · E2E visual` compara as baselines, e o `Testes · E2E webview`
 sobe o shell Tauri real no Linux. A distribuição só roda depois de tudo isso —
 `Release · RC` exige `workflow_dispatch`, e a tag não corta com casca quebrada.
+O `Release · RC` é o REASON de a regeneração de baseline ter saído daqui: um
+dispatch do `ci.yml` com o input `update-snapshots` preenchido e o `action`
+vazio APLICAVA o `default: release` e cortava rc junto (run 38070949933).
 
 ---
 
@@ -285,9 +289,11 @@ issues Q-6/Q-7 (sliders/kill/error states).
 **baseline por
 plataforma** (`{arg}-{platform}`; fontes divergem Win/Linux). Estado atual:
 baselines `win32` **e `linux`** commitadas e comparando no CI ✅ (issue #45);
-baselines novas nascem pelo **input `update-snapshots`** do pipeline (job
-`e2e-visual` sobe o artefato → commitar). Sem baseline no CI = job VERMELHO (o
-skip silencioso não existe mais).
+baselines novas nascem pelo workflow dedicado **`visual-baselines.yml`**
+(`gh workflow run visual-baselines.yml --ref <branch>` → artefato
+`visual-snapshots` → commitar os `-linux`; ele é `contents: read` e não
+committa nada sozinho). Sem baseline no CI = job VERMELHO (o skip silencioso
+não existe mais).
 
 **U-7 — e2e-tauri (job na CI, Ubuntu):** build debug do `gp100-ui` com o
 dist embutido (mock, sem hardware) → `tauri-driver` + `WebKitWebDriver` sob
@@ -302,7 +308,7 @@ oficial Tauri v2 (webkit2gtk-driver + xvfb + WEBKIT_DISABLE_DMABUF_RENDERER).
 | Item | Estado |
 |---|---|
 | 9 baselines win32 geradas e estáveis | ✅ (rodada 30/09) |
-| job `Testes · E2E visual` (Ubuntu) + input update-snapshots | ✅ ci.yml |
+| job `Testes · E2E visual` (Ubuntu) | ✅ ci.yml (compara; regenerar = `visual-baselines.yml`) |
 | baselines linux commitadas | ✅ (issue #45; contagem atual em `docs/INDEX.md` §6) |
 | job `Testes · E2E webview` (smoke webview real + DeviceGone) | ✅ ci.yml (gate de release: só roda com o resto verde) |
 
@@ -418,8 +424,9 @@ oficial Tauri v2 (webkit2gtk-driver + xvfb + WEBKIT_DISABLE_DMABUF_RENDERER).
 - Regressão visual dos ERROS (seguimento da rodada): 6 baselines novas em
   visual.spec.ts (`erro-boot` = alerta do boot; `erro-preset` = banner do
   App) × 3 viewports, usando o gancho failDevice — capturadas em win32 e
-  comparadas limpas na 2ª execução (38 e2e ✅ no total; CI compara com as
-  `linux` via update-snapshots).
+  comparadas limpas na 2ª execução (38 e2e ✅ no total; o CI compara com as
+  `linux`, que na época nasceram pelo input `update-snapshots` do ci.yml —
+  hoje pelo workflow `visual-baselines.yml`).
 
 ---
 
