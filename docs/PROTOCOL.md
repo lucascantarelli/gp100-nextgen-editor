@@ -1004,3 +1004,38 @@ CC48/49 no device segue para diff de ação.
 `0011000001`/`0012001001`; ação de UI→endereço para os ppCtrl; banda×
 parâmetro do Global EQ (0x20012..1f — um diff por banda fecha). **Nenhum byte
 do Suite/firmware foi alterado (só leitura).**
+
+### 13.15 Sincronização app ↔ device: o "tempo real" honesto (#164)
+
+**O aparelho não notifica edição de preset.** O knob gira no hardware e o
+frame `12/10xx0002` (§13.11) só existe quando o APP escreve — medido nas
+capturas e confirmado pelo fluxo do Suite. O único push espontâneo MEDIDO é
+o bloco `00020003..1f` (§13.13.1), cuja semântica ainda é parcial; ele não é
+o canal de sync do app. Logo: **"tempo real" neste protocolo é poll +
+read-back + detecção de queda — nunca notificação espontânea de knob.**
+
+O que existe (#164, ADR-15), tudo provado por MockDevice sem hardware:
+
+| Momento | O que sai no fio | Custo |
+|---|---|---|
+| Escrita do app (knob §13.11, D4 sem resposta) | — (fire-and-forget) | estado `pending` |
+| Read-back pós-escrita (debounce **800 ms**) | `reload_paginas_correntes`: select `11/13010000` + open `12/13010002` (entrega a **página 0**, `raw[3]==0`) + reqs `12/13010004` PG 0..7 (respondem `raw[3]==PG+1`, §13.10) | 10 transações, **todas `Read`** |
+| Refresh periódico (**10 s**) | a MESMA sequência do read-back | 10 transações / 10 s em repouso |
+| "Reler agora" (`device_sync_now`) | adianta o prazo do read-back (mesmo caminho) | 1 transação de fila + 10 do read-back |
+| Queda no meio | `DeviceGone` → estado `offline` legível; a escrita seguinte FALHA antes do fio (sessão viva, ADR-4) | — |
+
+Detalhes de contrato:
+
+- **`raw[3]` do read-back:** quem preenche o slot 0 do `decode` é o `open`;
+  um laço de `state_page(0..8)` montaria o slot 0 com o número 1 e derrubaria
+  o decode ("página fora de ordem: esperada 0, achada 1") — por isso o
+  caminho é `Session::reload_paginas_correntes` (a sequência do boot).
+- **Reconciliação: o APARELHO vence.** O read-back que trouxe páginas
+  diferentes do cache emite `device://sync { changed: true }` e o front
+  RELÊ o board — o valor mostrado é o LIDO, nunca o que o app quis escrever.
+- **Boot continua leitura pura + keepalive T4** `12/00020001` ×2 (D4,
+  decisão do owner 06/10) — sem nenhuma escrita mutante no caminho.
+- **Estado tipado único no actor** (`idle`/`sync`/`pending`/`failed`/
+  `offline`): `device_info` semeia a UI e o evento `device://sync` é a
+  transição. Sem número inventado na tela — o chip mostra o que o backend
+  afirma, com a ação de recuperação (reler/reconectar) quando há erro.
