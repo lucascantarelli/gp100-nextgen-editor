@@ -1,6 +1,8 @@
 /**
  * Interações do App — os handlers que a casca não exercita:
- *   - navegação ◀/▶ (ciclo P01→P99) e persistência do master;
+ *   - troca de patch pela BIBLIOTECA (a navbar perdeu o cluster ◀ ▶ —
+ *     diretriz do dono 12/10; o rótulo vive no display LED do palco) e
+ *     persistência do master;
  *   - faixa de progresso do boot (aparece durante, some no fim), faixa de
  *     ERRO do boot (failDevice=boot) com recuperação pelo ⟳ e erro amigável
  *     do openPreset (failDevice=board);
@@ -15,8 +17,9 @@ import { createRoot } from "react-dom/client";
 import type { Root } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../src/App";
-import { onDevicePush, deviceBoard, deviceInfo, deviceSelectPreset, deviceSetParam, onBootProgress, onDevicePush as onPush } from "../src/ipc/device";
+import { onDevicePush, deviceBoard, deviceGlobals, deviceInfo, deviceSelectPreset, deviceSetGlobal, deviceSetParam, onBootProgress, onDevicePush as onPush } from "../src/ipc/device";
 import { resetaFallback } from "../src/ipc/library";
+import { resetaGlobais } from "../src/ipc/fallbackData";
 import { Knob } from "../src/components/Knob";
 import type { BoardKnob } from "../src/ipc/types";
 
@@ -57,6 +60,9 @@ beforeAll(() => {
     // teste salvou aparece no seguinte (antes os patches viviam no localStorage,
     // que o clear acima apagava — a fonte mudou, o reset tem que acompanhar)
     resetaFallback();
+    // idem os registradores globais do fallback (o slider de master de um
+    // teste escrevia gVolume e o seed do seguinte lia o valor sujo)
+    resetaGlobais();
     vi.mocked(onDevicePush).mockClear();
     vi.mocked(deviceSetParam).mockClear();
   });
@@ -130,30 +136,65 @@ const byAria = (host: HTMLElement, aria: string) =>
     (b) => b.getAttribute("aria-label") === aria,
   );
 
-describe("Navegação de patch e master", () => {
-  it("▶/◀ andam pelo INVENTÁRIO do aparelho (#150): 198 slots, hex no banco alto", async () => {
+/**
+ * Rótulo do patch no DISPLAY DO PALCO — a navbar perdeu o cluster ◀ ▶ e o
+ * nome do patch (dono 12/10), então o LED do palco é a fonte: `${ppLabel} ${name}`
+ * lidos dos dois primeiros spans do `role="status"` do board.
+ */
+const rotuloNoPalco = (host: HTMLElement): string => {
+  const st = host.querySelector('[aria-label^="Pedalboard"] [role="status"]');
+  const spans = st ? Array.from(st.querySelectorAll("span")) : [];
+  return `${spans[0]?.textContent ?? ""} ${spans[1]?.textContent ?? ""}`.trim();
+};
+
+/** clica numa linha da biblioteca pelo rótulo (ex.: "P02") — o caminho do dono */
+const clicaOpcao = async (host: HTMLElement, rotulo: string) => {
+  await waitFor(
+    () =>
+      Array.from(host.querySelectorAll('[role="option"]')).some((o) =>
+        o.textContent?.includes(rotulo),
+      ),
+    `a linha ${rotulo} na biblioteca`,
+  );
+  const alvo = Array.from(host.querySelectorAll('[role="option"]')).find((o) =>
+    o.textContent?.includes(rotulo),
+  )!;
+  act(() => alvo.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+};
+
+describe("Troca de patch (biblioteca) e master", () => {
+  it("a troca de patch vive na LISTA (navbar sem ◀ ▶ — diretriz do dono 12/10)", async () => {
     const { root, host } = mount();
     await settle();
     await esperaCasca(host);
 
-    const label = () =>
-      Array.from(host.querySelectorAll("strong")).find((s) => /^(P\d{2}|0x[0-9a-f]{4})/.test(s.textContent ?? ""))
-        ?.textContent ?? "";
+    // a navbar NÃO tem mais os botões de patch nem o nome — o rótulo do
+    // patch corrente vive no display LED do palco
+    expect(byAria(host, "Próximo patch"), "sem ◀ ▶ na navbar").toBeUndefined();
+    expect(byAria(host, "Patch anterior"), "sem ◀ ▶ na navbar").toBeUndefined();
+    expect(rotuloNoPalco(host)).toBe(`P01 ${FIXTURE}`);
 
-    expect(label()).toBe(`P01 ${FIXTURE}`);
-    act(() => byAria(host, "Próximo patch")!.dispatchEvent(new MouseEvent("click", { bubbles: true })));
-    await settle();
-    // o passo anda pelo INVENTÁRIO (dois bancos, ADR-12): do pp 0 (0x0000)
-    // o próximo é 0x0001 — que no banco baixo exibe rótulo 1-based (P02)
-    expect(label()).toBe(`P02 ${FIXTURE}`);
+    // abrir P02 pela lista (o caminho do dono) atualiza o palco na hora
+    await clicaOpcao(host, "P02");
+    await waitFor(() => rotuloNoPalco(host) === `P02 ${FIXTURE}`, "P02 no display do palco");
+    teardown(root, host);
+  });
 
-    act(() => byAria(host, "Patch anterior")!.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+  it("a aba Patches é a selecionada por DEFAULT no boot (diretriz do dono 12/10)", async () => {
+    // "patches deve ser a selecionada por default": logo após o boot, com o
+    // palco abrindo o pp corrente do aparelho, a biblioteca abre na aba
+    // Patches (banco do dono) — sem ninguém ter clicado em aba nenhuma. O
+    // reboot com pp do banco ALTO está coberto no panels.test (o caminho que
+    // o efeito antigo virava Fábrica sozinho).
+    const { root, host } = mount();
     await settle();
-    act(() => byAria(host, "Patch anterior")!.dispatchEvent(new MouseEvent("click", { bubbles: true })));
-    await settle();
-    // ciclo: P02 - 2 = 0x0162 (último slot do scan; o rótulo é o ENDEREÇO,
-    // porque o mapeamento LED P/F do banco alto ainda não foi medido)
-    expect(label()).toBe(`0x0162 ${FIXTURE}`);
+    await esperaCasca(host);
+    const selecionadas = Array.from(host.querySelectorAll('[role="tab"]')).filter(
+      (t) => t.getAttribute("aria-selected") === "true",
+    );
+    expect(selecionadas.map((t) => t.textContent), "só a aba Patches vem selecionada").toEqual([
+      expect.stringContaining(MSG.libTabFactory),
+    ]);
     teardown(root, host);
   });
 
@@ -169,6 +210,46 @@ describe("Navegação de patch e master", () => {
     await settle();
     expect(slider!.value).toBe("33"); // handler ligado: estado re-renderizou
     teardown(root, host);
+  });
+});
+
+describe("Herança dos registradores globais (§13.13)", () => {
+  it("o device VENCE o localStorage: o master vem do gVolume no boot validado", async () => {
+    // o dono tinha 55 guardado local — o aparelho diz 99 (default do mock):
+    // "as demais informações devem ser herdadas do device" (dono 12/10)
+    localStorage.setItem("gp100.master.v1", "55");
+    const { root, host } = mount();
+    await settle();
+    await esperaCasca(host);
+
+    const slider = host.querySelector<HTMLInputElement>('input[type="range"]');
+    expect(slider).toBeTruthy();
+    await waitFor(() => slider!.value === "99", "slider no valor do gVolume do device");
+    teardown(root, host);
+  });
+
+  it("mexer no master escreve gVolume (roundtrip deviceSetGlobal → deviceGlobals)", async () => {
+    const { root, host } = mount();
+    await settle();
+    await esperaCasca(host);
+
+    const slider = host.querySelector<HTMLInputElement>('input[type="range"]');
+    setInput(slider!, "42");
+    await settle();
+
+    const g = await deviceGlobals();
+    expect(g.volume, "gVolume reflete o valor escrito pelo slider").toBe(42);
+    teardown(root, host);
+  });
+
+  it("drumBpm/drumVolume roundtrippam pelo allowlist (escrita medida §13.13.4)", async () => {
+    await deviceSetGlobal("drumBpm", 96);
+    await deviceSetGlobal("drumVolume", 77);
+    const g = await deviceGlobals();
+    expect(g.drumBpm).toBe(96);
+    expect(g.drumVolume).toBe(77);
+    // o allowlist do backend recusa chave fora do escopo
+    await expect(deviceSetGlobal("gNoCabLeft", 1)).rejects.toThrow();
   });
 });
 
@@ -214,18 +295,21 @@ describe("Faixas de boot e erro", () => {
     const { root, host } = mount();
     // as linhas do painel vêm do APARELHO (#150: inventário no load); o
     // fallback de teste as entrega na primeira microtask, mas o painel tem
-    // render próprio — waitFor é o helper que espera de verdade.
+    // render próprio — waitFor é o helper que espera de verdade. 0x0018 é do
+    // banco do DONO (baixo, medido em campo 12/10): a aba padrão Patches,
+    // rotulada pelo manual (0x0018 = 24 → P25).
+    await esperaCasca(host);
     await waitFor(
       () =>
         Array.from(host.querySelectorAll('[role="option"]')).some((o) =>
-          o.textContent?.includes("0x0018"),
+          o.textContent?.includes("P25"),
         ),
-      "linhas da biblioteca (slot 0x0018)",
+      "linhas da biblioteca (slot P25 = 0x0018)",
     );
 
     localStorage.setItem("gp100.debug.failDevice", "board");
     const alvo = Array.from(host.querySelectorAll('[role="option"]')).find((o) =>
-      o.textContent?.includes("0x0018"),
+      o.textContent?.includes("P25"),
     );
     act(() => alvo!.dispatchEvent(new MouseEvent("click", { bubbles: true })));
     // o command falha 3× com backoff real (~360 ms) antes de virar banner
@@ -242,13 +326,11 @@ describe("Faixas de boot e erro", () => {
     const { root, host } = mount();
     await settle();
     await esperaCasca(host);
-    const label = () =>
-      Array.from(host.querySelectorAll("strong")).find((s) => /^P\d{2}/.test(s.textContent ?? ""))
-        ?.textContent ?? "";
+    const label = () => rotuloNoPalco(host);
     expect(label()).toBe(`P01 ${FIXTURE}`);
 
     localStorage.setItem("gp100.debug.failDevice", "select");
-    act(() => byAria(host, "Próximo patch")!.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    await clicaOpcao(host, "P02");
     // retry/backoff real (~360 ms até desistir): espera o banner
     await waitFor(() => host.querySelector('[role="alert"]') !== null, "banner da falha de select");
     expect(host.querySelector('[role="alert"]')!.textContent).toContain(
@@ -354,22 +436,22 @@ describe("Biblioteca — busca", () => {
     expect(search).toBeTruthy();
     const options = () => host.querySelectorAll('[role="option"]').length;
 
-    // **(#150) os slots vêm SEM nome decodificado (issue #152):** o texto
-    // que acha um slot é o ENDEREÇO — o mesmo que a coluna mostra. 0x0018 =
-    // o slot 24 do banco baixo; 0x0062 = o último dele.
+    // **(#150) os slots vêm SEM nome decodificado (issue #152):** a busca
+    // aceita o ENDEREÇO mesmo — e a linha se rotula pelo MANUAL (0x0018 =
+    // 24 → P25; 0x0062 = 98 → P99, o último do banco do dono).
     setInput(search!, "0x0018");
     await esperaBiblioteca(() => options() === 1, "so o slot 0x0018");
-    expect(host.textContent).toContain("0x0018");
+    expect(host.textContent).toContain("P25");
 
     setInput(search!, "0x0062");
     await esperaBiblioteca(() => options() === 1, "so o slot 0x0062");
-    expect(host.textContent).toContain("0x0062");
+    expect(host.textContent).toContain("P99");
 
     setInput(search!, "zzz-nada");
     await esperaBiblioteca(() => options() === 0, "nada encontrado");
 
     setInput(search!, "");
-    await esperaBiblioteca(() => options() === 198, "o inventário inteiro");
+    await esperaBiblioteca(() => options() === 99, "o banco do dono inteiro");
     teardown(root, host);
   }, 40_000);
 });
@@ -436,12 +518,14 @@ const saveAsUserPatch = async (host: HTMLElement, name: string) => {
   );
 };
 
-/** abre um preset pelo ENDEREÇO exibido (0x0005 = pp 5 do banco baixo) */
+/** abre um preset pelo ENDEREÇO exibido (0x0005 = pp 5 do banco do dono) */
 const openPatch = async (host: HTMLElement, endereco: string) => {
-  // volta para a aba Patches (a aba segue o banco aberto no palco)
+  // a aba do APARELHO certa: o banco ALTO (0x01xx) é a Fábrica (medido em
+  // campo 12/10); o baixo (0x00xx) é o banco do DONO — a aba Patches
+  const fab = endereco.startsWith("0x01");
   act(() =>
     Array.from(host.querySelectorAll('[role="tab"]'))
-      .find((t) => t.textContent?.includes(MSG.libTabFactory))!
+      .find((t) => t.textContent?.includes(fab ? MSG.libTabFab : MSG.libTabFactory))!
       .dispatchEvent(new MouseEvent("click", { bubbles: true })),
   );
   await settle();
@@ -481,9 +565,7 @@ describe("Biblioteca — o patch aberto é o que o pedalboard mostra", () => {
     expect(chainOnStage(host)[0]).toContain(p06[0].name);
     expect(host.querySelector('[aria-label="Slot 1: DST"]')).toBeTruthy();
     expect(host.querySelector('[aria-label="Slot 2: PRE"]')).toBeTruthy();
-    expect(
-      Array.from(host.querySelectorAll("strong")).find((s) => /^P\d{2}/.test(s.textContent ?? ""))?.textContent,
-    ).toBe(`P06 ${FIXTURE}`);
+    expect(rotuloNoPalco(host)).toBe(`P06 ${FIXTURE}`);
     teardown(root, host);
   });
 
@@ -507,11 +589,8 @@ describe("Biblioteca — o patch aberto é o que o pedalboard mostra", () => {
     const p06 = [...PRESET_CHAINS[5].slots].sort((a, b) => a.slot - b.slot);
     expect(host.querySelector('[aria-label="Slot 1: DST"]'), "a cadeia SALVA voltou").toBeTruthy();
     expect(chainOnStage(host)[0]).toContain(p06[0].name);
-    // rótulo de usuário (U01) no LED e na navbar — a UI diz de onde vem
-    expect(host.querySelector('[aria-label^="Pedalboard"] [role="status"]')?.textContent).toContain("U01");
-    expect(
-      Array.from(host.querySelectorAll("strong")).find((s) => /^U\d{2}/.test(s.textContent ?? ""))?.textContent,
-    ).toBe("U01 DST na frente");
+    // rótulo de usuário (U01) no display do palco — a UI diz de onde vem
+    expect(rotuloNoPalco(host)).toBe("U01 DST na frente");
 
     // 3. excluir o patch aberto devolve o palco ao preset de fábrica real
     act(() =>
@@ -520,9 +599,7 @@ describe("Biblioteca — o patch aberto é o que o pedalboard mostra", () => {
     await settle();
     expect(host.textContent).not.toContain("DST na frente");
     expect(host.querySelector('[aria-label="Slot 1: PRE"]')).toBeTruthy();
-    expect(
-      Array.from(host.querySelectorAll("strong")).find((s) => /^P\d{2}/.test(s.textContent ?? ""))?.textContent,
-    ).toBe(`P01 ${FIXTURE}`);
+    expect(rotuloNoPalco(host)).toBe(`P01 ${FIXTURE}`);
     teardown(root, host);
   }, 40_000);
 

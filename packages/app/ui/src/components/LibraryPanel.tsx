@@ -37,6 +37,31 @@ import type { Banco, Library } from "../hooks/useLibrary";
 import { useHistory } from "../hooks/useHistory";
 import { HistoryPanel } from "./HistoryPanel";
 
+/**
+ * Os dois bancos do APARELHO (manual V1.8, "two patch banks"): USER P01–P99
+ * e FACTORY F01–F99.
+ *
+ * **Qual endereço é qual banco foi MEDIDO EM CAMPO (12/10, unidade do dono)**
+ * — era o item pendente do audit de 07/10 ("medir o mapeamento banco↔P/F
+ * antes de trocar o label"): o banco do DONO é o BAIXO (`0x0000..=0x0062`,
+ * onde estão os patches que ele reconhece) e o de FÁBRICA é o ALTO
+ * (`0x0100..=0x0162`), cujos nomes batem com a lista do manual ("It's GP100",
+ * "Blink OD"…). As DUAS faixas são as da captura S1 (ADR-12); a semântica é
+ * a que a bancada confirmou. Com o rótulo de ENDEREÇO crúdo o banco do dono
+ * saía como "P257..P355" e o dono li "300+ patches" onde o aparelho tem 198.
+ */
+const BANCO_USER_INICIO = 0x0100;
+
+/** O slot pertence ao banco DO DONO (baixo) — o resto é o de fábrica (alto). */
+function ehDoDono(pp: number): boolean {
+  return pp < BANCO_USER_INICIO;
+}
+
+/** Rótulo do MANUAL por banco: P01–P99 no do dono, F01–F99 no de fábrica. */
+function rotuloManual(pp: number): string {
+  return ehDoDono(pp) ? MSG.libPp(pp) : MSG.libFabPp(pp - BANCO_USER_INICIO);
+}
+
 interface Props {
   /** preset de fábrica corrente (o chip/navbar navegam por aqui) */
   currentPp: number;
@@ -225,6 +250,12 @@ export function LibraryPanel({
   onOpenContent,
 }: Props) {
   const [draft, setDraft] = useState("");
+  /**
+   * Qual banco do APARELHO a aba "Patches" mostra — os patches do DONO
+   * primeiro (pedido do dono 12/10): o aparelho tem dois bancos (198 slots)
+   * e o de fábrica fica na aba própria, separado.
+   */
+  const [vistaDevice, setVistaDevice] = useState<"user" | "fab">("user");
   /** Relato do import: contabilidade ou recusa. `null` = nada aconteceu. */
   const [relato, setRelato] = useState<string | null>(null);
   const arquivoRef = useRef<HTMLInputElement>(null);
@@ -271,14 +302,22 @@ export function LibraryPanel({
     [setBanco, setTexto],
   );
 
-  // A aba segue o BANCO ABERTO no palco: abrir um patch (de fábrica ou de
-  // usuário) tem que refletir aqui, senão a biblioteca mente sobre o que está
-  // tocando. Clicar numa aba é só navegação de VISÃO — não muda o palco.
+  // A aba segue o BANCO ABERTO no palco: abrir um patch de USUÁRIO leva a
+  // lista para "Meus patches" (e voltar ao aparelho, para as abas do device).
+  // Clicar numa aba é só navegação de VISÃO — não muda o palco.
   //
   // O `ref` é o que separa os dois sentidos. Sem ele, este efeito volta atrás
   // do clique do dono sempre que a aba estiver diferente do banco do palco — e
   // a aba de User Patch saltaria de volta para Factory assim que o dono
   // clicasse nela, já que abrir patch no palco não muda o banco visível.
+  //
+  // **A sub-aba do device NÃO é guiada pelo palco (diretriz do dono 12/10:
+  // "Patches deve ser a selecionada por default"):** ela nasce em "Patches"
+  // (banco do dono) e só o CLIQUE do dono a move. O efeito que a seguia pelo
+  // pp corrente tirava a lista do default em dois caminhos reais: o boot
+  // frio abrindo um pp do banco alto (0x0100+) e o re-escanear (⟳) com um
+  // patch de usuário aberto — o dono pedia Patches e a tela respondia
+  // Fábrica.
   const bancoVisto = useRef(bankDoPalco);
   useEffect(() => {
     if (bancoVisto.current !== bankDoPalco) {
@@ -302,14 +341,18 @@ export function LibraryPanel({
   const lista = lib.rows;
 
   // **(#150) a aba "Patches" é o que o APARELHO tem:** as entradas que o
-  // load trouxe do device (`device_preset_library`). O texto da caixa filtra
-  // localmente por nome (quando houver, pós-#152) e pelo ENDEREÇO do pp —
-  // o único rótulo honesto antes de medir o mapeamento LED P/F em campo.
+  // load trouxe do device (`device_preset_library`), SEPARADAS POR BANCO —
+  // o do dono na aba Patches, o de fábrica na Fábrica (manual V1.8). O texto
+  // da caixa filtra o banco visível por nome e pelo rótulo do manual.
   const textoBusca = lib.texto.trim().toLowerCase();
-  const patches = (deviceLib?.entries ?? []).filter((p) => {
+  const doBancoVisivel = (deviceLib?.entries ?? []).filter((p) =>
+    vistaDevice === "user" ? ehDoDono(p.pp) : !ehDoDono(p.pp),
+  );
+  const patches = doBancoVisivel.filter((p) => {
     if (!textoBusca) return true;
     return (
       p.name.toLowerCase().includes(textoBusca) ||
+      rotuloManual(p.pp).toLowerCase().includes(textoBusca) ||
       rotuloPp(p.pp).toLowerCase().includes(textoBusca) ||
       String(p.pp).includes(textoBusca)
     );
@@ -317,9 +360,28 @@ export function LibraryPanel({
 
   return (
     <aside className="gp-surface" style={panel} aria-label={MSG.libAria}>
-      <div role="tablist" aria-label={MSG.libTabsAria} style={{ display: "flex", gap: "var(--space-4)" }}>
-        <button role="tab" aria-selected={tabKind === "factory"} style={tabKind === "factory" ? tabOn : tab} onClick={() => vaiPara("factory")}>
+      <div role="tablist" aria-label={MSG.libTabsAria} style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-4)" }}>
+        <button
+          role="tab"
+          aria-selected={tabKind === "factory" && vistaDevice === "user"}
+          style={tabKind === "factory" && vistaDevice === "user" ? tabOn : tab}
+          onClick={() => {
+            setVistaDevice("user");
+            vaiPara("factory");
+          }}
+        >
           {MSG.libTabFactory}
+        </button>
+        <button
+          role="tab"
+          aria-selected={tabKind === "factory" && vistaDevice === "fab"}
+          style={tabKind === "factory" && vistaDevice === "fab" ? tabOn : tab}
+          onClick={() => {
+            setVistaDevice("fab");
+            vaiPara("factory");
+          }}
+        >
+          {MSG.libTabFab}
         </button>
         <button role="tab" aria-selected={tabKind === "user"} style={tabKind === "user" ? tabOn : tab} onClick={() => vaiPara("user")}>
           {`${MSG.libTabUser}${(lib.stats?.user ?? 0) > 0 ? ` (${lib.stats?.user})` : ""}`}
@@ -396,12 +458,12 @@ export function LibraryPanel({
                 aria-selected={on}
                 style={rowBtn(on)}
                 onClick={() => onOpenFactory(p.pp)}
-                title={p.name || rotuloPp(p.pp)}
+                title={p.name || rotuloManual(p.pp)}
               >
-                {/* **(#150)** slot SEM nome decodificado (#152) → o rótulo é o
-                    ENDEREÇO (`0x0100`), o único dado honesto hoje; com nome
-                    (fallback de teste hoje, decode amanhã) → rótulo 1-based */}
-                <span style={ppCell}>{p.name ? MSG.libPp(p.pp) : rotuloPp(p.pp)}</span>
+                {/* rótulo do MANUAL pelo banco (P01–P99 / F01–F99): o endereço
+                    crúdo (`0x0100`) era lido como "355 patches" — o dono tem
+                    99, e o LED do aparelho mostra o rótulo do manual */}
+                <span style={ppCell}>{rotuloManual(p.pp)}</span>
                 <span style={{ ...rowName, fontWeight: on ? 700 : 400 }}>{p.name || "—"}</span>
                 <span style={styleBadge}>{p.ppTypeName}</span>
               </button>

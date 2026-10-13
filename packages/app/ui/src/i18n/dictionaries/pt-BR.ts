@@ -17,11 +17,13 @@ export const PT_BR = {
   connShortOn: "on",
   connShortOff: "off",
   mockBadge: "Mock Device",
-  patchLabel: "patch",
-  patchPrevAria: "Patch anterior",
-  patchPrevTitle: "Patch anterior (P01–P99 em ciclo)",
-  patchNextAria: "Próximo patch",
-  patchNextTitle: "Próximo patch (P01–P99 em ciclo)",
+  /* ── badge do device na navbar (DeviceBadge): a linha de status SÓ diz o
+   * que o device_info garante — nunca inventa nome/serial do fio ── */
+  connBadgeLoading: "lendo o aparelho…",
+  connBadgeNone: "sem aparelho",
+  connBadgePresets: "presets",
+  connBadgeWriteOk: "escrita liberada",
+  connBadgeWriteLocked: "escrita travada",
   /** chip = IDENTIDADE do ritmo (abre o modal de gestão); play/stop e BPM
    *  viraram controles próprios da navbar (hierarquia nova do chip).
    *  O prefixo some em ≤1024 (`.nb-chip-pre`) — o nome do estilo fica */
@@ -117,6 +119,7 @@ export const PT_BR = {
   libAria: "Patches do aparelho",
   libTabsAria: "Tipo de patch",
   libTabFactory: "Patches",
+  libTabFab: "Fábrica",
   libTabUser: "Meus patches",
   libListAria: "Patches do aparelho",
   libEmptyDevice: "Aparelho não conectado — conecte o GP-100 para carregar os patches.",
@@ -125,6 +128,7 @@ export const PT_BR = {
   searchEmpty: (q: string) => `Nenhum preset para “${q}”. Dica: busque por estilo (Rock, Funk…) ou nº.`,
   libRowTitle: (name: string, type: string) => `Abrir “${name}” (${type})`,
   libPp: (pp: number) => `P${String(pp + 1).padStart(2, "0")}`,
+  libFabPp: (pp: number) => `F${String(pp + 1).padStart(2, "0")}`,
   libUserPp: (i: number) => `U${String(i + 1).padStart(2, "0")}`,
 
   /* patches de usuário (PRÉVIA LOCAL — a escrita no device não tem canal) */

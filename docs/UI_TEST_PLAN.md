@@ -11,7 +11,8 @@
 
 ### R1. Topbar e identidade
 1. Logo GP-100 + tag do backend (mock) visíveis; LED "conectado" verde (fallback dev).
-2. Navbar mostra o patch corrente no formato `P25 Mist` (nome REAL de fábrica).
+2. Display LED do palco mostra o patch corrente no formato `P25 Mist` (a navbar
+   NÃO tem ◀ ▶ — cluster removido pelo dono 12/10; a troca é pela lista).
 3. Resize da janela: topbar não quebra (wrap limpo), nada sobrepõe.
 4. Tab atravessa TODOS os controles com foco visível (âmbar); ordem lógica.
 
@@ -19,7 +20,7 @@
 1. Painel direito lista 99 linhas `P00…P98` com nome e estilo (Rock/Funk/…).
 2. Buscar "mist" → só `P25 Mist`; buscar "Rock" → filtra estilos; buscar "98" → `P98`.
    Busca sem resultado mostra dica (empty state com hint, não tela vazia).
-3. Clicar em qualquer linha: display LED do board e a navbar trocam para o preset
+3. Clicar em qualquer linha: o display LED do board troca para o preset
    (fallback dev: determinístico; no shell Tauri: §13.10 REAL).
 4. Linha corrente fica destacada (âmbar) e com aria-selected.
 5. Teclado: setas + Enter selecionam um preset (listbox nativo de botões).

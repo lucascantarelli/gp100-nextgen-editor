@@ -118,13 +118,21 @@ let closed = 0;
 /** A raiz viva do probe (ver `montarStage`: a anterior é desmontada). */
 let raizAnterior: Root | null = null;
 
-function StageProbe({ onChanged }: { onChanged?: () => void }) {
-  stage = useStage(onChanged ?? (() => {}));
+function StageProbe({
+  onChanged,
+  bootPronto = true,
+}: {
+  onChanged?: () => void;
+  bootPronto?: boolean;
+}) {
+  stage = useStage(onChanged ?? (() => {}), bootPronto);
   return null;
 }
 
 /** Monta o probe dentro de `act` e devolve o hook já com o efeito inicial rodado. */
-async function montarStage(opts: { onChanged?: () => void; strict?: boolean } = {}) {
+async function montarStage(
+  opts: { onChanged?: () => void; strict?: boolean; bootPronto?: boolean } = {},
+) {
   // A raiz ANTERIOR é desmontada antes da nova: a biblioteca (#26) tem busca
   // com debounce de 180 ms, então uma árvore velha continua re-renderizando
   // DEPOIS do fim do teste — e como `stage` é uma variavel de módulo escrita a
@@ -142,9 +150,11 @@ async function montarStage(opts: { onChanged?: () => void; strict?: boolean } = 
   await act(async () => {
     root = createRoot(host);
     root.render(
-      opts.strict === false ? <StageProbe onChanged={opts.onChanged} /> : (
+      opts.strict === false ? (
+        <StageProbe onChanged={opts.onChanged} bootPronto={opts.bootPronto} />
+      ) : (
         <StrictMode>
-          <StageProbe onChanged={opts.onChanged} />
+          <StageProbe onChanged={opts.onChanged} bootPronto={opts.bootPronto} />
         </StrictMode>
       ),
     );
@@ -193,6 +203,31 @@ describe("useStage", () => {
     expect(stage!.presetName).toBe("PP-42");
   });
 
+  // Campo 12/10: a biblioteca é PRODUTO do scan do boot. Boot e biblioteca
+  // nascem no MESMO tick do mount e a fila do actor serializa (D8): pedida
+  // antes, ela era servida SEM OS NOMES (inventário anterior à leitura da
+  // pg0) e o `openPreset` seguinte falhava com "páginas deste pp não foram
+  // lidas no boot" — o palco morria logo depois de um boot perfeito. A
+  // trava é o `bootPronto` que o App passa (estado do `useBoot`).
+  it("NÃO pede a biblioteca antes do boot pronto; pede quando ele fica pronto", async () => {
+    mocks.devicePresetLibrary.mockClear();
+    const { root } = await montarStage({ bootPronto: false });
+    expect(mocks.devicePresetLibrary, "sem scan não há inventário medido").not.toHaveBeenCalled();
+    expect(mocks.deviceSelectPreset, "sem biblioteca não há current_pp").not.toHaveBeenCalled();
+
+    // o boot terminou → o load roda sozinho (o mesmo commit do ready)
+    await act(async () => {
+      root.render(
+        <StrictMode>
+          <StageProbe bootPronto />
+        </StrictMode>,
+      );
+    });
+    expect(mocks.devicePresetLibrary).toHaveBeenCalledTimes(1);
+    expect(mocks.deviceSelectPreset).toHaveBeenCalledWith(0);
+    expect(stage!.deviceLib, "a biblioteca carregada aparece no palco").not.toBeNull();
+  });
+
   // Regressão do LAÇO. Este teste é a raison d'être do `changedRef`: o App
   // passa uma arrow inline para `onPresetChanged`, então a identidade dela muda
   // a cada render. Sem o ref, `openPreset` vira dependência do efeito de mount e
@@ -208,7 +243,7 @@ describe("useStage", () => {
       // arrow inline, nova identidade a CADA render — igual ao App
       useStage(() => {
         abertas.push(Date.now());
-      });
+      }, true);
       return null;
     }
     await act(async () => {

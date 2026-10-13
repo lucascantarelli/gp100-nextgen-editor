@@ -399,8 +399,78 @@ describe("LibraryPanel — a biblioteca no banco (#26)", () => {
     const x = host.querySelector<HTMLButtonElement>(`[aria-label="${MSG.libSearchClear}"]`)!;
     act(() => x.dispatchEvent(new MouseEvent("click", { bubbles: true })));
     await assenta();
-    expect(host.querySelectorAll('[role="option"]').length).toBe(198);
+    // a aba padrão é a do DONO: 99 slots (0x0000..=0x0062), não os 198 inteiros
+    expect(host.querySelectorAll('[role="option"]').length).toBe(99);
     unmount();
+  });
+
+  it("os bancos do aparelho são abas separadas: P01–P99 (dono) primeiro, F01–F99 (fábrica)", async () => {
+    // Manual V1.8: "two patch banks" — USER P01–P99 (fio 0x0000.., medido em
+    // campo 12/10) e FACTORY F01–F99 (fio 0x0100..). O dono pediu os bancos
+    // separados e o do dele primeiro: com tudo numa lista só e rótulo de
+    // endereço, ele leu "300+ patches" nos 198 do aparelho (campo 12/10).
+    const { host, unmount } = await abre({ deviceLib: deviceLibTeste() });
+    const opcoes = () => Array.from(host.querySelectorAll('[role="option"]'));
+    const aba = (nome: string) =>
+      Array.from(host.querySelectorAll('[role="tab"]')).find((t) => t.textContent?.includes(nome))!;
+
+    // a aba padrão é a do DONO, na ordem do aparelho (P01 primeiro)
+    expect(opcoes().length).toBe(99);
+    expect(opcoes()[0].textContent).toContain("P01");
+    expect(opcoes()[98].textContent).toContain("P99");
+
+    // a aba Fábrica carrega o banco ALTO, rotulado pelo manual
+    act(() => aba(MSG.libTabFab).dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    await assenta();
+    expect(opcoes().length).toBe(99);
+    expect(opcoes()[0].textContent).toContain("F01");
+    expect(opcoes()[98].textContent).toContain("F99");
+    unmount();
+  });
+
+  it("re-escanear (⟳) com o palco no banco alto volta para a aba Patches (default do dono)", async () => {
+    // O reboot do boot (⟳) remonta a casca com o palco ainda no patch do
+    // dono; quando a carga reabre o pp corrente do APARELHO — aqui um pp do
+    // banco de FÁBRICA (0x0162) — a lista tem de cair no DEFAULT: aba
+    // Patches, banco do dono (diretriz do dono 12/10: "patches deve ser a
+    // selecionada por default"). O efeito que seguia o pp corrente virava a
+    // aba Fábrica sozinha nesse caminho, sem o dono ter clicado em nada.
+    const base = { currentUserId: "u1", deviceLib: deviceLibTeste() };
+    const aba = (h: HTMLElement, nome: string) =>
+      Array.from(h.querySelectorAll('[role="tab"]')).find((t) => t.textContent?.includes(nome))!;
+
+    // 1. o palco está num patch do dono (banco "user"): a aba é "Meus patches"
+    const antes = mount(<Painel {...base} currentPp={0} bankDoPalco="user" />);
+    await assenta();
+    expect(aba(antes.host, MSG.libTabUser).getAttribute("aria-selected")).toBe("true");
+
+    // 2. reboot: a casca desmonta (o painel vive dentro do gate de boot)…
+    antes.unmount();
+    // 3. …e remonta ainda no patch do dono, até a carga reabrir o pp do device
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const root = createRoot(host);
+    act(() => root.render(<Painel {...base} currentPp={0} bankDoPalco="user" />));
+    await assenta();
+    expect(aba(host, MSG.libTabUser).getAttribute("aria-selected")).toBe("true");
+
+    // 4. a carga reabriu o pp corrente: banco alto (0x0162) → DEFAULT é Patches
+    act(() => root.render(<Painel {...base} currentPp={0x0162} bankDoPalco="factory" />));
+    await assenta();
+    expect(
+      aba(host, MSG.libTabFactory).getAttribute("aria-selected"),
+      "a aba Patches é o default — nada a move sem o clique do dono",
+    ).toBe("true");
+    expect(aba(host, MSG.libTabFab).getAttribute("aria-selected")).toBe("false");
+
+    // a sub-aba continua funcional: o clique do dono leva à Fábrica (F01..)
+    act(() => aba(host, MSG.libTabFab).dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    await assenta();
+    expect(aba(host, MSG.libTabFab).getAttribute("aria-selected")).toBe("true");
+    expect(host.querySelectorAll('[role="option"]')[0].textContent).toContain("F01");
+
+    act(() => root.unmount());
+    host.remove();
   });
 
   it("a aba Patches NÃO tem filtro de estilo (o ppType é do decode #152)", async () => {
@@ -457,12 +527,12 @@ describe("LibraryPanel — a biblioteca no banco (#26)", () => {
     // nasce NA aba Patches (com o inventário do device): é a TRANSIÇÃO que
     // mostra as linhas — começar direto na aba do dono esconderia o bug.
     const { host, unmount } = await abre({ deviceLib: deviceLibTeste() });
-    expect(host.querySelectorAll('[role="option"]').length).toBe(198);
+    expect(host.querySelectorAll('[role="option"]').length).toBe(99);
     const abaDono = Array.from(host.querySelectorAll('[role="tab"]')).find((t) =>
       t.textContent?.includes(MSG.libTabUser),
     )!;
     act(() => abaDono.dispatchEvent(new MouseEvent("click", { bubbles: true })));
-    // NO INSTANTE da troca, antes do debounce: é aqui que as 198 linhas
+    // NO INSTANTE da troca, antes do debounce: é aqui que as 99 linhas
     // velhas apareceriam rotuladas de U01. Depois de esperar a resposta a
     // lista já estaria certa de qualquer jeito, e o bug passaria.
     expect(host.querySelectorAll('[role="listitem"], [role="option"]').length).toBe(0);

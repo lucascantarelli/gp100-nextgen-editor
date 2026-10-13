@@ -165,6 +165,35 @@ pub struct IrUploadReport {
 /// (o upload só fica mais lento); descer é o que corrompe o stream.
 pub const SNAP_TONE_SETTLE_MS: u64 = 250;
 
+/// Um registrador global lido do aparelho: `(endereço, payload CRU)`.
+/// Alias público porque [`Session::read_globals`] devolve a lista desses
+/// pares — o decode (nibble-par) é do chamador (ADR-13).
+pub type GlobalBruto = ([u8; 4], Vec<u8>);
+
+/// Tabela MEDIDA de registradores globais (PROTOCOL §13.13.1 + nomes da RE
+/// do Suite §13.13.7): `(endereço, comprimentos de payload aceitos)`.
+///
+/// FORA do golden — aquele arquivo é o mundo do preset; a forma destas
+/// respostas é a medida na sessão G3–G6 (4B para os contadores nibble-par,
+/// 8B para o enable do Global EQ; o §13.13.1 aceita "4B ou 8B" na faixa
+/// 03..0b, então os registros SYSTEM aceitam os dois).
+pub const REGS_GLOBAIS: &[([u8; 4], &[usize])] = &[
+    ([0x00, 0x02, 0x00, 0x03], &[4, 8]), // gVolume — volume master
+    ([0x00, 0x02, 0x00, 0x04], &[4, 8]), // gInput — Input Level (medido no diff)
+    ([0x00, 0x02, 0x00, 0x05], &[4, 8]), // gUsbGain
+    ([0x00, 0x02, 0x00, 0x06], &[4, 8]), // gUsbMonitorVol
+    ([0x00, 0x02, 0x00, 0x07], &[4, 8]), // gUsbAudioLeft
+    ([0x00, 0x02, 0x00, 0x08], &[4, 8]), // gUsbAudioRight
+    ([0x00, 0x02, 0x00, 0x09], &[4, 8]), // gTapTempoSetting
+    ([0x00, 0x02, 0x00, 0x0a], &[4, 8]), // gNoCabLeft
+    ([0x00, 0x02, 0x00, 0x0b], &[4, 8]), // gNoCabRight
+    ([0x00, 0x02, 0x00, 0x11], &[8]),    // Global EQ — enable (8B medido)
+    ([0x00, 0x01, 0x02, 0x01], &[4]),    // drumPlayStyle
+    ([0x00, 0x01, 0x02, 0x03], &[4]),    // drumBpm (medido no diff)
+    ([0x00, 0x01, 0x02, 0x04], &[4]),    // drumVolume
+    ([0x00, 0x01, 0x02, 0x05], &[4]),    // drumState
+];
+
 /// Relatório do upload de SnapTone (§5).
 ///
 /// `Serialize` porque este relatório é o que volta pela ponte IPC: o command
@@ -1070,6 +1099,50 @@ impl<T: DeviceTransport> Session<T> {
         Ok(entradas)
     }
 
+    // ─── Registradores globais (§13.13 — sessão G3–G6/G7 de 11/10) ────
+
+    /// Lê UM registrador global (§13.13.1): READ `11/<addr>` SEM vars →
+    /// IN `12/<addr>` payload. A forma validada é o COMPRIMENTO medido
+    /// ([`REGS_GLOBAIS`]); o payload volta CRU — nenhum decode aqui
+    /// (ADR-13: semântica não inventada; o decode medido é do chamador,
+    /// [`crate::codec::nibble_pair_value`]).
+    ///
+    /// # Erros
+    /// [`ProtocolError::Timeout`] se o registrador não responde na janela
+    /// ADR-3, [`ProtocolError::InvalidShape`] para comprimento fora do
+    /// medido.
+    pub fn read_register(
+        &mut self,
+        addr: [u8; 4],
+        formas: &'static [usize],
+    ) -> Result<Vec<u8>, ProtocolError> {
+        self.transport
+            .send_raw(&crate::codec::read_frame(&addr), WireKind::Read)
+            .map_err(tx_err)?;
+        self.wait_for_com(0x12, &addr, Forma::Medido(formas))
+    }
+
+    /// Escreve num registrador global (§13.13.1: WRITE `12/<addr>`) pelo
+    /// envelope canônico [`crate::codec::write_frame`]. A trava ADR-5 é do
+    /// TRANSPORTE: `WireKind::Write` sem write-verified é recusado antes do
+    /// driver — o byte nem sai da máquina (mesma trava do knob, #126).
+    pub fn write_register(&mut self, addr: [u8; 4], payload: &[u8]) -> Result<(), ProtocolError> {
+        self.transport
+            .send_raw(&crate::codec::write_frame(&addr, payload), WireKind::Write)
+            .map_err(tx_err)
+    }
+
+    /// Lê o bloco medido de registradores globais (§13.13) na ordem da
+    /// tabela [`REGS_GLOBAIS`], devolvendo `(addr, payload cru)`. Tudo-ou-
+    /// nada: a primeira falha aborta (o front vira banner com retry, #20).
+    pub fn read_globals(&mut self) -> Result<Vec<GlobalBruto>, ProtocolError> {
+        let mut out = Vec::with_capacity(REGS_GLOBAIS.len());
+        for &(addr, formas) in REGS_GLOBAIS {
+            out.push((addr, self.read_register(addr, formas)?));
+        }
+        Ok(out)
+    }
+
     /// Pushes de IN não solicitado acumulados no backlog (D7), para
     /// observação (D8: poll, nunca listener concorrente). A drenagem do
     /// backlog é da operação seguinte compatível.
@@ -1127,6 +1200,20 @@ impl<T: DeviceTransport> Session<T> {
     /// certo, sem match no golden = InvalidShape (D5); nada na janela ADR-3
     /// = Timeout (D6).
     fn wait_for(&mut self, func: u8, addr: &[u8; 4]) -> Result<Vec<u8>, ProtocolError> {
+        let golden = GoldenFile::embedded()?;
+        self.wait_for_com(func, addr, Forma::Golden(golden))
+    }
+
+    /// [`wait_for`] com a validação de forma PLUGÁVEL. Por que existe: os
+    /// registradores globais da §13.13 não estão no golden (aquele arquivo
+    /// é o mundo do preset) — a resposta `12/000200xx` é validada pelos
+    /// COMPRIMENTOS medidos em G3–G6 (§13.13.1), não por template.
+    fn wait_for_com(
+        &mut self,
+        func: u8,
+        addr: &[u8; 4],
+        forma: Forma<'_>,
+    ) -> Result<Vec<u8>, ProtocolError> {
         loop {
             let msg = self
                 .transport
@@ -1160,15 +1247,7 @@ impl<T: DeviceTransport> Session<T> {
                 // pp muda pg0 — medido no boot do H4). O conteúdo é validado
                 // pelo decode dos objetos (`preset_pages`, `codec`), que
                 // conhecem o schema dos dados.
-                GoldenFile::embedded()?
-                    .match_shape(f, &a, payload)
-                    .ok_or_else(|| ProtocolError::InvalidShape {
-                        expected: format!(
-                            "forma de resposta do golden em {f:02x}/{}",
-                            addr_hex(&a)
-                        ),
-                        got: hex_short(payload),
-                    })?;
+                forma.valida(func, addr, payload)?;
                 return Ok(payload.to_vec());
             }
             self.backlog.push(msg); // D7
@@ -1187,6 +1266,50 @@ impl<T: DeviceTransport> Session<T> {
 /// `DeviceGone` NÃO é achatado em `InvalidShape`: o device ausente é uma
 /// falha com tipo próprio (a UI para de tentar e mostra recuperação; o H1
 /// trata como divergência de campo).
+/// Forma da resposta esperada por `Session::wait_for_com`.
+enum Forma<'a> {
+    /// Golden by-len (#177) — o caminho de sempre (mundo do preset).
+    Golden(&'a GoldenFile),
+    /// Comprimentos MEDIDOS (§13.13.1) — a família `000102xx`/`000200xx`
+    /// não está no golden; a forma é a da sessão G3–G6.
+    Medido(&'a [usize]),
+}
+
+impl Forma<'_> {
+    fn valida(&self, func: u8, addr: &[u8; 4], payload: &[u8]) -> Result<(), ProtocolError> {
+        match self {
+            Forma::Golden(g) => {
+                g.match_shape(func, addr, payload)
+                    .ok_or_else(|| ProtocolError::InvalidShape {
+                        expected: format!(
+                            "forma de resposta do golden em {func:02x}/{}",
+                            addr_hex(addr)
+                        ),
+                        got: hex_short(payload),
+                    })?;
+                Ok(())
+            }
+            Forma::Medido(lens) => {
+                if lens.contains(&payload.len()) {
+                    return Ok(());
+                }
+                let esperado = lens
+                    .iter()
+                    .map(|n| format!("{n}B"))
+                    .collect::<Vec<_>>()
+                    .join(" ou ");
+                Err(ProtocolError::InvalidShape {
+                    expected: format!(
+                        "payload {esperado} medido (§13.13.1) em {func:02x}/{}",
+                        addr_hex(addr)
+                    ),
+                    got: hex_short(payload),
+                })
+            }
+        }
+    }
+}
+
 fn tx_err(e: TransportError) -> ProtocolError {
     match e {
         TransportError::SendFailed { why } => ProtocolError::InvalidShape {

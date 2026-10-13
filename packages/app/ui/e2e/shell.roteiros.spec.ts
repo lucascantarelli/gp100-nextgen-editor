@@ -24,13 +24,14 @@ test.beforeEach(async ({ page }) => {
 });
 
 /* ── R1. Topbar e identidade ── */
-test("R1 topbar: logo, conexão, patch na navbar e foco de teclado", async ({ page }) => {
+test("R1 topbar: logo, conexão, patch no display do palco e foco de teclado", async ({ page }) => {
   const brand = shell.brand;
   await expect(brand.logo()).toBeVisible();
   await expect(brand.tagline()).toBeVisible();
-  // status de conexão no cluster da navbar (texto; o cluster abriga boot/badge)
-  // patch corrente no formato Pnn Nome (1-based, como o app oficial)
-  await expect(shell.patchLabel()).toBeVisible();
+  // status de conexão no cluster da navbar (dot + linha de status + ⟳; o
+  // cluster de patch SAIU da navbar — diretriz do dono 12/10)
+  // patch corrente no display LED do palco, no formato Pnn Nome (1-based)
+  await expect(shell.board.display()).toContainText("P01");
 
   // tab alcança os controles globais com foco visível (outline definido no CSS)
   await page.keyboard.press("Tab");
@@ -42,56 +43,70 @@ test("R1 topbar: logo, conexão, patch na navbar e foco de teclado", async ({ pa
   });
   expect(focused).not.toBeNull();
 
-  // ◀ ▶ andam pelo INVENTÁRIO do APARELHO (#150: dois bancos, ADR-12) —
-  // navbar, display LED do palco e biblioteca acompanhando juntos
-  const listbox = shell.library.listbox();
-  // de 0x0000 o anterior é 0x0162 (último slot do scan); o rótulo é o
-  // ENDEREÇO (mapeamento LED P/F ainda não medido) e o nome é a fixture
-  // do fallback — nunca um preset de fábrica que o app não leu do fio
-  await shell.prevPatch();
-  await expect(shell.patchLabel()).toHaveText(`0x0162 ${FIXTURE}`);
-  await expect(listbox.getByRole("option").filter({ hasText: "0x0162" })).toHaveAttribute(
-    "aria-selected",
-    "true",
-  );
-  await expect(shell.board.display()).toContainText("Fixture de teste");
-  // ▶ de volta ao primeiro slot do banco baixo (0x0000 → P01)
-  await shell.nextPatch();
-  await expect(shell.patchLabel()).toHaveText(`P01 ${FIXTURE}`);
-  await expect(listbox.getByRole("option").filter({ hasText: "0x0000" })).toHaveAttribute(
-    "aria-selected",
-    "true",
-  );
-  await expect(shell.board.display()).toContainText("Fixture de teste");
+  // a troca de patch vive na LISTA (#150: dois bancos, ADR-12) — clicar na
+  // linha move o palco e a lista marca a seleção. A aba Patches é a DEFAULT
+  // e NÃO salta sozinha (diretriz do dono 12/10: "patches deve ser a
+  // selecionada por default"): abrimos a Fábrica, o slot 0x0162 é a F99
+  // (manual V1.8) — o nome é a fixture do fallback, nunca um preset que o
+  // app não leu do fio
+  await shell.library.fabTab().click();
+  await shell.library.searchFor("0x0162");
+  const alto = shell.library.options().first();
+  await alto.click();
+  await expect(alto).toHaveAttribute("aria-selected", "true");
+  await expect(shell.board.display()).toContainText("0x0162");
+  await expect(shell.board.display()).toContainText(FIXTURE);
+  // de volta ao primeiro slot do banco do DONO (0x0000 → P01, na aba
+  // Patches — por CLIQUE: a lista fica onde o dono a deixou)
+  await shell.library.factoryTab().click();
+  await shell.library.searchFor("0x0000");
+  const baixo = shell.library.options().first();
+  await baixo.click();
+  await expect(baixo).toHaveAttribute("aria-selected", "true");
+  await expect(shell.board.display()).toContainText("P01");
+  await expect(shell.board.display()).toContainText(FIXTURE);
 });
 
-/* ── R2. Patches do aparelho (inventário de 198, dois bancos) ── */
-test("R2 biblioteca: 198 slots do aparelho, busca por endereço e empty state", async ({ page }) => {
+/* ── R2. Patches do aparelho (dois bancos, rótulo do manual V1.8) ── */
+test("R2 biblioteca: dois bancos do aparelho (P01–P99 e F01–F99), busca e empty state", async ({ page }) => {
   const lib = shell.library;
   await expect(lib.listbox()).toBeVisible();
   // o status diz de onde a lista veio (#150): o APARELHO reportou 198 slots
   await expect(page.getByText("Patches do aparelho: 198")).toBeVisible();
-  await expect(lib.options()).toHaveCount(198);
-  // nomes vazios até o decode da meta6 (#152): a linha mostra o ENDEREÇO
-  await expect(lib.optionAt(0)).toContainText("0x0100"); // banco alto vem primeiro
-  await expect(lib.options().last()).toContainText("0x0062");
+  // a aba padrão é a do DONO: 99 slots rotulados P01..P99 (dono primeiro)
+  await expect(lib.options()).toHaveCount(99);
+  await expect(lib.optionAt(0)).toContainText("P01"); // banco do dono vem primeiro
+  await expect(lib.options().last()).toContainText("P99");
 
-  // busca filtra localmente pelo endereço (o único rótulo honesto hoje)
-  await lib.searchFor("0x0062");
+  // busca filtra localmente pelo rótulo do manual
+  await lib.searchFor("P12");
   await expect(lib.options()).toHaveCount(1);
-  await expect(lib.optionAt(0)).toContainText("0x0062");
+  await expect(lib.optionAt(0)).toContainText("P12");
 
   await lib.searchFor("zzzz");
   await expect(lib.options()).toHaveCount(0);
   await expect(page.getByText(/Nada encontrado para/)).toBeVisible();
 
-  // abrir slot (select real no shell; fallback dev troca o corrente)
+  // a aba Fábrica é o banco ALTO (0x0100..=0x0162 → F01..F99, medido em
+  // campo 12/10) — e a busca aceita o endereço
+  await lib.fabTab().click();
+  await expect(lib.options()).toHaveCount(99);
+  await expect(lib.optionAt(0)).toContainText("F01");
+  await expect(lib.options().last()).toContainText("F99");
+  await lib.searchFor("0x0162");
+  await expect(lib.options()).toHaveCount(1);
+  await expect(lib.optionAt(0)).toContainText("F99");
+
+  // abrir slot do banco do DONO (0x0062 = 98 → P99): a aba Patches é a
+  // inicial e o LED mostra o rótulo 1-based do fallback
+  await lib.factoryTab().click();
   await lib.searchFor("0x0062");
+  await expect(lib.options()).toHaveCount(1);
   const alvo = lib.optionAt(0);
+  await expect(alvo).toContainText("P99");
   await alvo.click();
   await expect(alvo).toHaveAttribute("aria-selected", "true");
-  // rótulo 1-based no banco baixo (0x0062 = 98 → P99) + fixture no LED
-  await expect(shell.patchLabel()).toHaveText(`P99 ${FIXTURE}`);
+  await expect(shell.board.display()).toContainText("P99");
   await expect(shell.board.display()).toContainText("Fixture de teste");
 });
 
@@ -112,18 +127,17 @@ test("R2b user patch: salvar a cadeia corrente, abrir de volta (U01) e excluir",
   await expect(lib.userRowAt(0)).toContainText("U01");
   await expect(lib.userRowAt(0)).toContainText("Meu clean");
 
-  // abrir o patch salvo: o rótulo U01 assume no LED e na navbar (patch local
+  // abrir o patch salvo: o rótulo U01 assume no display do palco (patch local
   // não tem cursor de fábrica — pp = −1)
   await lib.userRowAt(0).getByRole("button").first().click();
   await expect(board.display()).toContainText("U01");
   await expect(board.display()).toContainText("Meu clean");
-  await expect(shell.patchLabel()).toHaveText("U01 Meu clean");
 
   // excluir: volta ao preset de fábrica confirmado pelo device (nunca um patch
   // apagado continuaria no palco — a UI não mente sobre o que existe)
   await lib.deleteUserPatch("Meu clean").click();
   await expect(lib.userRows()).toHaveCount(0);
-  await expect(shell.patchLabel()).toHaveText(`P01 ${FIXTURE}`);
+  await expect(board.display()).toContainText("P01");
   await expect(board.display()).toContainText("Fixture de teste");
 });
 

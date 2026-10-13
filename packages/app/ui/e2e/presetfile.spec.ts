@@ -53,9 +53,10 @@ test("M3-2: exportar um preset de fábrica e reimportar preserva a cadeia", asyn
   expect(env.preset.pp).toBe(0);
   expect(env.preset.slots).toHaveLength(9);
 
-  // 3. fecha a tela e TROCA de preset: a cadeia em cena deixa de ser a do P01
+  // 3. fecha a tela e TROCA de preset (pela lista — a navbar não tem ◀ ▶,
+  //    dono 12/10): a cadeia em cena deixa de ser a do P01
   await painel.close().click();
-  await shell.nextPatch();
+  await shell.library.select(/P02/);
   await expect(pedal(1, "PRE")).toHaveAttribute("aria-label", /COMP/);
 
   // 4. reimporta o MESMO arquivo que saiu do app
@@ -66,10 +67,10 @@ test("M3-2: exportar um preset de fábrica e reimportar preserva a cadeia", asyn
   await expect(painel2.status()).toContainText("Cadeia importada: P01");
   await expect(painel2.status()).toContainText("9 slots no palco");
 
-  // 5. a cadeia do P01 está de VOLTA no palco, e a navbar diz qual é
+  // 5. a cadeia do P01 está de VOLTA no palco, e o display do palco diz qual é
   await painel2.close().click();
   await expect(pedal(1, "PRE")).toHaveAttribute("aria-label", /C-Wah/);
-  await expect(shell.patchLabel()).toHaveText(/^P01/);
+  await expect(shell.board.display()).toContainText("P01");
 });
 
 test("M3-2: arquivo que não é um preset nosso é recusado com o motivo", async () => {

@@ -30,7 +30,8 @@ use std::thread::JoinHandle;
 use gp100_core::model::Dictionary;
 use gp100_core::pedalboard::{board_view_for, embedded_document, preset_list, BoardView};
 use gp100_core::session::{
-    inventario_do_aparelho, BootProgress, BootReport, IrUploadReport, Session, SnapToneUploadReport,
+    inventario_do_aparelho, BootProgress, BootReport, GlobalBruto, IrUploadReport, Session,
+    SnapToneUploadReport,
 };
 use gp100_core::transport::mock::MockDevice;
 use gp100_core::transport::{DeviceTransport, TransportError, WireKind};
@@ -443,6 +444,19 @@ enum Request {
     ListIrs {
         reply: mpsc::Sender<Result<Vec<(u8, String)>, String>>,
     },
+    /// Registradores globais (§13.13 — command `device_globals`): o bloco
+    /// medido SYSTEM `000200xx` + DRUM `000102xx`, payload crU por
+    /// registrador (o decode medido fica no chamador — ADR-13).
+    Globals {
+        reply: mpsc::Sender<Result<Vec<GlobalBruto>, String>>,
+    },
+    /// Write num registrador global (§13.13.1 — command `device_set_global`):
+    /// envelope canônico; a trava ADR-5 é do TRANSPORTE (write-verified).
+    SetGlobal {
+        addr: [u8; 4],
+        payload: Vec<u8>,
+        reply: mpsc::Sender<Result<(), String>>,
+    },
     /// Drena pushes não consumidos do DEVICE (inbox do mock, FIFO global —
     /// D7 na perspectiva do device) como hex cru (command `pending_pushes`;
     /// o `device_boot` usa o mesmo caminho para reemitir `device://push`).
@@ -832,6 +846,28 @@ impl DeviceActor {
                             let _ = reply.send(Err("session do actor ausente".into()));
                         }
                     },
+                    Request::Globals { reply } => match session.as_mut() {
+                        Some(s) => {
+                            let r = s.read_globals().map_err(|e| e.to_string());
+                            let _ = reply.send(r);
+                        }
+                        None => {
+                            let _ = reply.send(Err("session do actor ausente".into()));
+                        }
+                    },
+                    Request::SetGlobal {
+                        addr,
+                        payload,
+                        reply,
+                    } => match session.as_mut() {
+                        Some(s) => {
+                            let r = s.write_register(addr, &payload).map_err(|e| e.to_string());
+                            let _ = reply.send(r);
+                        }
+                        None => {
+                            let _ = reply.send(Err("session do actor ausente".into()));
+                        }
+                    },
                     Request::Boot { progress, reply } => match session.as_mut() {
                         Some(s) => {
                             // Callback roda NA THREAD do actor: fecha em
@@ -853,12 +889,35 @@ impl DeviceActor {
                             // zero no fio — as páginas já vieram no scan.
                             // O que não decodificar simplesmente não entra
                             // (o `all.prst` continua de reserva).
+                            //
+                            // **§5.2 na MESMA passada:** o BoardView de cada
+                            // pp também é gravado AQUI, no actor. O
+                            // `device_snapshot` remonta a Session por
+                            // `into_transport` a cada `Info`/`Library` — e
+                            // descarta o cache de páginas DELA. Com o palco
+                            // dependendo só da Session, o PRIMEIRO desses
+                            // calls de montagem destruía as páginas do scan e
+                            // o `device_board` seguinte respondia "páginas
+                            // deste pp não foram lidas no boot": o palco
+                            // morria segundos depois de um boot perfeito
+                            // (2297/198/198 — wire log de campo 12/10).
                             if r.is_ok() {
+                                let dict =
+                                    Dictionary::from_json(gp100_core::model::DICTIONARY_JSON).ok();
+                                let off = gp100_core::preset_pages::Offsets::carregado().ok();
                                 for pp in s.cached_pps() {
                                     if let Some(pags) = s.preset_state(pp) {
                                         if let Ok(pg) = gp100_core::preset_pages::decode(pags) {
                                             if let Ok(nome) = pg.nome() {
                                                 nomes.insert(pp, nome.to_string());
+                                            }
+                                        }
+                                        if let (Some(dict), Some(off)) = (&dict, &off) {
+                                            if let Ok(dec) = gp100_core::preset_pages::decode(pags)
+                                            {
+                                                if let Ok(b) = dec.slots(pp, dict, off) {
+                                                    boards.insert(pp, b);
+                                                }
                                             }
                                         }
                                     }
@@ -1097,6 +1156,37 @@ impl DeviceActor {
             })
             .map_err(|_| "actor de device não está mais rodando".to_string())?;
         rx.recv().map_err(|_| "actor morreu no SetParam")?
+    }
+
+    /// Registradores globais (§13.13): o bloco medido lido DO device, com o
+    /// payload crU por registrador — o decode medido (nibble-par) é do
+    /// chamador (`commands::device_globals`).
+    ///
+    /// # Erros
+    /// [`ProtocolError`](gp100_core::ProtocolError) como string (Timeout D6
+    /// se um registrador não responde; InvalidShape para forma fora do
+    /// medido) ou morte da thread do actor.
+    pub fn globals(&self) -> Result<Vec<GlobalBruto>, String> {
+        let (tx, rx) = mpsc::channel();
+        self.tx
+            .send(Request::Globals { reply: tx })
+            .map_err(|_| "actor de device não está mais rodando".to_string())?;
+        rx.recv().map_err(|_| "actor morreu no Globals")?
+    }
+
+    /// Write num registrador global (§13.13.1) — payload pronto (o encode
+    /// nibble-par é do chamador). Sem write-verified o TRANSPORTE recusa
+    /// antes do driver (ADR-5) e o erro sobe aqui.
+    pub fn set_global(&self, addr: [u8; 4], payload: Vec<u8>) -> Result<(), String> {
+        let (tx, rx) = mpsc::channel();
+        self.tx
+            .send(Request::SetGlobal {
+                addr,
+                payload,
+                reply: tx,
+            })
+            .map_err(|_| "actor de device não está mais rodando".to_string())?;
+        rx.recv().map_err(|_| "actor morreu no SetGlobal")?
     }
 
     /// Tabela dos 20 User IRs (§13.12). Bloqueia até o actor completar as
@@ -1566,6 +1656,47 @@ mod tests {
         let b = actor.board(Some(0x0000)).expect("board do cache");
         assert_eq!(b.pp, 0x0000, "o palco é do pp pedido");
         assert!(!b.slots.is_empty(), "a cadeia tem slots");
+        actor.shutdown();
+    }
+
+    /// **Campo 12/10: o palco sobrevive aos snapshots de MONTAGEM.**
+    ///
+    /// No shell real o `device_info` e o `device_preset_library` rodam no
+    /// MESMO commit do pós-boot, e cada um remonta a Session
+    /// (`device_snapshot` → `into_transport`) — descartando o cache de
+    /// páginas DELA. Com o `BoardView` dependendo só da Session, o primeiro
+    /// desses calls destruía as páginas do scan e o `device_board`
+    /// seguinte respondia "páginas deste pp não foram lidas no boot": o
+    /// palco morria segundos depois de um boot perfeito (wire log
+    /// `wire-20261012201602`, 2297/198/198 e a UI em erro).
+    ///
+    /// O backend é `Real` de propósito: é o único caminho que NÃO projeta o
+    /// `all.prst` — sem o cache do actor, este board erra mesmo.
+    #[test]
+    fn board_do_cache_sobrevive_aos_snapshots_de_montagem() {
+        let actor = DeviceActor::spawn(MockDevice::new().expect("mock"), Backend::Real);
+        let rel = actor.boot(None).expect("boot");
+        assert_eq!(rel.presets, 198, "o scan leu o inventário inteiro");
+
+        // Info e Library remontam a Session — é o que o shell faz ao montar.
+        let snap = actor.info().expect("info");
+        assert!(
+            !snap.current_name.is_empty(),
+            "o nome do corrente vem do cache do scan"
+        );
+        let lib = actor.library().expect("library");
+        assert!(
+            !lib.entries.is_empty(),
+            "a biblioteca é o inventário do aparelho"
+        );
+
+        // SEM o cache do actor este `board` ERRARIA: o backend Real não
+        // projeta o artefato, e as páginas da Session já foram descartadas.
+        let b = actor
+            .board(Some(0x0000))
+            .expect("board sobrevive aos snapshots");
+        assert_eq!(b.pp, 0x0000, "o palco é do pp pedido");
+        assert!(!b.slots.is_empty(), "a cadeia vem do decode do scan");
         actor.shutdown();
     }
 

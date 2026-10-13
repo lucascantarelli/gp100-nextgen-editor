@@ -18,7 +18,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 /* ── Master VOL (topbar) ── */
-test("master: slider muda o display numérico e persiste após reload", async ({ page }) => {
+test("master: slider muda o display; após reload o SEED DO DEVICE vence o localStorage (#200)", async ({ page }) => {
   const slider = shell.masterVolume();
   await expect(slider).toHaveValue("99"); // inicial
   await slider.fill("42");
@@ -28,9 +28,14 @@ test("master: slider muda o display numérico e persiste após reload", async ({
     () => document.querySelector('[aria-label="Master volume"]')?.nextElementSibling?.textContent ?? null,
   );
   expect(display).toBe("42");
+  // o valor editado foi persistido como fallback (localStorage)
+  expect(await page.evaluate(() => localStorage.getItem("gp100.master.v1"))).toBe("42");
 
+  // #200: no boot VALIDADO o registrador do device (aqui o fallback devolve
+  // 99) é a fonte — o master volta pro valor LIDO, não pro editado. O
+  // localStorage só manda quando o boot não completa (cortado/USB out).
   await shell.reload();
-  await expect(shell.masterVolume()).toHaveValue("42");
+  await expect(shell.masterVolume()).toHaveValue("99");
 });
 
 /* ── Drum: sliders do painel de ritmos ── */

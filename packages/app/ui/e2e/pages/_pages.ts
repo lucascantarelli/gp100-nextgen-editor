@@ -61,10 +61,18 @@ export class ShellPage {
     this.ab = new AbPage(page);
   }
 
-  /** contrato comum dos specs: goto + banner visível */
+  /** contrato comum dos specs: goto + banner visível + casca carregada */
   async beforeStandard(): Promise<void> {
     await this.page.goto("/");
     await expect(this.banner).toBeVisible();
+    // O mount roda limpo até o load inicial (device_preset_library →
+    // openPreset) CONCLUIR: o display LED sai de "…" só quando o board do
+    // device chegou. Sem esta espera, um `armFailDevice` logo em seguida
+    // pega o load NO MEIO do backoff e o banner nasce de uma operação que
+    // ainda vai se resolver — a corrida do cenário "select permanente"
+    // (banner de uma origem, clique de retry de outra, estado que muda
+    // debaixo do Playwright).
+    await expect(this.board.display()).not.toContainText("…");
   }
 
   async goto(): Promise<void> {
@@ -109,25 +117,10 @@ export class ShellPage {
       .getByRole("button", { name: "Tentar novamente a operação que falhou" });
   }
 
-  /** patch corrente exibido na navbar: rótulo + nome. Rótulo = `Pnn` no
-   *  banco baixo (1-based, como no app oficial), `Unn` em patch de usuário
-   *  (#11) ou o ENDEREÇO `0x0162` no banco ALTO do aparelho (#150: o
-   *  mapeamento LED P/F ainda não foi medido — ADR-12). */
-  patchLabel(): Locator {
-    return this.banner.getByText(/^(0x[0-9a-f]{4}|[PU]\d{2})/);
-  }
-
-  /** connection status curto (on/off) */
+  /** connection status curto (on/off) — o cluster de conexão da navbar
+   *  (dot + linha de status) mantém o "on"/"off" em span próprio. */
   statusText(text: string): Locator {
     return this.banner.getByText(text, { exact: true });
-  }
-
-  async prevPatch(): Promise<void> {
-    await this.banner.getByRole("button", { name: "Patch anterior" }).click();
-  }
-
-  async nextPatch(): Promise<void> {
-    await this.banner.getByRole("button", { name: "Próximo patch" }).click();
   }
 
   killSwitch(): Locator {
@@ -439,6 +432,11 @@ export class LibraryPage {
   /** aba "Patches" — `exact`, senão o substring pega também "Meus patches" */
   factoryTab(): Locator {
     return this.page.getByRole("tab", { name: "Patches", exact: true });
+  }
+
+  /** aba "Fábrica" — o banco ALTO do aparelho (F01–F99, manual V1.8; medido em campo 12/10) */
+  fabTab(): Locator {
+    return this.page.getByRole("tab", { name: "Fábrica", exact: true });
   }
 
   userTab(): Locator {
