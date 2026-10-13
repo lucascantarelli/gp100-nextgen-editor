@@ -54,7 +54,7 @@ fonte. Resposta ao usuário SEMPRE em PT-BR.
   issue. **Arch Linux (#169b, pedido do dono)**: o GitHub não tem label hosted
   de Arch, então ele roda como **container `archlinux:base-devel` no runner
   ubuntu** — as jobs de matriz agora aceitam `matrix.host`/`matrix.container`
-  (vazio = runner hospedado normal) e o `scripts/ci_plan.py` emite
+  (vazio = runner hospedado normal) e o `.github/scripts/ci_plan.py` emite
   `os: archlinux` no `rust-matrix` (core/cli) e no `front-matrix`; `ui-rust`
   ficou fora de propósito (o container `ci-linux` já prova WebKitGTK+ALSA, e
   Arch lá custaria ~1,5 GB de `pacman -Syu` por run). Armadilha gravada: o
@@ -137,9 +137,9 @@ fonte. Resposta ao usuário SEMPRE em PT-BR.
   5 targets (nsis/msi/dmg/deb/appimage) + `mainBinaryName` + `linux.deb.depends`
   (webkit 4.1 + gtk3, **sem** appindicator — o app não usa tray) + wix em pt-BR/en-US
   + README no `.deb`; **16 ícones + `icon.ico` (6 res.) + `icon.icns` + logos Store**
-  derivados por `tauri icon` da fonte 1024² gerada por `scripts/make_icon.py` (a
+  derivados por `tauri icon` da fonte 1024² gerada por `packaging/make_icon.py` (a
   partir dos tokens do tema); `packaging/arch/PKGBUILD` + `.desktop`; novo
-  `scripts/check_bundle.py`; `docs/tecnico/PACKAGING.md`; README com **§3 Instalação** por
+  `.github/scripts/check_bundle.py`; `docs/tecnico/PACKAGING.md`; README com **§3 Instalação** por
   plataforma. **Pendências conhecidas:** `sha256sums=('SKIP')` bloqueia o AUR e o
   `build()` do PKGBUILD (#72); `.msi`/`.dmg` sem assinatura/notarização (#27);
   versão do bundle nunca bumpeada (#73).
@@ -153,7 +153,7 @@ fonte. Resposta ao usuário SEMPRE em PT-BR.
   publicar — "verde que não publica" virou falha; `check_commits.py` com `--no-merges`
   (o merge sintético do GitHub reprovava todo PR); 4 defeitos da `ci-base`
   (`rust:bookworm-slim` não existe, `xz` ausente, `rustfmt`/`clippy` são shim,
-  **nenhum `python3`**); `scripts/check_base_images.py` novo. Jobs com `if:` falso
+  **nenhum `python3`**); `.github/scripts/check_base_images.py` novo. Jobs com `if:` falso
   **aparecem como skipped** — limitação do GitHub (não existe `stages:`; o
   equivalente é o grafo `needs:`), registrada no cabeçalho do `ci.yml`.
 - 02/10 — **EDGE CASES DE IPC NÍVEL 2 ✅ (issue #20)**: falha/retry/backoff na
@@ -214,7 +214,7 @@ fonte. Resposta ao usuário SEMPRE em PT-BR.
   campo `cargo build --release -p gp100-cli --features real-device` (smoke:
   sem device = OpenFailed limpo). Falta SÓ a pedaleira (H1_CHECKLIST).
 - 29/09 — KIT DE CAMPO DO H1 PRONTO: build release do CLI + referências do mock
-  (`analysis/h1_reference/`, -text) + runbook `scripts/h1_field.sh rehearsal|field`
+  (`analysis/h1_reference/`, -text) + runbook `docs/arquivo/scripts-era-RE/h1_field.sh rehearsal|field`
   (ensaio executado: 0 divergências de framing) + `docs/arquivo/H1_REPORT.md` (template
   com o PLANO DE BACKUP fixo §7: divergência ⇒ parar, preservar evidência,
   diagnóstico só com o log, R3 no escritório). Falta SÓ o RealDevice + pedaleira.
@@ -355,7 +355,7 @@ fonte. Resposta ao usuário SEMPRE em PT-BR.
   Golden protegido com `-text` no .gitattributes: o hash da baseline (§13) cobre os EOLs
   e o blob no repo é byte-idêntico ao congelado (CRLF) — renormalizado no commit da CI.
   validate_knob_map.py: caminho absoluto `D:\GP-100 app` → relativo à raiz (CI incluída).
-- PATH do cargo RESOLVIDO (29/09): `scripts/add_cargo_path.ps1` (admin, 1x) adicionou
+- PATH do cargo RESOLVIDO (29/09): `docs/arquivo/scripts-era-RE/add_cargo_path.ps1 (arquivado na #168)` (admin, 1x) adicionou
   `C:\Users\Canta\.cargo\bin` ao PATH de MÁQUINA (HKLM; preserva REG_EXPAND_SZ +
   broadcast WM_SETTINGCHANGE). Terminal novo acha cargo SEM export; workaround de
   sessão (`export PATH=...`) só para terminais abertos antes do fix.
@@ -417,10 +417,10 @@ fonte. Resposta ao usuário SEMPRE em PT-BR.
 - **`str_replace` insere ideogramas CJK acidentais ao redigir em português**: já
   aconteceu em vários commits. Depois de escrever corpo de issue/commit em PT-BR,
   varrer: `[c for c in s if '\u3000' <= c <= '\u9fff']` e corrigir.
-- ~~`uv run python scripts/validate_workflows.py` falha com
+- ~~`uv run python .github/scripts/validate_workflows.py` falha com
   `ModuleNotFoundError: No module named 'yaml'`~~ → **RESOLVIDO (#80)**: `pyyaml`
   e `jsonschema` agora estão no `pyproject.toml`. `uv sync --all-groups` basta.
-  Para rodar *todos* os gates de script de uma vez: **`python3 scripts/gates.py`**.
+  Para rodar *todos* os gates de script de uma vez: **`python3 .github/scripts/gates.py`**.
 - **Console cp1252 com `subprocess.run(..., text=True)`**: ler a saída de um
   `grep` que casa com acento dá `UnicodeDecodeError` DENTRO do reader thread do
   `subprocess` — o traceback vem do `threading.py`, não do seu código, e parece
@@ -432,7 +432,7 @@ fonte. Resposta ao usuário SEMPRE em PT-BR.
 - `docs/planejamento/ROADMAP.md` — plano executivo vigente (histórico entregue + regras R1–R4)
 - `docs/INDEX.md` §6 — **estado atual e NÚMEROS** (testes, cobertura, marcos, aberto)
 - `docs/dev/DECISIONS.md` — ADR-1..8 (P5 + FSM + ADR-7 MSVC + ADR-8 toolchains); mudar decisão = novo ADR
-- `scripts/add_cargo_path.ps1` — fix do PATH do cargo no sistema (HKLM; idempotente)
+- `docs/arquivo/scripts-era-RE/add_cargo_path.ps1 (arquivado na #168)` — fix do PATH do cargo no sistema (HKLM; idempotente)
 - `analysis/fixtures/` — fixtures de replay por fase (regenerar: `uv run python analysis/make_fixtures.py`)
 - `README.md` — porta de entrada do repo (panorama, workflows de regeneração, onboarding)
 - `analysis/captures/` — logs de captura (session1.jsonl, session2.jsonl, ir_slot*.bin)
@@ -617,7 +617,7 @@ fonte. Resposta ao usuário SEMPRE em PT-BR.
   dlltool que o rustc encontra segue sendo o llvm-dlltool copiado em
   `~/.cargo/bin/dlltool.exe` (PREPEND no PATH vence o mingw64 da máquina).
 - **Cargo PATH no Git Bash ad-hoc**: `export PATH="/c/Users/Canta/.cargo/bin:$PATH"
-  (o scripts/add_cargo_path.ps1 fixa no sistema, mas shells novos da sessão podem
+  (o docs/arquivo/scripts-era-RE/add_cargo_path.ps1 (arquivado na #168) fixa no sistema, mas shells novos da sessão podem
   não herdar). Duas regras: PREPEND (winget/choco adicionam dirs ao PATH do
   usuário que sombreiam por append) e caminho em ESTILO POSIX (Windows `C:\...`
   no PATH quebra a lista POSIX no `:` do drive).
@@ -720,7 +720,7 @@ fonte. Resposta ao usuário SEMPRE em PT-BR.
   e2e/e2e-visual/front — o pull da imagem custa mais que o Chromium que ele
   substituiria; nesses a alavanca é o cache do `~/.cache/ms-playwright`
   (chave = hash do pnpm-lock.yaml). Regra: container para toolchain/servidor
-  gráfico; cache para o resto. Medir com `scripts/ci_timings.py`.
+  gráfico; cache para o resto. Medir com `.github/scripts/ci_timings.py`.
 - **LIÇÃO #41 (bootstrap de workflow_dispatch)**: dispatch de workflow que só
   existe numa branch de trabalho → 404 ("not found on the default branch"). A
   1ª publicação da imagem precisou de um gatilho de push TEMPORÁRIO na própria

@@ -13,8 +13,8 @@
 //! sobre quantas camadas a atravessam. A `Session` continua dona única do
 //! stream (D8); o logger não lê, não filtra e não decide nada.
 //!
-//! **O schema P4 é o contrato dos Circuitos.** `scripts/h1_compare.py` e
-//! `scripts/h2_compare.py` leem estes arquivos e comparam frame a frame com o
+//! **O schema P4 é o contrato dos Circuitos.** `docs/arquivo/scripts-era-RE/h1_compare.py` e
+//! `docs/arquivo/scripts-era-RE/h2_compare.py` leem estes arquivos e comparam frame a frame com o
 //! golden — e o `build_golden.py` precisa do `t` (ms desde a abertura) para
 //! segmentar a captura em fases e casar OUT→IN na janela de 3 s do ADR-3. Um
 //! log sem `t` não alimenta o pipeline de spec. Por isso o `t` é obrigatório

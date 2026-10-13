@@ -73,8 +73,8 @@ owner**, e o app só lê depois. Por isso a build é
 
 | Gate | Esperado | Obtido |
 |---|---|---|
-| `scripts/validate_state_pages.py` | exit **0** | ⏳ |
-| `scripts/validate_golden.py` | **2299/2299** | ⏳ |
+| `tools/validate_state_pages.py` | exit **0** | ⏳ |
+| `tools/validate_golden.py` | **2299/2299** | ⏳ |
 | `uv run pytest -q` | verde | ⏳ |
 | `cargo test --workspace` | verde | ⏳ |
 | Escrita pelo app | **nenhuma** (o gate é leitura) | ⏳ |

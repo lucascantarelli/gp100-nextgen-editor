@@ -203,7 +203,7 @@ App volta a inchar. Um critério que só vale no dia do PR não impede nada.
 | `ipc/device.ts` | 600 | a porta cresce por **operação de device**, não por feature de UI |
 | `ipc/diag.ts` | 600 | herda a regra: cresce por operação de diagnóstico, não por feature de UI |
 
-O gate é `scripts/check_module_size.py`, rodado em `scripts/gates.py` e no
+O gate é `.github/scripts/check_module_size.py`, rodado em `.github/scripts/gates.py` e no
 `ci.yml`. Ele falha com o nome do arquivo e a contagem, e a lista de exceções fica
 no próprio script — exceção nova é decisão consciente, não esquecimento.
 

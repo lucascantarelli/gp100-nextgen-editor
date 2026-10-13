@@ -3,8 +3,8 @@
 > **Status:** ⏳ aguardando a pedaleira + owner · **Última revisão:** 2026-10-06
 > · **Responsáveis:** owner no hardware
 >
-> **Kit de campo PRONTO (05/10, issue #22):** runbook `scripts/h2_field.sh
-> rehearsal|field` · **juiz da Fase C `scripts/h2_compare.py`** (confere os
+> **Kit de campo PRONTO (05/10, issue #22):** runbook `docs/arquivo/scripts-era-RE/h2_field.sh
+> rehearsal|field` · **juiz da Fase C `docs/arquivo/scripts-era-RE/h2_compare.py`** (confere os
 > invariantes do §13 nos 3 fluxos e imprime o que o DISPLAY deve mostrar) ·
 > referência `docs/arquivo/analysis/h2_reference/` que ancora a tabela de formas · gate de
 > CI `h2_compare --self-check`. O `rehearsal` sai com 0 contra o mock.
@@ -73,8 +73,8 @@ por FUNC recusaria o próprio caminho de leitura.
 - [x] `gp100-cli --help` mostra `upload-ir` e cita `write-verified`
 - [x] `gp100-cli set-param ... ` **sem** `--dry-run` responde com a recusa do
       ADR-5 (e NÃO envia) — prova de que a trava funciona neste binário
-- [x] **Runbook** `scripts/h2_field.sh` (rehearsal | field) e **juiz**
-      `scripts/h2_compare.py` (Fase C)
+- [x] **Runbook** `docs/arquivo/scripts-era-RE/h2_field.sh` (rehearsal | field) e **juiz**
+      `docs/arquivo/scripts-era-RE/h2_compare.py` (Fase C)
 - [x] `rehearsal` contra o mock sai com **0** nos 3 fluxos (kit pronto)
 - [ ] CI verde no commit do binário
 
@@ -193,9 +193,9 @@ GP-100 num assert `para <= GetParaMaxVal(` — ver
 [H2_REPORT.md](H2_REPORT.md) §3.1 e §4. A verificação do §2.5 vira uma comparação, e não um "pareceu que".
 
 ```bash
-python3 scripts/h2_compare.py <dir-da-sessao>            # Fase C
-python3 scripts/h2_compare.py <dir-da-sessao> --markdown # a tabela do §7
-python3 scripts/h2_compare.py --self-check               # gate de CI
+python3 docs/arquivo/scripts-era-RE/h2_compare.py <dir-da-sessao>            # Fase C
+python3 docs/arquivo/scripts-era-RE/h2_compare.py <dir-da-sessao> --markdown # a tabela do §7
+python3 docs/arquivo/scripts-era-RE/h2_compare.py --self-check               # gate de CI
 ```
 
 Saída `0` = os 3 fluxos obedeceram o §13 (**ainda não é o H2 verde** — falta o

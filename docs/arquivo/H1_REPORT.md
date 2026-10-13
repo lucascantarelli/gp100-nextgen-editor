@@ -1,7 +1,7 @@
 # 🧾 H1_REPORT — Relatório do gate H1 (preencher em campo)
 
 > **Status:** 📝 template · **Preencher durante/imediatamente após a sessão** (Fase C do [H1_CHECKLIST.md](H1_CHECKLIST.md)) e arquivar como evidência da issue H1.
-> **Complemento operacional:** `scripts/h1_field.sh` (ensaio `rehearsal` / roteiro `field`) + referências do mock em `docs/arquivo/analysis/h1_reference/`.
+> **Complemento operacional:** `docs/arquivo/scripts-era-RE/h1_field.sh` (ensaio `rehearsal` / roteiro `field`) + referências do mock em `docs/arquivo/analysis/h1_reference/`.
 
 ## 1. Identificação da sessão
 
@@ -17,7 +17,7 @@
 
 ## 2. Execução (por etapa; repetição ×1 antes de classificar Timeout)
 
-**Cole o veredito do juiz aqui** (`python3 scripts/h1_compare.py <dir> --markdown`).
+**Cole o veredito do juiz aqui** (`python3 docs/arquivo/scripts-era-RE/h1_compare.py <dir> --markdown`).
 As colunas de nível 1/3 abaixo sao as do juiz — não as recalcule na mão: se o
 número divergir, o log mudou depois da comparação.
 

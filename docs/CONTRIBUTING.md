@@ -40,8 +40,8 @@
 contexto medido, escopo, fora de escopo, DoD, plano de teste, referências,
 **🤖 prompt do agente** (auto-suficiente: quem pega a issue executa sem ler
 mais nada) e checklist de validação da entrega. O gate
-`scripts/check_issue_templates.py` (roda no `Lint · contratos do pipeline` e no
-`python3 scripts/gates.py`) impede que as seções sumam.
+`.github/scripts/check_issue_templates.py` (roda no `Lint · contratos do pipeline` e no
+`python3 .github/scripts/gates.py`) impede que as seções sumam.
 
 **Regras de casa:**
 
@@ -77,7 +77,7 @@ mais nada) e checklist de validação da entrega. O gate
   [`Issues · Fechamento de issues vinculadas`](../.github/workflows/issues-fechamento.yml)
   cobre essa lacuna via API (§5).
 - **Push e PR** disparam a CI em toda branch de desenvolvimento. O filtro é o
-  de *caminho* (`scripts/ci_plan.py`): um PR que só mexe em `docs/` não sobe
+  de *caminho* (`.github/scripts/ci_plan.py`): um PR que só mexe em `docs/` não sobe
   Rust nem front.
 
 ```bash
@@ -117,25 +117,25 @@ Só a área que você tocou — o CI filtra o resto por caminhos.
 | **Baselines visuais** (mudou layout/paleta) | `pnpm exec playwright test visual.spec.ts --update-snapshots` → inspecione os diffs → commite os PNGs (`-linux` pelo workflow `visual-baselines.yml`: `gh workflow run visual-baselines.yml --ref <branch>` → artefato `visual-snapshots`) |
 | **Rust core/cli** (raiz) | `cargo fmt --check` · `cargo clippy --workspace --all-targets -- -D warnings` · `cargo test` |
 | **Shell Tauri** (`packages/app/api`) | gates do front (`ui/dist` alimenta o binário) + `cargo clippy/test -p gp100-ui` |
-| **Spec** (`docs/arquivo/analysis/`, `scripts/`, golden) | `uv run pytest` (trava da especificação, incluindo a suite do H3) · `python3 scripts/gates.py baseline` (versão + hash + motivo da baseline) |
-| **Gates de script** (pipeline, empacotamento, versão, spec, release) | **`python3 scripts/gates.py`** — roda todos de uma vez, na ordem do CI |
+| **Spec** (`docs/arquivo/analysis/`, `scripts/`, golden) | `uv run pytest` (trava da especificação, incluindo a suite do H3) · `python3 .github/scripts/gates.py baseline` (versão + hash + motivo da baseline) |
+| **Gates de script** (pipeline, empacotamento, versão, spec, release) | **`python3 .github/scripts/gates.py`** — roda todos de uma vez, na ordem do CI |
 
 - **`gates.py` é o atalho para "os gates de script"**: `validate_workflows`,
   `check_bundle`, `sync_version`, `check_deadcode`, `check_module_size`,
   `h1_compare`, `byte_order`, `param_ranges`, `h2_compare`, `baseline`,
   `pytest`, `check_base_images` e `simulate_release` — **13 no total**. Rode
-  `python3 scripts/gates.py --list` para ver a lista, ou passe nomes para rodar
-  só alguns: `python3 scripts/gates.py check_bundle validate_workflows`.
+  `python3 .github/scripts/gates.py --list` para ver a lista, ou passe nomes para rodar
+  só alguns: `python3 .github/scripts/gates.py check_bundle validate_workflows`.
   Todas as dependências (`pyyaml`, `jsonschema`) estão no `pyproject.toml`, então
   `uv sync --all-groups` basta — nada de instalar pacote na linha de comando
   (#80).
-- **`scripts/` está no escopo do `spec`** (`scripts/ci_plan.py`): o pytest testa
+- **`scripts/` está no escopo do `spec`** (`.github/scripts/ci_plan.py`): o pytest testa
   scripts de gate, e mexer só no script deixaria o job de spec como `skipped` —
   os testes ficariam verdes sem rodarem contra a mudança (#21).
 - **Piso de versão das actions** — o GitHub descontinuou o runtime Node 20
   (set/2025): o runner força Node 24 e emite aviso em **toda** run. O contrato é
   um **piso de major por action** em `PISO_VERSAO_ACTION`
-  ([validate_workflows.py](../scripts/validate_workflows.py)), não uma lista de
+  ([validate_workflows.py](../.github/scripts/validate_workflows.py)), não uma lista de
   versões ruins — assim uma major que ninguém catalogou ainda falha em vez de
   passar. Adicionar uma action nova? Declare o piso dela no mesmo commit, senão o
   gate cobra. Subir uma major? Suba o piso junto.
@@ -198,14 +198,14 @@ usuário**; os 3 fluxos são um por vez, com verificação no display) e
 ### A baseline da especificação tem versão e motivo
 
 `docs/referencias/protocol_golden.json` é **derivado**; o que é congelado é o par
-(golden, hash) registrado em **`scripts/baseline.json`**. Antes da #23 o hash
+(golden, hash) registrado em **`tools/baseline.json`**. Antes da #23 o hash
 era um literal dentro de um teste — e colar o hash novo passava, sem ninguém
 explicar por quê.
 
 ```bash
-uv run python scripts/baseline.py show     # versão, hash, motivo, histórico
-uv run python scripts/baseline.py --check  # gate: reprova se o golden mudou
-uv run python scripts/baseline.py bump --motivo "<por que>" --issue "#23"
+uv run python tools/baseline.py show     # versão, hash, motivo, histórico
+uv run python tools/baseline.py --check  # gate: reprova se o golden mudou
+uv run python tools/baseline.py bump --motivo "<por que>" --issue "#23"
 ```
 
 O `bump` **recusa** escrever sem `--motivo` — de propósito. O fluxo é sempre
@@ -218,9 +218,9 @@ O Suite grava `out_long`/`in_long` + `hex`; o `gp100-cli --log` grava o P4
 `out`/`in` + `func`/`addr`/`data` **com `t`** (ms desde a abertura). São
 incompatíveis, e o `build_golden` carregava **0 eventos** de um log do core
 antes da #23. Para ler qualquer um dos dois, use
-[`scripts/wirelog.py`](../scripts/wirelog.py) — não reparseie na mão. E para
+[`tools/wirelog.py`](../tools/wirelog.py) — não reparseie na mão. E para
 julgar uma captura nova contra a spec:
-[`scripts/validate_core_capture.py`](../scripts/validate_core_capture.py)
+[`tools/validate_core_capture.py`](../tools/validate_core_capture.py)
 (exit `0` conforme · `1` divergência de payload, bug · `2` endereço fora da
 spec, precisa de ADR · `3` o log não carregou).
 
@@ -286,7 +286,7 @@ cria um check para todo job declarado e não há como esconder. Só sumiria se o
 job não existisse naquele workflow — e espalhar em vários arquivos é
 exatamente o custo que a #68 eliminou.
 
-A tabela **branch → tipos de job** mora em `scripts/ci_plan.py` (uma fonte de
+A tabela **branch → tipos de job** mora em `.github/scripts/ci_plan.py` (uma fonte de
 verdade, testável localmente), e não em `if:` espalhado no YAML — foi
 justamente a duplicação que fez a regra divergir antes.
 
@@ -297,7 +297,7 @@ glibc.
 
 A régua é o conjunto de jobs dos tipos `Lint` a `Cobertura` (encadeados: lint
 → compilação → segurança → testes → cobertura). As matrizes Rust/front são
-**filtradas por caminhos** (`scripts/ci_plan.py`): docs puro não sobe Rust/front
+**filtradas por caminhos** (`.github/scripts/ci_plan.py`): docs puro não sobe Rust/front
 — os jobs aparecem como *skipped*, sem custo. O gate do front (`Lint · UI` e
 `Cobertura`) roda em **jobs próprios**, em paralelo com a matriz de compilação,
 para o Setup Node de um não serializar com o do outro (issue #50). A cobertura
@@ -320,7 +320,7 @@ sintético** (cabeça do PR fundida na base), ou seja, o que realmente entra. O
 `push` num branch com PR aberto dispara os DOIS eventos no GitHub, e o pipeline
 inteiro rodava duas vezes sem informação nova na segunda. O validador proíbe
 `feature/**`/`bugfix/**`/`hotfix/**`/`release/**` no `push` para isso não voltar. O que muda entre elas não é o gatilho, é a **tabela**
-de `scripts/ci_plan.py` (a develop e a tag rodam a suíte inteira;
+de `.github/scripts/ci_plan.py` (a develop e a tag rodam a suíte inteira;
 a release branch, por ser um freeze já testado da develop, roda lint + compilação).
 
 ### Custo do CI — imagem de container e caches (#41)
@@ -359,7 +359,7 @@ job: virou camada da imagem publicada no ghcr.io.
   dele no `needs:`, então não correm em paralelo ao push. Bump de tag (`:1` →
   `:2`) é manual e só quando a mudança for incompatível — os jobs referenciam
   `:1`.
-- **Medição (antes/depois):** `python3 scripts/ci_timings.py <run-id> --steps`
+- **Medição (antes/depois):** `python3 .github/scripts/ci_timings.py <run-id> --steps`
   e `--compare <antes> <depois>` — tabela por job/step direto da API do
   Actions (só `gh` + stdlib). Mudança de custo entra com número.
 - **Números do #41** (runs `36946076269` → `36954177254`, matriz completa):
@@ -431,7 +431,7 @@ job: virou camada da imagem publicada no ghcr.io.
   push na `main` e **falha a run** se o sha não for o de uma tag `v*`. O que
   o servidor garante: histórico linear, sem force-push, sem deleção. Em repo
   de organização dá para trocar a guarda por `restrictions.push` de verdade.
-- **Ensaio da cadeia (gate + local)**: `python3 scripts/simulate_release.py`
+- **Ensaio da cadeia (gate + local)**: `python3 .github/scripts/simulate_release.py`
   extrai os blocos `run:` do `ci.yml` (jobs `release-rc` e
   `release-promote`) e os executa num sandbox git temporário — prova
   rc1→rc2→promote, a `develop` avançando para a próxima versão, idempotência

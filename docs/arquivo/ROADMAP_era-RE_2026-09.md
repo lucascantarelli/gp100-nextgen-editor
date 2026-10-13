@@ -115,7 +115,7 @@ achado do H2 em campo).
   MSVC Build Tools e o `link` do PATH é o GNU coreutils do Git Bash; o alvo gnu
   usa o linker MinGW embutido no rustup (zero dependência externa).
   ✅ PATH DO SISTEMA RESOLVIDO 29/09: `C:\Users\Canta\.cargo\bin` adicionado ao
-  PATH de MÁQUINA (HKLM) via `scripts/add_cargo_path.ps1` (idempotente; preserva
+  PATH de MÁQUINA (HKLM) via `docs/arquivo/scripts-era-RE/add_cargo_path.ps1 (arquivado na #168)` (idempotente; preserva
   REG_EXPAND_SZ e faz broadcast WM_SETTINGCHANGE). Workaround de sessão
   (`export PATH=...`) só é necessário em terminais abertos ANTES do fix.
 - **O quê (feito):** workspace `gp100-core` (lib) + `gp100-cli` (bin);
@@ -376,7 +376,7 @@ achado do H2 em campo).
 > (`transport/real.rs`, midir/WinMM, feature `real-device` default OFF) e o CLI
 > de campo compila com `--features real-device` — `--real` abre o device com
 > dupla confirmação; escrita segue bloqueada (H2/`write-verified`). Falta só a
-> pedaleira + owner (roteiro: `docs/arquivo/H1_CHECKLIST.md`; kit: `scripts/h1_field.sh`).
+> pedaleira + owner (roteiro: `docs/arquivo/H1_CHECKLIST.md`; kit: `docs/arquivo/scripts-era-RE/h1_field.sh`).
 >
 > ⚠️ **04/10 — a escrita deixou de ser um "flip".** O PR do H2 trocou a ideia de
 > "ligar `WRITE_VERIFIED`" por uma **feature de compilação** `write-verified`
@@ -405,7 +405,7 @@ achado do H2 em campo).
 - **Responsável:** owner no hardware (confirmação no display) + `protocol-validate` · Depende: H1 · **Estimativa:** 1–2h
 - **Status:** 🚧 **mecanismo E kit de campo entregues** (`WireKind` + trava por
   feature de compilação `write-verified` + os 3 comandos no CLI; issue #22:
-  runbook `scripts/h2_field.sh`, juiz `scripts/h2_compare.py` com gate de CI, e
+  runbook `docs/arquivo/scripts-era-RE/h2_field.sh`, juiz `docs/arquivo/scripts-era-RE/h2_compare.py` com gate de CI, e
   o `set-param`/`save` **passaram a enviar de verdade** — antes eles só
   imprimiam); ⏳ **falta a sessão de campo**, que só o owner pode rodar.
 - **O quê:** `set-param` (knob), `save`, `upload-ir` no device real, um por vez,
@@ -711,13 +711,13 @@ achado do H2 em campo).
     em develop, branch apagada; conflito aborta sem empurrar nada
     parcial; idempotente por tag existente). Guard de prerelease no
     pipeline para tags -rc (CLI + instalador). Validação sintática dos
-    workflows no gate do pipeline (`scripts/validate_workflows.py`:
+    workflows no gate do pipeline (`.github/scripts/validate_workflows.py`:
     YAML dos workflows + contratos de fluxo ci/_validate/_publish/release/
     security — o teste de integração real do fechamento continua sendo o
     próprio merge em develop; act exigiria Docker no gate). Proteção de
     branches = configuração do repo (não-workflow).
   - ✅ FEITO 01/10 — **simulação end-to-end da cadeia no gate**
-    (`scripts/simulate_release.py`): extrai os blocos `run:` DO PRÓPRIO
+    (`.github/scripts/simulate_release.py`): extrai os blocos `run:` DO PRÓPRIO
     ci.yml e os executa num sandbox git local (origin bare + clones
     descartáveis), com `${{ inputs/steps/env }}` resolvidos e
     GITHUB_OUTPUT simulado — prova rc1→rc2 (branch reutilizada, N
@@ -725,7 +725,7 @@ achado do H2 em campo).
     develop, branch apagada), idempotência do promote e os guards de
     recusa (rc sem bump pendente / promote com tag existente). Roda no
     gate do pipeline (runner ubuntu: git+bash+python3) e local via
-    `python3 scripts/simulate_release.py` (`--keep` preserva o sandbox;
+    `python3 .github/scripts/simulate_release.py` (`--keep` preserva o sandbox;
     steps rodam via arquivo .sh como o Actions faz — `bash -c` perde
     atribuições/expansões no interop WSL do Windows, diagnosticado e
     documentado no próprio harness).

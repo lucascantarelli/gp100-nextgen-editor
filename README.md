@@ -32,7 +32,7 @@ H3 baseline congelada). Trabalho aberto vive nas **issues do GitHub** (milestone
 | **Formato de preset** | `.prst` = XML puro; `effectCode = (nibble<<24) \| index`; cadeia de 9 slots fixos (`x=0..8`); `params_N` 0..14 (incl. controles ocultos como o Mic do CAB) | `docs/tecnico/PROTOCOL.md` §13.9 |
 | **Protocolo de fio** | SysEx `F0 21 25 7F 47 50 2D 64 \| FUNC \| ADDR(4B) \| DATA \| F7`; ler estado (páginas `13xx`), setar parâmetro (envelope semântico `10xx0002` com float32), save (metadados `11xx` + ops `00020000`), upload de IR com ACK por chunk | `docs/tecnico/PROTOCOL.md` §13.1–13.12 |
 | **Especificação executável** | 40 templates request→resposta extraídos das capturas, com padrões de payload (const/var) e semântica por endereço | `docs/referencias/protocol_golden.json` |
-| **Validação** | Accounting IN 100% / OUT 99,6% (resto = truncamentos do ring buffer); regeneração byte-a-byte: knobs 92/92, boot/scan 2299/2299 | `scripts/validate_golden.py` |
+| **Validação** | Accounting IN 100% / OUT 99,6% (resto = truncamentos do ring buffer); regeneração byte-a-byte: knobs 92/92, boot/scan 2299/2299 | `tools/validate_golden.py` |
 | **Persistência comprovada** | O save da UI persiste o **estado ao vivo** (confirmado no display da pedaleira após a sessão 4) | `docs/tecnico/PROTOCOL.md` §13.12 |
 
 **Como chegamos lá:** um proxy `winmm.dll` (129 exports) instrumenta o Suite oficial
@@ -87,14 +87,14 @@ boot/scan de presets (S1), upload de IRs mono+estéreo (S2), edição de knobs p
 │   └── nsis_app/              # extração do instalador (read-only, não indexar)
 ├── files/                     # artefatos oficiais de entrada (firmware, instaladores,
 │   └── patches/*.prst         #   patches: all.prst = 99 presets)
-├── packaging/arch/            # receita do pacote Arch (PKGBUILD + .desktop) — #29
-├── scripts/                   # gates executáveis + ferramentas de spec/dados
+├── packaging/                # distribuição: ícone/marca + tarball de fonte + arch (#29; #168)
+├── .github/scripts/          # gates executáveis + CI (era `scripts/`; #168)
 │   ├── ci_plan.py             # regra branch → escopo → matriz/estágios
 │   ├── validate_workflows.py  # sintaxe + contratos do pipeline
 │   ├── check_bundle.py        # schema Tauri, ícones, .deb/PKGBUILD
 │   ├── check_base_images.py   # tags de imagem base antes do build
-│   ├── tests/                 # suíte Spec (pytest)
 │   └── … (o mapa completo está no INDEX.md §3)
+├── tools/                    # ferramentas de spec/dados (golden, baseline, wirelog) + suíte Spec (pytest) — #168
 ├── .venv/                     # Python do projeto (uv, VENV ÚNICO na raiz)
 ├── .github/workflows/ci.yml   # ÚNICO workflow, jobs por TIPO (#68; nº em INDEX §6)
 ├── knowledge.md               # memória operacional do agente (estado vivo, armadilhas)
@@ -171,7 +171,7 @@ máquina e é o caminho para quem não quer admin.
 
 > **Compilando do fonte:** `cd packages/app/api && tauri build`. Exige Rust
 > stable, Node 22 e, no Linux, `libwebkit2gtk-4.1-dev libgtk-3-dev`. Os ícones
-> são derivados de `scripts/make_icon.py` (1024×1024, paleta do tema) via
+> são derivados de `packaging/make_icon.py` (1024×1024, paleta do tema) via
 > `tauri icon` — mexer num implica rodar o outro.
 
 ---
@@ -185,7 +185,7 @@ Windows + Git Bash (desenvolvido em `D:\GP-100 app`). Requisitos:
   Rodar comandos da raiz com `uv run python ...`.
 - **Rust** stable (M0+, toolchain windows-gnu pinada em `rust-toolchain.toml`) e
   **Node 20+** (M1, Tauri/React). Terminal novo sem `cargo`? Fix permanente:
-  `scripts/add_cargo_path.ps1` (uma vez, como admin). Gates de código Rust:
+  `docs/arquivo/scripts-era-RE/add_cargo_path.ps1 (arquivado na #168)` (uma vez, como admin). Gates de código Rust:
   `.agents/skills/rust-practices/SKILL.md`
 - **CI (GitHub Actions):** os mesmos gates (`uv run pytest` + `cargo fmt/clippy/test`)
   rodam num **único** workflow, o [`ci.yml`](.github/workflows/ci.yml), com jobs de
@@ -242,8 +242,8 @@ compila com zig e valida o resultado.
 
 ### 5.3 Golden-file do protocolo
 ```bash
-uv run python scripts/build_golden.py      # gera docs/referencias/protocol_golden.json
-uv run python scripts/validate_golden.py   # 5 provas (deve dar 100%)
+uv run python tools/build_golden.py      # gera docs/referencias/protocol_golden.json
+uv run python tools/validate_golden.py   # 5 provas (deve dar 100%)
 uv run pytest                               # suíte de regressão (após P3)
 ```
 O golden cobre as 4 sessões. Regras de largura de campo confirmadas:
@@ -252,7 +252,7 @@ chaves da tabela de nomes = `[banco u8][índice u8]`.
 
 ### 5.4 Dicionário e mapa de knobs
 ```bash
-uv run python scripts/validate_knob_map.py # revalida knob_map.json
+uv run python tools/validate_knob_map.py # revalida knob_map.json
 ```
 
 ---

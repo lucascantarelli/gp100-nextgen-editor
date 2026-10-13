@@ -96,7 +96,7 @@ janela nativa (MSVC no host, ADR-7). O CLI seguiu explícito e ganhou
    O instalador passa a ser build de **leitura**: fala com a pedaleira e recusa a
    escrita antes do driver (ADR-5), com o motivo na tela (§6 passo 3). **A prova
    do step só existe na próxima tag** — `stage-dist` é `tag` em
-   [`ci_plan.py`](../../scripts/ci_plan.py); em PR o caminho real é coberto pelo
+   [`ci_plan.py`](../../.github/scripts/ci_plan.py); em PR o caminho real é coberto pelo
    `ui-rust` nos três SOs. Restava antes do campo:
 2. **Nenhuma sessão de campo partiu do APP.** O H1/H2 provaram o core e o CLI;
    `ir_send`, `tone_send` e o knob do **editor** não foram medidos. É o passo 7
@@ -304,7 +304,7 @@ deles precisa do aparelho para ser provado.
 | 4c | **A camada de UI do diagnóstico** — **✅ feito**: `FieldDiagPanel.tsx` + `useFieldDiag` + `ipc/diag.ts`. As quatro capacidades dos passos 4/4b viraram tela (gravar, ler o dump, ligar/desligar o log, ver o que sairia), com o badge de backend e o aviso de escrita travada na tela. Sem isto a sessao de campo continuava dependendo do binario de terminal | `components/FieldDiagPanel.tsx` · `hooks/useFieldDiag.ts` · `ipc/diag.ts` | o operador de campo nao precisa abrir terminal para dirigir o aparelho | **sim** (para o veredito) |
 | 5 | `set_inventory` ligado ao que o boot descobre (ou fixado em campo com justificativa) — **código feito na #132 (ADR-12)**: o aparelho nasce com o inventário da captura (2299) e o `select` fora dele é recusado antes do frame; o mock segue com `0..198` (2297). Falta a **medição** (R3: esta unidade tem pps fora da captura?) | `session.rs` (inventario + trava) · `transport/mod.rs` (`e_aparelho`) · `useStage.ts` | o total de transações do report muda conforme o inventário (2299 no aparelho, 2297 no mock) | **sim** |
 | 6 | Build de campo **leitura** (`--features real-device`, sem `write-verified`) — **✅ feito** (compilação) e, em 06/10, **o `dist-ui` passou a usá-lo** (issue [#126](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/126): caminho `../ui` corrigido + `--features real-device` + `libasound2-dev` no Linux) | `.github/workflows/ci.yml` | CI compila o crate do Tauri com a feature (WinMM no job `ui-rust`; ALSA no container do webview) e o instalador sai com ela | não |
-| 6b | `ui-rust` na matriz **macOS** — fecha o buraco do CoreMIDI — **✅ feito** (05/10): a matriz do `ui-rust` tem Windows + macOS, e o ALSA segue no container | `scripts/ci_plan.py::matrices` | o backend do app com `real-device` compila para CoreMIDI | não |
+| 6b | `ui-rust` na matriz **macOS** — fecha o buraco do CoreMIDI — **✅ feito** (05/10): a matriz do `ui-rust` tem Windows + macOS, e o ALSA segue no container | `.github/scripts/ci_plan.py::matrices` | o backend do app com `real-device` compila para CoreMIDI | não |
 | 7 | **Sessão de campo no aparelho**: boot, lista de IRs, dump, e a §4 medida | o painel de diagnóstico (passo 4c) + relatório | relatório com os 4 desvios de §4 preenchidos, com o `.jsonl` gerado **pelo app** | **sim** |
 | 8 | Release | #17 | o veredito da sessão de campo assinado | **sim** |
 

@@ -16,7 +16,7 @@
 | Commit do repo no binário | ____ |
 | sha256 do `gp100-cli.exe` | ____ |
 | Build | `cargo build --release -p gp100-cli --features real-device` |
-| Baseline de partida | v____ (`uv run python scripts/baseline.py show`) |
+| Baseline de partida | v____ (`uv run python tools/baseline.py show`) |
 | H1 anterior | arquivado em ____ |
 | H2 anterior | arquivado em ____ (necessário para a sessão 3) |
 

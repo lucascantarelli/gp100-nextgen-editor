@@ -16,6 +16,13 @@ comentário NA ISSUE e a fila avança.
 
 ## Estado vivo (atualizar a cada marco — 1–3 linhas, sem prosa)
 
+- 13/10 — **#168 (`scripts/` dissolvida)**: CI/gates → `.github/scripts/`;
+  spec/dados → `tools/` (suíte Spec em `tools/tests/`); empacotamento →
+  `packaging/`; RE → `docs/arquivo/scripts-era-RE/`. `uv run python
+  .github/scripts/gates.py` roda os 13 gates. Armadilhas novas: root em
+  `.github/scripts/` é `parents[2]` de `__file__`; `simulate_release` resolve
+  o git-bash via `shutil.which` (System32/WSL precede o PATH) e traduz
+  `python3`→`python` no sandbox Windows.
 - 13/10 — **#167 (docs categorizada)**: `docs/` virou árvore (`dev/` `tecnico/`
   `planejamento/` `analises/` `referencias/` `arquivo/`) com TODOS os caminhos
   do repo atualizados (sed + link checker); `SECURITY.md` da raiz virou ponteiro
@@ -79,7 +86,7 @@ comentário NA ISSUE e a fila avança.
   o host não tem MSVC Build Tools. Não trocar de alvo nem apagar o arquivo.
   O shell Tauri (`packages/app/api`) é MSVC/portável por ADR-7/ADR-8 —
   compila na CI, não no host.
-- **PATH do cargo**: fixado no sistema por `scripts/add_cargo_path.ps1` (29/09).
+- **PATH do cargo**: fixado no sistema por `docs/arquivo/scripts-era-RE/add_cargo_path.ps1 (arquivado na #168)` (29/09).
   Em shell da sessão antiga: `export PATH="/c/Users/Canta/.cargo/bin:$PATH"` —
   PREPEND (winget/choco sombreiam por append) e caminho em estilo POSIX
   (`C:\...` no PATH quebra a lista no `:` do drive).
@@ -144,13 +151,13 @@ comentário NA ISSUE e a fila avança.
   --i-know-what-im-doing <sub>`. Efeito colateral: o pedal troca de patch no
   display durante varredura (avisar o owner). Detalhes, anti-brick e evidência:
   skill `hardware-dev`.
-- **Todos os gates de script de uma vez**: `uv run python scripts/gates.py` (local;
-  a CI roda os mesmos). Só a área: `uv run python scripts/gates.py <nome>`.
+- **Todos os gates de script de uma vez**: `uv run python .github/scripts/gates.py` (local;
+  a CI roda os mesmos). Só a área: `uv run python .github/scripts/gates.py <nome>`.
 - **Rust**: `cargo fmt --check` · `cargo clippy --workspace --all-targets --
   -D warnings` · `cargo test` (inclui doc-tests) — skill `rust-practices`.
 - **Front**: `pnpm test` / `pnpm test:coverage` (gate 85%) / `pnpm build` /
   e2e `pnpm exec playwright test` — skill `ui-ux-practices` + `testing`.
-- **Bump de versão**: `uv run python scripts/sync_version.py --set X` + `--check`
+- **Bump de versão**: `uv run python .github/scripts/sync_version.py --set X` + `--check`
   (5 manifests sincronizados). Release: só por `workflow_dispatch`
   (rc → promote) — skill `release`.
 - **Baseline visual**: regenerar SÓ pelo workflow dedicado

@@ -597,7 +597,7 @@ A chave carrega o **slot**, não só o `code`: o `nibble` do `effectCode` não
 captura é que `knobs.jsonl` é **uma sessão só**: uma faixa derivada dela é
 piso, não verdade. Mas o dicionário é a fonte declarada da própria Suite, e
 a Suite é quem fala com o firmware. A corroboração está medida e é gate
-(`scripts/param_ranges.py --check`): das 92 amostras reais, **13 dos 14
+(`tools/param_ranges.py --check`): das 92 amostras reais, **13 dos 14
 pares observados caem inteiros dentro da faixa declarada, zero
 contradições**. Duas fontes independentes — o que a Suite declara e o que
 ela de fato manda — concordam, e a Suite nunca escreve fora do que o
@@ -905,6 +905,7 @@ declarar, para cada coisa que sobrou, quem é dona e por quê.
 - **Dono de `scripts/` é HW-8 (#168).** As ferramentas de spec/dados movidas
   para cá são declaradas como dependência na issue — quem dissolver a pasta
   decide a casa final delas junto com os demais scripts.
+  **Cumprido na #168 (13/10):** a pasta foi dissolvida — casa final na ADR-16.
 
 **Consequências.**
 - (+) Nenhum binário, teste ou artefato do front nasce de árvore de RE: a
@@ -977,3 +978,43 @@ tem de estar na doc, não escondida.
 - (−) O push medido do bloco `00020003..1f` (§13.13.1) continua mapeado só
   em parte: virar canal de sync exige fechar a semântica antes (ADR-13 —
   sem evidência, não vira semântica).
+
+## ADR-16 — Dissolução de `scripts/`: CI/gates em `.github/scripts/`, spec/dados em `tools/`, empacotamento em `packaging/`, RE em `docs/arquivo/scripts-era-RE/` (#168)
+
+> Decidido em 13/10 (HW-8, fecho da F4/§1.1 "repo espalhado"). Fecha o ciclo
+> aberto pela ADR-14: `scripts/` virou pasta de convenção, não de casa — 40
+> itens, metade dos quais pertenciam a outra era.
+
+**Contexto.** `scripts/` acumulou 40 itens de quatro naturezas distintas:
+ferramentas da Era de RE (juízes H1/H2, runbooks de campo, `add_cargo_path.ps1`),
+gates e utilitários de CI, ferramentas de spec/dados (casa desde a #163) e
+empacotamento. Toda citação de path do repo passava por ela, então mover custa
+caro e em bloco — a issue media 22 itens antes do inventário completo.
+
+**Decisão.** Cada item vai para a casa do seu ciclo de vida:
+- **`.github/scripts/`** — tudo que a CI invoca ou que `gates.py` orquestra
+  (`ci_plan`, `validate_workflows`, `check_bundle`, `sync_version`,
+  `simulate_release`, `gates.py`…): o runner do Actions já é `.github`, e o
+  gate local usa o mesmo caminho que o job usa.
+- **`tools/`** — ferramentas de spec/dados executadas por humano no fluxo
+  R2/R3 (`build_golden`, `baseline`, `param_ranges`, `wirelog`, dumps);
+  a suíte Spec (pytest) mora em `tools/tests/`.
+- **`packaging/`** — artefatos de distribuição (`make_icon.py`,
+  `make_sdist.py`; a receita Arch já morava em `packaging/arch/`).
+- **`docs/arquivo/scripts-era-RE/`** — juízes H1/H2 + `wirelog_compare`,
+  runbooks de campo (`h1_field.sh`, `h2_field.sh`), `add_cargo_path.ps1` e os
+  testes desses juízes: provam a RE fechada, são proveniência (ADR-14).
+- **`scripts/` deixa de existir.**
+
+**Consequências.**
+- (+) "Onde mora X" vira uma resposta por ciclo de vida, não por hábito:
+  INDEX §3 e CONTRIBUTING §4 passam a mapear `.github/scripts/`, `tools/` e
+  `packaging/`.
+- (−) Os ROOT dos scripts ganharam um nível de profundidade — os seis que
+  calculavam `dirname(dirname(__file__))` quebraram em silêncio (gate saía
+  com "arquivo ilegível"/"front não encontrado") e foram corrigidos para
+  três níveis. Padrão novo: root = `parents[2]` de `__file__` em `.github/scripts/`.
+- (−) `simulate_release.py` cai no `bash.exe` do WSL (System32 precede o PATH
+  no CreateProcess do Windows) e o `python3` do sandbox cai no alias da
+  Microsoft Store: o gate agora resolve o git-bash via `shutil.which` e
+  traduz `python3`→`python` no sandbox Windows-only (o runner real é ubuntu).

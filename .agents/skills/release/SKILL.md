@@ -33,7 +33,7 @@ no push é a receita de tag prematura). Detalhe humano:
 - **Release branch não roda testes de propósito** (freeze da develop, já
   testada no merge); o gate da release é o **push da tag `v*`**, que roda a
   suíte inteira antes de gerar artefato.
-- Bump de versão é **bloco único**: `uv run python scripts/sync_version.py --set X`
+- Bump de versão é **bloco único**: `uv run python .github/scripts/sync_version.py --set X`
   e confirme com `--check` — os 5 manifests (`Cargo.toml` da raiz,
   `packages/app/api/Cargo.toml`, `tauri.conf.json`, `packages/app/ui/package.json`,
   `version.json`) têm de casar; fora de sincronia o instalador sai com versão

@@ -26,7 +26,7 @@ A fase de **reconhecimento estático já foi executada** com sucesso sobre os ar
 | Changelog oficial V1.3→V2.1 | Extraído do RTF | `docs/arquivo/analysis/release_note.txt` |
 | Stack do app oficial | Shell CEF/web + MFC; driver ASIO via MSI (`Valeton_UsbAudio_v5.57.2`) | análise de strings do instalador |
 | **Protocolo de FIO (§13.1–13.12)** | SysEx Valeton confirmado em campo: ler/editar/salvar/IR | capturas 1–4 + `docs/referencias/protocol_golden.json` (40 templates, validação 100%) |
-| **Envelope do knob (§13.11)** | write semântico `[effectCode u32LE][ctrl][00][f32 LE]` | `scripts/knob_map.json`: 89/89 edits regeneradas byte-a-byte |
+| **Envelope do knob (§13.11)** | write semântico `[effectCode u32LE][ctrl][00][f32 LE]` | `tools/knob_map.json`: 89/89 edits regeneradas byte-a-byte |
 
 **Riscos neutralizados:** o formato de preset é **XML de texto legível** — não há necessidade de sniffing USB para a camada de dados; a correlação firmware↔patch já é possível hoje. **E, com as capturas 1–4 (proxy winmm), o protocolo de fio completo foi confirmado em campo e validado byte-a-byte (§13 + golden-file) — a última dependência de hardware foi eliminada.**
 

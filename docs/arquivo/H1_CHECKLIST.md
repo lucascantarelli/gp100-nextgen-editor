@@ -4,8 +4,8 @@
 >
 > **Kit de campo PRONTO (29/09, Fase C automatizada em #21):** build release do
 > CLI · referências do mock em `docs/arquivo/analysis/h1_reference/` · runbook
-> `scripts/h1_field.sh rehearsal|field` · **juiz da Fase C
-> `scripts/h1_compare.py`** (classifica a sessão nos 3 níveis do §4 e imprime a
+> `docs/arquivo/scripts-era-RE/h1_field.sh rehearsal|field` · **juiz da Fase C
+> `docs/arquivo/scripts-era-RE/h1_compare.py`** (classifica a sessão nos 3 níveis do §4 e imprime a
 > tabela do §5) · relatório `docs/arquivo/H1_REPORT.md` com o **plano de backup fixo** (§7)
 > — decidido ANTES de ligar a pedaleira.
 > **Fontes:** `docs/planejamento/ROADMAP.md` (issue H1, regra R3), `docs/planejamento/VISION.md` §7 (brick-proof), `docs/planejamento/BLOCKERS.md` §4, ADR-3/ADR-4/ADR-6 (`docs/dev/DECISIONS.md`), `docs/tecnico/PROTOCOL.md` §13, `knowledge.md` (armadilhas de captura).
@@ -89,7 +89,7 @@ automático, D6)
 **Fase C — comparação (no PC, logo após a sessão) — AUTOMATIZADA em #21**
 - [ ] `h1_field.sh field` já chamou o juiz e imprimiu o veredito; se a sessão foi
       feita passo a passo, reprocesse sem re-ler o device:
-      `python3 scripts/h1_compare.py docs/arquivo/analysis/h1_field_<tag> --markdown`
+      `python3 docs/arquivo/scripts-era-RE/h1_compare.py docs/arquivo/analysis/h1_field_<tag> --markdown`
 - [ ] Rodar os decoders na `sessionH1.jsonl` (mesmos scripts das capturas do Suite)
 - [ ] Conferir a **tabela do §5** que o juiz imprimiu (nível 1/3 = R3; nível 2 =
       estado, documentar). O juiz separa os três; a conferência humana é sobre o
@@ -119,7 +119,7 @@ CI. É o gate que impede mock e §13 de saírem de sincronia em silêncio.
 `MockDevice`, não um golden de captura. Quando o mock muda de semântica, a
 referência fica velha — e o `rehearsal` acusa isso como **DRIFT** (nível 2 com
 outro significado), nunca como "estado do device". Regenerar:
-`./scripts/h1_field.sh refresh-reference [--forcar]`. O `--forcar` só é aceito
+`./docs/arquivo/scripts-era-RE/h1_field.sh refresh-reference [--forcar]`. O `--forcar` só é aceito
 para drift de **conteúdo**; drift de **forma** recusa e manda para o R3.
 
 Desempate "protocolo × estado": repetir a MESMA leitura 2× — protocolo é
@@ -158,7 +158,7 @@ determinístico (diverge igual nas duas), estado não muda entre leituras.
 - [ ] ROADMAP: H1 ✅ com data (ou itens R3 abertos como issues)
 - [ ] `sessionH1.jsonl` preservado (matéria-prima para o H3/golden v1.1)
 
-**Códigos de saída do juiz** (`scripts/h1_compare.py`, e o `h1_field.sh` os
+**Códigos de saída do juiz** (`docs/arquivo/scripts-era-RE/h1_compare.py`, e o `h1_field.sh` os
 propaga): `0` níveis 1/3 limpos · `1` divergência de **forma/framing** (fluxo R3)
 · `2` erro de uso · `3` **drift de conteúdo no ensaio** (`refresh-reference
 --forcar`). Um `field` que sai 1 tem de ser parado, não contornado.

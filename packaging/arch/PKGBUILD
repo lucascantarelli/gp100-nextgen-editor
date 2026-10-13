@@ -44,7 +44,7 @@ provides=("$pkgname")
 conflicts=()
 options=('!strip' '!emptydirs')
 # O tarball vem da Release do GitHub e é produzido por
-# `scripts/make_sdist.py` no job `Distribuição · tarball de fonte`. Ele já
+# `packaging/make_sdist.py` no job `Distribuição · tarball de fonte`. Ele já
 # contém `packages/app/ui/dist` (o `frontendDist` do tauri.conf.json) e
 # `packages/core` (dependência de caminho do crate do Tauri).
 source=("$pkgname-$_pkgver.tar.gz")
