@@ -9,9 +9,13 @@ check_bundle que existia e nao rodava (#71).
 
     python3 .github/scripts/check_issue_templates.py     # todos os templates
 
-O gate e estrutural: cada template declarado abaixo precisa das secoes na
-ordem, com `required` onde o contrato exige, e o campo de prompt precisa
-existir. `config.yml` nao tem corpo (so links) e fica de fora por design.
+O gate e estrutural — valida PRESENCA, nao ordem (#188): cada template
+declarado abaixo precisa (1) de `name` + `description`, (2) das secoes
+obrigatorias pelo `id`, (3) de `validations.required: true` nos campos que o
+contrato nao deixa em branco e (4) do campo `prompt` como textarea copiavel;
+YAML com chave repetida reprova (mesma armadilha do ci.yml, #169). A ORDEM das
+secoes no corpo e livre — reordenar nao e violacao. `config.yml` nao tem
+corpo (so links) e fica de fora por design.
 """
 
 from __future__ import annotations
