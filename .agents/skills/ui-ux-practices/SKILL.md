@@ -107,8 +107,14 @@ pnpm build         # vite build (bundle; tsc já rodou acima)
 
 ## Armadilhas específicas de Tauri 2 desktop
 
-- `invoke` só existe dentro do webview — código rodando em teste de browser
-  puro precisa de mock do `window.__TAURI__` (helpers em `ipc/mock.ts`).
+- `invoke` só existe dentro do webview — mas os testes NÃO mockam o Tauri:
+  em jsdom não existe `window.__TAURI_INTERNALS__`, então `inTauri()`
+  (`ipc/device.ts`) cai no fallback de DEV/TESTE embutido na própria porta,
+  que usa o MESMO shape do MockDevice real. Para observar/substituir uma
+  função de porta, o padrão é o mock PARCIAL por teste —
+  `vi.mock("../src/ipc/<porta>", async (importOriginal) => ({ ...mod, fn:
+  vi.fn(mod.fn) }))` (ex.: `tests/panels.test.tsx`, `tests/sync.ui.test.tsx`)
+  — não existe helper central de mock.
 - Janela redimensionável: layout tem de sobreviver de 800×600 até ultrawide
   (testar os 2 extremos; nada de largura fixa em px).
 - Fonte do SO (Segoe UI/Inter) pode mudar métricas: nunca depender de quebra
