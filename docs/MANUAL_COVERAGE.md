@@ -13,7 +13,7 @@
 |---|---|---|---|---|
 | T1 | Logo GP-100 + identidade | ✅ "GP-100 NextGen · editor não-oficial" (sem copiar marca) | TopBar.tsx | R1 e2e |
 | T2 | LED de conexão (ON) | ✅ live-dot verde pulsando + "conectado"/"aguardando device" + Boot na navbar | TopBar | R1/R5 e2e |
-| T3 | Patch navbar `Pnn Nome` | ✅ display 1-based (achado P25) + **◀ ▶ ciclo P01–P99 (30/09)** | TopBar + App.stepPreset | R1/R2 e2e |
+| T3 | Patch `Pnn Nome` (1-based) | ✅ display 1-based no LED do palco (achado P25); ◀ ▶ da navbar **removido pelo dono (12/10)** — troca vive na lista | Stage + useStage | R1/R2 e2e |
 | T4 | DRUM: Volume/Speed/BPM/compasso | ✅ 87 ritmos firmware em 5 gêneros; BPM campo numérico alinhado (30/09) | DrumPanel.tsx | drum e2e + assert de alinhamento |
 | T5 | Master VOL | ✅ slider 0–99 persistente (prévia local) | TopBar + App (localStorage) | R3 e2e (sem erro) |
 | T6 | Stomp Mode FS1/FS2 | 🟡 **bloqueado pós-Fase 1** — precisa captura de writes (G3–G6); UI não mente: não expõe | — | — |
@@ -25,7 +25,7 @@
 
 | # | Item | Estado | Implementação | Teste |
 |---|---|---|---|---|
-| P1 | ◀ ▶ navegação de presets | ✅ ciclo com wrap (P01↔P99); navbar+LED+biblioteca em sincronia | App.stepPreset | R1 e2e (30/09) |
+| P1 | Navegação de presets | ✅ lista comanda o palco (biblioteca → LED); ◀ ▶ removido da navbar (dono 12/10) | LibraryPanel + useStage | R1/R2 e2e |
 | P2 | Patch BPM [120] | 🟡 visível como nota "no device (aguarda captura)" — knob BPM do painel é o parâmetro real; escrita pós-G3–G6 | TopBar (title) | — |
 | P3 | EXP Setting | 🔴 Fase 3 — expressão/footswitch precisa de captura; não há UI falsa | — | — |
 

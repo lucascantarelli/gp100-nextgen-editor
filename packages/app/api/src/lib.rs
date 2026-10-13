@@ -210,6 +210,8 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
         .invoke_handler(tauri::generate_handler![
             commands::device_info,
             commands::device_conectar,
+            commands::device_globals,
+            commands::device_set_global,
             commands::device_board,
             commands::device_preset_library,
             commands::device_select_preset,

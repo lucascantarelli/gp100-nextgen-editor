@@ -9,14 +9,19 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  BOOT_TIMEOUT_MS,
   CommandTimeoutError,
   COMMAND_ATTEMPTS,
   COMMAND_BASE_MS,
   COMMAND_TIMEOUT_MS,
+  deviceBoot,
   deviceInfo,
   deviceSelectPreset,
   deviceSetParam,
+  IDEMPOTENTE_ESPERA_BOOT,
   retryDelayMs,
+  runCommand,
+  semRetry,
 } from "../src/ipc/device";
 
 const KEY = "gp100.debug.failDevice";
@@ -108,5 +113,90 @@ describe("ipc/device — timeout por tentativa (branch Tauri)", () => {
     await vi.advanceTimersByTimeAsync(COMMAND_TIMEOUT_MS * COMMAND_ATTEMPTS + 1_000);
     await rejection;
     expect(vi.mocked(invoke)).toHaveBeenCalledTimes(COMMAND_ATTEMPTS);
+  });
+});
+
+/* ── Prazo declarado na política (o boot de campo leva ~25 s) ──────────────
+ * Regressão do campo de 12/10: o `device_boot` ia pelo default de 8 s e
+ * rejeitava no MEIO do scan — a UI mostrava "Falha no boot do device" com o
+ * aparelho sendo lido certinho (wire log: scan terminou aos 30,3 s e o
+ * relatório saiu 2297/198/198, dentro do gate #161).
+ */
+describe("ipc/device — prazo declarado na política", () => {
+  it("quem declara prazo passa do default de 8 s e só cai no SEU", async () => {
+    (window as unknown as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__ = {};
+    vi.useFakeTimers();
+
+    let erro: unknown = null;
+    const pendente = runCommand(
+      "lento",
+      semRetry("prazo maior que o default: o command e lento de proposito", 60_000),
+      () => new Promise(() => {}),
+    ).catch((e: unknown) => {
+      erro = e;
+    });
+
+    // Além do default de 8 s o command segue de pé — é exatamente o que o
+    // boot precisa; sem o prazo declarado ele teria morrido aqui.
+    await vi.advanceTimersByTimeAsync(COMMAND_TIMEOUT_MS + 500);
+    expect(erro, "o default de 8 s nao pode derrubar um prazo declarado").toBeNull();
+
+    await vi.advanceTimersByTimeAsync(60_000);
+    await pendente;
+    expect(erro, "no prazo declarado ele rejeita (nunca spinner eterno)").toBeInstanceOf(
+      CommandTimeoutError,
+    );
+  });
+
+  it("o BOOT sobrevive aos ~25 s medidos em campo em vez de rejeitar aos 8 s", async () => {
+    (window as unknown as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__ = {};
+    vi.useFakeTimers();
+    expect(BOOT_TIMEOUT_MS, "o prazo tem de cobrir os 25 s medidos").toBeGreaterThan(25_000);
+
+    const { invoke } = await import("@tauri-apps/api/core");
+    vi.mocked(invoke).mockClear();
+    const relatorio = { transactions: 2297, presets: 198, names: 198 };
+    vi.mocked(invoke).mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          setTimeout(() => resolve(relatorio), 25_000);
+        }) as Promise<unknown>,
+    );
+
+    const pendente = deviceBoot();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(vi.mocked(invoke), "o boot foi disparado UMA vez (sem retry)").toHaveBeenCalledTimes(1);
+
+    // 25 s de aparelho lendo + margem: com o default de 8 s esta promise já
+    // teria rejeitado com CommandTimeoutError e a UI mostraria o banner.
+    await vi.advanceTimersByTimeAsync(25_000 + 100);
+    await expect(pendente).resolves.toEqual(relatorio);
+  });
+
+  it("quem disputa a FILA com o boot sobrevive aos 8 s E aos 25 s do scan", async () => {
+    (window as unknown as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__ = {};
+    vi.useFakeTimers();
+
+    let erro: unknown = null;
+    const pendente = runCommand(
+      "library",
+      IDEMPOTENTE_ESPERA_BOOT,
+      () => new Promise(() => {}),
+    ).catch((e: unknown) => {
+      erro = e;
+    });
+
+    // Além do default de 8 s (foi o que derrubou a biblioteca em campo).
+    await vi.advanceTimersByTimeAsync(COMMAND_TIMEOUT_MS + 500);
+    expect(erro, "o default de 8 s nao pode derrubar a espera do boot").toBeNull();
+
+    // E além dos ~25 s do scan: a fila só libera quando o boot termina.
+    await vi.advanceTimersByTimeAsync(25_000);
+    expect(erro, "o boot de 25 s ainda esta dentro do prazo declarado").toBeNull();
+
+    // No SEU prazo ele cai mesmo — o "nunca spinner eterno" continua valendo.
+    await vi.advanceTimersByTimeAsync(BOOT_TIMEOUT_MS * COMMAND_ATTEMPTS + 2_000);
+    await pendente;
+    expect(erro).toBeInstanceOf(CommandTimeoutError);
   });
 });

@@ -17,8 +17,10 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  BOOT_TIMEOUT_MS,
   COMMAND_ATTEMPTS,
   IDEMPOTENTE,
+  IDEMPOTENTE_ESPERA_BOOT,
   deviceBoot,
   deviceInfo,
   deviceSelectPreset,
@@ -69,6 +71,28 @@ describe("política: a exceção é declarada, não herdada", () => {
     expect(p).toEqual({ kind: "once", reason: "boot sao 2297 transacoes" });
     expect(descrevePolitica(p)).toContain("boot sao 2297 transacoes");
     expect(descrevePolitica(IDEMPOTENTE)).toBe(`retry x${COMMAND_ATTEMPTS}`);
+  });
+
+  it("prazo declarado fica NA política e sai na descrição; sem declaração nada muda", () => {
+    const comPrazo = semRetry("boot", 60_000);
+    expect(comPrazo).toEqual({ kind: "once", reason: "boot", timeoutMs: 60_000 });
+    expect(descrevePolitica(comPrazo)).toContain("60000");
+    // O default é decisão do runCommand: quem não declara carrega o MESMO
+    // objeto de sempre (é o que mantém o toEqual acima honesto).
+    expect(semRetry("comum")).toEqual({ kind: "once", reason: "comum" });
+    expect(descrevePolitica(IDEMPOTENTE)).toBe(`retry x${COMMAND_ATTEMPTS}`);
+  });
+
+  it("a política que ESPERA o boot carrega o prazo dela (não o default de 8 s)", () => {
+    expect(IDEMPOTENTE_ESPERA_BOOT).toEqual({
+      kind: "retry",
+      attempts: COMMAND_ATTEMPTS,
+      timeoutMs: BOOT_TIMEOUT_MS,
+    });
+    // O prazo tem de cobrir os ~25 s medidos do boot, senão as 3 tentativas
+    // morrem antes de a fila liberar — é exatamente o bug de campo de 12/10.
+    expect(BOOT_TIMEOUT_MS).toBeGreaterThan(25_000);
+    expect(descrevePolitica(IDEMPOTENTE_ESPERA_BOOT)).toContain("prazo");
   });
 
   it("o BOOT não repete: uma falha é o fim (o ⟳ do usuário recupera)", async () => {

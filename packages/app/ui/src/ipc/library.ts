@@ -19,7 +19,7 @@
 import type { BoardSlot } from "./types";
 import type { LibraryVersion } from "./history";
 import { FACTORY_PRESETS } from "../artifacts/presetData";
-import { IDEMPOTENTE, runCommand, semRetry } from "./device";
+import { IDEMPOTENTE, IDEMPOTENTE_ESPERA_BOOT, runCommand, semRetry } from "./device";
 
 /** Registro da biblioteca, no mesmo shape do `PresetRow` do crate (#26). */
 export interface LibraryPreset {
@@ -266,7 +266,15 @@ export async function librarySearch(q: LibraryQuery = {}): Promise<LibraryPreset
   );
 }
 
-/** Números da biblioteca. */
+/**
+ * Números da biblioteca.
+ *
+ * O `dentroDoShell()` é o sinal de que a tela montou no shell real — e a
+ * montagem acontece DURANTE o boot (~25 s), com o IPC disputado por ele:
+ * por isso a política é [`IDEMPOTENTE_ESPERA_BOOT`] (8 s de default morriam
+ * antes de o boot liberar a fila, e a UI mostrava "Não foi possível ler os
+ * números da biblioteca" com o backend respondendo logo em seguida).
+ */
 export async function libraryStats(): Promise<LibraryStats> {
   if (!dentroDoShell()) {
     const todas = [...bancoFallback().values()];
@@ -279,7 +287,9 @@ export async function libraryStats(): Promise<LibraryStats> {
       sqlite: "memoria",
     };
   }
-  return runCommand("library_stats", IDEMPOTENTE, () => invocar<LibraryStats>("library_stats"));
+  return runCommand("library_stats", IDEMPOTENTE_ESPERA_BOOT, () =>
+    invocar<LibraryStats>("library_stats"),
+  );
 }
 
 /**

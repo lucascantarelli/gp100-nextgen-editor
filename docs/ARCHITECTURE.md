@@ -44,7 +44,7 @@ src/
 ├── main.tsx (11)          monta o React
 │
 ├── ipc/                   ── a PORTA ──────────────────────────
-│   ├── device.ts (497)    device_select_preset, device_board, … + retry declarativo
+│   ├── device.ts (534)    device_select_preset, device_board, … + retry declarativo
 │   │                      e a POLÍTICA de escrita da tela: `escritaLiberada()`
 │   │                      é a ÚNICA leitura de `writeVerified` para decidir
 │   │                      botão (#126 — knob/IR/SnapTone nascem travados)

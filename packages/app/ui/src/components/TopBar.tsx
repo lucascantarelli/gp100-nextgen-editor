@@ -1,8 +1,14 @@
 /**
  * TopBar — navbar "painel da pedaleira" (referência visual do manual do
- * device): logo, cluster de conexão+boot, patch corrente, chip do DRUM
- * (play/stop e BPM DIRETO na navbar — sem abrir o painel; o chip abre o
- * DrumPanel com os 87 ritmos do firmware) e Master VOL + kill.
+ * device): logo, cluster de conexão+boot, chip do DRUM (play/stop e BPM
+ * DIRETO na navbar — sem abrir o painel; o chip abre o DrumPanel com os 87
+ * ritmos do firmware) e Master VOL + kill.
+ *
+ * **(dono 12/10) o cluster de PATCH foi REMOVIDO daqui** — ◀ ▶ + nome do
+ * patch saíram da navbar "para não adicionar mais complexidade"; a troca de
+ * patch acontece pela LISTA da biblioteca e o rótulo corrente vive no
+ * display LED do palco. O indicador de conexão também perdeu a miniatura
+ * SVG (DeviceBadge: dot + linha de status honesta).
  *
  * Refino da navbar (issue #10):
  *  - alturas UNIFORMES: todo botão daqui tem 32px (`nbBtn`) → clusters iguais;
@@ -18,18 +24,24 @@ import { useEffect, useRef } from "react";
 import type { CSSProperties } from "react";
 import { DrumPanel } from "./DrumPanel";
 import type { DrumState } from "./DrumPanel";
+import { DeviceBadge } from "./DeviceBadge";
+import type { DeviceInfo } from "../ipc/types";
 import { MSG } from "../i18n/messages";
 
 interface Props {
-  connected: boolean;
   /** backend simulado (mock): badge de estado, não faixa de aviso */
   mock: boolean;
+  /** `device_info` corrente — o DeviceBadge lê backend/presetCount/writeVerified
+   *  dele para mostrar estado honesto do aparelho (nada é inventado no fio) */
+  info: DeviceInfo | null;
+  /** conexão VALIDADA pelo boot (fórmula do App: pronto && backend !== "none")
+   *  — sem ela o badge mostraria "on" com o boot falho (#161) */
+  conectado: boolean;
   /** boot em andamento (botão desabilitado + ocupado) */
   booting: boolean;
   /** dispara o script de boot (estava na seção de conexão, removida por
    *  duplicar a navbar — o boot agora mora aqui, junto do status) */
   onBoot: () => void;
-  presetLabel: string;
   masterVol: number;
   drum: DrumState;
   /** aberto do MODAL do drum vive no App (precedência do Esc global) */
@@ -41,9 +53,6 @@ interface Props {
   onMasterVol: (v: number) => void;
   onDrum: (d: DrumState) => void;
   onDrumOpenChange: (open: boolean) => void;
-  /** ◀ ▶: preset anterior/seguinte (manual do device, ciclo P01→P99) */
-  onPrevPatch: () => void;
-  onNextPatch: () => void;
 }
 /* ⇄ mover migrou para o PALCO (EmptyBoard: controla o arrastar dos
  * slots) e o VU reativo (V-7) também — identidade visual do pedalboard;
@@ -69,18 +78,6 @@ const val: CSSProperties = {
   textAlign: "right",
   /* números tabulares: o valor não "treme" ao arrastar o slider */
   fontVariantNumeric: "tabular-nums",
-};
-/* nome do patch: encolhe com reticências quando a navbar aperta (nunca
-   empurra a linha para 2 fileiras — expectShellAligned exige <70px) */
-const patchName: CSSProperties = {
-  fontFamily: "var(--font-mono)",
-  color: "var(--text)",
-  whiteSpace: "nowrap",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  minWidth: 0,
-  flex: "1 1 auto",
-  textAlign: "center",
 };
 /* separador vertical: agrupa sem borda pesada (status|boot, master|kill) */
 const divider: CSSProperties = { width: 1, height: 20, background: "var(--border)", flex: "0 0 auto" };
@@ -135,16 +132,6 @@ const tone = {
 /* botões da navbar usam o botão do SISTEMA (`gp-btn`) com a geometria
    própria de cada um; `btn-glass` é o modificador translúcido do mock */
 const btn = (on = false): string => `gp-btn${on ? " gp-btn--on" : ""}`;
-const badge: CSSProperties = {
-  fontSize: "var(--text-xs)",
-  fontFamily: "var(--font-mono)",
-  padding: "1px 8px",
-  borderRadius: 8,
-  color: "var(--accent-text)",
-  border: "1px solid color-mix(in srgb, var(--accent) 45%, transparent)",
-  background: "color-mix(in srgb, var(--accent) 12%, transparent)",
-  whiteSpace: "nowrap",
-};
 /* stepper de BPM da navbar: − valor + (tabular; clamp 40–240 igual ao modal).
    As medidas vivem no CSS (`.nb-step`/`.nb-bpm`) para o media query ≤1024
    poder encolher o bloco e devolver largura ao chip do ritmo. */
@@ -186,11 +173,11 @@ function Slider({
 }
 
 export function TopBar({
-  connected,
   mock,
+  info,
+  conectado,
   booting,
   onBoot,
-  presetLabel,
   masterVol,
   drum,
   drumOpen,
@@ -199,8 +186,6 @@ export function TopBar({
   onMasterVol,
   onDrum,
   onDrumOpenChange,
-  onPrevPatch,
-  onNextPatch,
 }: Props) {
   // botões de ação global usam a classe glass (32px + blur) quando há mock;
   // sem mock, ficam só com a base (visual idêntico ao resto da casca)
@@ -261,13 +246,11 @@ export function TopBar({
           clusters ENCOLHEM com ellipsis em vez de quebrar o banner */}
       <div className="nb-controls">
 
-      {/* conexão + boot: status, badge de backend e botão de boot num
-          cluster só (a seção de conexão da página foi removida — duplicava
-          esta navbar); separador + ⟳ acento dão o ar de painel */}
+      {/* conexão + boot: o DeviceBadge (miniatura do aparelho + LED pulsante +
+          info honesta de backend/presets/escrita) e o botão de re-escanear num
+          cluster só; separador + ⟳ acento dão o ar de painel */}
       <div className="gp-surface gp-surface--flat gp-specular nb-cluster" role="status" aria-label={MSG.connClusterAria}>
-        <span className={connected ? "live-dot" : "idle-dot"} aria-hidden="true" />
-        <span style={label}>{connected ? MSG.connShortOn : MSG.connShortOff}</span>
-        {mock && <span className="mock-badge nb-push" style={badge}>{MSG.mockBadge}</span>}
+        <DeviceBadge info={info} conectado={conectado} />
         <span className="nb-div" style={divider} aria-hidden="true" />
         <button
           className="gp-btn nb-icon-btn"
@@ -281,19 +264,6 @@ export function TopBar({
           <span className="nb-spin" aria-hidden="true">
             ⟳
           </span>
-        </button>
-      </div>
-
-      {/* patch corrente (navbar) — Q2: também há display LED no board;
-          ◀ ▶ acento com hover refinado (`.nb-accent`) e nome que encolhe */}
-      <div className="gp-surface gp-surface--flat gp-specular nb-cluster">
-        <span className="nb-cap" style={label}>{MSG.patchLabel}</span>
-        <button className="gp-btn nb-accent" style={{ ...nbBtn, padding: "4px 10px" }} onClick={onPrevPatch} aria-label={MSG.patchPrevAria} title={MSG.patchPrevTitle}>
-          ◀
-        </button>
-        <strong style={patchName}>{presetLabel}</strong>
-        <button className="gp-btn nb-accent" style={{ ...nbBtn, padding: "4px 10px" }} onClick={onNextPatch} aria-label={MSG.patchNextAria} title={MSG.patchNextTitle}>
-          ▶
         </button>
       </div>
 

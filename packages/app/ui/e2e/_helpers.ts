@@ -19,7 +19,8 @@ export interface ShellMeasure {
   vuInside: boolean;
   clippedCount: number;
   clippedSample: string[];
-  /** navbar como RACK: largura/altura de cada um dos 4 módulos (#12) */
+  /** navbar como RACK: largura/altura de cada um dos 3 módulos (#12;
+   *  o cluster de patch saiu da navbar — dono 12/10) */
   navbar: { count: number; widths: number[]; heights: number[]; topSpread: number } | null;
 }
 
@@ -87,7 +88,7 @@ export async function measureShell(page: Page): Promise<ShellMeasure> {
       .gridTemplateColumns.split(" ")
       .map((v) => parseFloat(v));
 
-    // NAVBAR (#12): os 4 módulos da navbar têm que ter a MESMA largura e a
+    // NAVBAR (#12): os 3 módulos da navbar têm que ter a MESMA largura e a
     // MESMA altura, e compartilhar o mesmo topo — é o que separa um rack
     // de uma fileira de blocos de tamanho sorteado.
     const mods = [...document.querySelectorAll(".nb-controls > *")].map(rectOf);
@@ -165,14 +166,14 @@ export async function expectShellAligned(page: Page, width: number): Promise<voi
   expect(m.vuInside, `VU meters contidos @${width}`).toBe(true);
   expect(m.clippedCount, `texto clipado @${width}: ${m.clippedSample.join(" | ")}`).toBe(0);
 
-  // NAVBAR EM RACK (#12): 4 módulos, mesma largura, mesma altura, mesmo
+  // NAVBAR EM RACK (#12): 3 módulos, mesma largura, mesma altura, mesmo
   // topo. Abaixo de 620px eles empilham (1 coluna) — aí só o topo vale.
   const nb = m.navbar;
   expect(nb, `navbar medida @${width}`).not.toBeNull();
   const nbWidths = nb!.widths;
   const nbSpread = Math.max(...nbWidths) - Math.min(...nbWidths);
   if (width > 620) {
-    expect(nb!.count, `4 módulos na navbar @${width}`).toBe(4);
+    expect(nb!.count, `3 módulos na navbar @${width}`).toBe(3);
     expect(nbSpread, `larguras iguais na navbar @${width}: ${nbWidths.join("/")}`).toBeLessThanOrEqual(0.5);
     expect(Math.max(...nb!.heights) - Math.min(...nb!.heights), `alturas iguais @${width}`).toBeLessThanOrEqual(0.5);
   }

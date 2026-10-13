@@ -30,11 +30,11 @@ export const EN: DictPatch = {
   connShortOn: "on",
   connShortOff: "off",
   mockBadge: "Mock Device",
-  patchLabel: "patch",
-  patchPrevAria: "Previous patch",
-  patchPrevTitle: "Previous patch (P01–P99 cycling)",
-  patchNextAria: "Next patch",
-  patchNextTitle: "Next patch (P01–P99 cycling)",
+  connBadgeLoading: "reading device…",
+  connBadgeNone: "no device",
+  connBadgePresets: "presets",
+  connBadgeWriteOk: "write enabled",
+  connBadgeWriteLocked: "write locked",
   drumChipPre: "drum · ",
   drumChipAria: (style: string, bpm: number, beat: string) =>
     `Drum: ${style}, ${bpm} BPM, ${beat} time signature — open pattern manager`,
@@ -123,6 +123,7 @@ export const EN: DictPatch = {
   libAria: "Device patches",
   libTabsAria: "Patch type",
   libTabFactory: "Patches",
+  libTabFab: "Factory",
   libTabUser: "My patches",
   libListAria: "Device patches",
   libEmptyDevice: "Device not connected — connect the GP-100 to load the patches.",
@@ -131,6 +132,7 @@ export const EN: DictPatch = {
   searchEmpty: (q: string) => `No preset matches “${q}”. Tip: search by style (Rock, Funk…) or number.`,
   libRowTitle: (name: string, type: string) => `Open “${name}” (${type})`,
   libPp: (pp: number) => `P${String(pp + 1).padStart(2, "0")}`,
+  libFabPp: (pp: number) => `F${String(pp + 1).padStart(2, "0")}`,
   libUserPp: (i: number) => `U${String(i + 1).padStart(2, "0")}`,
 
   /* user patches (LOCAL PREVIEW — writing to the device has no channel yet) */

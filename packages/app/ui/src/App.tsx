@@ -1,10 +1,11 @@
 /**
  * App — casca do editor em VIEWPORT ÚNICA: navbar (logo/conexão/boot/
- * patch/DRUM/Master+kill) → meio com scroll próprio (looper, pushes,
+ * DRUM/Master+kill) → meio com scroll próprio (looper, pushes,
  * biblioteca + palco) → rodapé da pedaleira (IN · marca · ⚙ · OUT).
  * A biblioteca de FÁBRICA é real (99 presets do all.prst; abrir = select
- * no device), o board mostra os 9 lugares (display LED + navbar com o
- * patch) e o modal Settings persiste local (badge "prévia local").
+ * no device), o board mostra os 9 lugares (display LED — o rótulo do patch
+ * corrente mora LÁ, não na navbar, que perdeu o cluster ◀ ▶ por decisão do
+ * dono 12/10) e o modal Settings persiste local (badge "prévia local").
  * O boot vive INTEGRADO à navbar: progresso e erro aparecem só durante
  * o boot/falha (a seção de conexão permanente foi removida: duplicava a
  * navbar). A trava ⇄ mover pertence ao PALCO (EmptyBoard); o rodapé
@@ -35,8 +36,8 @@
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { DeviceInfo } from "./ipc/types";
-import { rotuloPp } from "./ipc/types";
-import { deviceInfo, escritaLiberada } from "./ipc/device";
+import { deviceGlobals, deviceInfo, deviceSetGlobal, escritaLiberada } from "./ipc/device";
+import type { DrumState } from "./components/DrumPanel";
 import { useBoot } from "./hooks/useBoot";
 import { usePushLog } from "./hooks/usePushLog";
 import { useGlobalShortcuts } from "./hooks/useGlobalShortcuts";
@@ -79,7 +80,10 @@ export default function App() {
   // O callback precisa ser ESTÁVEL (o `openPreset` é dependência de efeito),
   // por isso é um useCallback vazio de dependências.
   const onPresetChanged = useCallback(() => setEditing(null), []);
-  const stage = useStage(onPresetChanged);
+  // A biblioteca do aparelho é produto do SCAN do boot (#150 + campo
+  // 12/10): o useStage só pode pedi-la quando o boot validou o relatório
+  // (#161). Pedir antes era correr a fila do actor contra o script de 25 s.
+  const stage = useStage(onPresetChanged, boot.state.kind === "ready");
   // O gestor de tons (#25) tem o estado no hook inteiro: a lista, o A/B e o
   // envio em andamento vivem la porque sao coisas que sobrevivem ao fechar e
   // reabrir a tela — perder o "enviando…" ao clicar fora mandaria um segundo
@@ -95,14 +99,12 @@ export default function App() {
   const conteudo = useContentMenu({ tones, irs, preset: { pp: stage.pp, onImport: stage.openImported }, ab: { openUserId: stage.openUserId, rotulo: stage.board?.ppLabel ?? MSG.libPp(stage.pp), podeGravar: escritaLiberada(info) } });
   const {
     pp,
-    presetName,
     board,
     openUserId,
     lib,
     deviceLib,
     err,
     openPreset,
-    stepPreset,
     openUserPatch,
     saveUserPatch,
     deleteUserPatch,
@@ -167,7 +169,65 @@ export default function App() {
   // conectado (LED mentiroso sobre quem está na USB), e durante o boot ou
   // no erro o LED fica off até o gate liberar a casca.
   const pronto = boot.state.kind === "ready";
-  const connected = pronto && info != null && info.backend !== "none";
+
+  // Herda os registradores globais do device (§13.13): master e DRUM vêm
+  // DO aparelho no boot validado (decode medido nibble-par) — o localStorage
+  // é o fallback de quem não tem device. Re-ler no ⟳ é de propósito (o
+  // re-scan relê o device). Falha aqui NÃO vira banner: o palco já está no
+  // estado do device (#150) e este enriquecimento é opcional — o retry
+  // natural é o próprio ⟳.
+  useEffect(() => {
+    if (!pronto) return;
+    void deviceGlobals()
+      .then((g) => {
+        if (g.volume != null) setMasterVol(Math.max(0, Math.min(99, g.volume)));
+        if (g.drumBpm != null || g.drumVolume != null) {
+          setDrum((d) => ({
+            ...d,
+            ...(g.drumBpm != null ? { bpm: Math.max(40, Math.min(240, g.drumBpm)) } : {}),
+            ...(g.drumVolume != null ? { volume: Math.max(0, Math.min(100, g.drumVolume)) } : {}),
+          }));
+        }
+      })
+      .catch((e: unknown) => {
+        console.error("device_globals indisponível (localStorage segue):", e);
+      });
+  }, [pronto]);
+
+  // Master VOL: prévia local SEMPRE + escrita no registrador gVolume quando
+  // o build permite (ADR-5: sem write-verified o transporte recusa antes do
+  // driver e o erro fica no console — a UI segue no valor local, mesmo
+  // tratamento do knob).
+  const mudaMaster = (v: number) => {
+    setMasterVol(v);
+    if (info?.writeVerified) {
+      void deviceSetGlobal("gVolume", v).catch((e: unknown) => {
+        console.error("gVolume write falhou (prévia local):", e);
+      });
+    }
+  };
+
+  // DRUM: idem para os registradores medidos drumBpm/drumVolume — só o que
+  // MUDOU dispara write (os botões ±/slider mandam estado inteiro).
+  const mudaDrum = (d: DrumState) => {
+    const anterior = drum;
+    setDrum(d);
+    if (!info?.writeVerified) return;
+    if (d.bpm !== anterior.bpm) {
+      void deviceSetGlobal("drumBpm", d.bpm).catch((e: unknown) => {
+        console.error("drumBpm write falhou (prévia local):", e);
+      });
+    }
+    if (d.volume !== anterior.volume) {
+      void deviceSetGlobal("drumVolume", d.volume).catch((e: unknown) => {
+        console.error("drumVolume write falhou (prévia local):", e);
+      });
+    }
+  };
+  // Conexão VALIDADA pelo boot (fórmula do cluster antigo, #161): device_info
+  // respondendo não é conexão — boot falho mantém o LED off, senão a navbar
+  // mentiria sobre um device que o gate recusou (e2e mid-boot).
+  const conectado = pronto && info != null && info.backend !== "none";
 
   // página FLUIDA: navbar → conteúdo → rodapé num só fluxo; a rolagem é a
   // natural da JANELA (nada de scroll interno no meio da página). O
@@ -188,9 +248,9 @@ export default function App() {
           só — a grade da página tem 3 filhos exatos (topo · meio · rodapé) */}
       <div style={{ display: "grid", gap: "var(--space-12)" }}>
         <TopBar
-          connected={connected}
+          info={info}
+          conectado={conectado}
           mock={info?.backend === "mock"}
-          presetLabel={`${board?.ppLabel ?? (info?.backend === "real" ? rotuloPp(pp) : MSG.libPp(pp))} ${presetName}`}
           masterVol={masterVol}
           drum={drum}
           drumOpen={drumOpen}
@@ -198,11 +258,9 @@ export default function App() {
           onBoot={() => boot.startBoot("manual")}
           settingsOpen={settingsOpen}
           onOpenSettings={() => setSettingsOpen(true)}
-          onMasterVol={setMasterVol}
-          onDrum={setDrum}
+          onMasterVol={mudaMaster}
+          onDrum={mudaDrum}
           onDrumOpenChange={setDrumOpen}
-          onPrevPatch={() => stepPreset(-1)}
-          onNextPatch={() => stepPreset(1)}
         />
 
         {/* gate de boot (#161): fora do ready a página é navbar + gate;

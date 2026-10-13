@@ -16,7 +16,7 @@
 import { FX_MODULES } from "../artifacts/fxData";
 import { PRESET_CHAINS } from "../artifacts/presetChains";
 import { ARCHETYPE_OF, rotuloPp } from "./types";
-import type { BoardSlot, BoardView, ChainFamily, PresetLibrary } from "./types";
+import type { BoardSlot, BoardView, ChainFamily, DeviceGlobals, PresetLibrary } from "./types";
 
 /**
  * Fallback determinístico p/ TESTES (vitest/jsdom), espelhando o MockDevice
@@ -141,4 +141,67 @@ export function localMockLibrary(): PresetLibrary {
     entries: pps.map((pp) => ({ pp, name: "", ppTypeName: "" })),
     currentPp: 0,
   };
+}
+
+/* ── Registradores globais (§13.13) no fallback ──────────────────────── */
+
+/**
+ * Estado global do fallback — os MESMOS defaults do `MockDevice` do core
+ * (master 99 · drum 120/80): no dev web a tela não muda quando o seed lê
+ * "o device", e o write-through roundtrippa local como o mock roundtrippa
+ * no fio. Mapa por CHAVE do allowlist (o front nunca escreve endereço cru).
+ */
+const GLOBAIS: Record<string, number> = {
+  gVolume: 99,
+  drumBpm: 120,
+  drumVolume: 80,
+  gInput: 50,
+};
+
+/** Contador nibble-par medido (§13.13.4): valor → payload [d0, d1, 0, 0]. */
+function nibblePar(v: number): number[] {
+  return [Math.floor(v / 16), v % 16, 0, 0];
+}
+
+/**
+ * `device_globals` no fallback: o bloco medido com os defaults acima.
+ * `raw` espelha o formato do core (hex do endereço → payload crU).
+ */
+export function fallbackGlobals(): DeviceGlobals {
+  return {
+    volume: GLOBAIS.gVolume,
+    drumBpm: GLOBAIS.drumBpm,
+    drumVolume: GLOBAIS.drumVolume,
+    inputLevel: GLOBAIS.gInput,
+    raw: {
+      "00020003": nibblePar(GLOBAIS.gVolume),
+      "00020004": nibblePar(GLOBAIS.gInput),
+      "00010203": nibblePar(GLOBAIS.drumBpm),
+      "00010204": nibblePar(GLOBAIS.drumVolume),
+    },
+  };
+}
+
+/**
+ * `device_set_global` no fallback: atualiza o mapa (roundtrip local).
+ * O allowlist MIRA o do backend (`device_set_global`): o front escreve por
+ * chave fechada — `gInput` é leitura neste passo (faixa não medida).
+ */
+export function fallbackSetGlobal(chave: string, valor: number): void {
+  if (chave !== "gVolume" && chave !== "drumBpm" && chave !== "drumVolume") {
+    throw new Error(`registrador global não permitido: ${chave}`);
+  }
+  GLOBAIS[chave] = Math.max(0, Math.min(255, Math.round(valor)));
+}
+
+/**
+ * Reset entre testes — o mapa é de MÓDULO (como o da biblioteca que
+ * `resetaFallback` zera): sem isto, o valor que um teste escreveu vaza
+ * para o seed do teste seguinte.
+ */
+export function resetaGlobais(): void {
+  GLOBAIS.gVolume = 99;
+  GLOBAIS.drumBpm = 120;
+  GLOBAIS.drumVolume = 80;
+  GLOBAIS.gInput = 50;
 }

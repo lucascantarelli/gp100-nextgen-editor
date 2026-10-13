@@ -55,6 +55,29 @@ export interface DeviceInfo {
 }
 
 /**
+ * Registradores globais do device (§13.13 — sessão G3–G6/G7): o bloco
+ * medido SYSTEM `000200xx` + DRUM `000102xx`, lido no boot validado.
+ *
+ * Números SÓ onde o decode é medido (contador nibble-par §13.13.4:
+ * valor = d0*16 + d1); o resto do bloco vive cru em `raw` (hex → payload)
+ * como diagnóstico — ADR-13: sem semântica inventada. Quando um diff de
+ * ação isolada fechar a semântica de mais um registrador, ele sobe de
+ * `raw` para número aqui (mesmo caminho que `inputLevel` aguarda).
+ */
+export interface DeviceGlobals {
+  /** gVolume ("volume master", §13.13.7) — 0..=255 medido; a UI aplica o clamp do slider. */
+  volume: number | null;
+  /** drumBpm — medido no diff controlado (§13.13.4). */
+  drumBpm: number | null;
+  /** drumVolume — RE do Suite (§13.13.7), família medida. */
+  drumVolume: number | null;
+  /** gInput — valor CRU 0..=255; a faixa do controlador da UI não foi medida, então não semeia slider. */
+  inputLevel: number | null;
+  /** Payloads CRUS por endereço hex (a tabela medida). */
+  raw: Record<string, number[]>;
+}
+
+/**
  * Um frame que o aparelho **receberia**, sem receber (o `--dry-run` do CLI,
  * agora no backend).
  *

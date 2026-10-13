@@ -190,6 +190,99 @@ pub fn device_conectar(state: State<'_, AppState>) -> Result<(), String> {
     state.actor.conectar()
 }
 
+/// Registradores globais (§13.13) para o front.
+///
+/// Só campos com decode MEDIDO viram número (ADR-13: sem semântica
+/// inventada); o resto do bloco aparece crU em `raw` (hex do endereço →
+/// payload) como matéria-prima do painel de diagnóstico — quando um diff
+/// de ação isolada fechar a semântica (ex.: faixa do Input Level), o campo
+/// sobe de `raw` para número aqui.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DeviceGlobals {
+    /// gVolume ("volume master", §13.13.7) — nibble-par medido (§13.13.4):
+    /// valor 0..=255; a UI aplica o clamp 0..99 do slider.
+    pub volume: Option<u8>,
+    /// drumBpm (medido no diff controlado §13.13.4) — nibble-par.
+    pub drum_bpm: Option<u16>,
+    /// drumVolume (RE do Suite §13.13.7) — mesma família medida.
+    pub drum_volume: Option<u8>,
+    /// gInput — valor CRU 0..=255 (nibble-par). A faixa do controlador da
+    /// UI (0..100) ainda não foi medida, então o front NÃO semeia o slider;
+    /// fica no diagnóstico até o diff isolado fechar (§13.13.4).
+    pub input_level: Option<u16>,
+    /// Payloads CRUS por endereço hex (a tabela medida `REGS_GLOBAIS`).
+    pub raw: std::collections::BTreeMap<String, Vec<u8>>,
+}
+
+/// `device_globals` — lê o bloco medido de registradores globais (§13.13)
+/// DO device (SYSTEM `000200xx` + DRUM `000102xx`) e devolve os decodes
+/// medidos + o bruto.
+///
+/// # Erros
+/// String de protocolo (Timeout/InvalidShape) ou morte do actor — o front
+/// vira banner com retry (#20), nunca spinner eterno.
+#[tauri::command]
+pub fn device_globals(state: State<'_, AppState>) -> Result<DeviceGlobals, String> {
+    Ok(globals_de(state.actor.globals()?))
+}
+
+/// Deriva o DTO do bloco cru lido (pura — testável sem `State`).
+fn globals_de(bruto: Vec<([u8; 4], Vec<u8>)>) -> DeviceGlobals {
+    use gp100_core::codec::nibble_pair_value;
+    let mut raw = std::collections::BTreeMap::new();
+    let mut volume = None;
+    let mut drum_bpm = None;
+    let mut drum_volume = None;
+    let mut input_level = None;
+    for (addr, payload) in bruto {
+        let hex = addr.iter().map(|b| format!("{b:02x}")).collect::<String>();
+        match addr {
+            [0x00, 0x02, 0x00, 0x03] => volume = nibble_pair_value(&payload).map(|v| v as u8),
+            [0x00, 0x01, 0x02, 0x03] => drum_bpm = nibble_pair_value(&payload),
+            [0x00, 0x01, 0x02, 0x04] => drum_volume = nibble_pair_value(&payload).map(|v| v as u8),
+            [0x00, 0x02, 0x00, 0x04] => input_level = nibble_pair_value(&payload),
+            _ => {}
+        }
+        raw.insert(hex, payload);
+    }
+    DeviceGlobals {
+        volume,
+        drum_bpm,
+        drum_volume,
+        input_level,
+        raw,
+    }
+}
+
+/// `device_set_global` — escreve num registrador global (§13.13.1). Por
+/// CHAVE semanticamente fechada, nunca por endereço vindo do front: o
+/// allowlist é a política de "o que a UI pode escrever". Sem write-verified
+/// o transporte recusa antes do driver (ADR-5) e o erro sobe — a UI trata
+/// como prévia local (mesmo caminho do knob).
+#[tauri::command]
+pub fn device_set_global(
+    state: State<'_, AppState>,
+    chave: String,
+    valor: u16,
+) -> Result<(), String> {
+    let addr = addr_global(&chave)?;
+    let payload = gp100_core::codec::nibble_pair_payload(valor)
+        .map_err(|e| e.to_string())?
+        .to_vec();
+    state.actor.set_global(addr, payload)
+}
+
+/// Chave → endereço do allowlist (pura — testável sem `State`).
+fn addr_global(chave: &str) -> Result<[u8; 4], String> {
+    match chave {
+        "gVolume" => Ok([0x00, 0x02, 0x00, 0x03]),
+        "drumBpm" => Ok([0x00, 0x01, 0x02, 0x03]),
+        "drumVolume" => Ok([0x00, 0x01, 0x02, 0x04]),
+        outro => Err(format!("registrador global não permitido: {outro}")),
+    }
+}
+
 /// `device_board` — board do preset (dados do pedalboard da UI): slots da
 /// cadeia, arquétipos por família e knobs do dicionário com os valores do
 /// preset. Projeção pura no core, servida pelo actor (D8: um caminho só).
@@ -558,6 +651,39 @@ mod tests {
     use super::*;
     use gp100_core::transport::mock::MockDevice;
     use gp100_core::transport::DeviceTransport;
+
+    /// O bloco global lido DO mock devolve os decodes medidos (nibble-par
+    /// §13.13.4) + o bruto — e NÃO inventa campo: o que não tem decode fica
+    /// só em `raw` (ADR-13).
+    #[test]
+    fn device_globals_deriva_do_mock_com_decode_medido() {
+        let mut mock = MockDevice::new().expect("mock montado");
+        mock.open().expect("abre");
+        let actor = crate::actor::DeviceActor::spawn(mock, crate::actor::Backend::Mock);
+        let dto = globals_de(actor.globals().expect("bloco lido"));
+        actor.shutdown();
+        assert_eq!(dto.volume, Some(99), "master default da UI no mock");
+        assert_eq!(dto.drum_bpm, Some(120));
+        assert_eq!(dto.drum_volume, Some(80));
+        assert_eq!(dto.input_level, Some(50));
+        assert_eq!(
+            dto.raw.len(),
+            gp100_core::session::REGS_GLOBAIS.len(),
+            "a tabela medida inteira chega crua"
+        );
+        assert_eq!(dto.raw.get("00020003"), Some(&vec![0x06, 0x03, 0, 0]));
+    }
+
+    /// O allowlist é a POLÍTICA do que a UI pode escrever: chave fora dele
+    /// é recusada antes de qualquer fio.
+    #[test]
+    fn device_set_global_allowlist_só_chaves_fechadas() {
+        assert_eq!(addr_global("gVolume").unwrap(), [0x00, 0x02, 0x00, 0x03]);
+        assert_eq!(addr_global("drumBpm").unwrap(), [0x00, 0x01, 0x02, 0x03]);
+        assert_eq!(addr_global("drumVolume").unwrap(), [0x00, 0x01, 0x02, 0x04]);
+        assert!(addr_global("0002001f").is_err(), "sem endereço cru vindo do front");
+        assert!(addr_global("gNoCabLeft").is_err(), "fora do escopo do 1º passo");
+    }
 
     /// O DTO do command é derivado do snapshot REAL do actor (nunca de
     /// valores inventados): mesmo estado que o CLI `info` imprime — R1 nos DTOs.

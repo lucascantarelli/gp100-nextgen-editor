@@ -68,14 +68,16 @@ describe("App — casca (a11y e estados)", () => {
       "PRE/C-Wah renderizado",
     ).toBeTruthy();
 
-    // biblioteca: o INVENTÁRIO do aparelho (#150) — 198 slots endereçados
+    // biblioteca: os BANCOS do aparelho (#150) — a aba padrão é a do dono
+    // (P01–P99, manual V1.8); a de fábrica (F01–F99) é a aba ao lado
     const listbox = host.querySelector('[role="listbox"]');
     expect(listbox, "lista de presets acessível").not.toBeNull();
     const options = Array.from(listbox!.querySelectorAll('[role="option"]'));
-    expect(options.length).toBe(198);
-    // slots endereçados (o nome do slot é trabalho do decode #152)
-    expect(host.textContent).toContain("0x0100");
-    expect(host.textContent).toContain("0x0062");
+    expect(options.length).toBe(99);
+    // rótulos do MANUAL por banco — nunca o endereço crúdo do fio (0x0100
+    // saía como "P257" e o dono lia 300+ patches onde o aparelho tem 198)
+    expect(host.textContent).toContain("P01");
+    expect(host.textContent).toContain("P99");
 
     // ações globais com nome acessível
     const buttons = Array.from(host.querySelectorAll("button"));
@@ -189,19 +191,25 @@ describe("App — casca (a11y e estados)", () => {
     const { root, host } = mount(<App />);
     await settle();
 
-    const slot24 = Array.from(host.querySelectorAll('[role="option"]')).find((o) => o.textContent?.includes("0x0018"));
-    expect(slot24, "slot 0x0018 visível").toBeTruthy();
+    // a aba padrão é a do DONO (banco baixo medido em campo 12/10): 0x0018 =
+    // 24 → P25, rotulado pelo manual (nunca pelo endereço crúdo)
+    const slot24 = Array.from(host.querySelectorAll('[role="option"]')).find((o) => o.textContent?.includes("P25"));
+    expect(slot24, "slot P25 (0x0018) visível").toBeTruthy();
     act(() => {
       slot24!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
     await settle();
 
-    // O pp SELECIONADO aparece no LED e na navbar (pp 24 do banco baixo →
-    // rótulo 1-based P25, como o app oficial exibe; o nome é a fixture)
-    const navbar = Array.from(host.querySelectorAll("strong")).find((s) => /^P\d{2}/.test(s.textContent ?? ""));
-    expect(navbar?.textContent).toBe("P25 Fixture de teste (não é aparelho)");
+    // O pp SELECIONADO aparece no display LED do palco (pp 24 do banco baixo →
+    // rótulo 1-based P25, como o app oficial exibe; o nome é a fixture). A
+    // navbar perdeu o nome do patch (dono 12/10), então o LED é a fonte.
     const board = host.querySelector('[aria-label^="Pedalboard"]');
-    expect(board?.querySelector('[role="status"]')?.textContent).toContain("P25");
+    const led = board?.querySelector('[role="status"]');
+    const spans = led ? Array.from(led.querySelectorAll("span")) : [];
+    expect(`${spans[0]?.textContent ?? ""} ${spans[1]?.textContent ?? ""}`.trim()).toBe(
+      "P25 Fixture de teste (não é aparelho)",
+    );
+    expect(led?.textContent).toContain("P25");
 
     act(() => root.unmount());
     host.remove();

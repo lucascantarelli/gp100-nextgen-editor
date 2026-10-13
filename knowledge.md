@@ -13,6 +13,9 @@ ordem de leitura). O fluxo de trabalho é `.agents/skills/github-flow/SKILL.md`.
 
 ## Estado vivo (atualizar a cada marco — 1–3 linhas, sem prosa)
 
+- 12/10 — **Navbar enxuta (diretriz do dono)**: cluster de PATCH (◀ ▶ + nome)
+  removido da navbar — troca vive na LISTA e o rótulo no display LED do palco;
+  DeviceBadge sem miniatura SVG (dot `.live-dot`/`.idle-dot` + status honesto).
 - 11/10 — **#170 (harness do agente) em execução**: skills da Era HW
   (`hardware-dev`, `testing`, `release` novas; 5 da Era RE arquivadas em
   `docs/arquivo/skills-era-RE/`), `.agents/prompts/` com 6 templates, templates
