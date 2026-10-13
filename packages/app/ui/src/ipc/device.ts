@@ -1,17 +1,16 @@
 /**
- * ipc/device — ÚNICA porta do front para os commands/eventos de device
- * (Porta única do front: componentes NUNCA chamam `invoke`/`listen` espalhado
- * nem importam gp100-core — o lint bloqueia import direto de @tauri-apps).
+ * ipc/device — porta dos commands/eventos de device (componentes NUNCA
+ * chamam `invoke`/`listen` espalhado nem importam gp100-core — o lint
+ * bloqueia import direto de @tauri-apps).
  *
- * Fora do webview do Tauri (vitest/jsdom), `window.__TAURI_INTERNALS__`
- * não existe — o fallback de DEV/TESTE usa o MESMO shape do backend real
- * (MockDevice) e SIMULA o boot com progresso determinístico (mesmos totais
- * do script real: 2297 transações no inventário default), para a faixa de
- * progresso do boot e o log de pushes serem exercitados fora do shell.
+ * Fora do webview do Tauri (vitest/jsdom) `window.__TAURI_INTERNALS__` não
+ * existe — o fallback de DEV/TESTE usa o MESMO shape do backend real
+ * (MockDevice) e SIMULA o boot com progresso determinístico (2297 transações
+ * no inventário default), p/ faixa de progresso e log de pushes fora do shell.
  *
- * Todo command passa por RETRY COM BACKOFF + TIMEOUT por tentativa (issue
- * #20): falha transitória (USB instável) não chega ao usuário; falha
- * permanente vira erro visível com recuperação — nunca spinner eterno.
+ * Todo command passa por RETRY COM BACKOFF + TIMEOUT por tentativa (#20):
+ * falha transitória não chega ao usuário; falha vira erro visível com
+ * recuperação — nunca spinner eterno.
  */
 import type {
   BoardView,
@@ -20,7 +19,6 @@ import type {
   DeviceGlobals,
   DeviceInfo,
   PresetLibrary,
-  SyncEvent,
 } from "./types";
 import {
   FIXTURE_NOME_TESTE,
@@ -432,7 +430,6 @@ export async function deviceBoot(): Promise<BootReport> {
 type ProgressListener = (p: BootProgress) => void;
 const listeners = new Set<ProgressListener>();
 const pushListeners = new Set<(hex: string) => void>();
-const syncListeners = new Set<(ev: SyncEvent) => void>();
 
 /**
  * `device_conectar` — reconectar o aparelho (issue #150): o botão do aviso
@@ -600,49 +597,4 @@ export async function onDevicePush(cb: (hex: string) => void): Promise<() => voi
   };
 }
 
-/**
- * Evento `device://sync` (#164) — transição do estado de sincronização
- * (idle/sync/pending/failed/offline + `changed` do read-back). Devolve o
- * unlisten (chamar no cleanup do hook).
- */
-export async function onDeviceSync(cb: (ev: SyncEvent) => void): Promise<() => void> {
-  if (inTauri()) {
-    const { listen } = await import("@tauri-apps/api/event");
-    const un = await listen<SyncEvent>("device://sync", (e) => cb(e.payload));
-    return un;
-  }
-  syncListeners.add(cb);
-  return () => {
-    syncListeners.delete(cb);
-  };
-}
-
-/**
- * Produtor do `device://sync` NO FALLBACK — e o único ponto que emite sem
- * o backend (jsdom não tem webview; os testes e o dev-browser usam o MESMO
- * shape do evento real, nunca um shape de teste).
- */
-export function emitSync(ev: SyncEvent): void {
-  syncListeners.forEach((l) => l(ev));
-}
-
-/**
- * `device_sync_now` (#164) — agenda um read-back IMEDIATO do preset
- * corrente (a ação "Reler agora" do chip de sincronização). Só leitura no
- * backend; o desfecho (sync/failed/offline + `changed`) chega pelo evento
- * `device://sync`, não pela resposta deste command.
- */
-export async function deviceSyncNow(): Promise<void> {
-  if (inTauri()) {
-    const { invoke } = await import("@tauri-apps/api/core");
-    // Retentável: reler o preset corrente é idempotente (toda leitura é).
-    await runCommand("sync_now", IDEMPOTENTE, () => invoke("device_sync_now"));
-    return;
-  }
-  await runCommand("sync_now", IDEMPOTENTE, async () => {
-    debugFail("sync_now");
-    // O mock local "relê" e responde sincronizado — mesma verdade do
-    // MockDevice do backend após um read-back sem mutação.
-    emitSync({ status: "sync", changed: false, detail: "" });
-  });
-}
+/* Sync (#164: onDeviceSync/emitSync/device_sync_now) saiu para `ipc/sync.ts`. */

@@ -23,18 +23,25 @@
  */
 import type { CSSProperties } from "react";
 import type { SyncStatus } from "../ipc/types";
-import { deviceConectar, deviceSyncNow } from "../ipc/device";
+import { deviceConectar } from "../ipc/device";
+import { deviceSyncNow } from "../ipc/sync";
 import { useSyncState } from "../hooks/useSyncState";
 import { MSG } from "../i18n/messages";
 
-/* mesma caixa dos outros botões da navbar (32px, border-box) */
-const nbBtn: CSSProperties = { height: 32, boxSizing: "border-box" };
+/* mesma caixa dos outros botões da navbar (32px, border-box); `flexShrink: 0`
+   para a ação nunca ser espremida — quem cede espaço é o rótulo */
+const nbBtn: CSSProperties = { height: 32, boxSizing: "border-box", flexShrink: 0 };
 const label: CSSProperties = {
   fontSize: "var(--text-xs)",
   color: "var(--text-muted)",
   fontFamily: "var(--font-mono)",
   letterSpacing: 0.8,
   textTransform: "uppercase",
+  /* rótulo corta com ellipsis quando a célula do rack aperta, em vez de
+     empurrar o ⟳ para fora do cluster (R5 no CI — fontes mais largas) */
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  minWidth: 0,
 };
 const divider: CSSProperties = { width: 1, height: 20, background: "var(--border)", flex: "0 0 auto" };
 
@@ -59,7 +66,7 @@ export function SyncChip() {
       role="status"
       aria-label={`${MSG.syncClusterAria}: ${rotulo[sync.status]}`}
       title={sync.detail || undefined}
-      style={{ display: "flex", alignItems: "center", gap: "var(--space-8)" }}
+      style={{ display: "flex", alignItems: "center", gap: "var(--space-8)", minWidth: 0, overflow: "hidden" }}
     >
       <span className={sync.status === "sync" ? "live-dot" : "idle-dot"} aria-hidden="true" />
       <span style={{ ...label, color: corDoEstado(sync.status) }}>{rotulo[sync.status]}</span>

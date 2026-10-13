@@ -23,19 +23,27 @@ import type { Root } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { SyncChip } from "../src/components/SyncChip";
 import { useSyncState } from "../src/hooks/useSyncState";
-import { deviceConectar, deviceSyncNow, emitSync } from "../src/ipc/device";
+import { deviceConectar } from "../src/ipc/device";
+import { deviceSyncNow, emitSync } from "../src/ipc/sync";
 import type { SyncEvent, SyncStatus } from "../src/ipc/types";
 import { MSG } from "../src/i18n/messages";
 
 // mock PARCIAL: as ações do chip são ESPIAS que mantêm o fallback real — o
 // "Reler" clica → deviceSyncNow → o mock local EMITE o sync de volta, e o
 // teste vê o ciclo inteiro (clique → fio simulado → chip re-renderiza).
+// As ações moram em portas distintas (#164: sync em ipc/sync.ts).
 vi.mock("../src/ipc/device", async (importOriginal) => {
   const mod = await importOriginal<typeof import("../src/ipc/device")>();
   return {
     ...mod,
-    deviceSyncNow: vi.fn(mod.deviceSyncNow),
     deviceConectar: vi.fn(mod.deviceConectar),
+  };
+});
+vi.mock("../src/ipc/sync", async (importOriginal) => {
+  const mod = await importOriginal<typeof import("../src/ipc/sync")>();
+  return {
+    ...mod,
+    deviceSyncNow: vi.fn(mod.deviceSyncNow),
   };
 });
 

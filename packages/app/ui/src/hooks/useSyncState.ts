@@ -18,7 +18,8 @@
  */
 import { useEffect, useState } from "react";
 import type { SyncEvent } from "../ipc/types";
-import { deviceInfo, onDeviceSync } from "../ipc/device";
+import { deviceInfo } from "../ipc/device";
+import { onDeviceSync } from "../ipc/sync";
 
 export function useSyncState(): SyncEvent {
   const [st, setSt] = useState<SyncEvent>({ status: "idle", changed: false, detail: "" });

@@ -24,7 +24,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { BoardSlot, BoardView } from "../src/ipc/types";
 import type { LibraryPreset } from "../src/ipc/library";
 import { resetaFallback } from "../src/ipc/library";
-import { emitSync } from "../src/ipc/device";
+import { emitSync } from "../src/ipc/sync";
 import { useStage } from "../src/hooks/useStage";
 import { usePrefs } from "../src/hooks/usePrefs";
 import { MSG } from "../src/i18n/messages";

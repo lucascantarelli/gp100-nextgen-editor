@@ -17,12 +17,10 @@ import {
   devicePresetLibrary,
   deviceSelectPreset,
   deviceSetParam,
-  deviceSyncNow,
-  emitSync,
   onBootProgress,
   onDevicePush,
-  onDeviceSync,
 } from "../src/ipc/device";
+import { deviceSyncNow, emitSync, onDeviceSync } from "../src/ipc/sync";
 import type { SyncEvent } from "../src/ipc/types";
 import { FX_MODULES } from "../src/artifacts/fxData";
 import { PRESET_COUNT } from "../src/i18n/facts";

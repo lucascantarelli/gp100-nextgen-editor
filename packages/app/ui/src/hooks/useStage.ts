@@ -29,7 +29,8 @@
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { BoardSlot, BoardView, PresetLibrary } from "../ipc/types";
-import { deviceBoard, devicePresetLibrary, deviceSelectPreset, deviceSetParam, onDeviceSync } from "../ipc/device";
+import { deviceBoard, devicePresetLibrary, deviceSelectPreset, deviceSetParam } from "../ipc/device";
+import { onDeviceSync } from "../ipc/sync";
 import { MSG } from "../i18n/messages";
 import { boardOfUserPatch, patchDeRegistro, registroDePatch, snapshotOf } from "../userPatches";
 import { useLibrary } from "./useLibrary";

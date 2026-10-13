@@ -260,7 +260,7 @@ export function TopBar({
         <span className="nb-div" style={divider} aria-hidden="true" />
         <button
           className="gp-btn nb-icon-btn"
-          style={{ ...nbBtn, fontFamily: "var(--font-mono)", fontSize: "var(--text-md)" }}
+          style={{ ...nbBtn, fontFamily: "var(--font-mono)", fontSize: "var(--text-md)", flex: "0 0 auto" }}
           onClick={onBoot}
           disabled={booting}
           aria-busy={booting}

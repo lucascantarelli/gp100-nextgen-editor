@@ -272,6 +272,11 @@ body {
   gap: var(--space-12);
   padding: 6px var(--space-12);
   min-width: 0;
+  /* NUNCA vaza para a célula vizinha: se o conteúdo não couber, os filhos
+     encolhem com ellipsis (badge, chip) e isto corta o resto — conteúdo
+     transbordando cobria o ⟳ do cluster anterior (R5 no CI) e o clique
+     caía na célula do módulo ao lado */
+  overflow: hidden;
 }
 /* CONTroles à direita: grid de colunas iguais (não flex) — é o que dá a
    largura uniforme. min-width 0 nas colunas deixa os módulos encolherem
