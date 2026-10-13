@@ -1,14 +1,15 @@
 ---
 name: ui-ux-practices
-description: Boas práticas de UI/UX para o front (ui/ do workspace, M1+) — design tokens (escala de Fibonacci sobre base 4, alinhamento 8pt), acessibilidade WCAG 2.2 (contraste AA, foco visível 2px/3:1), padrões de desktop (Tauri 2), gates de qualidade (pnpm lint/test/build) e a regra R1 aplicada ao front.
+description: Boas práticas de UI/UX para o front (packages/app/ui, Era Hardware) — design tokens (escala de Fibonacci sobre base 4, alinhamento 8pt), acessibilidade WCAG 2.2 (contraste AA, foco visível 2px/3:1), padrões de desktop (Tauri 2), gates de qualidade (pnpm lint/test/build) e a regra R1 aplicada ao front.
 metadata:
   category: development
 ---
 
-# Boas práticas UI/UX (ui/ — Tauri 2 + React/TS)
+# Boas práticas UI/UX (`packages/app/ui` — Tauri 2 + React/TS)
 
 Use ao escrever ou revisar QUALQUER código de front do projeto (issues do
-GitHub, milestone `v1.0.0`; fases UI no ROADMAP/UI_PLAN — branch/PR pela skill
+GitHub, milestone `v1.1.0`; fases no `docs/planejamento/ROADMAP.md` vigente e
+no UI_PLAN — branch/PR pela skill
 `github-flow`). Complementa a skill `rust-practices` (gates do lado Rust) e os
 ADRs de `docs/dev/DECISIONS.md`. Fontes: [docs/dev/UI_DESIGN.md](../../../docs/dev/UI_DESIGN.md)
 (tokens — FONTE ÚNICA de valores), [docs/dev/UI_PLAN.md](../../../docs/dev/UI_PLAN.md)
