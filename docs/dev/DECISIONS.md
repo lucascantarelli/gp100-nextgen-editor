@@ -1016,5 +1016,5 @@ caro e em bloco — a issue media 22 itens antes do inventário completo.
   três níveis. Padrão novo: root = `parents[2]` de `__file__` em `.github/scripts/`.
 - (−) `simulate_release.py` cai no `bash.exe` do WSL (System32 precede o PATH
   no CreateProcess do Windows) e o `python3` do sandbox cai no alias da
-  Microsoft Store: o gate agora resolve o git-bash via `shutil.which` e
+  Microsoft Store: o gate agora varre o PATH na ordem pegando o primeiro `bash.exe` fora de System32/WindowsApps (#206) e
   traduz `python3`→`python` no sandbox Windows-only (o runner real é ubuntu).
