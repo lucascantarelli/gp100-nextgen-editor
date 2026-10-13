@@ -144,13 +144,13 @@ comentário NA ISSUE e a fila avança.
   --i-know-what-im-doing <sub>`. Efeito colateral: o pedal troca de patch no
   display durante varredura (avisar o owner). Detalhes, anti-brick e evidência:
   skill `hardware-dev`.
-- **Todos os gates de script de uma vez**: `python3 scripts/gates.py` (local;
-  a CI roda os mesmos). Só a área: `python3 scripts/gates.py <nome>`.
+- **Todos os gates de script de uma vez**: `uv run python scripts/gates.py` (local;
+  a CI roda os mesmos). Só a área: `uv run python scripts/gates.py <nome>`.
 - **Rust**: `cargo fmt --check` · `cargo clippy --workspace --all-targets --
   -D warnings` · `cargo test` (inclui doc-tests) — skill `rust-practices`.
 - **Front**: `pnpm test` / `pnpm test:coverage` (gate 85%) / `pnpm build` /
   e2e `pnpm exec playwright test` — skill `ui-ux-practices` + `testing`.
-- **Bump de versão**: `python3 scripts/sync_version.py --set X` + `--check`
+- **Bump de versão**: `uv run python scripts/sync_version.py --set X` + `--check`
   (5 manifests sincronizados). Release: só por `workflow_dispatch`
   (rc → promote) — skill `release`.
 - **Baseline visual**: regenerar SÓ pelo workflow dedicado
