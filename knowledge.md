@@ -10,6 +10,9 @@ de marketing ou de engenharia reversa. Resposta ao usuário SEMPRE em PT-BR.
 
 Habilidade de entrada: `.agents/README.md` (mapa do harness — skills, prompts,
 ordem de leitura). O fluxo de trabalho é `.agents/skills/github-flow/SKILL.md`.
+Dona ausente? **Modo ausente do dono** (mesmo `.agents/README.md`): fila
+autônoma na ordem de prioridade, UMA issue por PR; decisão crítica vira
+comentário NA ISSUE e a fila avança.
 
 ## Estado vivo (atualizar a cada marco — 1–3 linhas, sem prosa)
 
