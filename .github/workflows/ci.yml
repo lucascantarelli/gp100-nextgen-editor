@@ -760,7 +760,7 @@ jobs:
         working-directory: packages/app/api
         run: cargo audit --file Cargo.lock 2>&1 | tee /tmp/cargo-audit-ui.txt
       - name: instalar uv
-        uses: astral-sh/setup-uv@v10.2.0
+        uses: astral-sh/setup-uv@v10.3.0
       - uses: ./.github/actions/setup-node-pnpm
         with:
           # `pnpm audit` lê o lockfile; instalar a árvore inteira aqui só
@@ -927,7 +927,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: instalar uv
-        uses: astral-sh/setup-uv@v10.2.0
+        uses: astral-sh/setup-uv@v10.3.0
         with:
           enable-cache: true
       - name: sync do ambiente (capstone, pefile, ziglang, pytest)
@@ -1728,7 +1728,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: aggregating os resumos de cobertura
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           pattern: cov-*
           path: .cov
