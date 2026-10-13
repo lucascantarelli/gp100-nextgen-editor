@@ -17,12 +17,15 @@ import type {
   BoardView,
   BootProgress,
   BootReport,
+  DeviceGlobals,
   DeviceInfo,
   PresetLibrary,
   SyncEvent,
 } from "./types";
 import {
   FIXTURE_NOME_TESTE,
+  fallbackGlobals,
+  fallbackSetGlobal,
   localMockBoard,
   localMockLibrary,
 } from "./fallbackData";
@@ -121,8 +124,24 @@ export function debugFail(op: string): void {
 export const COMMAND_ATTEMPTS = 3;
 /** Base do backoff exponencial (120 → 240 ms entre tentativas). */
 export const COMMAND_BASE_MS = 120;
-/** Timeout POR TENTATIVA — o command mais longo (board) fica bem abaixo. */
+/**
+ * Timeout POR TENTATIVA, DEFAULT de toda chamada — o command mais longo
+ * comum (board) fica bem abaixo dele. **Quem é mais lento declara o próprio
+ * prazo na política** ([`BOOT_TIMEOUT_MS`]): embrulhar o `device_boot` neste
+ * default de 8 s o declarava falhado no MEIO do scan (a UI mostrava
+ * "Falha no boot do device" enquanto o backend seguia lendo o aparelho).
+ */
 export const COMMAND_TIMEOUT_MS = 8_000;
+
+/**
+ * Prazo por tentativa do `device_boot`. **Medido em campo, não estimado:**
+ * o script inteiro (T1 40 + scan dos 198 pps + sonda 11 + estado5 5 +
+ * nomes 61 = 2297) levou 24,5 s — wire log `wire-20261012155337.jsonl`,
+ * t=5851 → 30313 ms. 60 s cobre um aparelho lento sem virar spinner eterno:
+ * um device que MORRE no meio do boot cai antes, no timeout de 3 s por
+ * transação (D6 do ADR-6), e o invoke rejeita rápido.
+ */
+export const BOOT_TIMEOUT_MS = 60_000;
 
 /** Timeout do command (classe própria: o teste distingue de erro do device). */
 export class CommandTimeoutError extends Error {}
@@ -144,12 +163,19 @@ export class CommandTimeoutError extends Error {}
  * §4), e o timeout global de `runCommand` (8 s) o declararia falhado logo no
  * começo. A porta do envio declara a política e o prazo, e o motivo fica escrito
  * no mesmo lugar da decisão.
+ *
+ * **`timeoutMs` é o prazo POR TENTATIVA da política.** Omitido =
+ * `COMMAND_TIMEOUT_MS` (8 s), que é decisão do `runCommand` e não da
+ * política: quem não precisa de prazo próprio não carrega um. Declarar é
+ * para o caso em que o default MENTIRIA — o `device_boot` leva ~25 s em
+ * campo e o default de 8 s o declarava falhado no MEIO do scan, derrubando
+ * a UI de campo com o aparelho sendo lido certinho.
  */
 export type CommandPolicy =
   /** Repete até `attempts` vezes com backoff. Só para operation IDEMPOTENTE. */
-  | { readonly kind: "retry"; readonly attempts: number }
+  | { readonly kind: "retry"; readonly attempts: number; readonly timeoutMs?: number }
   /** Uma tentativa só. `reason` é obrigatório e aparece no log de debug. */
-  | { readonly kind: "once"; readonly reason: string };
+  | { readonly kind: "once"; readonly reason: string; readonly timeoutMs?: number };
 
 /**
  * Política padrão do projeto: repetir é seguro para tudo que é idempotente
@@ -159,18 +185,43 @@ export type CommandPolicy =
 export const IDEMPOTENTE: CommandPolicy = { kind: "retry", attempts: COMMAND_ATTEMPTS };
 
 /**
+ * `IDEMPOTENTE` que sabe que o `device_boot` está na sua frente.
+ *
+ * Na montagem do App o palco pede `device_preset_library` e os números da
+ * biblioteca ENQUANTO o boot de ~25 s roda, e a fila do actor é serializada
+ * (D8): essas chamadas só respondem quando o boot liberar. Com o default de
+ * 8 s × 3 tentativas = 24 s, TODAS as tentativas morriam ~0,5 s ANTES do boot
+ * terminar — o backend respondia (o wire log de 12/10 mostra os 11 bursts de
+ * snapshot em t=31597..33828, logo após o boot fechar em 31577) e a UI já
+ * tinha desistido, ficando com "Aparelho não conectado" e "Não foi possível
+ * ler os números da biblioteca".
+ *
+ * O prazo é o do [`BOOT_TIMEOUT_MS`]: o que estas chamadas esperam É o boot.
+ */
+export const IDEMPOTENTE_ESPERA_BOOT: CommandPolicy = {
+  kind: "retry",
+  attempts: COMMAND_ATTEMPTS,
+  timeoutMs: BOOT_TIMEOUT_MS,
+};
+
+/**
  * Constrói a política de "uma tentativa só". Existe como função — e não como
  * objeto literal solto — para que o `reason` seja obrigatório no ponto da
  * chamada, onde a decisão acontece.
  */
-export function semRetry(reason: string): CommandPolicy {
+export function semRetry(reason: string, timeoutMs?: number): CommandPolicy {
   if (!reason.trim()) throw new Error("semRetry exige um motivo: a exceção precisa ser justificada");
-  return { kind: "once", reason };
+  // O prazo só entra no objeto quando é DECLARADO: sem ele a política fica
+  // exatamente como sempre esteve e herda o default do `runCommand`.
+  return timeoutMs === undefined ? { kind: "once", reason } : { kind: "once", reason, timeoutMs };
 }
 
 /** Descrição da política, para log de debug e para o relatório de gates. */
 export function descrevePolitica(p: CommandPolicy): string {
-  return p.kind === "retry" ? `retry x${p.attempts}` : `once (${p.reason})`;
+  const base = p.kind === "retry" ? `retry x${p.attempts}` : `once (${p.reason})`;
+  // O prazo DECLARADO aparece na descrição: é a prova, no log de debug,
+  // de que aquele command esperou mais que o default por decisão escrita.
+  return p.timeoutMs === undefined ? base : `${base} · prazo ${p.timeoutMs} ms`;
 }
 
 function sleep(ms: number): Promise<void> {
@@ -191,12 +242,12 @@ export function retryDelayMs(attempt: number, rand: () => number = Math.random):
   return Math.max(0, Math.round(base + jitter));
 }
 
-/** Corrida do command contra o timeout da tentativa. */
-function withTimeout<T>(run: Promise<T>, op: string): Promise<T> {
+/** Corrida do command contra o timeout da tentativa (o prazo é da política). */
+function withTimeout<T>(run: Promise<T>, op: string, ms: number): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     const timer = setTimeout(
-      () => reject(new CommandTimeoutError(`command ${op} excedeu ${COMMAND_TIMEOUT_MS} ms`)),
-      COMMAND_TIMEOUT_MS,
+      () => reject(new CommandTimeoutError(`command ${op} excedeu ${ms} ms`)),
+      ms,
     );
     run.then(
       (v) => {
@@ -229,10 +280,13 @@ export async function runCommand<T>(
   run: () => Promise<T>,
 ): Promise<T> {
   const attempts = policy.kind === "retry" ? Math.max(1, policy.attempts) : 1;
+  // Prazo da política, senão o global: o default de 8 s é para o command
+  // comum; o que leva minutos (boot) declara o seu na própria política.
+  const prazo = policy.timeoutMs ?? COMMAND_TIMEOUT_MS;
   let last: unknown;
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
     try {
-      return await withTimeout(run(), op);
+      return await withTimeout(run(), op, prazo);
     } catch (e) {
       last = e;
       if (attempt < attempts) await sleep(retryDelayMs(attempt));
@@ -306,6 +360,12 @@ export function escritaLiberada(info: DeviceInfo | null | undefined): boolean {
  * `device_boot` — boot+scan completos com barra de progresso.
  * Os beats chegam pelo listener registrado em `onBootProgress`; a promise
  * resolve com o relatório final (2297 no mock).
+ *
+ * **O prazo é declarado aqui** ([`BOOT_TIMEOUT_MS`]): em campo o script
+ * leva ~25 s, e sem isto o default de 8 s rejeitava no MEIO do scan — a UI
+ * caía no `.catch` com "Falha no boot do device" enquanto o aparelho estava
+ * sendo lido certinho (wire log de 12/10: scan completo só terminou aos
+ * 30,3 s e o relatório saiu 2297/198/198, dentro do gate #161).
  */
 export async function deviceBoot(): Promise<BootReport> {
   if (inTauri()) {
@@ -315,6 +375,7 @@ export async function deviceBoot(): Promise<BootReport> {
       semRetry(
         "boot sao 2297 transacoes: repetir mascararia o device morto. " +
           "A recuperacao e o re-scan explicito do usuario (issue #20).",
+        BOOT_TIMEOUT_MS,
       ),
       () => invoke<BootReport>("device_boot"),
     );
@@ -418,16 +479,53 @@ export async function deviceBoard(pp?: number): Promise<BoardView> {
  * **(#150) a lista vem do APARELHO:** no shell real o backend devolve o
  * inventário medido; sem aparelho o erro do invoke é o sinal para a UI
  * mostrar o aviso de conexão (nunca uma lista falsa de fábrica).
+ *
+ * A política é [`IDEMPOTENTE_ESPERA_BOOT`] porque este invoke nasce na
+ * montagem — no MEIO do boot (ver o motivo lá).
  */
 export async function devicePresetLibrary(): Promise<PresetLibrary> {
   if (inTauri()) {
     const { invoke } = await import("@tauri-apps/api/core");
-    return runCommand("library", IDEMPOTENTE, () =>
+    return runCommand("library", IDEMPOTENTE_ESPERA_BOOT, () =>
       invoke<PresetLibrary>("device_preset_library"),
     );
   }
   // Fallback de TESTE: inventário com nome vazio (mesma forma do real).
   return runCommand("library", IDEMPOTENTE, async () => localMockLibrary());
+}
+
+/**
+ * `device_globals` — o bloco medido de registradores globais (§13.13:
+ * SYSTEM `000200xx` + DRUM `000102xx`), lido DO device no boot validado.
+ * O seed da UI (master/DRUM) vem daqui; sem device ou sem bloco a UI
+ * segue no localStorage (fallback honesto, sem banner).
+ */
+export async function deviceGlobals(): Promise<DeviceGlobals> {
+  if (inTauri()) {
+    const { invoke } = await import("@tauri-apps/api/core");
+    return runCommand("globals", IDEMPOTENTE, () => invoke<DeviceGlobals>("device_globals"));
+  }
+  return runCommand("globals", IDEMPOTENTE, async () => fallbackGlobals());
+}
+
+/**
+ * `device_set_global` — escreve num registrador global (§13.13.1) pela
+ * CHAVE do allowlist do backend (o front nunca manda endereço cru). Sem
+ * write-verified (ADR-5) o transporte recusa antes do driver e o erro
+ * sobe: a UI trata como prévia local (mesmo tratamento do knob).
+ */
+export async function deviceSetGlobal(chave: string, valor: number): Promise<void> {
+  if (inTauri()) {
+    const { invoke } = await import("@tauri-apps/api/core");
+    // Retentável: reescrever o MESMO valor não acumula efeito (write idempotente).
+    await runCommand("set_global", IDEMPOTENTE, () =>
+      invoke("device_set_global", { chave, valor }),
+    );
+    return;
+  }
+  await runCommand("set_global", IDEMPOTENTE, async () => {
+    fallbackSetGlobal(chave, valor);
+  });
 }
 
 /** `device_select_preset` — select real no device (fallback troca local). */

@@ -29,6 +29,9 @@ comentário NA ISSUE e a fila avança.
   Motivo: o `default: release` do input `action` fazia o dispatch de baseline
   cortar rc junto (runs 38070949933 e a do incidente rc.5 de 13/10 — revertido).
   Contrato dos 3 workflows no `validate_workflows.py` (seção 14).
+- 12/10 — **Navbar enxuta (diretriz do dono)**: cluster de PATCH (◀ ▶ + nome)
+  removido da navbar — troca vive na LISTA e o rótulo no display LED do palco;
+  DeviceBadge sem miniatura SVG (dot `.live-dot`/`.idle-dot` + status honesto).
 - 11/10 — **#170 (harness do agente) em execução**: skills da Era HW
   (`hardware-dev`, `testing`, `release` novas; 5 da Era RE arquivadas em
   `docs/arquivo/skills-era-RE/`), `.agents/prompts/` com 6 templates, templates

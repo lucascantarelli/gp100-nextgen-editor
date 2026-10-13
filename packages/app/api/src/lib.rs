@@ -211,6 +211,8 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
             commands::device_info,
             commands::device_conectar,
             commands::device_sync_now,
+            commands::device_globals,
+            commands::device_set_global,
             commands::device_board,
             commands::device_preset_library,
             commands::device_select_preset,

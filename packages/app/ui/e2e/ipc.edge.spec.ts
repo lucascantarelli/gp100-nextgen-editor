@@ -24,30 +24,31 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("select transitório (1 falha): retry cobre e o preset abre sem alerta", async () => {
-  await expect(shell.patchLabel()).toContainText("P01");
+  await expect(shell.board.display()).toContainText("P01");
   await shell.armFailDevice("select:1");
 
-  await shell.nextPatch();
+  // a troca de patch vive na LISTA (a navbar não tem ◀ ▶ — dono 12/10)
+  await shell.library.select(/P02/);
 
   // o usuário nunca vê a falha: o command tentou de novo e abriu P02
-  await expect(shell.patchLabel()).toContainText("P02");
+  await expect(shell.board.display()).toContainText("P02");
   await expect(shell.alerts).toHaveCount(0);
 });
 
 test("select permanente: banner com ação, UI no preset REAL e retry recupera", async () => {
   await shell.armFailDevice("select");
 
-  await shell.nextPatch();
+  await shell.library.select(/P02/);
 
   const alert = shell.alerts.filter({ hasText: "não aceitou a troca de preset" });
   await expect(alert).toBeVisible();
   // a UI NÃO mente: o device segue em P01 (o select não passou)
-  await expect(shell.patchLabel()).toContainText("P01");
+  await expect(shell.board.display()).toContainText("P01");
 
   // recuperação pela AÇÃO do banner (nunca spinner eterno)
   await shell.clearFailDevice();
   await shell.alertRetry().click();
-  await expect(shell.patchLabel()).toContainText("P02");
+  await expect(shell.board.display()).toContainText("P02");
   await expect(shell.alerts).toHaveCount(0);
 });
 

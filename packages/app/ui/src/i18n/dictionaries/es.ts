@@ -31,11 +31,11 @@ export const ES: DictPatch = {
   connShortOn: "on",
   connShortOff: "off",
   mockBadge: "Mock Device",
-  patchLabel: "patch",
-  patchPrevAria: "Patch anterior",
-  patchPrevTitle: "Patch anterior (P01–P99 en ciclo)",
-  patchNextAria: "Patch siguiente",
-  patchNextTitle: "Patch siguiente (P01–P99 en ciclo)",
+  connBadgeLoading: "leyendo el device…",
+  connBadgeNone: "sin device",
+  connBadgePresets: "presets",
+  connBadgeWriteOk: "escritura habilitada",
+  connBadgeWriteLocked: "escritura bloqueada",
   drumChipPre: "drum · ",
   drumChipAria: (style: string, bpm: number, beat: string) =>
     `Batería (drum): ${style}, ${bpm} BPM, compás ${beat} — abrir la gestión de ritmos`,
@@ -138,6 +138,7 @@ export const ES: DictPatch = {
   libAria: "Patches del device",
   libTabsAria: "Tipo de patch",
   libTabFactory: "Patches",
+  libTabFab: "Fábrica",
   libTabUser: "Mis patches",
   libListAria: "Patches del device",
   libEmptyDevice: "Device no conectado — conecta el GP-100 para cargar los patches.",
@@ -146,6 +147,7 @@ export const ES: DictPatch = {
   searchEmpty: (q: string) => `Ningún preset para “${q}”. Consejo: busca por estilo (Rock, Funk…) o por número.`,
   libRowTitle: (name: string, type: string) => `Abrir “${name}” (${type})`,
   libPp: (pp: number) => `P${String(pp + 1).padStart(2, "0")}`,
+  libFabPp: (pp: number) => `F${String(pp + 1).padStart(2, "0")}`,
   libUserPp: (i: number) => `U${String(i + 1).padStart(2, "0")}`,
 
   /* patches de usuario (PRÉVIA LOCAL — escribir en el device no tiene canal) */

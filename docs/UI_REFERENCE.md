@@ -357,17 +357,19 @@ violeta, com três colunas soltas e muito espaço morto):**
 > alinha todos os componentes". Os quatro módulos (conexão · patch · drum ·
 > master) ocupavam 220/267/266/317px — larguras sorteadas.
 
-- `.nb-controls` saiu de `flex` para **`grid` de 4 colunas `minmax(0, 1fr)`** —
-  larguras iguais por construção (315px cada @1440, 214px @1024), medidas e
-  travadas em teste.
+- `.nb-controls` saiu de `flex` para **`grid` de 3 colunas `minmax(0, 1fr)`**
+  (eram 4 — o cluster de patch ◀ ▶ + nome saiu da navbar por decisão do dono
+  em 12/10: a troca de patch vive na lista e o rótulo no display LED do palco)
+  — larguras iguais por construção, medidas e travadas em teste.
 - `flex: 1 1 0` (e não `auto`): com `auto` a base do flex vira o max-content do
   rack e o header — que é `flex-wrap` — quebrava o banner em duas fileiras.
 - **Gramática interna única em todo módulo:** leitura à esquerda, ação à direita
   (`.nb-push` empurra o segundo grupo para a borda oposta), separador marcando
   a virada. `.nb-cluster` nunca mais usa `space-between` (espalhava o módulo de
   conexão em 4 vãos de 51px).
-- **Abaixo de 1024** o rack vira **2×2** (o `flex-wrap` antigo devolvia
-  larguras diferentes — voltando ao defeito) e **1 coluna ≤620px**.
+- **Abaixo de 1024** o rack vira **2 colunas** (com os 4 módulos antigos era
+  2×2 — o `flex-wrap` antigo devolvia larguras diferentes, voltando ao defeito)
+  e **1 coluna ≤620px**.
 - **Reescanear (⟳)** deixou de ser um quadrado violeta que gritava mais que o
   logo: virou botão de ícone quieto que **gira enquanto o boot roda**.
 - **Stepper de BPM** encolhe em ≤1024 (`.nb-step`/`.nb-bpm` foram para o CSS

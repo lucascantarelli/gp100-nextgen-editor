@@ -259,8 +259,9 @@ body {
 }
 
 /* ── Navbar (issues #10 e #12): rack de módulos de LARGURA IGUAL ──────
-   Os quatro módulos (conexão · patch · drum · master) ocupam colunas de
-   mesma largura: o banner deixa de ser uma fileira de blocos de tamanho
+   Os três módulos (conexão · drum · master) ocupam colunas de
+   mesma largura — o cluster de PATCH saiu da navbar por decisão do dono
+   (12/10): o banner deixa de ser uma fileira de blocos de tamanho
    sorteado e passa a ser um RACK. Em cima disso, uma gramática interna
    única em todo módulo — LEITURA À ESQUERDA, AÇÃO À DIREITA (o
    `.nb-push` empurra o segundo grupo para a borda oposta), com os
@@ -277,7 +278,7 @@ body {
    (com ellipsis nos filhos) em vez de estourar a janela */
 .nb-controls {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   align-items: center;
   gap: var(--space-8);
   /* basis 0 (e não auto): com `auto` a base do flex vira o max-content do
@@ -534,8 +535,8 @@ body {
 }
 
 /* badge Mock esconde em telas menores (a navbar não pode quebrar em 2
-   fileiras; o LED âmbar + "on/off" já denunciam o estado simulado);
-   legendas "patch"/"master" somem em ≤1024 — os controles têm aria-label */
+   fileiras; o dot + "on/off" já denunciam o estado simulado);
+   legenda "master" some em ≤1024 — os controles têm aria-label */
 @media (max-width: 1280px) {
   .mock-badge {
     display: none;

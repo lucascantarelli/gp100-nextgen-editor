@@ -31,11 +31,11 @@ export const ZH: DictPatch = {
   connShortOn: "on",
   connShortOff: "off",
   mockBadge: "Mock Device",
-  patchLabel: "patch",
-  patchPrevAria: "上一个音色",
-  patchPrevTitle: "上一个音色（P01–P99 循环）",
-  patchNextAria: "下一个音色",
-  patchNextTitle: "下一个音色（P01–P99 循环）",
+  connBadgeLoading: "正在读取设备…",
+  connBadgeNone: "无设备",
+  connBadgePresets: "预设",
+  connBadgeWriteOk: "可写入",
+  connBadgeWriteLocked: "写入已锁定",
   drumChipPre: "drum · ",
   drumChipAria: (style: string, bpm: number, beat: string) =>
     `鼓机 (drum)：${style}，${bpm} BPM，${beat} 拍号 — 打开节奏管理`,
@@ -136,6 +136,7 @@ export const ZH: DictPatch = {
   libAria: "设备音色",
   libTabsAria: "音色类型",
   libTabFactory: "音色",
+  libTabFab: "原厂音色",
   libTabUser: "我的音色",
   libListAria: "设备音色",
   libEmptyDevice: "设备未连接 — 请连接 GP-100 以加载音色。",
@@ -144,6 +145,7 @@ export const ZH: DictPatch = {
   searchEmpty: (q: string) => `没有匹配“${q}”的音色。提示：可以按风格（Rock、Funk…）或编号搜索。`,
   libRowTitle: (name: string, type: string) => `打开“${name}”（${type}）`,
   libPp: (pp: number) => `P${String(pp + 1).padStart(2, "0")}`,
+  libFabPp: (pp: number) => `F${String(pp + 1).padStart(2, "0")}`,
   libUserPp: (i: number) => `U${String(i + 1).padStart(2, "0")}`,
 
   /* 用户音色（本地预览 — 写入设备还没有通道） */

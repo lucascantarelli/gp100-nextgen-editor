@@ -78,7 +78,14 @@ export interface Stage {
   onToggle: (slot: BoardSlot) => void;
 }
 
-export function useStage(onPresetChanged: () => void): Stage {
+/**
+ * `bootPronto` é obrigatório de propósito: a biblioteca do aparelho é
+ * PRODUTO do scan do boot, e quem chama (o `App`) é o dono do estado do
+ * boot. Fora do shell o valor é `true` de mentira (o fallback é local),
+ * mas a decisão fica escrita no ponto da chamada — mesma regra da
+ * política de commands (#82).
+ */
+export function useStage(onPresetChanged: () => void, bootPronto: boolean): Stage {
   // O callback do dono do modal (fechar a edição ampliada) vai para um REF,
   // não para as dependências do `openPreset`.
   //
@@ -320,7 +327,17 @@ export function useStage(onPresetChanged: () => void): Stage {
   // pp corrente, e é ele que o palco abre. Sem aparelho o invoke falha e
   // o banner do App (backend "none" + motivo) instrui o dono — não há
   // "abrir o pp 0" fingindo que é o estado do aparelho.
+  //
+  // **`bootPronto` é TRAVA e dependência (campo 12/10):** os dois invokes
+  // (boot e biblioteca) nascem no mesmo tick do mount e a fila do actor
+  // serializa (D8) — pedida ANTES do scan, a biblioteca era servida sem os
+  // nomes (inventário antes da leitura da pg0) e o `openPreset` seguinte
+  // falhava com "páginas deste pp não foram lidas no boot": o palco morria
+  // logo depois de um boot perfeito. Com a trava, o load roda quando o
+  // scan terminou — e um reboot manual (⟳) o re-dispara com o inventário
+  // novo.
   useEffect(() => {
+    if (!bootPronto) return;
     void devicePresetLibrary()
       .then((l) => {
         setDeviceLib(l);
@@ -329,7 +346,7 @@ export function useStage(onPresetChanged: () => void): Stage {
       .catch((e: unknown) => {
         console.error("device_preset_library indisponível (aparelho ausente?):", e);
       });
-  }, [openPreset]);
+  }, [openPreset, bootPronto]);
 
   // Reconciliação (#164): o read-back do backend divergiu do cache — o
   // APARELHO vence, então o palco RELÊ o board em vez de continuar com o
