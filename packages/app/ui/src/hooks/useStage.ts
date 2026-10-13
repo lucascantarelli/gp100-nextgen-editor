@@ -29,7 +29,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { BoardSlot, BoardView, PresetLibrary } from "../ipc/types";
-import { deviceBoard, devicePresetLibrary, deviceSelectPreset, deviceSetParam } from "../ipc/device";
+import { deviceBoard, devicePresetLibrary, deviceSelectPreset, deviceSetParam, onDeviceSync } from "../ipc/device";
 import { MSG } from "../i18n/messages";
 import { boardOfUserPatch, patchDeRegistro, registroDePatch, snapshotOf } from "../userPatches";
 import { useLibrary } from "./useLibrary";
@@ -105,6 +105,15 @@ export function useStage(onPresetChanged: () => void): Stage {
    *  segue o palco, e é ele que diz de onde a lista vem. */
   const lib = useLibrary(board?.bank ?? "factory");
   const [openUserId, setOpenUserId] = useState<string | null>(null);
+
+  // Alvo da reconciliação (#164): o pp e o banco que o palco DESENHA agora.
+  // Em refs (e não em dependências) pelo MESMO motivo do `changedRef`: o
+  // listener do `device://sync` é ÚNICO — re-inscrever a cada troca de pp
+  // daria N listeners disputando o mesmo evento. O ASSIGNMENT é aqui (e não
+  // junto do `changedRef`) porque `pp`/`openUserId` só existem depois deste
+  // ponto — antes seria ReferenceError (TDZ) no primeiro render.
+  const palcoRef = useRef({ pp: 0, openUserId: null as string | null });
+  palcoRef.current = { pp, openUserId };
 
   // Abre um preset: select no device + leitura do board. O estado `pp`/nome
   // só muda DEPOIS do device confirmar. Falha vira banner com AÇÃO de retry.
@@ -321,6 +330,43 @@ export function useStage(onPresetChanged: () => void): Stage {
         console.error("device_preset_library indisponível (aparelho ausente?):", e);
       });
   }, [openPreset]);
+
+  // Reconciliação (#164): o read-back do backend divergiu do cache — o
+  // APARELHO vence, então o palco RELÊ o board em vez de continuar com o
+  // valor que o app (ou o dono no pedal) tinha. Só interessa `changed`:
+  // os outros eventos (pending/sync sem divergência) não mudam o desenho.
+  //
+  // Com patch de USUÁRIO aberto o palco desenha o arquivo local — não o
+  // device — então não há o que reconciliar (e sobrescrever seria perder
+  // o trabalho do dono na tela).
+  useEffect(() => {
+    let vivo = true;
+    let un: (() => void) | undefined;
+    void onDeviceSync((ev) => {
+      if (!ev.changed || !vivo) return;
+      const { pp: alvo, openUserId: patch } = palcoRef.current;
+      if (patch != null) return;
+      void deviceBoard(alvo)
+        .then((b) => {
+          if (!vivo) return;
+          setBoard(b);
+          setPp(b.pp);
+          setPresetName(b.name);
+        })
+        .catch((e: unknown) => {
+          // Reconciliação falhou: o board ANTIGO fica (com o erro no
+          // console) — inventar valor aqui seria a tela mentindo.
+          console.error("reconciliação do palco falhou:", e);
+        });
+    }).then((u) => {
+      if (vivo) un = u;
+      else u();
+    });
+    return () => {
+      vivo = false;
+      un?.();
+    };
+  }, []);
 
   const clearErr = useCallback(() => setErr(null), []);
 

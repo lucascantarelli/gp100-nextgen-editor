@@ -17,9 +17,13 @@ import {
   devicePresetLibrary,
   deviceSelectPreset,
   deviceSetParam,
+  deviceSyncNow,
+  emitSync,
   onBootProgress,
   onDevicePush,
+  onDeviceSync,
 } from "../src/ipc/device";
+import type { SyncEvent } from "../src/ipc/types";
 import { FX_MODULES } from "../src/artifacts/fxData";
 import { PRESET_COUNT } from "../src/i18n/facts";
 
@@ -179,5 +183,36 @@ describe("ipc/device — comandos e evento de push", () => {
     un();
     // sem producer no fallback: assinatura/desinscrição é o contrato testável
     expect(hexes.length).toBe(0);
+  });
+});
+
+describe("ipc/device — sincronização com o aparelho (#164)", () => {
+  it("deviceInfo relata o estado de sync do BACKEND (sem segundo estado na UI)", async () => {
+    const info = await deviceInfo();
+    expect(info.sync).toBe("sync");
+    expect(info.syncDetail).toBe("");
+  });
+
+  it("onDeviceSync assina, entrega o payload e o unlisten desinscreve", async () => {
+    const eventos: SyncEvent[] = [];
+    const un = await onDeviceSync((ev) => eventos.push(ev));
+    emitSync({ status: "pending", changed: false, detail: "" });
+    expect(eventos).toEqual([{ status: "pending", changed: false, detail: "" }]);
+    un();
+    emitSync({ status: "sync", changed: true, detail: "" });
+    expect(eventos).toHaveLength(1); // depois do unlisten, nada chega
+  });
+
+  it("deviceSyncNow no fallback relê e emite a MESMA verdade do mock", async () => {
+    const eventos: SyncEvent[] = [];
+    const un = await onDeviceSync((ev) => eventos.push(ev));
+    await expect(deviceSyncNow()).resolves.toBeUndefined();
+    expect(eventos).toEqual([{ status: "sync", changed: false, detail: "" }]);
+    un();
+  });
+
+  it("deviceSyncNow obedece o gancho de falha (op: sync_now)", async () => {
+    localStorage.setItem(KEY, "sync_now");
+    await expect(deviceSyncNow()).rejects.toThrow(/sync_now/);
   });
 });

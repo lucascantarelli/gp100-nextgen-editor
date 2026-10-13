@@ -18,6 +18,7 @@ import { useEffect, useRef } from "react";
 import type { CSSProperties } from "react";
 import { DrumPanel } from "./DrumPanel";
 import type { DrumState } from "./DrumPanel";
+import { SyncChip } from "./SyncChip";
 import { MSG } from "../i18n/messages";
 
 interface Props {
@@ -268,6 +269,11 @@ export function TopBar({
         <span className={connected ? "live-dot" : "idle-dot"} aria-hidden="true" />
         <span style={label}>{connected ? MSG.connShortOn : MSG.connShortOff}</span>
         {mock && <span className="mock-badge nb-push" style={badge}>{MSG.mockBadge}</span>}
+        <span className="nb-div" style={divider} aria-hidden="true" />
+        {/* sincronização com o APARELHO (#164) — o device é quem vence:
+            o chip se conecta sozinho (estado + ações), e o cluster mostra
+            o estado que o backend afirmou, com recuperação quando há erro */}
+        <SyncChip />
         <span className="nb-div" style={divider} aria-hidden="true" />
         <button
           className="gp-btn nb-icon-btn"

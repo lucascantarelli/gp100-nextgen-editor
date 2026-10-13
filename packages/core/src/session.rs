@@ -770,6 +770,61 @@ impl<T: DeviceTransport> Session<T> {
         self.state_page(0)
     }
 
+    /// Recarrega as 9 páginas do preset corrente DIRETO do fio (read-back
+    /// do #164), pela sequência do boot (§13.10): `select` + `open` — o
+    /// `open` entrega a página 0 (`raw[3] == 0`, o slot 0 do decode) — e
+    /// os reqs PG 0..7, que respondem as páginas 1..8 (`raw[3] == PG + 1`,
+    /// §13.10).
+    ///
+    /// **Por que não é um laço de [`Session::state_page`]:** aquela devolve
+    /// o payload CRU do req — na ordem 0..8 o slot 0 viraria o número 1 e o
+    /// [`crate::preset_pages::decode`] cairia em "página fora de ordem:
+    /// esperada 0, achada 1". Quem preenche o slot 0 é o `open`, e o
+    /// `state_page` não faz `open` (o caminho do Dump lê a página solta,
+    /// sem decode das 9).
+    ///
+    /// Atualiza o cache de [`Session::preset_state`] do pp corrente: quem
+    /// relê do fio, atualiza — o aparelho vence.
+    ///
+    /// # Erros
+    /// Timeout D6, shape D5 e `DeviceGone` do fio. Nenhum frame de escrita
+    /// sai daqui: toda a sequência é `WireKind::Read`.
+    pub fn reload_paginas_correntes(&mut self) -> Result<[StatePage; 9], ProtocolError> {
+        let pp = self.current_pp;
+        // Select antes do open, como o T5 do boot: a seleção é estado do
+        // APARELHO (um replug sem reboot pode perdê-la) — sem ela o read-
+        // back leria o preset errado em silêncio e reconciliaria o cache
+        // com dados de outro pp.
+        self.select_preset(pp)?;
+        let golden = GoldenFile::embedded()?;
+        let pp_be = pp.to_be_bytes();
+        let mut paginas: [StatePage; 9] = std::array::from_fn(|_| StatePage { raw: Vec::new() });
+        let abertura = self.tx_req_in(
+            golden,
+            0x12,
+            &[0x13, 0x01, 0x00, 0x02],
+            &pp_be,
+            &[0x13, 0x01, 0x00, 0x03],
+            WireKind::Read,
+        )?;
+        guarda_pagina(&mut paginas, abertura);
+        for pg in 0u16..8u16 {
+            // t8: var2 (pp) + const 00 + var1 (PG baixo) + const 01.
+            let vars = [pp_be[0], pp_be[1], pg as u8];
+            let resposta = self.tx_req_in(
+                golden,
+                0x12,
+                &[0x13, 0x01, 0x00, 0x04],
+                &vars,
+                &[0x13, 0x01, 0x00, 0x03],
+                WireKind::Read,
+            )?;
+            guarda_pagina(&mut paginas, resposta);
+        }
+        self.pages.insert(pp, paginas.clone());
+        Ok(paginas)
+    }
+
     /// As 9 páginas brutas de um pp, guardadas pelo scan (T5).
     ///
     /// `None` antes do boot (ou para pp fora do inventário escaneado) — é

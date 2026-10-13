@@ -57,6 +57,20 @@ export const ZH: DictPatch = {
   /* ── navbar（连接区：短状态 + 徽标 + 启动） ── */
   connClusterAria: "连接与启动",
 
+  /* ── 与设备的同步（#164）— navbar 状态片 ── */
+  syncIdle: "—",
+  syncSync: "已同步",
+  syncPending: "待确认",
+  syncFailed: "失败",
+  syncOffline: "离线",
+  syncClusterAria: "与设备的同步状态",
+  syncReler: "重读",
+  syncRelerAria: "立即重读设备上的当前音色",
+  syncRelerTitle: "即时回读：立刻重读当前音色的页面",
+  syncReconnect: "重新连接",
+  syncReconnectAria: "重新连接设备",
+  syncReconnectTitle: "重新枚举 MIDI 端口并重新打开设备",
+
   /* ── 舞台调音器 ── */
   tunerAria: "调音器",
   tunerPowerAria: "打开或关闭音准监听",

@@ -26,6 +26,7 @@
 use std::collections::BTreeMap;
 use std::sync::mpsc;
 use std::thread::JoinHandle;
+use std::time::{Duration, Instant};
 
 use gp100_core::model::Dictionary;
 use gp100_core::pedalboard::{board_view_for, embedded_document, preset_list, BoardView};
@@ -38,6 +39,75 @@ use gp100_core::wire_log::LoggingTransport;
 
 /// Estado snapshot do mock (alias curto; o tipo vive no core).
 type MockState = gp100_core::transport::mock::MockState;
+
+/// Estado de sincronização app ↔ device (#164) — os estados TIPADOS da
+/// convergência: `Inativo` (sem conversa ainda — nada a afirmar),
+/// `Sincronizado` (a última leitura confirmou veio do aparelho), `Pendente`
+/// (escrita aceita; o read-back ainda não rodou), `Falhou` (a última
+/// operação deu erro; a sessão segue viva) e `Offline` (o transporte caiu —
+/// o app NÃO continua escrevendo em vazio).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SyncStatus {
+    /// Sem boot/refresh ainda — o chip mostra "—", sem número falso.
+    Inativo,
+    /// A última releitura veio do aparelho (o cache bate com o fio).
+    Sincronizado,
+    /// Escrita aceita no fio; o read-back (debounce) ainda vai confirmar.
+    Pendente,
+    /// Última operação falhou (motivo em `sync_detail`); sessão viva.
+    Falhou,
+    /// Sessão sem aparelho (transporte caiu ou build sem transporte).
+    Offline,
+}
+
+impl SyncStatus {
+    /// Literal estável do fio IPC (o front não switcha em Debug).
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            SyncStatus::Inativo => "idle",
+            SyncStatus::Sincronizado => "sync",
+            SyncStatus::Pendente => "pending",
+            SyncStatus::Falhou => "failed",
+            SyncStatus::Offline => "offline",
+        }
+    }
+}
+
+/// Evento `device://sync` — a transição do estado de sincronização (#164).
+///
+/// `changed = true` SÓ no read-back que trouxe páginas diferentes do cache:
+/// é o sinal de que o APARELHO mudou (ou não aplicou o que o app escreveu) —
+/// o front reler o board e mostra o valor do aparelho, nunca o desejado.
+#[derive(Debug, Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SyncEvent {
+    /// `idle` | `sync` | `pending` | `failed` | `offline`.
+    pub status: &'static str,
+    /// `true` quando o read-back divergiu do cache (o aparelho vence).
+    pub changed: bool,
+    /// Detalhe humano de `failed`/`offline` (vazio nos outros estados).
+    pub detail: String,
+}
+
+/// Falha classificada do read-back (#164): `Caiu` = o transporte morreu
+/// (DeviceGone — vira `Offline` e o guarda para reconexão); `Outro` = erro
+/// de protocolo/decode (vira `Falhou` sem derrubar a sessão).
+enum FalhaLeitura {
+    Caiu(String),
+    Outro(String),
+}
+
+/// Debounce do read-back pós-escrita (#164): uma RAJADA de knob (N giros
+/// seguidos) vira UMA releitura das 9 páginas. 800 ms — medido contra o
+/// custo real no fio (ADR-15: RTT mediano 3,05 ms no H1 → 9 páginas ≈ 27 ms;
+/// o debounce custa ~3% do fio numa rajada de 2 s).
+pub const READBACK_DEBOUNCE: Duration = Duration::from_millis(800);
+
+/// Cadência do refresh periódico do preset corrente (#164): 10 s ≈ 0,9 tx/s
+/// (≈3% do fio pelo RTT mediano do H1). É a ÚNICA janela em que o app vê
+/// mudança feita no PEDAL: o knob físico não emite SysEx (ADR-15 — poll,
+/// não notificação espontânea).
+pub const REFRESH_INTERVAL: Duration = Duration::from_secs(10);
 
 /// Bytes crus em hex maiúsculo, sem separador — o mesmo formato que o
 /// `gp100-cli` imprime e que os juízes (`h1_compare.py`/`h2_compare.py`)
@@ -355,6 +425,12 @@ pub struct DeviceSnapshot {
     /// O front usa isto para desabilitar os botoes de escrita com explicacao,
     /// em vez de descobrir a recusa depois de clicar.
     pub write_verified: bool,
+    /// Estado de sincronização (#164): "idle" | "sync" | "pending" |
+    /// "failed" | "offline" — preenchido pelo loop do actor (o snapshot é
+    /// montado na thread que atende o `Info`, dona do estado).
+    pub sync: &'static str,
+    /// Detalhe humano de `failed`/`offline` (vazio nos outros estados).
+    pub sync_detail: String,
 }
 
 impl DeviceSnapshot {
@@ -370,6 +446,8 @@ impl DeviceSnapshot {
             ir_slots_with_crc: 0,
             ir_slots: Vec::new(),
             write_verified: WRITE_VERIFIED,
+            sync: SyncStatus::Inativo.as_str(),
+            sync_detail: String::new(),
         }
     }
 }
@@ -407,6 +485,15 @@ enum Request {
     /// falha/DeviceGone reabre as portas). Com sessão viva é re-open por cima;
     /// sem sessão (app que subiu sem aparelho) é o primeiro open.
     Conectar {
+        reply: mpsc::Sender<Result<(), String>>,
+    },
+    /// Relê as 9 páginas do preset corrente AGORA (#164 — command
+    /// `device_sync_now`): adianta o prazo do read-back sem esperar o
+    /// refresh de cadência. É a ação "Reler agora" do chip de
+    /// sincronização — este braço NÃO lê nada por conta própria, só marca o
+    /// relógio; a leitura roda no mesmo caminho (e com as mesmas falhas) do
+    /// debounce, e o desfecho chega pelo evento `device://sync`.
+    SyncNow {
         reply: mpsc::Sender<Result<(), String>>,
     },
     /// Board do preset: slots/arquétipos/knobs (projeção pura no core).
@@ -557,6 +644,22 @@ fn device_snapshot<T: DeviceBackend>(
             .map_or(0, |m| m.ir_crcs.iter().filter(|c| **c != 0).count()),
         ir_slots,
         write_verified: WRITE_VERIFIED,
+        sync: SyncStatus::Inativo.as_str(),
+        sync_detail: String::new(),
+    }
+}
+
+/// Envia um evento `device://sync` pelo sink registrado (#164). Sem sink
+/// (testes que não observam eventos, ou antes do `run()` registrar) o evento
+/// é descartado — o estado NÃO depende do sink, ele fica no `info`.
+fn emite(
+    sink: &std::sync::Arc<std::sync::Mutex<Option<mpsc::Sender<SyncEvent>>>>,
+    ev: SyncEvent,
+) {
+    if let Ok(g) = sink.lock() {
+        if let Some(tx) = g.as_ref() {
+            let _ = tx.send(ev);
+        }
     }
 }
 
@@ -565,6 +668,10 @@ fn device_snapshot<T: DeviceBackend>(
 pub struct DeviceActor {
     tx: mpsc::Sender<Request>,
     handle: std::sync::Arc<std::sync::Mutex<Option<JoinHandle<()>>>>,
+    /// Destinatário dos eventos `device://sync` (#164) — registrado pelo
+    /// `run()` depois do build do Tauri. Sem sink os eventos são descartados
+    /// (o estado continua consultável pelo `info`).
+    sync_sink: std::sync::Arc<std::sync::Mutex<Option<mpsc::Sender<SyncEvent>>>>,
 }
 
 impl DeviceActor {
@@ -623,7 +730,34 @@ impl DeviceActor {
         backend: Backend,
         motivo: String,
     ) -> Self {
+        Self::spawn_interno(device, backend, motivo, READBACK_DEBOUNCE, REFRESH_INTERVAL)
+    }
+
+    /// Spawn com cadências ENCURTADAS (#164) — para os testes do ciclo de
+    /// convergência dormirem milissegundos, não segundos. Produção usa as
+    /// constantes [`READBACK_DEBOUNCE`]/[`REFRESH_INTERVAL`].
+    #[cfg_attr(not(test), allow(dead_code))]
+    pub fn spawn_com_cadencia<T: DeviceBackend + 'static>(
+        device: T,
+        backend: Backend,
+        debounce: Duration,
+        intervalo: Duration,
+    ) -> Self {
+        Self::spawn_interno(device, backend, String::new(), debounce, intervalo)
+    }
+
+    /// Corpo real do spawn (cadência parametrizada pelos wrappers acima).
+    fn spawn_interno<T: DeviceBackend + 'static>(
+        device: T,
+        backend: Backend,
+        motivo: String,
+        debounce: Duration,
+        intervalo: Duration,
+    ) -> Self {
         let (tx, rx) = mpsc::channel::<Request>();
+        let sync_sink: std::sync::Arc<std::sync::Mutex<Option<mpsc::Sender<SyncEvent>>>> =
+            std::sync::Arc::new(std::sync::Mutex::new(None));
+        let sink = std::sync::Arc::clone(&sync_sink);
         let handle = std::thread::spawn(move || {
             // O transporte entra embrulhado no LoggingTransport desde o
             // inicio: e um decorador transparente (byte entra, byte sai,
@@ -659,13 +793,189 @@ impl DeviceActor {
             // cache", não a Session).
             let mut nomes: BTreeMap<u16, String> = BTreeMap::new();
             let mut boards: BTreeMap<u16, BoardView> = BTreeMap::new();
-            while let Ok(req) = rx.recv() {
+            // Convergência (#164): estado tipado + prazos de read-back.
+            // Sem sessão (open falhou / build sem transporte) o estado já
+            // nasce Offline com o motivo — o chip nunca mente "conectado".
+            let mut sync = if session.is_some() {
+                SyncStatus::Inativo
+            } else {
+                SyncStatus::Offline
+            };
+            let mut sync_detail = if session.is_some() {
+                String::new()
+            } else if motivo.is_empty() {
+                "aparelho não conectou (abrir falhou)".to_string()
+            } else {
+                motivo.clone()
+            };
+            let mut debounced: Option<Instant> = None;
+            let mut proximo_refresh: Option<Instant> = None;
+            // Classificação do desfecho de uma ESCRITA no fio (#164): ok →
+            // `Pendente` (o read-back do debounce confirma ou reconcilia);
+            // `DeviceGone` → `Offline` + transporte guardado para o
+            // `device_conectar`; outro erro → `Falhou` (sessão segue viva).
+            macro_rules! marca {
+                ($r:expr) => {
+                    match &$r {
+                        Ok(_) => {
+                            sync = SyncStatus::Pendente;
+                            sync_detail.clear();
+                            debounced = Some(Instant::now() + debounce);
+                            emite(
+                                &sink,
+                                SyncEvent {
+                                    status: sync.as_str(),
+                                    changed: false,
+                                    detail: String::new(),
+                                },
+                            );
+                        }
+                        Err(e) => {
+                            if matches!(e, gp100_core::ProtocolError::DeviceGone { .. }) {
+                                sync = SyncStatus::Offline;
+                                sync_detail = format!("aparelho desconectado: {e}");
+                                // Sessão viva com transporte morto (ADR-4):
+                                // retry tipado rápido e reconexão por cima.
+                                debounced = None;
+                                proximo_refresh = None;
+                            } else {
+                                sync = SyncStatus::Falhou;
+                                sync_detail = e.to_string();
+                            }
+                            emite(
+                                &sink,
+                                SyncEvent {
+                                    status: sync.as_str(),
+                                    changed: false,
+                                    detail: sync_detail.clone(),
+                                },
+                            );
+                        }
+                    }
+                };
+            }
+            // Fila com RELOGIO (#164): os prazos do read-back (debounce da
+            // rajada) e do refresh periódico dividem o `recv` com a fila;
+            // sem prazo o `recv` segue bloqueante como antes (nenhum poll
+            // ocioso, nenhum sleep — a thread só acorda para fila ou prazo).
+            loop {
+                let agora = Instant::now();
+                let debounce_venceu = debounced.is_some_and(|t| t <= agora);
+                let mut refresh_venceu = proximo_refresh.is_some_and(|t| t <= agora);
+                // Rajada em curso: o refresh espera a rajada fechar — um
+                // read-back cobre os dois (9 páginas lidas uma vez só).
+                if refresh_venceu && !debounce_venceu && debounced.is_some() {
+                    proximo_refresh = Some(agora + intervalo);
+                    refresh_venceu = false;
+                }
+                if debounce_venceu || refresh_venceu {
+                    debounced = None;
+                    if refresh_venceu {
+                        proximo_refresh = Some(agora + intervalo);
+                    }
+                    // READ-BACK (#164): relê as 9 páginas do preset
+                    // corrente pelo caminho do BOOT (`reload_paginas_correntes`:
+                    // open → pág0 + PG 0..7 → págs 1..8, §13.10 — tudo
+                    // `WireKind::Read`, NENHUMA escrita nova) e reconcilia o
+                    // cache do actor: o aparelho vence, sempre.
+                    let r: Result<bool, FalhaLeitura> = (|| {
+                        let s = session.as_mut().ok_or_else(|| {
+                            FalhaLeitura::Outro("sem sessão com aparelho".into())
+                        })?;
+                        let pp = s.current_pp();
+                        let pags = s.reload_paginas_correntes().map_err(|e| match e {
+                            gp100_core::ProtocolError::DeviceGone { why } => {
+                                FalhaLeitura::Caiu(why)
+                            }
+                            outro => FalhaLeitura::Outro(outro.to_string()),
+                        })?;
+                        let dec = gp100_core::preset_pages::decode(&pags)
+                            .map_err(|e| FalhaLeitura::Outro(e.to_string()))?;
+                        let dict = Dictionary::from_json(gp100_core::model::DICTIONARY_JSON)
+                            .map_err(|e| FalhaLeitura::Outro(e.to_string()))?;
+                        let off = gp100_core::preset_pages::Offsets::carregado()
+                            .map_err(|e| FalhaLeitura::Outro(e.to_string()))?;
+                        let novo = dec
+                            .slots(pp, &dict, &off)
+                            .map_err(|e| FalhaLeitura::Outro(e.to_string()))?;
+                        if let Ok(nome) = dec.nome() {
+                            nomes.insert(pp, nome.to_string());
+                        }
+                        let changed = boards.get(&pp).is_none_or(|b| b != &novo);
+                        boards.insert(pp, novo);
+                        Ok(changed)
+                    })();
+                    let ev = match r {
+                        Ok(changed) => {
+                            sync = SyncStatus::Sincronizado;
+                            sync_detail.clear();
+                            SyncEvent {
+                                status: sync.as_str(),
+                                changed,
+                                detail: String::new(),
+                            }
+                        }
+                        Err(FalhaLeitura::Caiu(why)) => {
+                            sync = SyncStatus::Offline;
+                            sync_detail = format!("aparelho desconectado: {why}");
+                            // A sessão FICA viva com o transporte morto (ADR-4:
+                            // retry devolve DeviceGone tipado rápido, e o
+                            // `device_conectar` reabre por cima — contrato do
+                            // `device_morrendo_no_meio_da_sessao`).
+                            debounced = None;
+                            proximo_refresh = None;
+                            SyncEvent {
+                                status: sync.as_str(),
+                                changed: false,
+                                detail: sync_detail.clone(),
+                            }
+                        }
+                        Err(FalhaLeitura::Outro(msg)) => {
+                            sync = SyncStatus::Falhou;
+                            sync_detail = msg.clone();
+                            SyncEvent {
+                                status: sync.as_str(),
+                                changed: false,
+                                detail: msg,
+                            }
+                        }
+                    };
+                    emite(&sink, ev);
+                    continue;
+                }
+                // Prazo mais próximo (ou fila, quando não há prazo).
+                let espera = [debounced, proximo_refresh]
+                    .into_iter()
+                    .flatten()
+                    .map(|t| t.saturating_duration_since(agora))
+                    .min();
+                let req = match espera {
+                    None => match rx.recv() {
+                        Ok(r) => r,
+                        Err(_) => break,
+                    },
+                    Some(d) => match rx.recv_timeout(d) {
+                        Ok(r) => r,
+                        Err(mpsc::RecvTimeoutError::Timeout) => continue,
+                        Err(mpsc::RecvTimeoutError::Disconnected) => break,
+                    },
+                };
                 match req {
+                    Request::SyncNow { reply } => {
+                        // Só adianta o prazo no RELÓGIO da fila: o braço do
+                        // read-back roda no próximo passo do loop, com os
+                        // MESMOS caminhos de falha (DeviceGone → Offline,
+                        // decode → Failed) — sem caminho paralelo de leitura.
+                        debounced = Some(Instant::now());
+                        let _ = reply.send(Ok(()));
+                    }
                     Request::Info { reply } => {
                         let mut snap = device_snapshot(&mut session, backend, &nomes);
                         if backend == Backend::Desligado {
                             snap.detail = motivo.clone();
                         }
+                        snap.sync = sync.as_str();
+                        snap.sync_detail = sync_detail.clone();
                         let _ = reply.send(Ok(snap));
                     }
                     Request::Conectar { reply } => {
@@ -696,10 +1006,36 @@ impl DeviceActor {
                                     eprintln!("[device] aparelho conectado pelo device_conectar");
                                 }
                                 session = Some(Session::new(t));
+                                // #164: reconectou mas ainda não leu nada —
+                                // `Inativo` (nunca "sincronizado" sem prova);
+                                // o read-back do debounce confirma em seguida.
+                                sync = SyncStatus::Inativo;
+                                sync_detail.clear();
+                                debounced = Some(Instant::now() + debounce);
+                                emite(
+                                    &sink,
+                                    SyncEvent {
+                                        status: sync.as_str(),
+                                        changed: false,
+                                        detail: String::new(),
+                                    },
+                                );
                                 let _ = reply.send(Ok(()));
                             }
                             Err(e) => {
                                 transporte = Some(t);
+                                sync = SyncStatus::Offline;
+                                sync_detail = format!("aparelho não conectou: {e}");
+                                debounced = None;
+                                proximo_refresh = None;
+                                emite(
+                                    &sink,
+                                    SyncEvent {
+                                        status: sync.as_str(),
+                                        changed: false,
+                                        detail: sync_detail.clone(),
+                                    },
+                                );
                                 let _ = reply.send(Err(format!("aparelho não conectou: {e}")));
                             }
                         }
@@ -808,8 +1144,9 @@ impl DeviceActor {
                     }
                     Request::Select { pp, reply } => match session.as_mut() {
                         Some(s) => {
-                            let r = s.select_preset(pp).map_err(|e| e.to_string());
-                            let _ = reply.send(r);
+                            let r = s.select_preset(pp);
+                            marca!(&r);
+                            let _ = reply.send(r.map_err(|e| e.to_string()));
                         }
                         None => {
                             let _ = reply.send(Err("session do actor ausente".into()));
@@ -823,10 +1160,12 @@ impl DeviceActor {
                         reply,
                     } => match session.as_mut() {
                         Some(s) => {
-                            let r = s
-                                .set_param(slot, code, ctrl, value)
-                                .map_err(|e| e.to_string());
-                            let _ = reply.send(r);
+                            let r = s.set_param(slot, code, ctrl, value);
+                            // Escrita aceita sem resposta do fio (D4): até o
+                            // read-back, o valor é SÓ do app — o estado fica
+                            // `Pendente` e a UI pode reconciliar (#164).
+                            marca!(&r);
+                            let _ = reply.send(r.map_err(|e| e.to_string()));
                         }
                         None => {
                             let _ = reply.send(Err("session do actor ausente".into()));
@@ -844,9 +1183,8 @@ impl DeviceActor {
                                         let _ = tx.send(p);
                                     };
                                     s.boot_with_progress(Some(&mut cb))
-                                        .map_err(|e| e.to_string())
                                 }
-                                None => s.boot_with_progress(None).map_err(|e| e.to_string()),
+                                None => s.boot_with_progress(None),
                             };
                             // #155 §5.1: com o scan completo, decodifica a
                             // pg0 de cada pp e grava (pp → nome). É custo
@@ -863,8 +1201,25 @@ impl DeviceActor {
                                         }
                                     }
                                 }
+                                // #164: o boot LEU tudo — sincronizado de
+                                // direito, e o refresh periódico passa a
+                                // armar (10 s; poll é a única janela em que
+                                // a mudança do PEDAL aparece).
+                                sync = SyncStatus::Sincronizado;
+                                sync_detail.clear();
+                                proximo_refresh = Some(Instant::now() + intervalo);
+                                emite(
+                                    &sink,
+                                    SyncEvent {
+                                        status: sync.as_str(),
+                                        changed: false,
+                                        detail: String::new(),
+                                    },
+                                );
+                            } else {
+                                marca!(&r);
                             }
-                            let _ = reply.send(r);
+                            let _ = reply.send(r.map_err(|e| e.to_string()));
                         }
                         None => {
                             let _ = reply.send(Err("session do actor ausente".into()));
@@ -922,8 +1277,9 @@ impl DeviceActor {
                         reply,
                     } => match session.as_mut() {
                         Some(s) => {
-                            let r = s.save_preset(pp, pp_type, &name).map_err(|e| e.to_string());
-                            let _ = reply.send(r);
+                            let r = s.save_preset(pp, pp_type, &name);
+                            marca!(&r);
+                            let _ = reply.send(r.map_err(|e| e.to_string()));
                         }
                         None => {
                             let _ = reply.send(Err("session do actor ausente".into()));
@@ -989,6 +1345,16 @@ impl DeviceActor {
         Self {
             tx,
             handle: std::sync::Arc::new(std::sync::Mutex::new(Some(handle))),
+            sync_sink,
+        }
+    }
+
+    /// Registra o destinatário dos eventos `device://sync` (#164). Quem
+    /// registra é o `run()` (reemite para o front); sem sink os eventos são
+    /// descartados e o estado continua consultável pelo `info`.
+    pub fn set_sync_sink(&self, sink: mpsc::Sender<SyncEvent>) {
+        if let Ok(mut g) = self.sync_sink.lock() {
+            *g = Some(sink);
         }
     }
 
@@ -1097,6 +1463,18 @@ impl DeviceActor {
             })
             .map_err(|_| "actor de device não está mais rodando".to_string())?;
         rx.recv().map_err(|_| "actor morreu no SetParam")?
+    }
+
+    /// Agenda um read-back IMEDIATO do preset corrente (#164 — command
+    /// `device_sync_now`, a ação "Reler agora" do chip de sincronização).
+    /// Resolve quando o prazo foi agendado; o RESULTADO da leitura (sync/
+    /// failed/offline + `changed`) chega pelo evento `device://sync`.
+    pub fn sync_now(&self) -> Result<(), String> {
+        let (tx, rx) = mpsc::channel();
+        self.tx
+            .send(Request::SyncNow { reply: tx })
+            .map_err(|_| "actor de device não está mais rodando".to_string())?;
+        rx.recv().map_err(|_| "actor morreu no SyncNow")?
     }
 
     /// Tabela dos 20 User IRs (§13.12). Bloqueia até o actor completar as
@@ -1874,6 +2252,315 @@ mod tests {
             "retry aborta na hora: {:?}",
             t1.elapsed()
         );
+        actor.shutdown();
+    }
+
+    /// #164 — ciclo de convergência COMPLETO, com a prova anti-brick da
+    /// fase nova: boot → `sync`; escrita → `pending`; read-back → `sync` de
+    /// novo E `changed = true` quando o fio veio DIFERENTE do cache — o
+    /// board passa a mostrar o valor LIDO do aparelho, não o que o app
+    /// escreveu. Toda a fase de leitura é registrada: NENHUM
+    /// `WireKind::Write` pode aparecer nela. No boot a ÚNICA escrita
+    /// tolerada é o keepalive T4 `12/00020001` (D4 — decisão do owner
+    /// 06/10: bate-coração que não toca dados; sem ele um build de
+    /// leitura cairia no último passo). Qualquer outro frame de escrita
+    /// no caminho é violação anti-brick.
+    #[test]
+    fn convergencia_reconcilia_o_valor_lido_e_nunca_escreve() {
+        use std::sync::atomic::{AtomicBool, Ordering};
+        use std::sync::Mutex as StdMutex;
+
+        /// Transporte que MUTA as páginas depois de armado (#164): simula o
+        /// aparelho mudando por baixo do app (knob físico / pedal),
+        /// trocando a sequência nibble do valor-alvo no payload — mesmo
+        /// encoding do core, sem tocar em shape nem endereço.
+        struct PaginasVivas {
+            inner: MockDevice,
+            mutar: std::sync::Arc<AtomicBool>,
+            /// `(needle, novo)` — bytes nibble do f32 LE a trocar.
+            alvo: std::sync::Arc<StdMutex<(Vec<u8>, Vec<u8>)>>,
+            registrando: std::sync::Arc<AtomicBool>,
+            /// `(kind, frame)` — o que saiu do fio enquanto registrado.
+            fases: std::sync::Arc<StdMutex<Vec<(WireKind, Vec<u8>)>>>,
+        }
+
+        impl std::fmt::Debug for PaginasVivas {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                f.debug_struct("PaginasVivas").finish_non_exhaustive()
+            }
+        }
+
+        impl DeviceTransport for PaginasVivas {
+            fn open(&mut self) -> Result<(), TransportError> {
+                self.inner.open()
+            }
+            fn close(&mut self) -> Result<(), TransportError> {
+                self.inner.close()
+            }
+            fn send_raw(&mut self, data: &[u8], kind: WireKind) -> Result<(), TransportError> {
+                if self.registrando.load(Ordering::SeqCst) {
+                    self.fases.lock().expect("fases").push((kind, data.to_vec()));
+                }
+                self.inner.send_raw(data, kind)
+            }
+            fn recv_raw(&mut self, t: Duration) -> Result<Vec<u8>, TransportError> {
+                let mut msg = self.inner.recv_raw(t)?;
+                if self.mutar.load(Ordering::SeqCst) {
+                    let (needle, novo) = {
+                        let g = self.alvo.lock().expect("alvo");
+                        (g.0.clone(), g.1.clone())
+                    };
+                    if needle.len() == novo.len() && !needle.is_empty() {
+                        if let Some(pos) = msg.windows(needle.len()).position(|w| w == needle) {
+                            msg[pos..pos + needle.len()].copy_from_slice(&novo);
+                        }
+                    }
+                }
+                Ok(msg)
+            }
+        }
+
+        impl DeviceBackend for PaginasVivas {
+            fn local_state(&self) -> Option<MockState> {
+                self.inner.local_state()
+            }
+            fn drain_inbox(&mut self) -> Vec<Vec<u8>> {
+                self.inner.drain_inbox()
+            }
+        }
+
+        /// Codificação nibble do f32 LE (o mesmo `b >> 4 | b & 0xF` do
+        /// fio) — o que o `nibble_collapse` do core desfaz no `decode`.
+        fn nibble_de(v: f32) -> Vec<u8> {
+            v.to_le_bytes()
+                .iter()
+                .flat_map(|b| [b >> 4, b & 0x0F])
+                .collect()
+        }
+
+        let mutar = std::sync::Arc::new(AtomicBool::new(false));
+        let registrando = std::sync::Arc::new(AtomicBool::new(false));
+        let fases = std::sync::Arc::new(StdMutex::new(Vec::new()));
+        let alvo_bytes = std::sync::Arc::new(StdMutex::new((Vec::new(), Vec::new())));
+        let actor = DeviceActor::spawn_com_cadencia(
+            PaginasVivas {
+                inner: MockDevice::new().expect("mock"),
+                mutar: mutar.clone(),
+                alvo: alvo_bytes.clone(),
+                registrando: registrando.clone(),
+                fases: fases.clone(),
+            },
+            Backend::Mock,
+            Duration::from_millis(300),
+            Duration::from_secs(30),
+        );
+        let (ev_tx, ev_rx) = mpsc::channel::<SyncEvent>();
+        actor.set_sync_sink(ev_tx);
+
+        // SEM conversa ainda: `idle` — o chip nunca afirma "sincronizado"
+        // sem ter lido nada (sem número falso).
+        assert_eq!(actor.info().expect("info").sync, "idle");
+
+        // Boot = leitura pura + keepalive T4 (D4). Escrita que NÃO é o
+        // bate-coração `12/00020001` é violação anti-brick: o boot não
+        // pode mandar SetParam, save, meta nem IR — nada que toque dados.
+        registrando.store(true, Ordering::SeqCst);
+        actor.boot(None).expect("boot");
+        {
+            let mut f = fases.lock().expect("fases");
+            assert!(!f.is_empty(), "o boot manda transações");
+            for (k, frame) in f.iter() {
+                if !matches!(k, WireKind::Write) {
+                    continue;
+                }
+                let (func, addr, _) = gp100_core::golden::decode_envelope(frame)
+                    .expect("envelope bem formado no fio do boot");
+                assert!(
+                    func == 0x12 && addr == [0x00, 0x02, 0x00, 0x01],
+                    "escrita no boot ALÉM do keepalive T4 (D4): func {func:02x} \
+                     addr {addr:02x?} — o boot só pode ler e bater o keepalive"
+                );
+            }
+            f.clear();
+            // Desarma: o boot acabou; a escrita do app (set_param) roda
+            // DESARMADA — só a fase de leitura volta a ser registrada.
+            registrando.store(false, Ordering::SeqCst);
+        }
+        assert_eq!(actor.info().expect("info").sync, "sync");
+
+        // O palco ANTES: daqui sai o valor-alvo e o slot/code/ctrl do knob.
+        let antes = actor.board(None).expect("board antes");
+        let (slot_n, code, pos, valor) = antes
+            .slots
+            .iter()
+            .flat_map(|s| s.knobs.iter().map(move |k| (s, k)))
+            .find(|(_, k)| {
+                k.kind == "knob"
+                    && k.value
+                        .as_deref()
+                        .and_then(|v| v.parse::<f32>().ok())
+                        .is_some_and(|v| (1.0..=127.0).contains(&v))
+            })
+            .map(|(s, k)| {
+                (
+                    s.slot + 1,
+                    s.code,
+                    k.pos,
+                    k.value.as_deref().unwrap().parse::<f32>().unwrap(),
+                )
+            })
+            .expect("um knob dentro de faixa");
+
+        // O aparelho "gira sozinho" (+7) por baixo do app: armamos a mutação
+        // das páginas; a PRÓXIMA leitura vai devolver o valor do device.
+        {
+            let mut g = alvo_bytes.lock().expect("alvo");
+            g.0 = nibble_de(valor);
+            g.1 = nibble_de(valor + 7.0);
+        }
+        mutar.store(true, Ordering::SeqCst);
+
+        // O app escreve (o MESMO valor atual — sempre dentro da faixa ADR-10):
+        // D4 sem resposta → estado `pending` até o read-back.
+        actor
+            .set_param(slot_n, code, pos, valor)
+            .expect("escrita aceita");
+        assert_eq!(
+            actor.info().expect("info").sync,
+            "pending",
+            "escrita aceita = pendente até o read-back confirmar"
+        );
+        // Arma SÓ a fase de leitura: o boot desarmou ao terminar e o
+        // `set_param` (escrita do app, registrada ou não) já foi processado
+        // — daqui até o read-back, só frames de leitura podem aparecer.
+        registrando.store(true, Ordering::SeqCst);
+
+        // Espera o read-back (debounce 300 ms) — evento `changed = true`.
+        // Cada evento NÃO-changed fica registrado: a falha mostra o que
+        // chegou de verdade (status/detail), não só "não veio".
+        let mut eventos: Vec<SyncEvent> = Vec::new();
+        let mut viu_changed = false;
+        let prazo = std::time::Instant::now() + Duration::from_secs(8);
+        while std::time::Instant::now() < prazo {
+            match ev_rx.recv_timeout(Duration::from_millis(400)) {
+                Ok(ev) if ev.changed => {
+                    assert_eq!(ev.status, "sync", "read-back OK = sincronizado");
+                    viu_changed = true;
+                    break;
+                }
+                Ok(ev) => eventos.push(ev),
+                Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {}
+                Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => break,
+            }
+        }
+        assert!(
+            viu_changed,
+            "o read-back reconciliou (changed = true); eventos: {eventos:?}"
+        );
+
+        // Anti-brick da fase nova: TUDO que saiu depois da escrita foi leitura.
+        {
+            let f = fases.lock().expect("fases");
+            assert!(!f.is_empty(), "o read-back manda as 9 páginas");
+            assert!(
+                f.iter().all(|(k, _)| matches!(k, WireKind::Read)),
+                "o read-back NÃO pode escrever: {:?}",
+                f.iter().find(|(k, _)| !matches!(k, WireKind::Read))
+            );
+            registrando.store(false, Ordering::SeqCst);
+        }
+
+        // Reconciliação: o board MOSTRA o valor do aparelho (+7), não o que
+        // o app quis escrever (valor).
+        let depois = actor.board(None).expect("board depois");
+        let lido = depois
+            .slots
+            .iter()
+            .flat_map(|s| s.knobs.iter())
+            .find(|k| k.kind == "knob" && k.pos == pos)
+            .and_then(|k| k.value.as_deref())
+            .and_then(|v| v.parse::<f32>().ok())
+            .expect("o mesmo knob depois");
+        assert_eq!(
+            lido,
+            valor + 7.0,
+            "o aparelho vence: o valor LIDO é o do device, não o escrito"
+        );
+        assert_eq!(actor.info().expect("info").sync, "sync");
+        actor.shutdown();
+    }
+
+    /// #164 — queda do transporte: o read-back morre com `DeviceGone`, o
+    /// estado vira `offline` com motivo legível, e a escrita seguinte FALHA
+    /// sem ir ao fio (o app não continua escrevendo em vazio). A sessão
+    /// fica viva (ADR-4): o retry devolve o erro tipado rápido.
+    #[test]
+    fn queda_no_meio_do_readback_vira_offline_e_bloqueia_escrita() {
+        let mock = MockDevice::new()
+            .expect("mock")
+            .with_fault(MockFault::DieAfter(4));
+        let actor = DeviceActor::spawn_com_cadencia(
+            mock,
+            Backend::Mock,
+            Duration::from_millis(150),
+            Duration::from_secs(60),
+        );
+
+        // tx1 = set_param aceito → `pending` (a prova de que a escrita foi
+        // ANTES da morte, e não um estado herdado).
+        actor
+            .set_param(3, 0x0700_006e, 0, 15.0)
+            .expect("escrita antes da queda");
+        assert_eq!(actor.info().expect("info").sync, "pending");
+
+        // O read-back dispara (debounce 150 ms) e morre no meio das 9
+        // páginas (transmissões 3, 4 e a 5 estoura o DieAfter).
+        std::thread::sleep(Duration::from_millis(500));
+
+        let st = actor.info().expect("info continua respondendo");
+        assert_eq!(st.sync, "offline", "transporte morto = offline");
+        assert!(
+            st.sync_detail.contains("desconectado"),
+            "o motivo é legível: {}",
+            st.sync_detail
+        );
+
+        // Escrita seguinte: FALHA (DeviceGone tipado) — nenhum frame sai.
+        let err = actor
+            .set_param(3, 0x0700_006e, 0, 20.0)
+            .expect_err("sem aparelho não existe escrita");
+        assert!(
+            err.contains("device sumiu") || err.contains("session do actor ausente"),
+            "erro tipado rápido, não janela de timeout: {err}"
+        );
+        assert_eq!(actor.info().expect("info").sync, "offline");
+        actor.shutdown();
+    }
+
+    /// #164 — `device_sync_now` dispara o read-back AGORA: o spawn tem
+    /// refresh de 1 HORA, então o `sync` que vier em seguida SÓ pode ser o
+    /// agendamento do comando — a leitura não espera a cadência.
+    #[test]
+    fn sync_now_dispara_readback_sem_esperar_o_refresh() {
+        let actor = DeviceActor::spawn_com_cadencia(
+            MockDevice::new().expect("mock"),
+            Backend::Mock,
+            Duration::from_millis(100),
+            Duration::from_secs(3600),
+        );
+        let (ev_tx, ev_rx) = mpsc::channel::<SyncEvent>();
+        actor.set_sync_sink(ev_tx);
+
+        actor.boot(None).expect("boot");
+        // Drena os eventos do boot (o `sync` final já está na fila) — daqui
+        // em diante qualquer evento nasce do sync_now.
+        while ev_rx.recv_timeout(Duration::from_millis(200)).is_ok() {}
+
+        actor.sync_now().expect("agenda o read-back");
+        let ev = ev_rx
+            .recv_timeout(Duration::from_secs(3))
+            .expect("o read-back do sync_now emite sem esperar a cadência");
+        assert_eq!(ev.status, "sync", "leitura OK = sincronizado");
         actor.shutdown();
     }
 }

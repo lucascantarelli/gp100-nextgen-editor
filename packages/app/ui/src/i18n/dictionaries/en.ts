@@ -56,6 +56,20 @@ export const EN: DictPatch = {
   /* ── navbar (connection cluster: short status + badge + boot) ── */
   connClusterAria: "Connection and boot",
 
+  /* ── device sync (#164) — navbar chip ── */
+  syncIdle: "—",
+  syncSync: "sync",
+  syncPending: "pending",
+  syncFailed: "failed",
+  syncOffline: "offline",
+  syncClusterAria: "Device sync state",
+  syncReler: "Re-read",
+  syncRelerAria: "Re-read the device preset now",
+  syncRelerTitle: "Immediate read-back: re-reads the current preset pages now",
+  syncReconnect: "Reconnect",
+  syncReconnectAria: "Reconnect the device",
+  syncReconnectTitle: "Re-enumerates the MIDI ports and reopens the device",
+
   /* ── stage tuner ── */
   tunerAria: "Tuner",
   tunerPowerAria: "Turn the tuning monitor on or off",

@@ -48,6 +48,23 @@ export const PT_BR = {
   /* ── navbar (cluster de conexão: status curto + badge + boot) ── */
   connClusterAria: "Conexão e boot",
 
+  /* ── sincronização com o APARELHO (#164) — chip da navbar ──
+   * rótulos CURTOS: o cluster aperta (mono uppercase, mesmo estilo do
+   * "on"/"off" da conexão). Os estados são os do backend — sem números
+   * inventados: este protocolo sincroniza por poll + read-back. */
+  syncIdle: "—",
+  syncSync: "sync",
+  syncPending: "pendente",
+  syncFailed: "falhou",
+  syncOffline: "offline",
+  syncClusterAria: "Estado de sincronização com o aparelho",
+  syncReler: "Reler",
+  syncRelerAria: "Reler agora o preset do aparelho",
+  syncRelerTitle: "Read-back imediato: relê as páginas do preset corrente agora",
+  syncReconnect: "Reconectar",
+  syncReconnectAria: "Reconectar o aparelho",
+  syncReconnectTitle: "Re-enumera as portas MIDI e refaz o open do aparelho",
+
   /* ── afinador do palco (ocupa o lugar do antigo VU; manual V1.8 p.5) ── */
   tunerAria: "Afinador",
   tunerPowerAria: "Ligar ou desligar a monitoração de afinação",

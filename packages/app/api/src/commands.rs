@@ -65,6 +65,12 @@ pub struct DeviceInfo {
     /// botões de escrita com este sinal, em vez de o operador descobrir a
     /// recusa so depois de clicar.
     pub write_verified: bool,
+    /// Estado de sincronização (#164): "idle" | "sync" | "pending" |
+    /// "failed" | "offline" — o chip de sync nasce com a MESMA verdade do
+    /// actor, sem um segundo estado de verdade na UI.
+    pub sync: &'static str,
+    /// Detalhe humano de `failed`/`offline` (vazio nos outros estados).
+    pub sync_detail: String,
 }
 
 impl DeviceInfo {
@@ -88,6 +94,8 @@ impl DeviceInfo {
                 })
                 .collect(),
             write_verified: s.write_verified,
+            sync: s.sync,
+            sync_detail: s.sync_detail.clone(),
         }
     }
 }
@@ -188,6 +196,18 @@ pub fn device_info(state: State<'_, AppState>) -> Result<DeviceInfo, String> {
 #[tauri::command]
 pub fn device_conectar(state: State<'_, AppState>) -> Result<(), String> {
     state.actor.conectar()
+}
+
+/// `device_sync_now` (#164): agenda um read-back IMEDIATO do preset
+/// corrente — a ação "Reler agora" do chip de sincronização. Só leitura
+/// (`reload_paginas_correntes` é `WireKind::Read`); o desfecho chega pelo
+/// evento `device://sync`, não na resposta deste command.
+///
+/// # Erros
+/// Morte do actor (a sessão responde `failed`/`offline` pelo próprio evento).
+#[tauri::command]
+pub fn device_sync_now(state: State<'_, AppState>) -> Result<(), String> {
+    state.actor.sync_now()
 }
 
 /// `device_board` — board do preset (dados do pedalboard da UI): slots da
@@ -594,6 +614,8 @@ mod tests {
             ir_slots_with_crc: 0,
             ir_slots: vec![(2, "meu_ir".to_string())],
             write_verified: false,
+            sync: "idle",
+            sync_detail: String::new(),
         });
         assert_eq!(info.backend, "real");
         assert_eq!(info.current_name, "", "sem fonte no fio = vazio, nao nome");

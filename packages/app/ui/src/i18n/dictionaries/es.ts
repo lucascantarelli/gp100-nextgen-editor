@@ -57,6 +57,20 @@ export const ES: DictPatch = {
   /* ── navbar (cluster de conexión: estado corto + badge + arranque) ── */
   connClusterAria: "Conexión y arranque",
 
+  /* ── sincronización con el APARATO (#164) — chip de la navbar ── */
+  syncIdle: "—",
+  syncSync: "sync",
+  syncPending: "pendiente",
+  syncFailed: "falló",
+  syncOffline: "sin conexión",
+  syncClusterAria: "Estado de sincronización con el aparato",
+  syncReler: "Releer",
+  syncRelerAria: "Releer ahora el preset del aparato",
+  syncRelerTitle: "Read-back inmediato: relee las páginas del preset actual ahora",
+  syncReconnect: "Reconectar",
+  syncReconnectAria: "Reconectar el aparato",
+  syncReconnectTitle: "Vuelve a enumerar los puertos MIDI y reabre el aparato",
+
   /* ── afinador del escenario ── */
   tunerAria: "Afinador",
   tunerPowerAria: "Encender o apagar la monitorización de afinación",
