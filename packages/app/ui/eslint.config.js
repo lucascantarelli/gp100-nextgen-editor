@@ -81,6 +81,13 @@ export default tseslint.config(
     rules: { "no-console": "off" },
   },
   {
+    // Wrapper do beforeDevCommand (#193): roda em Node puro antes do
+    // `tauri dev` (o CLI é quem captura o stdout) — mesmo trato do smoke.
+    files: ["dev-if-needed.mjs"],
+    languageOptions: { globals: { ...globals.node } },
+    rules: { "no-console": "off" },
+  },
+  {
     // A casca não escreve texto de usuário inline — só via MSG.
     plugins: { local: noUserLiterals },
     files: ["src/components/**/*.tsx", "src/App.tsx"],
