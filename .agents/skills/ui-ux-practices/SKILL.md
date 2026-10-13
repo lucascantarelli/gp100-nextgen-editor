@@ -97,7 +97,9 @@ pnpm build         # vite build (bundle; tsc já rodou acima)
   gates da `rust-practices` (fmt, clippy -D warnings, testes), no job
   `Lint`/`Compilação`/`Testes · Rust (… · ui-rust · windows-latest)`.
 - CI: o pipeline `.github/workflows/ci.yml` (#68, reorganizado na #169) + o
-  workflow próprio de fechamento. Os gates do front: `Lint · UI (eslint)` ·
+  workflow próprio de fechamento + o `visual-baselines.yml` de manutenção
+  read-only (regenera baselines `-linux` por dispatch, #204). Os gates do
+  front: `Lint · UI (eslint)` ·
   `Compilação · UI (tsc + vite · <os>)` em **4 OS** (windows · macos-intel ·
   ubuntu · archlinux como container) · `Testes · UI (vitest)` · `Cobertura ·
   UI (gate 85%)` · e os e2e (`Testes · E2E shell`, `· E2E visual`, `· E2E

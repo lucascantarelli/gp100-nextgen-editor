@@ -11,9 +11,9 @@
  *  - SEM baseline: local CRIA (dev-friendly) e no CI o job FALHA — não existe
  *    mais skip silencioso (issue #45: 12 baselines win32 passaram meses
  *    desatualizadas e o visual não era gate de nada). Para adicionar um teste
- *    visual novo: rode o input `update-snapshots` do workflow (ubuntu com
- *    `--update-snapshots=all`), baixe o artefato `visual-snapshots` e commite
- *    os PNGs `-linux`; o `-win32` nasce do run local.
+ *    visual novo: rode o workflow dedicado `visual-baselines.yml` (dispatch no
+ *    ubuntu com `--update-snapshots=all`), baixe o artefato `visual-snapshots`
+ *    e commite os PNGs `-linux`; o `-win32` nasce do run local.
  *
  * Refactor POM (V-7): seletores via pages/_pages.ts e a falha simulada pelo
  * shell.failDevice(). RESTAURADO (comportamento documentado no cabeçalho,
@@ -81,7 +81,7 @@ const ERROR_STATES = [
  *  NÃO existe mais `test.skip` por baseline ausente (issue #45): no CI a
  *  ausência FALHA o job (o Playwright lá nunca escreve baseline sozinho) e no
  *  local o default `missing` CRIA a que falta — dev-friendly, mas explícito.
- *  Gerar no CI é sempre pelo input `update-snapshots` do workflow (flag
+ *  Gerar no CI é sempre pelo workflow dedicado `visual-baselines.yml` (flag
  *  `--update-snapshots=all`): nunca depender do default de
  *  `config.updateSnapshots` (a run 36935738610 provou que ele é indistinguível
  *  de "quero gerar": 48 visuais falharam).

@@ -27,8 +27,10 @@ cargo build
 ## CI (GitHub Actions) — mesma régua do local
 
 A CI é o pipeline `.github/workflows/ci.yml` + o workflow próprio de fechamento
-`issues-fechamento.yml` (#169). Os gates Rust são **três jobs separados**,
-não um `rust` único:
+`issues-fechamento.yml` (#169) + o `visual-baselines.yml`, workflow de
+manutenção read-only que regenera as baselines `-linux` por dispatch (#204:
+saiu do ci.yml porque o `default: release` do dispatch cortava tag junto com
+regeneração). Os gates Rust são **três jobs separados**, não um `rust` único:
 
 | Job | Gate | Matriz |
 |---|---|---|
