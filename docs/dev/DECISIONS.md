@@ -5,7 +5,7 @@
 > Registra as decisões estruturais do `gp100-core` **antes** de cada bloco de
 > implementação (ADR-1..5 pré-assinados antes do M0; ADR-6 sancionado antes do
 > M0.6), para que nenhuma issue vire debate no meio do caminho. Evidências citam
-> o golden (`docs/protocol_golden.json`, Baseline v1.0 — sha256 `0426d6a8…ef859`,
+> o golden (`docs/referencias/protocol_golden.json`, Baseline v1.0 — sha256 `0426d6a8…ef859`,
 > ver §13 do PROTOCOL.md) e as provas de `validate_golden.py`.
 >
 > **Regra de mudança:** decisão alterada = **nova entrada ADR** marcando a antiga
@@ -644,7 +644,7 @@ firmware aceitaria.
 ## ADR-11 — O `gp100-cli` fica congelado para capacidades novas (decisão do owner, 05/10)
 
 **Status:** aceito · owner, 05/10/2026 · pergunta respondida por
-`docs/REAL_DEVICE_GAP.md` §6
+`docs/referencias/REAL_DEVICE_GAP.md` §6
 
 **Contexto.** O `gp100-core` tem 12 capacidades. O `gp100-cli` e o app expuseram
 subconjuntos **diferentes** desse mesmo core: o CLI tinha `save`,
@@ -897,7 +897,7 @@ declarar, para cada coisa que sobrou, quem é dona e por quê.
   modelo tipado `FactoryPatch`/`UserPatch` existir (HW-2/#162) e o inventário
   vier do aparelho (HW-4/#164), a seed deixa de ser necessária — mas em
   NENHUM momento o app passa a depender de arquivo local no disco do usuário.
-- **`docs/protocol_golden.json` permanece documento de especificação** (R1:
+- **`docs/referencias/protocol_golden.json` permanece documento de especificação** (R1:
   insumo, não produto). Mudou só o campo `_meta.generated_by` (apontador do
   gerador) e, como a baseline é sobre o CONTEÚDO do arquivo de spec, a mudança
   entrou pelo ritual R2/R3: `baseline.py bump --motivo --issue #163` → v1.2,

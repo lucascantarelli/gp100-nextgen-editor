@@ -9,7 +9,7 @@ metadata:
 
 Complementa `device-reference` (o QUE o aparelho é — vocabulário e
 funcionalidades) e `core-dev` (como o código é estruturado). Em conflito,
-`docs/GP100_DEVICE.md` e `docs/DECISIONS.md` mandam.
+`docs/referencias/GP100_DEVICE.md` e `docs/dev/DECISIONS.md` mandam.
 
 ## Regra zero — o aparelho está ligado e é consultável
 
@@ -39,7 +39,7 @@ cargo build --release -p gp100-cli --features real-device
 |---|---|---|
 | Feature Rust | `real-device` (default **ON** no app desde #165; OFF no core/CLI) | `real-device,write-verified` |
 | Trava | nenhuma além do flag do CLI | **ADR-5**: trava no TRANSPORTE — sem a feature, o binário imprime os frames e não envia; sem o gate H2 passado, a feature não se liga |
-| Quem pode | qualquer sessão | só build explícito pós-gate H2, com o roteiro `docs/H2_CHECKLIST.md` |
+| Quem pode | qualquer sessão | só build explícito pós-gate H2, com o roteiro `docs/arquivo/H2_CHECKLIST.md` |
 
 **Proibido** abrir uma terceira camada (env var, subcomando novo, bypass). Se
 uma feature "precisaria" de escrita para ser desenvolvida, isso vira issue +
@@ -63,8 +63,8 @@ O firmware da GP-100 **asserta e derruba o pedal** em escrita fora de faixa
 - O CLI grava wire log com timestamp (`t`, em ms) — sem relógio não há casamento
   de transação. Anexe o log à issue/PR; hex solto em conversa não é evidência.
 - **Linha sem `F7` final não é frame** (lição da baseline v1.1): buffer truncado
-  ou `ff` de cauda não vira dado. Interpretação de fio é `docs/PROTOCOL.md` §13.
-- Fatos sobre o aparelho entram em `docs/GP100_DEVICE.md` (fonte canônica) com
+  ou `ff` de cauda não vira dado. Interpretação de fio é `docs/tecnico/PROTOCOL.md` §13.
+- Fatos sobre o aparelho entram em `docs/referencias/GP100_DEVICE.md` (fonte canônica) com
   data e método de medição; o `MANUAL_COVERAGE.md` registra o que já foi
   coberto/testado; `PROTOCOL.md` §13 registra a FORMA do fio.
 
@@ -72,13 +72,13 @@ O firmware da GP-100 **asserta e derruba o pedal** em escrita fora de faixa
 
 O device TEM coisas que o app ainda não lê do fio: configs globais, `12001012`
 (5 entradas, semântica aberta) e o banco USER de presets
-(`docs/GP100_DEVICE.md` §6). Cada lacuna entra por: **evidência → modelo +
+(`docs/referencias/GP100_DEVICE.md` §6). Cada lacuna entra por: **evidência → modelo +
 guard + teste → só então UI**. Nunca invente endereço de leitura nem exponha
 recurso que o fio não sustenta.
 
 ## Checklist de uma tarefa de hardware
 
-1. `docs/GP100_DEVICE.md` lido (vocabulário: User Patch ≠ User IR ≠ Setlist).
+1. `docs/referencias/GP100_DEVICE.md` lido (vocabulário: User Patch ≠ User IR ≠ Setlist).
 2. Dúvida de comportamento respondida no aparelho (leitura) ou registrada como
    gate de campo (escopo/roteiro).
 3. Evidência anexada (wire log/relatório) e fato documentado na fonte certa.

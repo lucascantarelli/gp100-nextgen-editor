@@ -92,7 +92,7 @@ def main() -> int:
     body = "\n".join([
         "## 🔒 Achado de segurança (varredura)",
         "",
-        "**Regra:** FASE ACHADOS do `docs/ROADMAP.md` — prioridade MÁXIMA, resolve "
+        "**Regra:** FASE ACHADOS do `docs/planejamento/ROADMAP.md` — prioridade MÁXIMA, resolve "
         "antes de qualquer issue de fase. Corrigido = fechar esta issue + linha "
         "A-xx no ROADMAP com a prova.",
         "",

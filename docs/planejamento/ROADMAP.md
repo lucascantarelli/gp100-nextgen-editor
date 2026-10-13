@@ -1,7 +1,7 @@
 # 🗺️ ROADMAP — Era Hardware (o app comandado pelo aparelho)
 
 > **Documento-mestre da virada.** Substitui o roadmap da engenharia reversa, arquivado em
-> [`docs/arquivo/ROADMAP_era-RE_2026-09.md`](arquivo/ROADMAP_era-RE_2026-09.md) — lá ficou o
+> [`docs/arquivo/ROADMAP_era-RE_2026-09.md`](../arquivo/ROADMAP_era-RE_2026-09.md) — lá ficou o
 > histórico do que foi entregue (P0–P5, M0, M1, M2, gates H1–H4, auditorias).
 >
 > **Épico no tracker:** [#171 — EPIC · Era Hardware](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/171)
@@ -59,7 +59,7 @@ mesa, a fonte da verdade muda para o aparelho, e o repo precisa refletir isso po
 | [#163](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/163) | Dados canônicos fora das análises; dissolver `docs/arquivo/analysis/` com proveniência | F2 | — | `core-dev` |
 | [#164](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/164) | Sincronização bilateral em tempo real (device ↔ app) com trava anti-brick | F2 | #162, #163 | `core-dev` |
 | [#165](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/165) | Política de device: **real por default no dev**; `--mock-device` só em teste; limitação documentada | F1 | — | `core-dev` |
-| [#172](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/172) | Gate de campo H5: roteiro assinado (boot, modelo tipado, sync) — [`docs/H5_CHECKLIST.md`](H5_CHECKLIST.md) | Campo | #161, #162, #164, #165 | `core-dev` |
+| [#172](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/172) | Gate de campo H5: roteiro assinado (boot, modelo tipado, sync) — [`docs/tecnico/H5_CHECKLIST.md`](../tecnico/H5_CHECKLIST.md) | Campo | #161, #162, #164, #165 | `core-dev` |
 | [#166](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/166) | Suíte de testes enxuta: triagem arquivo a arquivo, corte fundamentado, doc de testes | F3 | #163, #165 | `rust-practices` |
 | [#167](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/167) | Documentação oficial: `docs/` categorizada, `files/` triado, `SECURITY.md`, `.vscode` | F4 | #163, #168 | `docs-sync` |
 | [#168](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/168) | Dissolver `scripts/`: migrar o vivo, arquivar o RE, decidir onde os gates moram | F4 | — | `github-flow` |
@@ -167,12 +167,12 @@ Fechamento  → workflow próprio: .github/workflows/issues-fechamento.yml
 
 ## 7. Referências
 
-- **Protocolo e decisões:** [`docs/PROTOCOL.md`](PROTOCOL.md) · [`docs/DECISIONS.md`](DECISIONS.md)
-  (ADR-1..12) · [`docs/ARCHITECTURE.md`](ARCHITECTURE.md) · [`docs/REAL_DEVICE_GAP.md`](REAL_DEVICE_GAP.md)
-- **Estado e números:** [`docs/INDEX.md`](INDEX.md) §6 (fonte única) · [`knowledge.md`](../knowledge.md)
-- **Gates de campo (histórico):** [`docs/H1_REPORT.md`](H1_REPORT.md) · [`docs/H2_REPORT.md`](H2_REPORT.md) ·
-  [`docs/H3_REPORT.md`](H3_REPORT.md) · [`docs/H4_REPORT.md`](H4_REPORT.md)
-- **Era anterior:** [`docs/arquivo/ROADMAP_era-RE_2026-09.md`](arquivo/ROADMAP_era-RE_2026-09.md)
+- **Protocolo e decisões:** [`docs/tecnico/PROTOCOL.md`](../tecnico/PROTOCOL.md) · [`docs/dev/DECISIONS.md`](../dev/DECISIONS.md)
+  (ADR-1..12) · [`docs/dev/ARCHITECTURE.md`](../dev/ARCHITECTURE.md) · [`docs/referencias/REAL_DEVICE_GAP.md`](../referencias/REAL_DEVICE_GAP.md)
+- **Estado e números:** [`docs/INDEX.md`](../INDEX.md) §6 (fonte única) · [`knowledge.md`](../../knowledge.md)
+- **Gates de campo (histórico):** [`docs/arquivo/H1_REPORT.md`](../arquivo/H1_REPORT.md) · [`docs/arquivo/H2_REPORT.md`](../arquivo/H2_REPORT.md) ·
+  [`docs/arquivo/H3_REPORT.md`](../arquivo/H3_REPORT.md) · [`docs/arquivo/H4_REPORT.md`](../arquivo/H4_REPORT.md)
+- **Era anterior:** [`docs/arquivo/ROADMAP_era-RE_2026-09.md`](../arquivo/ROADMAP_era-RE_2026-09.md)
 - **Harness:** `.agents/skills/*` (serão auditadas em #170) · `.agents/prompts/` (nasce em #170)
 - **Tracker:** [épico #171](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/171) ·
   [milestone v1.1.0](https://github.com/lucascantarelli/gp100-nextgen-editor/milestone/2)

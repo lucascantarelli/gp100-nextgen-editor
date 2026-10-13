@@ -425,7 +425,7 @@ fn dialogo_completo_da_sessao_sintetica_sem_timeouts() {
 }
 
 /// `read_state5` — as 5 leituras cruas de `11/12001012` (T2 do boot; era
-/// "setlist", mas a GP-100 não tem setlist — `docs/GP100_DEVICE.md` §5#1).
+/// "setlist", mas a GP-100 não tem setlist — `docs/referencias/GP100_DEVICE.md` §5#1).
 /// A semântica fina NÃO está decifrada, então o teste trava só a FORMA
 /// medida no boot/replay: 5 entradas de 44B nibble-exp. Conteúdo inventado
 /// aqui seria exatamente a doença do ADR-13.

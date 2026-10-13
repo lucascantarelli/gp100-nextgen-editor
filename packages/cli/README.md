@@ -9,7 +9,7 @@
 > compilando, testando e no gate: é o executável com que o core é exercitado
 > nos gates H1–H3, e `--log`/`--dry-run` são o insumo do juiz de campo.
 > O porquê da decisão está no cabeçalho de
-> [`src/main.rs`](src/main.rs) e em `docs/REAL_DEVICE_GAP.md` §6.
+> [`src/main.rs`](src/main.rs) e em `docs/referencias/REAL_DEVICE_GAP.md` §6.
 
 Binário de operação/demonstração sobre o [gp100-core](../core). Fala com o
 **MockDevice** por default (ADR-4/ADR-5): nenhum byte vai ao hardware. O modo
@@ -38,7 +38,7 @@ cargo run -p gp100-cli -- list-user-irs --log session.jsonl  # frames no schema 
 - `--log` grava OUT/IN no MESMO schema das fixtures P4
   (`{"s","dir","func","addr","data"}`), consumível pelo decodificador de fio
   do projeto e pelos testes de replay — é o insumo do
-  [H1_CHECKLIST](../../docs/H1_CHECKLIST.md) em campo.
+  [H1_CHECKLIST](../../docs/arquivo/H1_CHECKLIST.md) em campo.
 - Códigos de saída: `2` = uso/política · `3` = erro de protocolo.
 
 ## Build de campo

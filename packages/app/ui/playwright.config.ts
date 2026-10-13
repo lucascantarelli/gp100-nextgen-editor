@@ -1,6 +1,6 @@
 /**
  * Playwright (e2e) — roteiros de teste manual executados no Chromium.
- * docs/UI_TEST_PLAN.md é a fonte dos roteiros (R1–R6 + drum/looper);
+ * docs/dev/UI_TEST_PLAN.md é a fonte dos roteiros (R1–R6 + drum/looper);
  * cada teste cita o ID do roteiro. Reusa o `pnpm dev` se já estiver no ar.
  */
 import { defineConfig } from "@playwright/test";

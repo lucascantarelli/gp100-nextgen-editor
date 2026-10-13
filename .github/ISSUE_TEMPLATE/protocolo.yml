@@ -72,7 +72,7 @@ body:
     id: referencias
     attributes:
       label: "Referências"
-      description: "docs/GP100_DEVICE.md, docs/PROTOCOL.md §13.x, DECISIONS (ADR-4/5/13), skills hardware-dev, device-reference"
+      description: "docs/referencias/GP100_DEVICE.md, docs/tecnico/PROTOCOL.md §13.x, DECISIONS (ADR-4/5/13), skills hardware-dev, device-reference"
     validations:
       required: true
   - type: textarea

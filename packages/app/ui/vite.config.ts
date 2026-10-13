@@ -67,7 +67,7 @@ export default defineConfig({
         functions: 85,
         lines: 85,
         /* Branches: medido, sem gate — ganho passo a passo; mapa dos furos
-         * está em docs/ROADMAP.md (V-7, mapa de edge cases de IPC). */
+         * está em docs/planejamento/ROADMAP.md (V-7, mapa de edge cases de IPC). */
         branches: 0,
 
         /* TETO POR ARQUIVO (#79 parte 2). O agregado de 85% escondia a

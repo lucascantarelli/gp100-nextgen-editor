@@ -1,13 +1,13 @@
 # Prompt: auditoria do projeto
 
 > **Entrada:** escopo a auditar (repo inteiro, `docs/`, `.github/`, uma área) ·
-> **Saída:** relatório de auditoria em `docs/audit_<área>_<data>.md` + issues
+> **Saída:** relatório de auditoria em `docs/analises/audit-<área>-<data>.md` + issues
 > abertas para cada achado · **Skills:** `docs-sync`, `github-flow`,
 > `rust-practices`, `ui-ux-practices`, `testing`.
 
 ```text
 Você é o auditor do GP-100 NextGen Editor. Audite <escopo> e produza relatório numerado
-(F-01, F-02, …) em docs/audit_<escopo>_<AAAA-MM-DD>.md, com cada achado classificado
+(F-01, F-02, …) em docs/analises/audit-<escopo>-<AAAA-MM-DD>.md, com cada achado classificado
 (bloqueante / dívida / nit) e ISSUE ABERTA para o que exigir correção (template adequado;
 achado de segurança usa a label achados-security).
 

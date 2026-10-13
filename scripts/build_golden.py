@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """build_golden.py — extrai templates de transação (request→resposta) de todas
-as capturas e emite docs/protocol_golden.json (especificação executável).
+as capturas e emite docs/referencias/protocol_golden.json (especificação executável).
 
 Método:
   1. Carrega as 4 sessões (loaders padrão: repair de aspa, trim no 1º F7).
@@ -12,7 +12,7 @@ Método:
      instâncias do mesmo template.
   5. Dedup por assinatura; conta ocorrências por sessão; guarda 1 exemplo.
 
-Saída: docs/protocol_golden.json  (header, convenções, endereços, transações,
+Saída: docs/referencias/protocol_golden.json  (header, convenções, endereços, transações,
 fluxos observados) — pronto para virar fixtures do gp100-core.
 """
 import json, os, sys, glob
@@ -23,7 +23,7 @@ import wirelog
 
 HDR = "f021257f47502d64"
 CAPTURES = sorted(glob.glob(os.path.join("docs", "arquivo", "analysis", "captures", "session*.jsonl")))
-OUT = os.path.join("docs", "protocol_golden.json")
+OUT = os.path.join("docs", "referencias", "protocol_golden.json")
 PAIR_TIMEOUT_MS = 3000
 GAP_MS = 30000
 
@@ -321,7 +321,7 @@ def main():
                     f"Total nas 4 capturas: {sum(CORTADOS_POR_SESSAO.values())}"
                 ),
             },
-            "reference": "docs/PROTOCOL.md §13.1–13.12",
+            "reference": "docs/tecnico/PROTOCOL.md §13.1–13.12",
         },
         "transactions": out_tx,
     }

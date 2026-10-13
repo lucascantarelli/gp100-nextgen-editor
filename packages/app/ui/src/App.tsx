@@ -19,7 +19,7 @@
  * `usePrefs` (persistência local), `useGlobals` (registradores §13.13:
  * seed do aparelho + write-through). O que fica AQUI é o que só o App tem:
  * boot, log de pushes, atalhos, quais modais estão abertos e o JSX.
- * `docs/ARCHITECTURE.md` tem o mapa.
+ * `docs/dev/ARCHITECTURE.md` tem o mapa.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { DeviceInfo } from "./ipc/types";

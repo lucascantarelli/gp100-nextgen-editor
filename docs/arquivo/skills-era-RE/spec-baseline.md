@@ -12,8 +12,8 @@ o protocolo e o golden foi regenerado; (c) bump de versão da baseline.
 
 ## Processo (SEMPRE nesta ordem)
 1. Garantir `validate_golden.py` a 100% nas 5 provas (prova B–E são gerativas).
-2. Calcular sha256 de `docs/protocol_golden.json` e `analysis/parameters.json`.
-3. Atualizar o bloco **Baseline vX.Y** no banner do `docs/PROTOCOL.md` §13:
+2. Calcular sha256 de `docs/referencias/protocol_golden.json` e `analysis/parameters.json`.
+3. Atualizar o bloco **Baseline vX.Y** no banner do `docs/tecnico/PROTOCOL.md` §13:
    - novos hashes;
    - data;
    - justificativa de 1–3 linhas (o que mudou e por quê — cite a captura/issue).

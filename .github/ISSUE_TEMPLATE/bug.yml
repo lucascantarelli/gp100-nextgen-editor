@@ -21,7 +21,7 @@ body:
     attributes:
       label: "O que aconteceu × o que era esperado"
       description: "Comportamento observado de um lado, esperado do outro, com a fonte do esperado"
-      placeholder: "Observado: boot falha com 'nenhuma porta MIDI' · Esperado: reconexão ADR-4 (real.rs) — docs/DECISIONS.md"
+      placeholder: "Observado: boot falha com 'nenhuma porta MIDI' · Esperado: reconexão ADR-4 (real.rs) — docs/dev/DECISIONS.md"
     validations:
       required: true
   - type: textarea
@@ -73,7 +73,7 @@ body:
     attributes:
       label: "Referências"
       description: "Fonte da verdade violada (doc + seção) e skills"
-      placeholder: "docs/PROTOCOL.md §13.10 · docs/UI_TEST_PLAN.md · skills: testing, hardware-dev"
+      placeholder: "docs/tecnico/PROTOCOL.md §13.10 · docs/dev/UI_TEST_PLAN.md · skills: testing, hardware-dev"
     validations:
       required: true
   - type: textarea

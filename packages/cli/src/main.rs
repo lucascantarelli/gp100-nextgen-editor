@@ -2,7 +2,7 @@
 //!
 //! **Papel:** binário de operação/demonstração do [gp100-core](../../core).
 //! Por padrão fala SOMENTE com o **MockDevice** (ADR-4/ADR-5 de
-//! [docs/DECISIONS.md](../../docs/DECISIONS.md)): nenhum byte sai
+//! [docs/dev/DECISIONS.md](../../docs/dev/DECISIONS.md)): nenhum byte sai
 //! para hardware com o mock. O modo `--real` (USB-MIDI real via midir/WinMM/ALSA)
 //! só se torna plausível após o gate H (H1–H3) e exige **dupla
 //! confirmação** — política de hardware da VISION §7: "nenhum fluxo de escrita
@@ -14,7 +14,7 @@
 //!   só existe num binário compilado com a feature `write-verified` (ADR-5),
 //!   e mesmo assim só depois do gate H2 — ver o USAGE para as duas camadas.
 //!
-//! **`--log` (requisito do `docs/H1_CHECKLIST.md`):** grava TODOS os frames de
+//! **`--log` (requisito do `docs/arquivo/H1_CHECKLIST.md`):** grava TODOS os frames de
 //! fio (OUT e IN) no MESMO schema das fixtures P4 —
 //! `{"s","dir","func","addr","data"}` em hex, `data` = payload puro sem
 //! envelope — para `decode_wire.py` e os replays consumirem sem adaptação.
@@ -37,7 +37,7 @@
 //!
 //! **POR QUE (e por que a decisão pode ser revista).** O CLI era o dono de
 //! parte das capacidades do core; o app tinha um subconjunto DIFERENTE. Os
-//! passos 4/4b/4c do `docs/REAL_DEVICE_GAP.md` §6 fecharam isso, e o passo 6b
+//! passos 4/4b/4c do `docs/referencias/REAL_DEVICE_GAP.md` §6 fecharam isso, e o passo 6b
 //! tirou o último motivo técnico para ele existir (era a única cobertura de
 //! CoreMIDI do transporte — o `RealDevice` do app agora é compilado para
 //! macOS na CI). Hoje o app é um **superset estrito**: o core tem 12
@@ -100,7 +100,7 @@ POLÍTICA DE HARDWARE (VISION §7)
   DUAS camadas: (1) --real exige --i-know-what-im-doing; (2) o build precisa
   da feature `real-device` (default OFF NESTE crate; no APP ela é default ON
   desde a #165 — o CLI é ferramenta de campo e segue explícito). No build de
-  campo, H1 = leitura real (roteiro do docs/H1_CHECKLIST.md; NENHUMA escrita).
+  campo, H1 = leitura real (roteiro do docs/arquivo/H1_CHECKLIST.md; NENHUMA escrita).
   O harness de teste DECLARA o mock com --mock-device (conflita com --real).
 
   ESCRITA REAL = gate H2, e ela é uma TERCEIRA camada, no TRANSPORTE

@@ -1,6 +1,6 @@
 # knowledge.md — GP-100 NextGen Editor (ler antes de agir)
 
-> Mapa geral da documentação: **`docs/INDEX.md`** · plano vivo: **`docs/ROADMAP.md`**
+> Mapa geral da documentação: **`docs/INDEX.md`** · plano vivo: **`docs/planejamento/ROADMAP.md`**
 > (épico da Era Hardware #171) · números (testes, cobertura, jobs): **`docs/INDEX.md` §6**
 > — nunca repita contador aqui.
 
@@ -16,6 +16,11 @@ comentário NA ISSUE e a fila avança.
 
 ## Estado vivo (atualizar a cada marco — 1–3 linhas, sem prosa)
 
+- 13/10 — **#167 (docs categorizada)**: `docs/` virou árvore (`dev/` `tecnico/`
+  `planejamento/` `analises/` `referencias/` `arquivo/`) com TODOS os caminhos
+  do repo atualizados (sed + link checker); `SECURITY.md` da raiz virou ponteiro
+  para `docs/tecnico/seguranca.md`; golden bump v1.3 só de proveniência;
+  `files/` triado no disco (instalador/DebugView/logs fora — 97→16 MB).
 - 13/10 — **#164 (sync bilateral) entregue**: estado tipado único no actor
   (`idle/sync/pending/failed/offline`; `device_info` semeia e `device://sync`
   transiciona), read-back pós-escrita (debounce 800 ms) + refresh de 10 s pela
@@ -42,7 +47,7 @@ comentário NA ISSUE e a fila avança.
   (validação → lint → compilação → infra → segurança → testes → cobertura →
   distribuição → release), Relatório por último, Fechamento em
   `issues-fechamento.yml` próprio, Arch Linux na matriz via container.
-- 10/10 — **`docs/GP100_DEVICE.md` é a fonte canônica do device** (vocabulário:
+- 10/10 — **`docs/referencias/GP100_DEVICE.md` é a fonte canônica do device** (vocabulário:
   User Patch ≠ User IR ≠ Setlist; fila de lacunas de leitura). O aparelho está
   ligado nesta máquina e é consultável por sessão (ver `hardware-dev`).
 - 09/10 — **Era Hardware aberta** (épico #171, milestone v1.1.0); roadmap
@@ -161,12 +166,12 @@ comentário NA ISSUE e a fila avança.
 ## Caminhos canônicos
 
 - `docs/INDEX.md` §6 — estado e **números** (fonte única)
-- `docs/ROADMAP.md` — plano executivo vigente (Era Hardware; regras R1–R4)
-- `docs/GP100_DEVICE.md` — o QUE a GP-100 é (fonte canônica do device)
-- `docs/PROTOCOL.md` §13 — a FORMA do fio · `docs/protocol_golden.json` — a mesma
+- `docs/planejamento/ROADMAP.md` — plano executivo vigente (Era Hardware; regras R1–R4)
+- `docs/referencias/GP100_DEVICE.md` — o QUE a GP-100 é (fonte canônica do device)
+- `docs/tecnico/PROTOCOL.md` §13 — a FORMA do fio · `docs/referencias/protocol_golden.json` — a mesma
   coisa, executável (especificação de FORMA; consumo via core)
-- `docs/DECISIONS.md` — ADRs; mudança de decisão = novo ADR
-- `docs/H2_CHECKLIST.md` — roteiro do gate de escrita (única porta de escrita)
+- `docs/dev/DECISIONS.md` — ADRs; mudança de decisão = novo ADR
+- `docs/arquivo/H2_CHECKLIST.md` — roteiro do gate de escrita (única porta de escrita)
 - `packages/core/data/` — dados canônicos (fixtures/manifest) — #163
 - `.agents/` — harness do agente (skills, prompts, README)
 - `docs/arquivo/` — era anterior (ROADMAP, skills, este knowledge) — histórico,

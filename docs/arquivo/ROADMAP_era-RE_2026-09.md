@@ -1,7 +1,7 @@
 > ⚠️ **ARQUIVADO em 09/10/2026.** Este é o roadmap da era de **engenharia reversa e
 > fundação** (P0–P5, M0–M2, gates H1–H4, auditorias) — histórico do que foi entregue
 > e das regras R1–R4 daquele período. O roadmap **vigente** é
-> [`docs/ROADMAP.md`](../ROADMAP.md) (Era Hardware). Não atualize este arquivo.
+> [`docs/planejamento/ROADMAP.md`](../planejamento/ROADMAP.md) (Era Hardware). Não atualize este arquivo.
 
 # 🗺️ ROADMAP EXECUTIVO (ARQUIVO) — Fundação + gp100-core
 
@@ -95,7 +95,7 @@ achado do H2 em campo).
 
 ### P1. Congelar a especificação do protocolo (baseline v1.0) — ✅ FEITO 28/09
 - **Responsável:** skill `spec-baseline` · **Estimativa:** 30 min
-- **O quê:** fixar `docs/protocol_golden.json` + `analysis/parameters.json` como
+- **O quê:** fixar `docs/referencias/protocol_golden.json` + `analysis/parameters.json` como
   baseline imutável de desenvolvimento: hash sha256 dos dois arquivos registrado
   no banner do `PROTOCOL.md` §13.
 - **Por quê:** implementar contra um alvo que muda é o maior gerador de retrabalho.
@@ -149,7 +149,7 @@ achado do H2 em campo).
 
 ### P5. Decisões de design pré-assinadas (ADR-lite, 1 página) — ✅ FEITO 28/09
 - **Responsável:** Buffy + `core-dev` (rascunho) · **Estimativa:** 30 min
-- **O quê:** registrar em `docs/DECISIONS.md` as escolhas que evitam debate no meio:
+- **O quê:** registrar em `docs/dev/DECISIONS.md` as escolhas que evitam debate no meio:
   1. endian/nibble: fio usa pp/PG/CRC **BE**, effectCode e float **LE**, payloads
      de objeto **nibble-expandidos** (hi primeiro) — com exemplos do golden;
   2. erros: `thiserror` com `ProtocolError` tipado (shape inválida, timeout,
@@ -157,7 +157,7 @@ achado do H2 em campo).
   3. transporte síncrono com timeout por transação (3s, como o pairing do golden);
   4. `DeviceTransport` trait: `send_raw`, `recv_raw(timeout)`, `open`, `close`;
   5. feature-flag `WRITE_VERIFIED` só afeta transporte REAL (mock sempre permite).
-- **DoD:** ✅ `docs/DECISIONS.md` (ADR-1..5) e citado no `gp100-core/src/lib.rs`
+- **DoD:** ✅ `docs/dev/DECISIONS.md` (ADR-1..5) e citado no `gp100-core/src/lib.rs`
   (README do workspace vem no M0.8).
 
 ### P6. Checklist "pronto para codar" — ✅ FEITO 28/09
@@ -278,7 +278,7 @@ achado do H2 em campo).
 - **O quê:** ✅ os 5 subcomandos contra o MOCK (`info`, `list-user-irs`,
   `dump-preset <pp>`, `set-param --dry-run`, `save --dry-run`) + `--log <arq>`
   gravando TODOS os frames no MESMO schema das fixtures P4 (requisito do
-  `docs/H1_CHECKLIST.md`) + política de hardware em camada única efetiva:
+  `docs/arquivo/H1_CHECKLIST.md`) + política de hardware em camada única efetiva:
   `--real` é recusado SEMPRE nesta fase (exit 2), mesmo com
   `--i-know-what-im-doing`; escrita efetiva = pós-H2 (WRITE_VERIFIED).
   Parser zero-dep decidido na issue (clap adiado — superfície pequena;
@@ -322,7 +322,7 @@ achado do H2 em campo).
 ### A-2. Fundação de UI do M1.0 (front + design system + CI) — ✅ FEITO 29/09
 - **Origem:** revisão de estado · **Prioridade:** máxima
 - **O quê:** ✅ front `ui/` (React 19 + Vite 8 + Vitest 5 + ESLint 10 + TS 6.0) com
-  design system da paleta palco Valeton (`docs/UI_DESIGN.md`: tokens de
+  design system da paleta palco Valeton (`docs/dev/UI_DESIGN.md`: tokens de
   Fibonacci, contraste AA medido, identidade "pedalboard ao vivo"), skill
   `ui-ux-practices`, testes de token/a11y/estado e job `ui` na CI.
 
@@ -376,7 +376,7 @@ achado do H2 em campo).
 > (`transport/real.rs`, midir/WinMM, feature `real-device` default OFF) e o CLI
 > de campo compila com `--features real-device` — `--real` abre o device com
 > dupla confirmação; escrita segue bloqueada (H2/`write-verified`). Falta só a
-> pedaleira + owner (roteiro: `docs/H1_CHECKLIST.md`; kit: `scripts/h1_field.sh`).
+> pedaleira + owner (roteiro: `docs/arquivo/H1_CHECKLIST.md`; kit: `scripts/h1_field.sh`).
 >
 > ⚠️ **04/10 — a escrita deixou de ser um "flip".** O PR do H2 trocou a ideia de
 > "ligar `WRITE_VERIFIED`" por uma **feature de compilação** `write-verified`
@@ -389,7 +389,7 @@ achado do H2 em campo).
 > ⚠️ **Paralelismo:** a **FASE M1 (Editor UI) pode começar em paralelo** — ela
 > roda contra o MOCK (política de hardware, ADR-4/ADR-5). O modo real da UI/CLI
 > só existe após H1/H2. O planejamento issue-a-issue da M1 está em
-> **`docs/UI_PLAN.md`** (M1.0–M1.6 com DoD, arquitetura DeviceActor, política
+> **`docs/dev/UI_PLAN.md`** (M1.0–M1.6 com DoD, arquitetura DeviceActor, política
 > de escrita na UI e estratégia de testes). **MAIS UMA VEZ: achados da FASE
 > ACHADOS (A-xx) têm prioridade máxima e precedem qualquer M1.x.**
 
@@ -397,7 +397,7 @@ achado do H2 em campo).
 - **Responsável:** owner no hardware + skill `capture-analyze` p/ divergências · Depende: M0.7 · **Estimativa:** 1h
 - **O quê:** `gp100-cli --real info` + `list-user-irs` + `dump-preset` com a
   pedaleira; log de divergência vs mock. **Operacional passo-a-passo:
-  `docs/H1_CHECKLIST.md`** (pré-requisitos, níveis de comparação
+  `docs/arquivo/H1_CHECKLIST.md`** (pré-requisitos, níveis de comparação
   framing×estado, log de divergência, fluxo R3, critérios de saída).
 - **DoD:** leitura real idêntica ao mock; divergências → fluxo R3.
 
@@ -412,8 +412,8 @@ achado do H2 em campo).
   com read-back/verificação display (como na S4).
 - **DoD:** 3 fluxos verificados em campo → o `write-verified` é ligado no
   binário de campo (já sancionado pelo BLOCKERS item 11).
-- **Operacional passo-a-passo:** `docs/H2_CHECKLIST.md` + relatório em
-  `docs/H2_REPORT.md`. **Atenção ao B5:** o keepalive de boot é `Write`, então o
+- **Operacional passo-a-passo:** `docs/arquivo/H2_CHECKLIST.md` + relatório em
+  `docs/arquivo/H2_REPORT.md`. **Atenção ao B5:** o keepalive de boot é `Write`, então o
   boot completo passou a exigir a feature do H2 (ver ADR-5, rev. 04/10).
   **Fase C automatizada:** o juiz confere os invariantes do §13 nos 3 logs
   (contagem, ordem, ACK por chunk) e imprime o valor que o display DEVE
@@ -430,13 +430,13 @@ achado do H2 em campo).
   de nibbles `f7` em vez do `F7` final, o que (a) truncou 16 frames completos
   e (b) **fabricou 63 das 77 mensagens da prova de save** e o template inteiro
   de `13000000`, a partir de 100 linhas de captura corrompidas. A v1.1 remove
-  o que não tem evidência; a conta está em `docs/PROTOCOL.md` §13.14.
+  o que não tem evidência; a conta está em `docs/tecnico/PROTOCOL.md` §13.14.
 - **O que a #23 entregou:** `analysis/wirelog.py` (normalizador Suite + P4 — o
   DoD literal era impossível antes: o build_golden carregava **0 eventos** de um
   log do core), `t` (relógio) no `--log` do CLI, `analysis/validate_core_capture.py`
   (juiz frame a frame), `analysis/baseline.py` + `baseline.json` (versão, hash,
   motivo e histórico — o hash vivia como literal em teste e ninguém exigia
-  justificativa), `docs/H3_CHECKLIST.md` + `H3_REPORT.md`.
+  justificativa), `docs/arquivo/H3_CHECKLIST.md` + `H3_REPORT.md`.
 - **DoD:** `validate_golden` 100% + baseline v1.2 com motivo escrito + gaps
   G7–G9 fechados ou re-declarados como abertos.
 
@@ -444,7 +444,7 @@ achado do H2 em campo).
 
 ## 📋 Pendências de planejamento (documentos por criar, na ordem)
 
-- ~~**Checklist operacional H1**~~ ✅ **CRIADO 29/09**: `docs/H1_CHECKLIST.md`
+- ~~**Checklist operacional H1**~~ ✅ **CRIADO 29/09**: `docs/arquivo/H1_CHECKLIST.md`
   (pré-requisitos, procedimento de campo, níveis framing×estado, log de
   divergência, fluxo R3). Requisito de campo novo identificado: log de fio no
   CLI (`--log`) no schema das fixtures P4 — entrar na M0.7/prep-H1.
@@ -452,16 +452,16 @@ achado do H2 em campo).
   [SQLite], empacotamento) → **epic #15** com as filhas #24–#26.
 - **M3** fica no nível de panorama (VISION §9) até o gate H passar → **epic #16**.
 - **ADR-7+** à medida que os spikes fecharem as decisões em aberto do
-  `docs/UI_PLAN.md` §9.
+  `docs/dev/UI_PLAN.md` §9.
 - **Distribuição/instaladores** (Windows/macOS · `.deb` · Arch) → **epic #17**
   com as filhas #27–#29.
 
 ## FASE U — UI POR ETAPAS (casca → pedais; decisão do owner 30/09)
 
-> **Fonte de verdade desta fase: `docs/UI_REFERENCE.md`** (inventário de achados,
+> **Fonte de verdade desta fase: `docs/referencias/UI_REFERENCE.md`** (inventário de achados,
 > capturas do app oficial, checklist vivo da fase dos pedais e plano §4).
-> Executa a M1.2/M1.3 do `docs/UI_PLAN.md` **por etapas aprovadas pelo owner**:
-> cada etapa termina com **teste manual** (roteiros em `docs/UI_TEST_PLAN.md`)
+> Executa a M1.2/M1.3 do `docs/dev/UI_PLAN.md` **por etapas aprovadas pelo owner**:
+> cada etapa termina com **teste manual** (roteiros em `docs/dev/UI_TEST_PLAN.md`)
 > e aprovação antes da próxima.
 
 ### U-1. Casca da UI + navegação de presets de fábrica (sem pedais) — ✅ FEITO
@@ -492,19 +492,19 @@ achado do H2 em campo).
   dicionário com valor editável (textbox), modal de edição do pedal, LED
   verde/vermelho. Cada efeito é validado ISOLADO (só ele no board) e depois em
   TODAS as 9 posições (tamanho/espaçamento/linhas) antes do próximo — checklist
-  completo em `docs/UI_REFERENCE.md` §3.
+  completo em `docs/referencias/UI_REFERENCE.md` §3.
 - **DoD:** cadeia completa entregue após rodadas de teste manual aprovadas;
   knobs sem sobreposição em qualquer posição; travinha ativa para reordenar.
 
 ### U-4. Roteiros de teste manual — ✅ FEITO 30/09 (+ Playwright)
 - **Responsável:** Buffy (docs) · Depende: U-1 · **Estimativa:** 2h
-- **O quê:** ✅ `docs/UI_TEST_PLAN.md` com roteiros numerados por etapa (casca,
+- **O quê:** ✅ `docs/dev/UI_TEST_PLAN.md` com roteiros numerados por etapa (casca,
   settings, cada pedal da fase U-3, posição do board, presets/fábrica, teclado)
   **+ Playwright implementado** (`packages/app/ui/e2e/shell.roteiros.spec.ts`):
   R1–R6 + drum/looper executados no Chromium (8/8 ✅, rodada 30/09 registrada na
   doc). Achado corrigido: alvo <32px no PushLog.
 - **DoD:** ✅ roteiro executável pelo owner sem contexto do chat; achados voltam
-  para `docs/UI_REFERENCE.md` §3; `pnpm e2e` na suíte da UI.
+  para `docs/referencias/UI_REFERENCE.md` §3; `pnpm e2e` na suíte da UI.
 
 ### U-5. E2e completo da casca na CI + cobertura do manual — ✅ FEITO 30/09
 - **Responsável:** Buffy (UI) · Depende: U-1/U-2/U-4 · **Estimativa:** 1 sessão
@@ -515,7 +515,7 @@ achado do H2 em campo).
   divergente (258×46 vs 240×32 — UA só aplica border-box a select; `.gp-num`
   ganhou `box-sizing`), navegação ◀ ▶ do manual implementada, redundâncias do
   looper removidas (estado da fita numa linha só). Matriz de cobertura:
-  `docs/MANUAL_COVERAGE.md` (33 ✅ · 5 🟡 · 5 🔴 — nada silencioso).
+  `docs/referencias/MANUAL_COVERAGE.md` (33 ✅ · 5 🟡 · 5 🔴 — nada silencioso).
 - **DoD:** ✅ e2e verde na CI como condição de tag; cobertura do manual explícita;
   alinhamento dos componentes travado por teste (responsivo + BPM).
 
@@ -552,7 +552,7 @@ achado do H2 em campo).
 
 - **Q-1. Vocabulário interno fora da UI** — ✅ FEITO 30/09
   - ✅ Limpo: "fase 2", "(D7)", "captura G3–G6", "Fase M", "gate H1",
-    "U-1/U-2", "§13.12", "docs/MANUAL_COVERAGE.md" nos textos da UI;
+    "U-1/U-2", "§13.12", "docs/referencias/MANUAL_COVERAGE.md" nos textos da UI;
     mensagens centralizadas em `src/i18n/messages.ts` (fonte única, base do
     i18n de 4 idiomas que o próprio Settings já prevê).
   - ✅ Varredura exaustiva: TODO componente migra para MSG (TopBar,

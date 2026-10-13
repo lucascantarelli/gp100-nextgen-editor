@@ -9,7 +9,7 @@
 > Mapa geral da documentação (o que consultar para cada assunto): **`docs/INDEX.md`**.
 
 Projeto: substituto do Valeton Suite para a pedaleira GP-100, **comandado pelo aparelho**.
-A partir de 09/10/2026 vale a **Era Hardware** (`docs/ROADMAP.md` · épico #171): o dado vem do
+A partir de 09/10/2026 vale a **Era Hardware** (`docs/planejamento/ROADMAP.md` · épico #171): o dado vem do
 GP-100, o que era análise vira dado canônico/histórico e a engenharia reversa deixa de ser
 fonte. Resposta ao usuário SEMPRE em PT-BR.
 
@@ -66,7 +66,7 @@ fonte. Resposta ao usuário SEMPRE em PT-BR.
   e os self-checks H1/H2 morrem junto com HW-3/HW-6 — removê-los agora seria
   desligar gate sem substituto na mesma PR, que é a regra do próprio ROADMAP.
 
-- 10/10 — **DOC CANÔNICO DO DEVICE + SKILL `device-reference`**: `docs/GP100_DEVICE.md`
+- 10/10 — **DOC CANÔNICO DO DEVICE + SKILL `device-reference`**: `docs/referencias/GP100_DEVICE.md`
   agora é a fonte única de funcionalidades/comportamentos da GP-100 real (manual
   V1.9 + produto + medição própria), com vocabulário travado (**User IR ≠ User
   Patch ≠ Setlist**) e a fila de lacunas de leitura (globals, `12001012`, banco
@@ -93,7 +93,7 @@ fonte. Resposta ao usuário SEMPRE em PT-BR.
   pedal TROCAR de patch no display — avisar o owner antes.
 
 - 09/10 — **ERA HARDWARE ABERTA (épico #171, milestone v1.1.0)**: o roadmap foi reescrito
-  (`docs/ROADMAP.md`) e o antigo arquivado em `docs/arquivo/ROADMAP_era-RE_2026-09.md`; as 4
+  (`docs/planejamento/ROADMAP.md`) e o antigo arquivado em `docs/arquivo/ROADMAP_era-RE_2026-09.md`; as 4
   issues abertas foram avaliadas e fechadas (#159 absorvida; #117/#118 candidatas pós-núcleo;
   #116 entregue no PR #129, medição de campo volta com o sync) e nasceram 10 issues com prompt
   de agente pronto: boot gate (#161), FactoryPatch/UserPatch (#162), dados canônicos fora do
@@ -111,7 +111,7 @@ fonte. Resposta ao usuário SEMPRE em PT-BR.
   + varredura de deadcode, de documentação obsoleta, de links, de testes e de
   produto. **13 issues criadas, 3 P0**:
   (a) **`check_bundle.py` não roda em NENHUM job** — o gate de empacotamento da #29
-  existe e funciona, mas `docs/PACKAGING.md:99` afirma que ele roda no
+  existe e funciona, mas `docs/tecnico/PACKAGING.md:99` afirma que ele roda no
   `Lint · contratos do pipeline`: não roda. Mesma classe de falha que a #68 já
   corrigiu uma vez (gate escrito e não ligado);
   (b) **`PKGBUILD` não compila** — `build()` só faz `cargo build --release --locked`,
@@ -139,7 +139,7 @@ fonte. Resposta ao usuário SEMPRE em PT-BR.
   + README no `.deb`; **16 ícones + `icon.ico` (6 res.) + `icon.icns` + logos Store**
   derivados por `tauri icon` da fonte 1024² gerada por `scripts/make_icon.py` (a
   partir dos tokens do tema); `packaging/arch/PKGBUILD` + `.desktop`; novo
-  `scripts/check_bundle.py`; `docs/PACKAGING.md`; README com **§3 Instalação** por
+  `scripts/check_bundle.py`; `docs/tecnico/PACKAGING.md`; README com **§3 Instalação** por
   plataforma. **Pendências conhecidas:** `sha256sums=('SKIP')` bloqueia o AUR e o
   `build()` do PKGBUILD (#72); `.msi`/`.dmg` sem assinatura/notarização (#27);
   versão do bundle nunca bumpeada (#73).
@@ -215,7 +215,7 @@ fonte. Resposta ao usuário SEMPRE em PT-BR.
   sem device = OpenFailed limpo). Falta SÓ a pedaleira (H1_CHECKLIST).
 - 29/09 — KIT DE CAMPO DO H1 PRONTO: build release do CLI + referências do mock
   (`analysis/h1_reference/`, -text) + runbook `scripts/h1_field.sh rehearsal|field`
-  (ensaio executado: 0 divergências de framing) + `docs/H1_REPORT.md` (template
+  (ensaio executado: 0 divergências de framing) + `docs/arquivo/H1_REPORT.md` (template
   com o PLANO DE BACKUP fixo §7: divergência ⇒ parar, preservar evidência,
   diagnóstico só com o log, R3 no escritório). Falta SÓ o RealDevice + pedaleira.
 - 29/09 — REVIEW FINAL DA FASE M0: ✅ APROVADA (8/8 issues com DoD cumprido;
@@ -227,7 +227,7 @@ fonte. Resposta ao usuário SEMPRE em PT-BR.
   exemplos, testes, CLI) + contrato `tests/readme_examples.rs` que executa os
   exemplos da doc 1:1 (pegou import faltante no exemplo da Session); onboarding
   do README raiz revisado (INDEX primeiro + hands-on de 10 min). Próximo:
-  M1.0 (spike Tauri, docs/UI_PLAN.md) e/ou gate H1 (docs/H1_CHECKLIST.md).
+  M1.0 (spike Tauri, docs/dev/UI_PLAN.md) e/ou gate H1 (docs/arquivo/H1_CHECKLIST.md).
 - M0.7 ✅ (29/09): `gp100-cli` — 5 subcomandos contra o mock + `--log` no schema
   P4 (requisito do H1) + `--real` bloqueado (exit 2; dupla confirmação não
   contorna o gate). Extensões: `Session::{select_preset, state_page}`; MOCK
@@ -240,7 +240,7 @@ fonte. Resposta ao usuário SEMPRE em PT-BR.
   novo: CLI com `--log` no schema das fixtures P4 (entra na M0.7/prep-H1).
 - 29/09 — REVIEW DE DOCUMENTAÇÃO: README/VISION/ROADMAP/INDEX sincronizados ao
   estado real (M0 6/8; "próximo marco = M0" estava defasado; venv/.prst/decisões
-  corrigidos) + **`docs/UI_PLAN.md` CRIADO** (planejamento completo da M1:
+  corrigidos) + **`docs/dev/UI_PLAN.md` CRIADO** (planejamento completo da M1:
   escopo, arquitetura DeviceActor, IPC, telas, política de hardware, testes,
   riscos M1.0–M1.6). Pendências de planejamento registradas no ROADMAP:
   checklist H1, plano fino M2, ADR-7+ pós-spike.
@@ -310,7 +310,7 @@ fonte. Resposta ao usuário SEMPRE em PT-BR.
   `00020000` BE confirmado contra fixture (`00010000` = 1) e TRAVADO em teste
   (`op_payload_vector` no codec.rs, 29/09 — gap fechado); S2 índices de chunk em páginas
   intercaladas 0-127/256-383/512-550 (dois slots × páginas alternadas).
-- ADR-6 ✅ ACEITO (29/09, rev.3): `docs/DECISIONS.md` — assinaturas da FSM
+- ADR-6 ✅ ACEITO (29/09, rev.3): `docs/dev/DECISIONS.md` — assinaturas da FSM
   `Session<T: DeviceTransport>` (boot/scan_state/set_param/save_preset/
   upload_ir/list_user_irs) + regras D1–D8 (D3 definitiva: save fire-and-forget
   com ciclo de ops da S4; D7 backlog de IN não solicitado; D8 consumidor único
@@ -364,7 +364,7 @@ fonte. Resposta ao usuário SEMPRE em PT-BR.
 - P4+P5 ✅ (28/09): `analysis/make_fixtures.py` → `analysis/fixtures/` (boot/knobs/save/ir
   + manifest c/ paridade e sha do golden) — 2299 OUT boot, 89+3 knobs, 77 save,
   1186 IR (2 BEGIN + 592 chunks + 592 ACKs), 100%; gate no pytest (10/10).
-  `docs/DECISIONS.md` ADR-1..5 pré-assinados (endian/nibble, ProtocolError/thiserror,
+  `docs/dev/DECISIONS.md` ADR-1..5 pré-assinados (endian/nibble, ProtocolError/thiserror,
   timeout 3s síncrono, trait DeviceTransport, WRITE_VERIFIED). FASE P 100% → M0.1.
 - P3 ✅ (28/09): suíte de regressão `analysis/tests/test_protocol.py` — `uv run pytest`
   = 9/9 (~4s): golden 5 provas com critérios objetivos + hash da baseline + knob_map 13/14
@@ -373,10 +373,10 @@ fonte. Resposta ao usuário SEMPRE em PT-BR.
   Toolchain PINADO windows-gnu em rust-toolchain.toml (host sem MSVC; `link` do PATH
   é o GNU coreutils). Workspace gp100-core+gp100-cli criado; clippy -D warnings + fmt +
   testes verdes;  CLI já bloqueia --real. ⚠️ PATH: adicionar C:\Users\Canta\.cargo\bin.
-- **Plano de execução vigente: docs/ROADMAP.md** — Fase P (congelar spec P1, workspace P2,
+- **Plano de execução vigente: docs/planejamento/ROADMAP.md** — Fase P (congelar spec P1, workspace P2,
   regressão P3, fixtures P4, ADR P5) → M0 (core só com mock) → Gate H (hardware).
   Seguir a ordem das issues; descoberta nova entra pelo fluxo R3 do roadmap, nunca por patch ad-hoc.
-- Protocolo de fio FECHADO: docs/PROTOCOL.md §13 (SysEx Valeton, não é o envelope de objetos §10–11).
+- Protocolo de fio FECHADO: docs/tecnico/PROTOCOL.md §13 (SysEx Valeton, não é o envelope de objetos §10–11).
 - Sessão 3 ANALISADA (§13.11): knob pela UI = write semântico `12 | 10 [slot 1..9] 00 02 | payload 20B
   nibble-expandido = [effectCode u32 LE][ctrl u8][00][float32 LE valor físico]`, SEM ACK e sem push de página.
   `slot` = posição na cadeia (1=PRE..9=RVB), NÃO o nibble; `ctrl` = pos do controls[] = params_N do .prst.
@@ -429,22 +429,22 @@ fonte. Resposta ao usuário SEMPRE em PT-BR.
 
 ## Caminhos canônicos
 - `.venv/` (raiz) — ÚNICO venv do projeto (uv); `analysis/.venv` NÃO existe mais
-- `docs/ROADMAP.md` — plano executivo vigente (histórico entregue + regras R1–R4)
+- `docs/planejamento/ROADMAP.md` — plano executivo vigente (histórico entregue + regras R1–R4)
 - `docs/INDEX.md` §6 — **estado atual e NÚMEROS** (testes, cobertura, marcos, aberto)
-- `docs/DECISIONS.md` — ADR-1..8 (P5 + FSM + ADR-7 MSVC + ADR-8 toolchains); mudar decisão = novo ADR
+- `docs/dev/DECISIONS.md` — ADR-1..8 (P5 + FSM + ADR-7 MSVC + ADR-8 toolchains); mudar decisão = novo ADR
 - `scripts/add_cargo_path.ps1` — fix do PATH do cargo no sistema (HKLM; idempotente)
 - `analysis/fixtures/` — fixtures de replay por fase (regenerar: `uv run python analysis/make_fixtures.py`)
 - `README.md` — porta de entrada do repo (panorama, workflows de regeneração, onboarding)
 - `analysis/captures/` — logs de captura (session1.jsonl, session2.jsonl, ir_slot*.bin)
 - `analysis/suite_local/` — cópia gravável do Suite + winmm.dll do proxy (É ESSA que o usuário abre)
 - `analysis/winmm.dll` — build atual; copiar p/ suite_local após cada rebuild
-- `docs/PROTOCOL.md` — referência única do protocolo (§13 = campo); `docs/BLOCKERS.md` — matriz de status
+- `docs/tecnico/PROTOCOL.md` — referência única do protocolo (§13 = campo); `docs/planejamento/BLOCKERS.md` — matriz de status
 - `analysis/parameters.json` — dicionário canônico de 185 algoritmos/639 controles
 - `files/patches/*.prst` — biblioteca XML exportada (all.prst = 99 presets)
 - `analysis/nsis_app/` — extração do instalador (108MB; não indexar — ver .codebuffignore)
 
 ## Workflows (nunca fazer na mão)
-- **Golden-file do protocolo**: `analysis/build_golden.py` regenera `docs/protocol_golden.json`
+- **Golden-file do protocolo**: `analysis/build_golden.py` regenera `docs/referencias/protocol_golden.json`
   (templates request→resposta de TODAS as capturas, com padrões de payload const/var e
   semântica por endereço). É a especificação executável do §13 — consumir DE LÁ, não reparsear logs.
   Pairing: OUT→IN por (func,addr) timeout 3s; pushes 13xx por família; writes sem resposta = fire-and-forget.
@@ -475,7 +475,7 @@ fonte. Resposta ao usuário SEMPRE em PT-BR.
   NUNCA misturar ROADMAP/knowledge/INDEX no commit da issue — relembrado no core
   review 29/09 (6609485 misturou; padrão correto = 6422cd1 → d2fa925).
 - Ferramentas novas de análise = script em `analysis/` (não heredocs longos).
-- Descobertas de protocolo vão para docs/PROTOCOL.md com evidência (VA/hex da captura), nunca só conversa.
+- Descobertas de protocolo vão para docs/tecnico/PROTOCOL.md com evidência (VA/hex da captura), nunca só conversa.
 - Não commitar sem pedido; não tocar em `analysis/nsis_app/` (é material extraído, read-only).
 
 ## UI e estado (29/09 — M1.0 em curso)
@@ -483,7 +483,7 @@ fonte. Resposta ao usuário SEMPRE em PT-BR.
   PRIORIDADE MÁXIMA e precedem issues de fase (decisão do owner).
 - Paleta da UI = "palco": preto-quente #141210 + âmbar Valeton #ffa938;
   variantes de tema nas cores de produto (vermelho/lavanda). Rácios WCAG
-  medidos em docs/UI_DESIGN.md §2 (token novo = rácio novo medido).
+  medidos em docs/dev/UI_DESIGN.md §2 (token novo = rácio novo medido).
 - Identidade "pedalboard AO VIVO" (UI_DESIGN §6): cadeia em 1 clique, edição
   direta (D4), LED pulsando `.live-dot`, regra dos 2 cliques.
 - Front fixado: React 19, Vite 8, Vitest 5, ESLint 10, **TypeScript 6.0**
@@ -562,7 +562,7 @@ fonte. Resposta ao usuário SEMPRE em PT-BR.
 - **Workspaces Cargo**: raiz = `members = ["packages/core","packages/cli"]`,
   `exclude = ["packages/app/api"]` (ADR-7 continua: Tauri exige MSVC, raiz é gnu).
 - **Landmines de caminho já re-costurados** (não re-morder): `include_str!` ganhou +1 nível
-  (core→`../../../docs/protocol_golden.json` e `../../../analysis/parameters.json`;
+  (core→`../../../docs/referencias/protocol_golden.json` e `../../../analysis/parameters.json`;
   mock→`../../../../files/patches/all.prst`); testes com `CARGO_MANIFEST_DIR` dão
   DOIS `pop()` até a raiz; path-deps `../core` (cli) e `../../core` (api);
   `frontendDist: "../ui/dist"` segue válido (ui e api são irmãos em app/);

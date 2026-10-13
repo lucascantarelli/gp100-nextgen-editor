@@ -1,5 +1,5 @@
 //! transport — fronteira com o device (ADR-4 de
-//! `docs/DECISIONS.md`).
+//! `docs/dev/DECISIONS.md`).
 //!
 //! **Este módulo é a ÚNICA fronteira de I/O do gp100-core** (ADR-4): a trait
 //! [`DeviceTransport`] trafega **bytes crus** — framing do SysEx, nibble e

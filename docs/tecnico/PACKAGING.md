@@ -2,7 +2,7 @@
 
 Fonte de verdade do "como o app vira arquivo de instalação" e, mais útil, do
 **por que cada coisa é do jeito que é**. O que roda é o job `Distribuição · instalador`
-do [`ci.yml`](../.github/workflows/ci.yml); o que ele produz é decidedor aqui.
+do [`ci.yml`](../../.github/workflows/ci.yml); o que ele produz é decidedor aqui.
 
 ## O mapa: um build, três formatos
 
@@ -39,9 +39,9 @@ Arch e Debian parariam de servir o mesmo binário e o primeiro bug de
 ## Ícones: derivados, não desenhados duas vezes
 
 O set não é um conjunto de arquivos soltos. A **fonte** é
-[`scripts/make_icon.py`](../scripts/make_icon.py), que desenha 1024×1024 a
+[`scripts/make_icon.py`](../../scripts/make_icon.py), que desenha 1024×1024 a
 partir dos tokens do próprio tema (`--surface-top`, `--accent`, `--silver` de
-[`design.css`](../packages/app/ui/src/design/design.css)) — pedal visto de
+[`design.css`](../../packages/app/ui/src/design/design.css)) — pedal visto de
 cima: chassi escuro, aro cromado do footswitch, núcleo violeta aceso. Um pedal
 lê a 32×32; as letras "GP" ou o número "100" somem antes.
 
@@ -74,7 +74,7 @@ O README insiste nisso porque é o erro mais comum com `.deb` de Tauri: o
 ## Arch: o pacote é a receita
 
 O Tauri não empacota para Arch — o **PKGBUILD** é a unidade de distribuição,
-então ele é versionado em [`packaging/arch/`](../packaging/arch):
+então ele é versionado em [`packaging/arch/`](../../packaging/arch):
 
 - `PKGBUILD` — compila o tarball da release com `cargo build --release --locked`;
 - `gp100-nextgen-editor.desktop` — entrada XDG, `Exec=gp100-nextgen-editor`.
@@ -84,7 +84,7 @@ então ele é versionado em [`packaging/arch/`](../packaging/arch):
 O `build()` **não** compila do branch: compila de
 `gp100-nextgen-editor-<versão>.tar.gz`, publicado na Release pelo job
 `Distribuição · tarball de fonte` via
-[`scripts/make_sdist.py`](../scripts/make_sdist.py). Compilar do branch seria um
+[`scripts/make_sdist.py`](../../scripts/make_sdist.py). Compilar do branch seria um
 AUR servindo código diferente do que a release anuncia.
 
 Esse tarball **não é o tarball do git**. Ele junta três coisas que o git não
@@ -108,7 +108,7 @@ verdade em vez de `SKIP`. O job ainda prova que ele é **consumível**: extrai o
 tarball num diretório temporário e verifica `frontendDist` + `packages/core` +
 `cargo metadata --locked` antes de publicar.
 
-Travas em [`scripts/check_bundle.py`](../scripts/check_bundle.py):
+Travas em [`scripts/check_bundle.py`](../../scripts/check_bundle.py):
 
 1. `pkgname` do PKGBUILD tem que ser **igual** a `mainBinaryName` da config —
    senão `/usr/bin/<pkgname>` aponta para um binário que não existe;
@@ -130,7 +130,7 @@ AUR rejeita `SKIP`.
 
 ## O gate
 
-[`scripts/check_bundle.py`](../scripts/check_bundle.py) roda no job `Lint · contratos do pipeline`
+[`scripts/check_bundle.py`](../../scripts/check_bundle.py) roda no job `Lint · contratos do pipeline`
 e pega, com arquivo:linha:
 
 - campo inexistente na `tauri.conf.json` — validado contra o **schema oficial**
@@ -145,7 +145,7 @@ e pega, com arquivo:linha:
 - tarball de fonte que ninguém produz, ou que não embute o `frontendDist` /
   `packages/core` (os três furos do #72).
 
-[`scripts/sync_version.py`](../scripts/sync_version.py) roda no mesmo job e
+[`scripts/sync_version.py`](../../scripts/sync_version.py) roda no mesmo job e
 falha quando os **cinco** manifests de versão divergem — `Cargo.toml` (raiz),
 `packages/app/api/Cargo.toml`, `packages/app/api/tauri.conf.json`,
 `packages/app/ui/package.json` e `version.json`. O `tauri.conf.json` é o que o

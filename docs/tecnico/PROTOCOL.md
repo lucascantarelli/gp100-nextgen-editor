@@ -2,7 +2,7 @@
 **Versão:** 2.0 · **Data:** 2026-09-28 · **Status:** ✅ referência atual
 **Como ler:** §13 = protocolo de FIO (confirmado em campo, capturas 1–4) — é o que o
 gp100-core fala; §1–12 = formato de ARQUIVO (TLV/CRC-8/objetos). A especificação
-executável byte-a-byte é `docs/protocol_golden.json` (validada por
+executável byte-a-byte é `docs/referencias/protocol_golden.json` (validada por
 `scripts/validate_golden.py`). Mapa geral da documentação: `docs/INDEX.md`.
 **Histórico:** framing do GP-50/GP-5 validado por terceiros (§7); GP-100 confirmado
 DIFERENTE no wire-format por disassembly (§9) — mesma CRC-8/0x07, framing TLV de bits.
@@ -101,7 +101,7 @@ No GP-100 V2.1 há 5 slots (`SnapTone1..5`, flash `FLASH_SNAP_TONE_HEAD_SIZE`), 
 ## 6. FORMATO `.prst` DA FAMÍLIA (referência GP-50; GP-100 usa XML)
 
 GP-50 (binário): header `GP-50` 20B + CRC-8@0x14 + sentinel 4B + nome 16B + corpo 511B.
-**GP-100 (XML)**: formato nativo é o XML documentado em `docs/VISION.md` §4.1 (presets `pp*`/`Effect`), com CRC por User IR (`ppIRCRC`).
+**GP-100 (XML)**: formato nativo é o XML documentado em `docs/planejamento/VISION.md` §4.1 (presets `pp*`/`Effect`), com CRC por User IR (`ppIRCRC`).
 
 ---
 
@@ -304,13 +304,13 @@ o contador da página — coerente com §12).
 
 ### 13.4 Padrões de transação
 
-> **Referência executável:** `docs/protocol_golden.json` (gerado por
+> **Referência executável:** `docs/referencias/protocol_golden.json` (gerado por
 > `scripts/build_golden.py` a partir das sessões 1–4) contém os 40 templates
 > request→resposta com padrões de payload (const/var) e semântica por
 > endereço. Este §13 é a narrativa; o golden é a referência byte-a-byte
 > para implementação e fixtures de teste.
 > **Baseline v1.0 (congelada 28/09/2026 — regra R2/R3 do ROADMAP):**
-> - `docs/protocol_golden.json` sha256 `0426d6a8843c57d16ab917170ed5f50eb95026281f1f460f4c2520aaeefef859`
+> - `docs/referencias/protocol_golden.json` sha256 `0426d6a8843c57d16ab917170ed5f50eb95026281f1f460f4c2520aaeefef859`
 > - `packages/core/data/parameters.json` sha256 `196c67992cd072bbd78c1f7ce3cfc615133d73934e2aa034c6f32b13c171a020`
 > Qualquer mudança nesses arquivos exige: nova captura → build_golden → validate 100% →
 > novo hash + justificativa aqui.
@@ -755,7 +755,7 @@ acima é o caminho real de commit. Item 11 do BLOCKERS: FECHADO.
 
 ### 13.14 Baseline v1.1 — o que o golden NÃO sabe (e por que)
 
-> Escrito em 04/10 (#23, gate H3). A baseline é `docs/protocol_golden.json`;
+> Escrito em 04/10 (#23, gate H3). A baseline é `docs/referencias/protocol_golden.json`;
 > a versão, o hash, o motivo e o histórico vivem em **`scripts/baseline.json`**
 > (`uv run python scripts/baseline.py show`). Até a v1.0 o hash era um literal
 > dentro de um teste, sem versão e sem motivo: colar o hash novo passava.
@@ -764,8 +764,16 @@ acima é o caminho real de commit. Item 11 do BLOCKERS: FECHADO.
 > moveu o gerador para `scripts/` e `_meta.generated_by` no golden apontava o
 > caminho antigo. **Nenhum byte de template mudou**: 39 templates intactos,
 > `validate_golden` 100% (provas A–E) e as fixtures regeneradas batem byte a
-> byte com as versionadas. O que segue é a narrativa da v1.1 e continua valendo;
-> o registro completo está em `scripts/baseline.json` (`v1.2`).
+> byte com as versionadas.
+>
+> **v1.3 (13/10, #167)** — bump só de proveniência: a categorização de `docs/`
+> moveu o protocolo para `docs/tecnico/`, o roadmap para `docs/planejamento/` e
+> o próprio golden para `docs/referencias/`, e `_meta.reference` (no golden) e
+> `reference` (no manifest) apontavam os caminhos antigos da raiz. **Nenhum byte
+> de template mudou**: 39 templates intactos, `validate_golden` 100% (provas
+> A–E) e as fixtures regeneradas batem byte a byte com as versionadas. O que
+> segue é a narrativa da v1.1 e continua valendo; o registro completo está em
+> `scripts/baseline.json` (`v1.3`).
 
 **O achado.** O `build_golden.py` cortava cada frame no **primeiro** par de
 nibbles `f7` (`hx.find("f7")`) em vez do `F7` **final** do SysEx. Nomes de preset
@@ -797,7 +805,7 @@ byte-a-byte e continua provado. O lado **IN** (resync `11000008`, resync
 `12001002`, status `12000001`) é **gap de captura**.
 
 > **Isto não volta por ajuste de código.** Volta com captura nova (R2/R3). O
-> `docs/H3_CHECKLIST.md` tem o roteiro, e o `--log` do `gp100-cli` agora grava
+> `docs/arquivo/H3_CHECKLIST.md` tem o roteiro, e o `--log` do `gp100-cli` agora grava
 > `t` (ms desde a abertura) justamente para que essa captura possa entrar no
 > pipeline: sem relógio não há segmentação por fase nem casamento OUT→IN.
 

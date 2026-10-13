@@ -38,7 +38,7 @@
     "excluded": {
       "linhas_cortadas": "linhas de log sem F7 final NAO sao frames: o proxy morreu no flush. Descartadas em vez de reconstruidas por rfind, que fabricaria payloads que nunca existiram no fio (R1). Total nas 4 capturas: 100"
     },
-    "reference": "docs/PROTOCOL.md §13.1–13.12"
+    "reference": "docs/tecnico/PROTOCOL.md §13.1–13.12"
   },
   "transactions": [
     {

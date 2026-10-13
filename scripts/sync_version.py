@@ -8,7 +8,7 @@ e o job `Release · RC`) bumpeava tres manifests: `Cargo.toml` (raiz),
 - **`packages/app/api/tauri.conf.json`** — e o que o Tauri usa como versao do
   BUNDLE. Sem bump, cortar `v0.2.0` produz um `.msi`/`.dmg`/`.deb`/`.AppImage`
   que se apresenta como `0.1.0` (#73). O risco estava escrito no
-  `docs/RELEASE_PLAN.md:26` desde o plano de release e nunca foi tratado.
+  `docs/planejamento/RELEASE_PLAN.md:26` desde o plano de release e nunca foi tratado.
 - **`packages/app/ui/package.json`** — o front embutido no app.
 
 Por que nao bastava `sed`: `"version"` aparece em varias posicoes nesses dois

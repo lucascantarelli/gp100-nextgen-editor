@@ -289,7 +289,7 @@ jobs:
           # abaixo e o fallback para rodar o script fora do ambiente do projeto.
           python3 -c "import yaml" 2>/dev/null || python3 -m pip install --quiet pyyaml
           # O gate de empacotamento (#71) estava escrito mas NAO LIGADO: o
-          # `docs/PACKAGING.md` afirmava que ele rodava aqui e nao rodava em
+          # `docs/tecnico/PACKAGING.md` afirmava que ele rodava aqui e nao rodava em
           # lugar nenhum. Sem ele, mainBinaryName, .desktop, .deb e PKGBUILD
           # podiam divergir em silencio.
           python3 scripts/check_bundle.py
@@ -1292,15 +1292,15 @@ jobs:
           STAGE="gp100-cli-$TAG"
           mkdir -p "$STAGE"
           cp target/release/gp100-cli.exe "$STAGE/"
-          cp docs/H1_CHECKLIST.md docs/H1_REPORT.md scripts/h1_field.sh scripts/h1_compare.py "$STAGE/"
-          cp docs/H2_CHECKLIST.md docs/H2_REPORT.md scripts/h2_field.sh scripts/h2_compare.py "$STAGE/"
-          cp docs/H3_CHECKLIST.md docs/H3_REPORT.md "$STAGE/"
+          cp docs/arquivo/H1_CHECKLIST.md docs/arquivo/H1_REPORT.md scripts/h1_field.sh scripts/h1_compare.py "$STAGE/"
+          cp docs/arquivo/H2_CHECKLIST.md docs/arquivo/H2_REPORT.md scripts/h2_field.sh scripts/h2_compare.py "$STAGE/"
+          cp docs/arquivo/H3_CHECKLIST.md docs/arquivo/H3_REPORT.md "$STAGE/"
           cp scripts/wirelog.py scripts/validate_core_capture.py scripts/baseline.py scripts/baseline.json "$STAGE/"
           cat > "$STAGE/LEIA-ME.txt" <<MD
           GP-100 NextGen Editor — CLI de campo ${TAG}
 
-          Gate H1 (LEITURA): docs/H1_CHECKLIST.md (roteiro) + h1_field.sh (runbook).
-          Relatorio da sessao: docs/H1_REPORT.md.
+          Gate H1 (LEITURA): docs/arquivo/H1_CHECKLIST.md (roteiro) + h1_field.sh (runbook).
+          Relatorio da sessao: docs/arquivo/H1_REPORT.md.
 
           A FASE C (comparar e classificar a sessao nos 3 niveis do §4) e
           automatizada: h1_field.sh chama h1_compare.py ao fim do roteiro e
@@ -1309,8 +1309,8 @@ jobs:
 
             python h1_compare.py <dir-da-sessao> --markdown
 
-          Gate H2 (ESCRITA): docs/H2_CHECKLIST.md (roteiro) + h2_field.sh (runbook)
-          + h2_compare.py (o juiz da Fase C). Relatorio: docs/H2_REPORT.md.
+          Gate H2 (ESCRITA): docs/arquivo/H2_CHECKLIST.md (roteiro) + h2_field.sh (runbook)
+          + h2_compare.py (o juiz da Fase C). Relatorio: docs/arquivo/H2_REPORT.md.
           O runbook roda os 3 fluxos UM POR VEZ, com pausa para o display ser
           lido entre eles, e exige o 'ok' digitado — por pipe ele recusa, porque
           o gate de escrita nao pode rodar sem alguem olhando o aparelho.
@@ -1322,8 +1322,8 @@ jobs:
           recompile com a feature write-verified:
               cargo build --release -p gp100-cli --features real-device,write-verified
 
-          Gate H3 (CONGELAMENTO da especificacao): docs/H3_CHECKLIST.md +
-          docs/H3_REPORT.md. E o gate que tira o golden do Suite e poe o
+          Gate H3 (CONGELAMENTO da especificacao): docs/arquivo/H3_CHECKLIST.md +
+          docs/arquivo/H3_REPORT.md. E o gate que tira o golden do Suite e poe o
           golden do gp100-core. Os scripts vao no zip porque a sessao de campo
           precisa deles na mao:
 

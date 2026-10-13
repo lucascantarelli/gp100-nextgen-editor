@@ -5,9 +5,9 @@
     "method": "loaders de build_golden.py (repair de aspa, trim ate o F7 FINAL via wirelog.py, body()); janelas = provas de validate_golden.py",
     "format": "JSONL compacto, 1 mensagem por linha na ordem do log; campos: s (sessao), t (ms desde o inicio do arquivo), dir (out/in), func (11/12), addr (8 hex), data (payload hex)",
     "semi_hdr": "mensagens truncadas pelo ring buffer do proxy (SEM-HDR) sao excluidas e contadas por fase",
-    "golden_sha256": "2a3c12e6f90f3fd04c4b15bb604338af2428b5c450495ea7834250a53ef6c58b",
-    "golden_baseline": "2a3c12e6f90f3fd04c4b15bb604338af2428b5c450495ea7834250a53ef6c58b",
-    "reference": "docs/PROTOCOL.md §13.1-13.12; docs/ROADMAP.md P4; docs/protocol_golden.json",
+    "golden_sha256": "065e20768a5cf10eaafd3797bda9ea072c5b75ca906235cb4d51dd8fb402f95f",
+    "golden_baseline": "065e20768a5cf10eaafd3797bda9ea072c5b75ca906235cb4d51dd8fb402f95f",
+    "reference": "docs/tecnico/PROTOCOL.md §13.1-13.12; docs/planejamento/ROADMAP.md P4; docs/referencias/protocol_golden.json",
     "note": "se o golden mudar (fluxo R2/R3), REGENERAR as fixtures"
   },
   "fixtures": {
@@ -85,8 +85,8 @@
       2
     ],
     "golden_sha256": [
-      "2a3c12e6f90f3fd04c4b15bb604338af2428b5c450495ea7834250a53ef6c58b",
-      "2a3c12e6f90f3fd04c4b15bb604338af2428b5c450495ea7834250a53ef6c58b"
+      "065e20768a5cf10eaafd3797bda9ea072c5b75ca906235cb4d51dd8fb402f95f",
+      "065e20768a5cf10eaafd3797bda9ea072c5b75ca906235cb4d51dd8fb402f95f"
     ],
     "knob_map_edits": [
       89,

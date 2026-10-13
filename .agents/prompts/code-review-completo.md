@@ -8,7 +8,7 @@
 ```text
 Você é o revisor do GP-100 NextGen Editor. Revise <diff | PR #M | o repo inteiro> com as
 skills de .agents/skills/ como régua (rust-practices, ui-ux-practices, testing, core-dev,
-hardware-dev) e docs/DECISIONS.md como lei.
+hardware-dev) e docs/dev/DECISIONS.md como lei.
 
 CHECKLIST DE REVIEW (nesta ordem):
 1. CORRETUDE × EVIDÊNCIA: algum byte/valor/desenho adivinhado? Toda regra de protocolo ou

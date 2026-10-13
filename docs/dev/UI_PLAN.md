@@ -1,11 +1,11 @@
 # 🧭 UI_PLAN — Planejamento da Fase M1 (Editor UI)
 
 > **Status:** 🔨 em andamento (M1.0 ✅ 30/09 — front + gp100-ui na CI; ADR-7 · **M1.1 ✅ 30/09 — DeviceActor + commands device_* + boot com barra**) · **Última revisão:** 2026-09-30 · **Pré-requisitos:** ✅ Fase M0 concluída (M0.7 CLI + M0.8 docs) · gate **H1** só para o modo `--real` de leitura
-> **Fontes de verdade deste plano:** `docs/VISION.md` §5–§9 (arquitetura/stack/UX/features), `docs/DECISIONS.md` ADR-1..6, `docs/ROADMAP.md` (M0/H e regras R1–R4), `docs/BLOCKERS.md` itens 4/11 (editor + escrita validada), API da `Session` (ADR-6).
+> **Fontes de verdade deste plano:** `docs/planejamento/VISION.md` §5–§9 (arquitetura/stack/UX/features), `docs/dev/DECISIONS.md` ADR-1..6, `docs/planejamento/ROADMAP.md` (M0/H e regras R1–R4), `docs/planejamento/BLOCKERS.md` itens 4/11 (editor + escrita validada), API da `Session` (ADR-6).
 >
 > Este documento é o **planejamento issue-a-issue da M1**. O panorama de produto
 > (por que, para quem, features) é da VISION; decisões estruturais novas que
-> surgirem aqui viram **ADR-7+** em `docs/DECISIONS.md` antes do código.
+> surgirem aqui viram **ADR-7+** em `docs/dev/DECISIONS.md` antes do código.
 
 ---
 
@@ -118,7 +118,7 @@ Aplicação direta de VISION §7.2 + BLOCKERS §4 + ADR-5/ADR-6:
 **Ferramentas fixadas no M1.0:** React 19, Vite 8, Vitest 5, ESLint 10,
 TypeScript 6.0 (TS 7 aguarda suporte do typescript-eslint ≥7.1), Node 22 +
 pnpm 11 (lockfile congelado; upgrade deliberado).
-UI segue o design system `docs/UI_DESIGN.md` (paleta palco Valeton, escala
+UI segue o design system `docs/dev/UI_DESIGN.md` (paleta palco Valeton, escala
 de Fibonacci, WCAG 2.2 AA) com gate próprio no CI (job `ui`).
 | **M1.1** Conexão + boot ✅ 30/09 | DeviceActor + commands `device_*` + ConnectionBar + progresso | ✅ boot 2299/2299 contra o mock (inventário da captura) com barra (`device://progress`, throttle rAF); pushes do backlog D7 visíveis no log (`device://push`); DeviceActor D8 provado por 10 testes do crate `gp100-ui` na CI 3-OS; `boot()` canônico do ADR-6 intocado (replay byte-a-byte segue válido) — detalhes do hook em `session.rs::boot_with_progress` |
 | **M1.2** Biblioteca | import de `all.prst` (parser do core), lista/busca/favoritos | 99 presets listados com nome/tipo; abrir carrega no editor |

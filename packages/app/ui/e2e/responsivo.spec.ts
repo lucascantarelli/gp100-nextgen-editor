@@ -1,5 +1,5 @@
 /**
- * R-RESPONSIVO (docs/UI_TEST_PLAN.md) — alinhamento da casca em 1440/1280/1024
+ * R-RESPONSIVO (docs/dev/UI_TEST_PLAN.md) — alinhamento da casca em 1440/1280/1024
  * no Chromium (CI e local). Asserts portados dos checks de responsivo da
  * era de RE (histórico no git; ver #163).
  * (27/27 validados no Chrome do sistema): overflow, cadeia do board numa

@@ -9,7 +9,7 @@ metadata:
 
 Use ao escrever ou revisar QUALQUER código Rust do projeto (issues M0.x do
 ROADMAP, skill `core-dev`). Complementa as regras R1–R4 do ROADMAP e os ADRs
-pré-assinados de `docs/DECISIONS.md` — em conflito, valem R1–R4 e os ADRs.
+pré-assinados de `docs/dev/DECISIONS.md` — em conflito, valem R1–R4 e os ADRs.
 
 ## Gates de qualidade (toda mudança passa pelos 4)
 
@@ -94,7 +94,7 @@ Armadilhas mordidas — não reabrir:
   `unwrap`/`expect`/`panic!` na lib (allowed só em testes).
 - Sem `unsafe` no M0. Caso legítimo apareça (ex.: WinMM real), novo ADR antes.
 - Magic number de protocolo NUNCA inline: vira `const` documentada ou entra no
-  golden (R1). Dados de protocolo vêm de `docs/protocol_golden.json`; replay
+  golden (R1). Dados de protocolo vêm de `docs/referencias/protocol_golden.json`; replay
   usa `packages/core/data/fixtures/` (P4) — nunca hardcode de captura.
 - Feature `real-device`: default **ON no app** (`gp100-ui`, #165 — `tauri dev`
   fala com o aparelho) e **OFF no core/CLI/testes**; nada de I/O de device fora
@@ -111,7 +111,7 @@ quebra a identidade silenciosamente (disco CRLF × blob LF; mordido 2x na CI
 em 29/09: golden e .prst).
 
 - Classes na lista (ver seção comentada no `.gitattributes`):
-  1. especificação executável (`docs/protocol_golden.json`);
+  1. especificação executável (`docs/referencias/protocol_golden.json`);
   2. patches de referência (`files/patches/*.prst`, R4);
   3. evidência de campo (`docs/arquivo/analysis/captures/*.jsonl`, `ir_slot*.bin`);
   4. fixtures de replay (`packages/core/data/fixtures/*.jsonl` — o replay do M0.6

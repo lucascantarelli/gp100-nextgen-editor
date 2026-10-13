@@ -4,7 +4,7 @@
  * O chip NÃO mente: os rótulos são os estados que o BACKEND afirma
  * (idle/sync/pending/failed/offline), sem contadores inventados — o "tempo
  * real" deste protocolo é poll + read-back (o knob físico não emite SysEx;
- * `docs/PROTOCOL.md` §sync), e a interface diz isso em vez de esconder.
+ * `docs/tecnico/PROTOCOL.md` §sync), e a interface diz isso em vez de esconder.
  *
  * Erro tem AÇÃO (contrato do #20, estendido ao sync): `failed` oferece
  * "Reler" (`device_sync_now` — read-back imediato do preset corrente) e
@@ -16,7 +16,7 @@
  * O chip se conecta SOZINHO (mesmo padrão do `BootBanners`, que chama
  * `deviceConectar`): o estado e as ações vivem aqui, o App só o monta —
  * passar 3 props pelo App estouraria o teto de 300 linhas
- * (`check_module_size`, docs/ARCHITECTURE.md §4) para um detalhe de navbar.
+ * (`check_module_size`, docs/dev/ARCHITECTURE.md §4) para um detalhe de navbar.
  *
  * MSG é lido NO RENDER (o Proxy de idioma troca o catálogo inteiro): um
  * mapa de rótulos congelado em module scope congelaria o pt-BR.

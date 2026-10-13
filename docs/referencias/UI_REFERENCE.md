@@ -3,8 +3,8 @@
 > **Status:** 🔨 em andamento (Fase 1 — casca/navegação) · **Criado:** 30/09/2026 ·
 > **Fontes:** capturas do app oficial (`files/images/`, `docs/arquivo/analysis/screens.html`), manual oficial
 > (`files/GP-100_Online Manual_EN_Firmware V2.0.pdf` → texto em `docs/arquivo/analysis/manual_streams.txt`),
-> dicionário (`packages/core/data/parameters.json` — 185 algs/639 controles), `docs/UI_DESIGN.md`,
-> `docs/UI_PLAN.md`, decisões do owner (30/09, conversa de revisão de UI).
+> dicionário (`packages/core/data/parameters.json` — 185 algs/639 controles), `docs/dev/UI_DESIGN.md`,
+> `docs/dev/UI_PLAN.md`, decisões do owner (30/09, conversa de revisão de UI).
 >
 > **Por que este doc existe:** decisão do owner — "anote todos os achados que temos até
 > agora de ajustes em uma doc de UI para não perdermos nada". Este é o inventário vivo
@@ -105,7 +105,7 @@ General:
 | `packages/core/data/parameters.json` | 185 algoritmos/639 controles (knob/switch/combox, pos/min/max/default/options) | Effects List por módulo, knobs, ranges |
 | `packages/core/data/fx_map.json` + `packages/app/ui/src/artifacts/fxData.ts` | catálogo gerado por módulo (variant/nibble/index/name/controles) | fallback dev + models |
 | `.prst` XML da máquina (fábrica) | presets nomeados (ex.: "It's GP100", PP25 "Mist") | biblioteca de fábrica (99 presets) |
-| `docs/PROTOCOL.md` §13.9/13.10 | formato XML + scan de presets | leitura REAL da biblioteca |
+| `docs/tecnico/PROTOCOL.md` §13.9/13.10 | formato XML + scan de presets | leitura REAL da biblioteca |
 | Stats por família | PRE16 DST19 AMP51 NR2 CAB60 (IRs, 1 knob) EQ3 MOD12 DLY12 (max 9 ctrl) RVB10 | tamanhos dos pedais, contagem da Effects List |
 
 **Decisão de dados da fase 1 (owner pediu "todos os de fábrica, navegação
@@ -259,7 +259,7 @@ FASE 3 — CONTO E POLIMENTO
    visível ainda, mas já integrada).
 4. **Modal Settings** com as 6 abas do oficial: General funcional-local (os itens
    §1.2), Global EQ placeholder (5 páginas), About/Info Frame/Help/Release Note.
-5. Roteiros de teste manual (docs/UI_TEST_PLAN.md) e gate de aprovação do owner.
+5. Roteiros de teste manual (docs/dev/UI_TEST_PLAN.md) e gate de aprovação do owner.
 
 ---
 
@@ -270,8 +270,8 @@ FASE 3 — CONTO E POLIMENTO
 | **U-1** | Casca da UI + navegação de presets de fábrica (99) funcional — ✅ FEITO 30/09 (aguarda aprovação) | ROADMAP §FASE U |
 | **U-2** | Modal Settings (6 abas) + trava do drag no header — ✅ FEITO 30/09 (aguarda aprovação) | ROADMAP §FASE U |
 | **U-3** | Pedais fase 2: 1 efeito por vez, checklist §3, teste por posição — 🔜 após aprovação | ROADMAP §FASE U |
-| **U-4** | Roteiros de teste manual por rodada — ✅ FEITO 30/09 | docs/UI_TEST_PLAN.md |
-| **U-5** | E2e da casca na CI (gate de release) + cobertura do manual — ✅ FEITO 30/09 | docs/MANUAL_COVERAGE.md |
+| **U-4** | Roteiros de teste manual por rodada — ✅ FEITO 30/09 | docs/dev/UI_TEST_PLAN.md |
+| **U-5** | E2e da casca na CI (gate de release) + cobertura do manual — ✅ FEITO 30/09 | docs/referencias/MANUAL_COVERAGE.md |
 
 ---
 
@@ -381,7 +381,7 @@ violeta, com três colunas soltas e muito espaço morto):**
 > Pedido do owner: board + looper em 1280/1024 sem quebrar o alinhamento dos
 > painéis. Implementado em CSS (sem estilos inline de grid) e verificado por
 > MEDIÇÃO no Chrome (`docs/arquivo/analysis/responsivo_checks.js` — 9 asserts/viewport,
-> 27/27 ✅; registro em docs/UI_TEST_PLAN.md, rodada R-RESPONSIVO).
+> 27/27 ✅; registro em docs/dev/UI_TEST_PLAN.md, rodada R-RESPONSIVO).
 
 | Regra | Onde vive | Comportamento |
 |---|---|---|
@@ -403,7 +403,7 @@ violeta, com três colunas soltas e muito espaço morto):**
 
 > Pedido do owner: Espaço = drum play/stop, R = REC do looper, Esc fecha painéis.
 > **Doc de usuário = aba Help do Settings** (SettingsModal); esta seção é a doc
-> técnica. Registro de execução: docs/UI_TEST_PLAN.md (R-ATALHOS).
+> técnica. Registro de execução: docs/dev/UI_TEST_PLAN.md (R-ATALHOS).
 
 | Tecla | Ação | Detalhe |
 |---|---|---|
@@ -483,7 +483,7 @@ patch, não o algoritmo.
 família `0x4X`, PROTOCOL §4) é o ÚNICO opcode dessa família sem formato
 validado (`0x43` select, `0x48` change-param §13.11 e `0x4F` bulk §4 já têm
 bytes fechados) — BLOCKERS item 10b, roteiro de captura em
-`docs/CAPTURE_PLAN.md` (CAPTURA 5). A nota "prévia local" está na própria tela.
+`docs/arquivo/CAPTURE_PLAN.md` (CAPTURA 5). A nota "prévia local" está na própria tela.
 Enquanto isso, o efeito novo entra no patch de usuário normalmente: o patch é
 o retrato do PALCO, não do preset de fábrica.
 
@@ -501,7 +501,7 @@ o retrato do PALCO, não do preset de fábrica.
   de alinhamento portados p/ `e2e/_helpers.ts`
   (`measureShell`/`expectShellAligned`) — alinhamento de componentes é testado
   AUTOMATICAMENTE (não depende de observação manual).
-- **Cobertura funcional:** `docs/MANUAL_COVERAGE.md` — matriz item-por-item do
+- **Cobertura funcional:** `docs/referencias/MANUAL_COVERAGE.md` — matriz item-por-item do
   manual/app oficial com implementação + teste (33 ✅ · 5 🟡 · 5 🔴; nenhum
   estado silencioso: o que aguarda captura está EXPLICITADO na UI).
 - **Achados corrigidos na rodada:** BPM do drum desalinhado (258×46 vs 240×32 —
@@ -612,7 +612,7 @@ o resto do pacote sobrando.
 
 **Já removidos por violação:** "pedal na fase 2" → "vazio"; "(D7)" no PushLog;
 "captura G3–G6" (drum/looper/settings); "Fase M"/"H1" na ConnectionBar;
-"§13.12" na biblioteca; "docs/MANUAL_COVERAGE.md" no Release Note.
+"§13.12" na biblioteca; "docs/referencias/MANUAL_COVERAGE.md" no Release Note.
 
 **Guard-rail automático (30/09, Q-1):** o lint custom `local/no-user-literals`
 (eslint.config.js, plugin local) roda como `error` em `src/components/**` +

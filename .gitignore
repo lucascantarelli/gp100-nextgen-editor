@@ -19,8 +19,11 @@ docs/arquivo/analysis/forwarders_impl.c
 docs/arquivo/analysis/midi_proxy_build.c
 docs/arquivo/analysis/winmm.dll
 
-# ===== Material de origem NÃO distribuído (README §7 - nota legal) =====
-# Instaladores, firmware, driver, manual, tool de debug, imagens, logs.
+# ===== Material de origem NÃO distribuído (README §8 - nota legal) =====
+# O que existe LOCALMENTE em files/ (#167, triagem do disco): firmware,
+# driver, manual PDF e images/ (proveniência do design, citada por
+# docs/referencias/UI_REFERENCE.md). Instalador (files/app), DebugView e
+# logs saíram do disco em 13/10 — nada disso é fonte mais.
 # EXCEÇÕES versionadas: files/patches/*.prst (gate de regressão/round-trip M0.2)
 # e o briefing original.
 files/*
@@ -33,7 +36,7 @@ docs/arquivo/analysis/suite_local/
 docs/arquivo/analysis/driver_ext/
 
 # Dumps de strings/texto DERIVADOS de material proprietário (regeneráveis
-# a partir de files/app e firmware, que ficam só locais)
+# a partir do material de origem — firmware/driver ficam só locais em files/)
 docs/arquivo/analysis/exe_strings.txt
 docs/arquivo/analysis/fw_strings.txt
 docs/arquivo/analysis/manual_streams.txt
@@ -51,7 +54,7 @@ docs/arquivo/analysis/manual_v18.txt
 *.lib
 
 # Kit de campo H1: ensaios e saídas de campo são DESCARTÁVEIS (o que preserva
-# evidência é docs/arquivo/analysis/captures/sessionH1.jsonl + docs/H1_REPORT.md; as
+# evidência é docs/arquivo/analysis/captures/sessionH1.jsonl + docs/arquivo/H1_REPORT.md; as
 # referências do mock ficam em docs/arquivo/analysis/h1_reference/ — versionadas)
 docs/arquivo/analysis/h1_rehearsal_*/
 docs/arquivo/analysis/h1_field_*/
@@ -77,7 +80,7 @@ packages/app/ui/playwright-report/
 # Saídas de teste fora do pacote do front (nasceram do rodar de fora; #159).
 packages/test-results/
 # Log de fio do app de campo (transaction log local; o evidência versionada é
-# docs/arquivo/analysis/h2/ e docs/H2_REPORT.md — o log de UMA execução não é artefato).
+# docs/arquivo/analysis/h2/ e docs/arquivo/H2_REPORT.md — o log de UMA execução não é artefato).
 packages/app/api/*.jsonl
 packages/app/api/wire-*.jsonl
 *.tsbuildinfo

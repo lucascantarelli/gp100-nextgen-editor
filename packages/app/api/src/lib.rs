@@ -12,7 +12,7 @@
 //! o aparelho **(#150)**. Um build sem transporte algum existe por
 //! `--no-default-features` (mesmo estado `Desligado`, motivo diferente); o
 //! `MockDevice` segue vivo no core/CLI/testes e nunca dentro do app. Ver
-//! [`abrir_backend`] e `docs/REAL_DEVICE_GAP.md`.
+//! [`abrir_backend`] e `docs/referencias/REAL_DEVICE_GAP.md`.
 //!
 //! **DeviceActor:** o actor é o dono ÚNICO da `Session` (D8 do
 //! ADR-6) — commands enfileiram requisições; o boot emite progresso via

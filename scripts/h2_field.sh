@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# h2_field.sh — runbook de campo do gate H2 (docs/H2_CHECKLIST.md), issue #22.
+# h2_field.sh — runbook de campo do gate H2 (docs/arquivo/H2_CHECKLIST.md), issue #22.
 #
 # Uso:
 #   ./scripts/h2_field.sh rehearsal                        # ensaio HOJE contra o MOCK
@@ -273,7 +273,7 @@ AVISO
     local codigo=0
     py "$ROOT/scripts/h2_compare.py" "$out" || codigo=$?
     echo
-    echo "════ Tabela do §6 (cole no docs/H2_REPORT.md com o veredito de cada um):"
+    echo "════ Tabela do §6 (cole no docs/arquivo/H2_REPORT.md com o veredito de cada um):"
     py "$ROOT/scripts/h2_compare.py" "$out" --markdown
     echo
     if [ "$codigo" -eq 0 ]; then

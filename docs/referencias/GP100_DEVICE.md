@@ -120,7 +120,7 @@ Estas coisas o aparelho TEM mas o app ainda não LÊ do fio — ou lê e descart
 ## 7. O que somos NÓS (inovação, fora do manual oficial)
 
 A app é uma **expansão** do editor oficial, não uma cópia. Recursos nossos
-(detals em `docs/VISION.md` §9 e `MANUAL_COVERAGE.md` §8): biblioteca
+(detals em `docs/planejamento/VISION.md` §9 e `MANUAL_COVERAGE.md` §8): biblioteca
 versionada Git-like · Tone Match offline · gestor SnapTone/NAM · Laboratório de
 IRs com CRC · cloud sync opt-in · **Live Mode** (telão BPM + troca por atalho/
 MIDI — *isto é* o "setlist" que o hardware não tem: decisão do APP, não do
@@ -134,8 +134,8 @@ pedal) · export .prst↔JSON↔PDF · A/B blind · ponte MIDI/DAW · gain-stagi
   (extração local `docs/arquivo/analysis/manual_streams.txt`, nem todo texto sai legível).
 - [Página do produto Valeton GP-100](https://www.valeton.net/product/gp-100/)
   (99+99 presets, 20 IRs, editor PC/Mac, USB 2.0 Type-B).
-- Nossas medições: `docs/PROTOCOL.md` §13 · `docs/protocol_golden.json` (39
+- Nossas medições: `docs/tecnico/PROTOCOL.md` §13 · `docs/referencias/protocol_golden.json` (39
   templates) · `docs/arquivo/analysis/captures/session{1..4}.jsonl` · campo 07/10 e 09/10
-  (H4) · `docs/audit_era_real_2026-10-07.md`.
+  (H4) · `docs/analises/audit-era-real-2026-10-07.md`.
 - Reviews de usuário (TDPRI, Reddit) — comportamento relatado, não medido;
   marcado como tal.

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """extract_ir_upload.py — reassemble GP-100 user-IR uploads from a proxy capture.
 
-Wire (confirmed in session2, docs/PROTOCOL.md §13.7):
+Wire (confirmed in session2, docs/tecnico/PROTOCOL.md §13.7):
   F0 21 25 7F 47 50 2D 64 | 12 12001002 | slot u8 | idx u16 BE | 30 nibbles | F7
   - each payload BYTE carries one nibble (pairs of nibbles = real bytes)
   - 30 nibbles per message = 15 real bytes; u16 index counts CHUNKS

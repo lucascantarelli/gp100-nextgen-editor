@@ -37,5 +37,5 @@ Use quando o usuário pedir para capturar tráfego novo (sessão N).
 - Importar IR → upload nibble-expanded (§13.7)
 
 ## Pós-sessão
-Invocar a skill `capture-analyze`; documentar descobertas em docs/PROTOCOL.md §13.x
+Invocar a skill `capture-analyze`; documentar descobertas em docs/tecnico/PROTOCOL.md §13.x
 com evidência hex, e atualizar "Estado vivo" no knowledge.md.

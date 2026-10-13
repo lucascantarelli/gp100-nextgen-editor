@@ -1,5 +1,5 @@
 /**
- * R-ATALHOS (docs/UI_TEST_PLAN.md) — atalhos globais executados no Chromium:
+ * R-ATALHOS (docs/dev/UI_TEST_PLAN.md) — atalhos globais executados no Chromium:
  * Espaço = drum play/stop · R = REC do looper · Esc fecha painéis do topo.
  * Doc de usuário: aba Help do Settings.
  *

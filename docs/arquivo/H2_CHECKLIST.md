@@ -79,7 +79,7 @@ por FUNC recusaria o próprio caminho de leitura.
 - [ ] CI verde no commit do binário
 
 **Antes de qualquer escrita, com o device ligado:**
-- [ ] O H1 passou (`docs/H1_REPORT.md` arquivado) — escrever em um device cuja
+- [ ] O H1 passou (`docs/arquivo/H1_REPORT.md` arquivado) — escrever em um device cuja
       leitura ainda diverge é o pior cenário possível
 - [ ] **Inventário do device anotado:** quais slots de IR estão ocupados e
       quais presets são seus. Sem isto, um upload de IR pode sobrescrever algo
@@ -217,7 +217,7 @@ veredito do display). Saída `1` = PARAR, e o §7 diz o que fazer.
 - [ ] Cada uma das 3 verificações tem um veredito escrito (não "pareceu que")
 - [ ] `sessionH2.jsonl` (ou os 3 logs `f1`/`f2`/`f3`) preservados e com
       `-text` no `.gitattributes`
-- [ ] `docs/H2_REPORT.md` preenchido e arquivado
+- [ ] `docs/arquivo/H2_REPORT.md` preenchido e arquivado
 - [ ] Nenhuma anomalia no device (travamento, reboot, display incoerente)
 
 ### Se os 3 passarem
@@ -259,11 +259,11 @@ veredito do display). Saída `1` = PARAR, e o §7 diz o que fazer.
 
 ## 9. Fontes
 
-- `docs/DECISIONS.md` ADR-5 (`WRITE_VERIFIED`) e ADR-6 (D3/D4, semântica de
+- `docs/dev/DECISIONS.md` ADR-5 (`WRITE_VERIFIED`) e ADR-6 (D3/D4, semântica de
   escrita) · ADR-2 (erro tipado, sem panic) · ADR-3 (janela de 3 s)
-- `docs/PROTOCOL.md` §13.7 (upload de IR) · §13.11 (knob) · §13.12 (save e
+- `docs/tecnico/PROTOCOL.md` §13.7 (upload de IR) · §13.11 (knob) · §13.12 (save e
   metadados) · §13.2 (tabela de FUNC, e por que ela **não** serve para
   classificar escrita)
-- `docs/VISION.md` §7 (brick-proof, política de hardware)
-- `docs/H1_CHECKLIST.md` (o gate de leitura, e o fluxo R3)
+- `docs/planejamento/VISION.md` §7 (brick-proof, política de hardware)
+- `docs/arquivo/H1_CHECKLIST.md` (o gate de leitura, e o fluxo R3)
 - `packages/core/tests/write_gate.rs` (a trava, mutation-provada)

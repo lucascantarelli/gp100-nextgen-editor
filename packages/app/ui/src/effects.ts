@@ -12,7 +12,7 @@
  * da família `0x4X` ainda não foi caracterizado — PROTOCOL §4, BLOCKERS item
  * 10b), a troca aqui é **PRÉVIA LOCAL**: muda o estado do board e o pedal do
  * palco já mostra o novo efeito com os knobs novos. A escrita fica para a
- * captura (roteiro em docs/CAPTURE_PLAN.md, CAPTURA 5).
+ * captura (roteiro em docs/arquivo/CAPTURE_PLAN.md, CAPTURA 5).
  */
 import { FX_MODULES } from "./artifacts/fxData";
 import type { FxAlgorithm } from "./artifacts/fxData";

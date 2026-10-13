@@ -2,12 +2,12 @@
 
 > 📜 **HISTÓRICO (2026-09-28):** plano cumprido — a Rota 1b (proxy winmm) foi a
 > vencedora e as sessões 1–4 fecharam tudo isto. Estado atual do protocolo:
-> `docs/PROTOCOL.md` §13 + `docs/protocol_golden.json`. Gaps restantes de captura:
+> `docs/tecnico/PROTOCOL.md` §13 + `docs/referencias/protocol_golden.json`. Gaps restantes de captura:
 > `docs/arquivo/analysis/capture_gaps.md` (G3–G6). Mapa geral: `docs/INDEX.md`.
 
 **Objetivo:** capturar 1 sessão real do Suite GP-100 para calibrar os campos
 ambíguos do protocolo já mapeado. **Não é para "descobrir o protocolo"** — o
-mapa estrutural está fechado (`docs/PROTOCOL.md` §12); a captura só preenche
+mapa estrutural está fechado (`docs/tecnico/PROTOCOL.md` §12); a captura só preenche
 valores de campo e confirma o timing.
 
 ## Rota 0 — DebugView (passiva, 5 min, sem instalar nada no fluxo MIDI)
@@ -127,9 +127,9 @@ para o device (somente leitura das mensagens); reversível removendo a DLL.
 ## Depois da captura
 
 1. Congelar os bytes em `packages/core/data/fixtures/` + um caso no golden
-   (`scripts/build_golden.py` → `docs/protocol_golden.json`), como nas sessões
+   (`scripts/build_golden.py` → `docs/referencias/protocol_golden.json`), como nas sessões
    3 e 4.
-2. Promover o item 10 da matriz do `docs/BLOCKERS.md` (opcodes lógicos) de
+2. Promover o item 10 da matriz do `docs/planejamento/BLOCKERS.md` (opcodes lógicos) de
    "parcial" para "RESOLVIDO EM CAMPO" **só** para o `change-effect`.
 3. Habilitar `WRITE_VERIFIED` do `change_effect` no gp100-core e ligar o
    `device_change_effect` no front (hoje a UI da #19 é prévia local).

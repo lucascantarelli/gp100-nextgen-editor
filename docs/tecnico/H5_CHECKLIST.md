@@ -130,5 +130,5 @@
   [#162](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/162) modelo ·
   [#164](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/164) sync ·
   [#165](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/165) default real
-- `docs/H1_REPORT.md` … `docs/H4_REPORT.md` (formato dos relatórios H) ·
-  `docs/DECISIONS.md` ADR-5/ADR-10 · `docs/BLOCKERS.md` (#110)
+- `docs/arquivo/H1_REPORT.md` … `docs/arquivo/H4_REPORT.md` (formato dos relatórios H) ·
+  `docs/dev/DECISIONS.md` ADR-5/ADR-10 · `docs/planejamento/BLOCKERS.md` (#110)

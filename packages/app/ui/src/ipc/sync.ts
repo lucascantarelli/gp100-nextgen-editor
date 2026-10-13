@@ -7,7 +7,7 @@
  *
  * O estado de sync é o que o BACKEND afirma (idle/sync/pending/failed/
  * offline + `changed` do read-back); o "tempo real" deste protocolo é
- * poll + read-back (`docs/PROTOCOL.md` §sync), e esta porta não inventa
+ * poll + read-back (`docs/tecnico/PROTOCOL.md` §sync), e esta porta não inventa
  * contadores nem eventos que o device não emitiu.
  */
 import type { SyncEvent } from "./types";

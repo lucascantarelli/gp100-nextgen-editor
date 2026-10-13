@@ -41,7 +41,7 @@ crate externo e não enxerga internals (detalhe na skill `rust-practices`).
 - `pnpm test` (vitest/jsdom): componentes, tokens, a11y (papel/label/foco),
   i18n, hooks; **`pnpm test:coverage` é GATE de 85%** statements/functions/lines
   (`packages/app/ui/vite.config.ts`) — roda em job próprio (`Cobertura · UI`).
-- e2e Playwright roda do repo (fonte dos roteiros: `docs/UI_TEST_PLAN.md`,
+- e2e Playwright roda do repo (fonte dos roteiros: `docs/dev/UI_TEST_PLAN.md`,
   declarado no `playwright.config.ts`):
   - `shell.roteiros.spec.ts` · `estados.spec.ts` · `ipc.edge.spec.ts` — shell;
   - `visual.spec.ts` — baselines POR PLATAFORMA; comparar é o default (falha no
@@ -60,7 +60,7 @@ crate externo e não enxerga internals (detalhe na skill `rust-practices`).
 
 A suíte de `scripts/tests/` (casa desde #163) valida a especificação
 reconstruída (golden, baseline, knob_map, faixas ADR-10, paridade de fixtures)
-e os juízes de campo H1/H2 — o que ela cobre está em `docs/TESTING.md` §1.
+e os juízes de campo H1/H2 — o que ela cobre está em `docs/tecnico/TESTING.md` §1.
 **Não acrescente teste novo lá sem decisão registrada**: o que prova só o
 processo de RE sai na auditoria da suíte (contrato da #166); dado de runtime
 tem contrato em `packages/*/tests/`.

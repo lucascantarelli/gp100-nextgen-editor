@@ -20,7 +20,7 @@ H3 baseline congelada). Trabalho aberto vive nas **issues do GitHub** (milestone
 
 > 🔒 **Política de segurança de hardware:** nenhum fluxo de escrita sai sem captura
 > validada (`WRITE_VERIFIED`), e **update de firmware está fora de escopo** (V2+, e só
-> com bootloader documentado). Ver `docs/BLOCKERS.md` §4 e `docs/VISION.md` §7.
+> com bootloader documentado). Ver `docs/planejamento/BLOCKERS.md` §4 e `docs/planejamento/VISION.md` §7.
 
 ---
 
@@ -29,11 +29,11 @@ H3 baseline congelada). Trabalho aberto vive nas **issues do GitHub** (milestone
 | Camada | Resultado | Onde |
 |---|---|---|
 | **Modelo de dados** | 185 algoritmos / 639 controles com nomes, ranges e defaults, validado em 3 vias (XML oficial do Suite + 909 slots de patches reais + strings da firmware) | `packages/core/data/parameters.json` |
-| **Formato de preset** | `.prst` = XML puro; `effectCode = (nibble<<24) \| index`; cadeia de 9 slots fixos (`x=0..8`); `params_N` 0..14 (incl. controles ocultos como o Mic do CAB) | `docs/PROTOCOL.md` §13.9 |
-| **Protocolo de fio** | SysEx `F0 21 25 7F 47 50 2D 64 \| FUNC \| ADDR(4B) \| DATA \| F7`; ler estado (páginas `13xx`), setar parâmetro (envelope semântico `10xx0002` com float32), save (metadados `11xx` + ops `00020000`), upload de IR com ACK por chunk | `docs/PROTOCOL.md` §13.1–13.12 |
-| **Especificação executável** | 40 templates request→resposta extraídos das capturas, com padrões de payload (const/var) e semântica por endereço | `docs/protocol_golden.json` |
+| **Formato de preset** | `.prst` = XML puro; `effectCode = (nibble<<24) \| index`; cadeia de 9 slots fixos (`x=0..8`); `params_N` 0..14 (incl. controles ocultos como o Mic do CAB) | `docs/tecnico/PROTOCOL.md` §13.9 |
+| **Protocolo de fio** | SysEx `F0 21 25 7F 47 50 2D 64 \| FUNC \| ADDR(4B) \| DATA \| F7`; ler estado (páginas `13xx`), setar parâmetro (envelope semântico `10xx0002` com float32), save (metadados `11xx` + ops `00020000`), upload de IR com ACK por chunk | `docs/tecnico/PROTOCOL.md` §13.1–13.12 |
+| **Especificação executável** | 40 templates request→resposta extraídos das capturas, com padrões de payload (const/var) e semântica por endereço | `docs/referencias/protocol_golden.json` |
 | **Validação** | Accounting IN 100% / OUT 99,6% (resto = truncamentos do ring buffer); regeneração byte-a-byte: knobs 92/92, boot/scan 2299/2299 | `scripts/validate_golden.py` |
-| **Persistência comprovada** | O save da UI persiste o **estado ao vivo** (confirmado no display da pedaleira após a sessão 4) | `docs/PROTOCOL.md` §13.12 |
+| **Persistência comprovada** | O save da UI persiste o **estado ao vivo** (confirmado no display da pedaleira após a sessão 4) | `docs/tecnico/PROTOCOL.md` §13.12 |
 
 **Como chegamos lá:** um proxy `winmm.dll` (129 exports) instrumenta o Suite oficial
 sem nenhum risco ao device — intercepta `midiOutShortMsg/LongMsg` e os buffers de
@@ -242,7 +242,7 @@ compila com zig e valida o resultado.
 
 ### 5.3 Golden-file do protocolo
 ```bash
-uv run python scripts/build_golden.py      # gera docs/protocol_golden.json
+uv run python scripts/build_golden.py      # gera docs/referencias/protocol_golden.json
 uv run python scripts/validate_golden.py   # 5 provas (deve dar 100%)
 uv run pytest                               # suíte de regressão (após P3)
 ```
@@ -272,12 +272,12 @@ uv run python scripts/validate_knob_map.py # revalida knob_map.json
 - **M1 — Editor UI (Tauri 2 + React/TS):** biblioteca (import `all.prst`), editor de
   cadeia, knobs com ranges reais, diff/undo; device mock primeiro, hardware depois
   (set/save/IR já verificados em campo; `WRITE_VERIFIED=true` só para fluxos capturados).
-  **Planejamento issue-a-issue: `docs/UI_PLAN.md` (M1.0–M1.6 com DoD).**
+  **Planejamento issue-a-issue: `docs/dev/UI_PLAN.md` (M1.0–M1.6 com DoD).**
 - **M2 — IR lab + SnapTone manager + empacotamento:** laboratório de IRs (upload já
   funcional), gestor de NAM, i18n (pt-BR/en/es/zh — strings da firmware reutilizáveis),
   MSI/AppImage/dmg.
 - **M3 — Diferenciais:** biblioteca versionada git-like, live mode, cloud opt-in,
-  tone match IA, A/B blind test (lista completa em `docs/VISION.md` §9).
+  tone match IA, A/B blind test (lista completa em `docs/planejamento/VISION.md` §9).
 
 Dívidas de baixa prioridade (não bloqueiam nada): layout byte-a-byte da
 página de estado 13xx, campo 0x00BC/0x00B4 do blob de IR, semântica de
@@ -291,12 +291,12 @@ em §13.12 — não são dívidas.)
 
 **Onboarding (leia nesta ordem):**
 1. `docs/INDEX.md` — o mapa da documentação (rotas por objetivo, fontes de verdade)
-2. `docs/VISION.md` — o produto que estamos construindo e por quê
-3. `docs/PROTOCOL.md` §13 — o protocolo de fio (a narrativa)
-4. `docs/protocol_golden.json` — a mesma coisa, byte-a-byte (a especificação executável)
+2. `docs/planejamento/VISION.md` — o produto que estamos construindo e por quê
+3. `docs/tecnico/PROTOCOL.md` §13 — o protocolo de fio (a narrativa)
+4. `docs/referencias/protocol_golden.json` — a mesma coisa, byte-a-byte (a especificação executável)
 5. `packages/core/README.md` — **a arquitetura do código com exemplos que RODAM**
    (contrato `tests/readme_examples.rs` garante que a doc não mente)
-6. `docs/BLOCKERS.md` — o que está resolvido e o que é risco
+6. `docs/planejamento/BLOCKERS.md` — o que está resolvido e o que é risco
 7. `knowledge.md` — armadilhas de ambiente que já morderam alguém
 
 **Primeiro hands-on (10 min):**
@@ -327,7 +327,7 @@ os números medidos e o que está aberto — está em
 **[`docs/INDEX.md`](docs/INDEX.md) §6**, a fonte única dos números (este README não
 repete contador). Trabalho aberto vive nas **issues do GitHub** (milestone `v1.0.0`);
 as dívidas de documentação/limpeza desta rodada estão na auditoria de 07/10,
-[`docs/audit_2026-10-07.md`](docs/audit_2026-10-07.md).
+[`docs/analises/audit-2026-10-07.md`](docs/analises/audit-2026-10-07.md).
 
 ---
 

@@ -1,5 +1,5 @@
 /**
- * Visual (R-VISUAL, docs/UI_TEST_PLAN.md) — regressão ESTÉTICA dos painéis
+ * Visual (R-VISUAL, docs/dev/UI_TEST_PLAN.md) — regressão ESTÉTICA dos painéis
  * com `toHaveScreenshot` (além do alinhamento geométrico do responsivo.spec).
  *
  *  - 3 painéis (board, looper, biblioteca) × 3 viewports = 9 baselines;

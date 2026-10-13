@@ -1,7 +1,7 @@
 # FINDINGS — Descompilação GP-100.exe (protocolo)
 
 > ✅ Status: achados corroborados em campo — o que era hipótese aqui virou
-> confirmação no `docs/PROTOCOL.md` §13 (fio) e `docs/protocol_golden.json`.
+> confirmação no `docs/tecnico/PROTOCOL.md` §13 (fio) e `docs/referencias/protocol_golden.json`.
 > Mapa geral: `docs/INDEX.md`.
 
 Data: 2026-09-28 · Método: pefile + capstone (x86/32), venv uv da raiz (`.venv/`) · (histórico: feito com venv em `analysis/.venv`, desde então consolidado)

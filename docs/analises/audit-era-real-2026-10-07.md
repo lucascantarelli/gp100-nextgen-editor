@@ -67,7 +67,7 @@ ser exercício da tela fora do hardware.
   como build de campo pós-gate H1 (feature `real-device` espelhada do core)":
   **defasado** — a #126/#128 entregaram o shell `real-device` e a forma canônica é
   `--features real-device[,write-verified]` (BLOCKERS §; CONTRIBUTING).
-- `docs/REAL_DEVICE_GAP.md` — bom contéudo histórico/auditorável; precisa do banner
+- `docs/referencias/REAL_DEVICE_GAP.md` — bom contéudo histórico/auditorável; precisa do banner
   ⚠️/✅ do docs-sync (item 8/corrolário F-03/F-04) apontando que a barreira de código
   caiu (d26e28a) e o que sobra é a integração #150/#116.
 - **Caminho:** um commit docs-sync dedicado (a skill manda commit PRÓPRIO e SEPARADO)
