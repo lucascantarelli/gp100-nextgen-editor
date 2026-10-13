@@ -11,7 +11,7 @@
 //! main thread; o progresso sai por EVENTO (`device://progress`) — a UI
 //! mostra barra, nunca trava.
 
-use gp100_core::session::{BootProgress, BootStage};
+use gp100_core::session::{BootProgress, BootStage, GlobalBruto};
 use serde::Serialize;
 use std::sync::mpsc;
 use tauri::{Emitter, State};
@@ -228,7 +228,7 @@ pub fn device_globals(state: State<'_, AppState>) -> Result<DeviceGlobals, Strin
 }
 
 /// Deriva o DTO do bloco cru lido (pura — testável sem `State`).
-fn globals_de(bruto: Vec<([u8; 4], Vec<u8>)>) -> DeviceGlobals {
+fn globals_de(bruto: Vec<GlobalBruto>) -> DeviceGlobals {
     use gp100_core::codec::nibble_pair_value;
     let mut raw = std::collections::BTreeMap::new();
     let mut volume = None;

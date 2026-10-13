@@ -165,6 +165,11 @@ pub struct IrUploadReport {
 /// (o upload só fica mais lento); descer é o que corrompe o stream.
 pub const SNAP_TONE_SETTLE_MS: u64 = 250;
 
+/// Um registrador global lido do aparelho: `(endereço, payload CRU)`.
+/// Alias público porque [`Session::read_globals`] devolve a lista desses
+/// pares — o decode (nibble-par) é do chamador (ADR-13).
+pub type GlobalBruto = ([u8; 4], Vec<u8>);
+
 /// Tabela MEDIDA de registradores globais (PROTOCOL §13.13.1 + nomes da RE
 /// do Suite §13.13.7): `(endereço, comprimentos de payload aceitos)`.
 ///
@@ -1130,7 +1135,7 @@ impl<T: DeviceTransport> Session<T> {
     /// Lê o bloco medido de registradores globais (§13.13) na ordem da
     /// tabela [`REGS_GLOBAIS`], devolvendo `(addr, payload cru)`. Tudo-ou-
     /// nada: a primeira falha aborta (o front vira banner com retry, #20).
-    pub fn read_globals(&mut self) -> Result<Vec<([u8; 4], Vec<u8>)>, ProtocolError> {
+    pub fn read_globals(&mut self) -> Result<Vec<GlobalBruto>, ProtocolError> {
         let mut out = Vec::with_capacity(REGS_GLOBAIS.len());
         for &(addr, formas) in REGS_GLOBAIS {
             out.push((addr, self.read_register(addr, formas)?));
@@ -1196,7 +1201,7 @@ impl<T: DeviceTransport> Session<T> {
     /// = Timeout (D6).
     fn wait_for(&mut self, func: u8, addr: &[u8; 4]) -> Result<Vec<u8>, ProtocolError> {
         let golden = GoldenFile::embedded()?;
-        self.wait_for_com(func, addr, Forma::Golden(&golden))
+        self.wait_for_com(func, addr, Forma::Golden(golden))
     }
 
     /// [`wait_for`] com a validação de forma PLUGÁVEL. Por que existe: os

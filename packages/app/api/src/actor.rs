@@ -30,7 +30,8 @@ use std::thread::JoinHandle;
 use gp100_core::model::Dictionary;
 use gp100_core::pedalboard::{board_view_for, embedded_document, preset_list, BoardView};
 use gp100_core::session::{
-    inventario_do_aparelho, BootProgress, BootReport, IrUploadReport, Session, SnapToneUploadReport,
+    inventario_do_aparelho, BootProgress, BootReport, GlobalBruto, IrUploadReport, Session,
+    SnapToneUploadReport,
 };
 use gp100_core::transport::mock::MockDevice;
 use gp100_core::transport::{DeviceTransport, TransportError, WireKind};
@@ -447,7 +448,7 @@ enum Request {
     /// medido SYSTEM `000200xx` + DRUM `000102xx`, payload crU por
     /// registrador (o decode medido fica no chamador — ADR-13).
     Globals {
-        reply: mpsc::Sender<Result<Vec<([u8; 4], Vec<u8>)>, String>>,
+        reply: mpsc::Sender<Result<Vec<GlobalBruto>, String>>,
     },
     /// Write num registrador global (§13.13.1 — command `device_set_global`):
     /// envelope canônico; a trava ADR-5 é do TRANSPORTE (write-verified).
@@ -1160,7 +1161,7 @@ impl DeviceActor {
     /// [`ProtocolError`](gp100_core::ProtocolError) como string (Timeout D6
     /// se um registrador não responde; InvalidShape para forma fora do
     /// medido) ou morte da thread do actor.
-    pub fn globals(&self) -> Result<Vec<([u8; 4], Vec<u8>)>, String> {
+    pub fn globals(&self) -> Result<Vec<GlobalBruto>, String> {
         let (tx, rx) = mpsc::channel();
         self.tx
             .send(Request::Globals { reply: tx })
