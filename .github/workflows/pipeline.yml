@@ -270,7 +270,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Instalar uv
-        uses: astral-sh/setup-uv@v10.2.0
+        uses: astral-sh/setup-uv@v10.3.0
         with:
           enable-cache: true
       - name: Sync do ambiente (capstone, pefile, ziglang, pytest)
@@ -720,7 +720,7 @@ jobs:
 
       - name: Instalar uv
         if: always()
-        uses: astral-sh/setup-uv@v10.2.0
+        uses: astral-sh/setup-uv@v10.3.0
 
       - name: Trava da especificação (pytest — como no security noturno antigo)
         if: always()
