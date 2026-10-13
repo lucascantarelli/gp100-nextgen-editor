@@ -6,7 +6,7 @@
   "identifier": "com.gp100.nextgen.editor",
   "build": {
     "beforeDevCommand": {
-      "script": "pnpm dev",
+      "script": "node dev-if-needed.mjs",
       "cwd": "../ui"
     },
     "devUrl": "http://localhost:5173",
