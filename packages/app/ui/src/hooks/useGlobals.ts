@@ -6,6 +6,8 @@
  *   - device → UI (seed no boot validado): `device_globals` traz o que o
  *     APARELHO diz (decode medido nibble-par no backend); o localStorage é
  *     só o fallback de quem não tem device (ADR-13: a fonte é o aparelho).
+ *     PRIMEIRA ESCRITA VENCE (#211): o seed não apaga uma edição do
+ *     operador que chegou antes de `deviceGlobals` resolver.
  *     Re-lê no ⟳ de propósito (o re-scan relê o device). Falha aqui NÃO vira
  *     banner: o palco já está no estado do device (#150) e este
  *     enriquecimento é opcional — o retry natural é o próprio ⟳.
@@ -19,7 +21,7 @@
  * Por ser um hook e não ficar no App: é o acoplamento `ipc/device` ×
  * `prefs` — coesão de dois vizinhos, não do casco (#82: App fino).
  */
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { deviceGlobals, deviceSetGlobal } from "../ipc/device";
 import type { DrumState } from "../components/DrumPanel";
@@ -48,13 +50,22 @@ interface GlobalsApi {
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
 export function useGlobals({ pronto, writeVerified, setMasterVol, drum, setDrum }: GlobalsDeps): GlobalsApi {
+  // PRIMEIRA ESCRITA VENCE (#211): o seed resolve quando `deviceGlobals`
+  // responde — com device lento a edição do operador chega ANTES e não pode
+  // ser apagada (flake CI: fill("55") em #drum-vol voltou para o 80 do
+  // fallback). Flag por campo: mexer no DRUM não bloqueia o seed do master.
+  // A flag nunca é rearmada: depois que o operador tocou no controle, a UI é
+  // a fonte — inclusive se o boot re-semeia no ⟳.
+  const mexeuMaster = useRef(false);
+  const mexeuDrum = useRef(false);
+
   // Seed do aparelho no boot validado (device → UI).
   useEffect(() => {
     if (!pronto) return;
     void deviceGlobals()
       .then((g) => {
-        if (g.volume != null) setMasterVol(clamp(g.volume, 0, 99));
-        if (g.drumBpm != null || g.drumVolume != null) {
+        if (g.volume != null && !mexeuMaster.current) setMasterVol(clamp(g.volume, 0, 99));
+        if ((g.drumBpm != null || g.drumVolume != null) && !mexeuDrum.current) {
           setDrum((d) => ({
             ...d,
             ...(g.drumBpm != null ? { bpm: clamp(g.drumBpm, 40, 240) } : {}),
@@ -69,6 +80,7 @@ export function useGlobals({ pronto, writeVerified, setMasterVol, drum, setDrum 
 
   // UI → device: master VOL (gVolume).
   const mudaMaster = (v: number) => {
+    mexeuMaster.current = true;
     setMasterVol(v);
     if (writeVerified) {
       void deviceSetGlobal("gVolume", v).catch((e: unknown) => {
@@ -80,6 +92,7 @@ export function useGlobals({ pronto, writeVerified, setMasterVol, drum, setDrum 
   // UI → device: DRUM (drumBpm/drumVolume) — só o que MUDOU dispara write.
   const mudaDrum = (d: DrumState) => {
     const anterior = drum;
+    mexeuDrum.current = true;
     setDrum(d);
     if (!writeVerified) return;
     if (d.bpm !== anterior.bpm) {
