@@ -1,13 +1,13 @@
 ---
 name: core-dev
-description: Implementação no gp100-core/gp100-cli em Rust na Era Hardware — o aparelho real é a fonte (ADR-13), round-trip .prst sagrado, mock por default nos testes, travas de escrita. Use ao executar issue de core/cli (uma por vez), dentro das decisões de docs/dev/DECISIONS.md.
+description: Implementação nos crates gp100-core e gp100-cli (packages/core e packages/cli) em Rust na Era Hardware — o aparelho real é a fonte (ADR-13), round-trip .prst sagrado, mock por default nos testes, travas de escrita. Use ao executar issue de core/cli (uma por vez), dentro das decisões de docs/dev/DECISIONS.md.
 metadata:
   category: development
 ---
 
 # Desenvolvimento do gp100-core (Rust)
 
-Use para executar as issues do gp100-core/cli no GitHub (milestone `v1.1.0`),
+Use para executar as issues de core/cli (`packages/core`, `packages/cli`) no GitHub (milestone `v1.1.0`),
 UMA por vez, na ordem — o ciclo issue→branch→PR→merge é a skill `github-flow`,
 e o formato de execução canônico é o prompt `.agents/prompts/implementar-issue.md`.
 
@@ -70,9 +70,10 @@ e o formato de execução canônico é o prompt `.agents/prompts/implementar-iss
 
 ## Estrutura alvo do workspace
 ```
-gp100-core/          # lib: model (M0.1), preset (M0.2), golden (M0.3),
+packages/core/       # crate gp100-core — lib: model (M0.1), preset (M0.2), golden (M0.3),
                      #      codec (M0.4), transport (M0.5), session (M0.6)
-gp100-cli/           # bin: subcomandos info/list-user-irs/dump-preset/... (M0.7)
+packages/cli/        # crate gp100-cli — bin: subcomandos info/list-user-irs/dump-preset/... (M0.7)
+packages/library/    # crate gp100-library — SQLite da biblioteca persistente (ADR-9, #26)
 rust-toolchain.toml  # stable pinado (P2)
 ```
 
