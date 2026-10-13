@@ -1,23 +1,42 @@
 name: setup-rust
 description: >
-  Instala o Rust (GNU pinado no Windows, stable no Linux/macOS) e o cache do
-  cargo. Um único lugar decide COMO cada OS compila (mesmas regras da CI
-  desde a M0); mudou a regra, muda aqui.
+  Prepara o Rust do job: toolchain (GNU pinado no Windows, stable no
+  Linux/macOS) + cache do cargo COMPARTILHADO por workspace. Um único lugar
+  decide COMO cada OS compila (mesmas regras da CI desde a M0); mudou a
+  regra, muda aqui. Em job de container (imagem ci-linux) nem rustup nem
+  download: o toolchain já está na imagem.
 inputs:
   workdir:
-    description: "Workspace cargo a cachear (raiz ou packages/app/api)"
+    description: "Workspace cargo (raiz ou packages/app/api)"
     required: false
     default: "."
-  cache-key:
-    description: "Sufixo do cache (por job — evita colisão de lockfile)"
+  shared-key:
+    description: >
+      Chave de cache COMPARTILHADA por workspace (ws-raiz | ws-api). É o que
+      faz jobs que compilam o MESMO workspace dividirem o cache. O input `key`
+      do rust-cache NÃO compartilha (soma-se à chave automática POR JOB).
     required: false
-    default: "shared"
+    default: "ws-raiz"
+  cache:
+    description: 'Cachear o cargo (false em job que não compila — ex.: só `cargo fmt`)'
+    required: false
+    default: "true"
+  cache-workspace-crates:
+    description: >
+      Cachear também os CRATES DO WORKSPACE (experimento do issue #41: corta o
+      rebuild do gp100-ui no MSVC; consome espaço do teto de 10 GB do Actions).
+    required: false
+    default: "false"
 runs:
   using: composite
   steps:
-    - name: Toolchain por OS
+    - name: Toolchain por OS (a imagem de CI já traz stable + clippy + rustfmt)
       shell: bash
       run: |
+        if [ "${GP100_CI_IMAGE:-}" = "1" ]; then
+          echo "imagem ci-linux já traz o toolchain: $(rustc --version) — sem rustup"
+          exit 0
+        fi
         if [ "$RUNNER_OS" = "Windows" ]; then
           if [ "${{ inputs.workdir }}" = "packages/app/api" ]; then
             rustup toolchain install stable-x86_64-pc-windows-msvc --no-self-update --component rustfmt --component clippy
@@ -28,8 +47,14 @@ runs:
           rustup update stable --no-self-update
         fi
 
-    - name: Cache do cargo
+    - name: Cache do cargo (por workspace)
+      if: inputs.cache != 'false'
       uses: Swatinem/rust-cache@v2
       with:
         workspaces: ${{ inputs.workdir }}
-        key: ${{ inputs.cache-key }}
+        # Por WORKSPACE, não por job: core/cli/gate/publish-cli dividem ws-raiz;
+        # ui-rust/smoke/installer dividem ws-api. O prefixo automático do
+        # rust-cache (rustc/triple/lockfiles) segue separando por OS.
+        shared-key: ${{ inputs.shared-key }}
+        add-job-id-key: "false"
+        cache-workspace-crates: ${{ inputs.cache-workspace-crates }}

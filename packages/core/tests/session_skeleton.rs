@@ -7,7 +7,7 @@
 use std::time::Duration;
 
 use gp100_core::session::Session;
-use gp100_core::transport::{DeviceTransport, TransportError};
+use gp100_core::transport::{DeviceTransport, TransportError, WireKind};
 
 /// Transporte externo mínimo: prova que `Session` aceita QUALQUER
 /// implementador da trait (ADR-4) sem conhecer internals.
@@ -20,7 +20,7 @@ impl DeviceTransport for NullTransport {
     fn close(&mut self) -> Result<(), TransportError> {
         Ok(())
     }
-    fn send_raw(&mut self, _data: &[u8]) -> Result<(), TransportError> {
+    fn send_raw(&mut self, _data: &[u8], _kind: WireKind) -> Result<(), TransportError> {
         Ok(())
     }
     fn recv_raw(&mut self, _timeout: Duration) -> Result<Vec<u8>, TransportError> {
@@ -38,7 +38,7 @@ fn session_nao_dona_do_ciclo_de_vida() {
     let session = Session::new(t);
     let mut back = session.into_transport();
     // o transporte devolvido segue funcional (mesmo objeto)
-    assert!(back.send_raw(&[0xF0, 0xF7]).is_ok());
+    assert!(back.send_raw(&[0xF0, 0xF7], WireKind::Write).is_ok());
     back.close().expect("o chamador fecha DEPOIS");
 }
 

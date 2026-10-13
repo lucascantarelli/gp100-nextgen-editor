@@ -1,31 +1,86 @@
 name: "✨ Feature"
-description: "Nova funcionalidade (ideia deve caber em uma fase do ROADMAP)"
+description: "Nova funcionalidade com escopo fechado e evidência (Era Hardware: o aparelho é a fonte)"
 labels: ["feature"]
 body:
-  - type: textarea
-    id: proposta
+  - type: markdown
     attributes:
-      label: "Proposta"
-      description: "O que e por quê — problema real que resolve"
+      value: |
+        **Contrato (#170):** corpo auto-suficiente — quem pegar a issue não lê mais nada.
+        Preencha contexto com NÚMEROS e CAMINHOS medidos; o 🤖 prompt do agente deve
+        funcionar colado sozinho. Skills de apoio: `.agents/skills/` (a `description`
+        de cada SKILL.md diz quando usá-la).
+  - type: textarea
+    id: contexto
+    attributes:
+      label: "Contexto medido"
+      description: "Estado ATUAL com números, caminhos e data da medição. Fonte: aparelho/doc/gate."
+      placeholder: "Medido em 11/10: packages/app/ui/src/App.tsx tem 299 linhas (teto 300, ARCHITECTURE §4); suite 145 testes (INDEX §6)"
     validations:
       required: true
-  - type: dropdown
-    id: fase
+  - type: textarea
+    id: problema
     attributes:
-      label: "Fase do ROADMAP"
-      description: "Se não couber em nenhuma, discuta antes (VISION §9 lista as ideias)"
+      label: "Problema"
+      description: "O que não dá para fazer hoje e por quê — dor real, não wish list"
+    validations:
+      required: true
+  - type: textarea
+    id: escopo
+    attributes:
+      label: "Escopo"
+      description: "O que ENTRA — concreto e verificável"
+      placeholder: "modelo tipado FactoryPatch/UserPatch em packages/core/src/; 3 contratos em tests/"
+    validations:
+      required: true
+  - type: textarea
+    id: fora_de_escopo
+    attributes:
+      label: "Fora de escopo"
+      description: "O que NÃO entra (e vira issue separada se importar)"
+    validations:
+      required: true
+  - type: textarea
+    id: dod
+    attributes:
+      label: "DoD (checklist)"
+      description: "Critérios objetivos de pronto — a issue só fecha com todos marcados"
+      placeholder: |
+        - [ ] código em <caminho>
+        - [ ] teste novo cobre <cenário>
+        - [ ] gates locais verdes (skill da área)
+    validations:
+      required: true
+  - type: textarea
+    id: plano_de_teste
+    attributes:
+      label: "Plano de teste"
+      description: "Nível (unidade/contrato/e2e/campo) × o que prova × onde roda"
+      placeholder: "contrato packages/core/tests/x.rs contra fixture Y · vitest z.test.tsx · gate 85%"
+    validations:
+      required: true
+  - type: textarea
+    id: referencias
+    attributes:
+      label: "Referências"
+      description: "Docs do projeto (caminho + seção) e skills do agente"
+      placeholder: "docs/GP100_DEVICE.md §6 · docs/DECISIONS.md ADR-13 · skills: core-dev, testing"
+    validations:
+      required: true
+  - type: textarea
+    id: prompt
+    attributes:
+      label: "🤖 Prompt do agente (pronto para colar)"
+      description: "Auto-suficiente: quem pegar a issue executa sem ler mais nada. Formato: .agents/prompts/implementar-issue.md"
+      render: text
+    validations:
+      required: true
+  - type: checkboxes
+    id: validacao
+    attributes:
+      label: "Checklist de validação da entrega"
+      description: "Preenchido na entrega (PR + evidência); a revisão confere cada item"
       options:
-        - "M0 — gp100-core (Rust, mock)"
-        - "M1 — Editor UI (Tauri/React)"
-        - "M2 — IR lab / empacotamento"
-        - "M3 — diferenciais"
-        - "FASE V — UI/UX (navbar, palco, VU)"
-        - "infra (CI/CD, GitFlow, docs)"
-        - "fora de escopo por agora"
-    validations:
-      required: true
-  - type: textarea
-    id: aceite
-    attributes:
-      label: "Critério de aceite sugerido"
-      description: "Como saberemos que está pronto (teste, demo, doc)"
+        - label: "PR para develop com `Closes #N`, tabela Antes→Depois e gates executados"
+        - label: "CI verde antes do merge (sem contornar gate)"
+        - label: "Nenhum caminho morto citado; contadores só no INDEX §6"
+        - label: "docs-sync executado se a entrega mudou doc/estado"

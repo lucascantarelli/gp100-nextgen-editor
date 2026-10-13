@@ -72,7 +72,7 @@ pub enum Archetype {
 
 /// Um controle do algoritmo com o valor ATUAL do preset — a spec do knob
 /// para a UI renderizar (tipo, faixa, opções, default).
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct KnobSpec {
     /// Nome do controle (ex.: "Sustain").
     pub name: String,
@@ -91,7 +91,7 @@ pub struct KnobSpec {
 }
 
 /// Um slot do board (posição da cadeia x=0..8).
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct SlotSpec {
     /// Slot da cadeia (x do arquivo, 0..8).
     pub slot: u8,
@@ -113,7 +113,7 @@ pub struct SlotSpec {
 }
 
 /// View de board do preset — o que a UI renderiza no index.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct BoardView {
     /// pp do preset (u16 BE no fio; cru no arquivo em hex).
     pub pp: u16,
@@ -138,7 +138,7 @@ pub struct PresetEntry {
     pub pp_type_name: String,
 }
 
-fn family_of(module: &str) -> Family {
+pub(crate) fn family_of(module: &str) -> Family {
     match module {
         "DST" => Family::Dst,
         "AMP" => Family::Amp,
@@ -152,7 +152,7 @@ fn family_of(module: &str) -> Family {
     }
 }
 
-fn archetype_of(f: Family) -> Archetype {
+pub(crate) fn archetype_of(f: Family) -> Archetype {
     match f {
         Family::Pre => Archetype::Buffer,
         Family::Dst => Archetype::Distortion,
@@ -167,7 +167,7 @@ fn archetype_of(f: Family) -> Archetype {
 }
 
 /// Slug estável p/ `variant` (mesma regra do `dump_fx_map.py`).
-fn slug(name: &str) -> String {
+pub(crate) fn slug(name: &str) -> String {
     let s: String = name
         .chars()
         .map(|c| {
@@ -194,10 +194,20 @@ fn shape_err(expected: &str, got: &str) -> ProtocolError {
 }
 
 /// Biblioteca de presets do arquivo (o flight case da UI).
+///
+/// O `pp` é o `ppID` **decimal** — o mesmo número que a semente da
+/// biblioteca e o artefato do front usam, e o índice que vai ao fio como
+/// `u16 BE` no banco `0x00xx` (#132/ADR-12; ver
+/// [`crate::preset::pp_id_decimal`]).
+///
+/// Ler o `ppID` como HEX (`from_str_radix(s, 16)`) só coincidia em
+/// `'0'..'9'`: a partir de `"10"` o app endereçava um pp que o fio nem
+/// tem (36 dos 99 presets — issue #156). Todo ponto que lê `ppID` passa
+/// por `pp_id_decimal`: UM só caminho (R1).
 pub fn preset_list(doc: &Document) -> Vec<PresetEntry> {
     doc.presets()
         .filter_map(|p| {
-            let pp = p.pp_id().and_then(|s| u16::from_str_radix(s, 16).ok())?;
+            let pp = p.pp_id().and_then(crate::preset::pp_id_decimal)?;
             Some(PresetEntry {
                 pp,
                 name: p.pp_name().unwrap_or("").to_string(),
@@ -209,6 +219,11 @@ pub fn preset_list(doc: &Document) -> Vec<PresetEntry> {
 
 /// Constrói a view de board do pp indicado (`None` = 1º preset do arquivo).
 ///
+/// O `pp` pode vir do fio com byte de banco (`0x0100` = índice 0 — a
+/// captura S1 varre os dois bancos); o documento só tem o índice
+/// ([`crate::preset::indice_do_documento`]), e a view devolve o `pp` do
+/// DOCUMENTO, que é o que a UI acende na lista (0..98).
+///
 /// # Erros
 /// [`ProtocolError::InvalidShape`] se o arquivo não tem preset ou o pp
 /// indicado não existe.
@@ -217,14 +232,15 @@ pub fn board_view_for(
     dict: &Dictionary,
     pp: Option<u16>,
 ) -> Result<BoardView, ProtocolError> {
-    let pv = match pp {
+    let alvo = pp.map(crate::preset::indice_do_documento);
+    let pv = match alvo {
         None => doc
             .presets()
             .next()
             .ok_or_else(|| shape_err("preset no arquivo", "nenhum"))?,
         Some(target) => doc
             .presets()
-            .find(|p| p.pp_id().and_then(|s| u16::from_str_radix(s, 16).ok()) == Some(target))
+            .find(|p| p.pp_id().and_then(crate::preset::pp_id_decimal) == Some(target))
             .ok_or_else(|| shape_err(&format!("preset {target:#06x}"), "não encontrado"))?,
     };
 
@@ -279,9 +295,9 @@ pub fn board_view_for(
     slots.sort_by_key(|s| s.slot);
 
     Ok(BoardView {
-        pp: pp.unwrap_or_else(|| {
+        pp: alvo.unwrap_or_else(|| {
             pv.pp_id()
-                .and_then(|s| u16::from_str_radix(s, 16).ok())
+                .and_then(crate::preset::pp_id_decimal)
                 .unwrap_or(0)
         }),
         name: pv.pp_name().unwrap_or("").to_string(),

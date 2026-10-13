@@ -1,118 +1,120 @@
 /**
  * App — casca do editor em VIEWPORT ÚNICA: navbar (logo/conexão/boot/
- * patch/DRUM/Master+kill) → meio com scroll próprio (looper, pushes,
- * biblioteca + palco) → rodapé da pedaleira (IN · marca · ⚙ · OUT).
- * A biblioteca de FÁBRICA é real (99 presets do all.prst; abrir = select
- * no device), o board mostra os 9 lugares (display LED + navbar com o
- * patch) e o modal Settings persiste local (badge "prévia local").
- * O boot vive INTEGRADO à navbar: progresso e erro aparecem só durante
- * o boot/falha (a seção de conexão permanente foi removida: duplicava
- * a navbar). A trava ⇄ mover pertence ao PALCO (EmptyBoard); o rodapé
- * é o chassi da pedaleira (IN · GP · OUT) — ações globais na navbar.
+ * DRUM/Master+kill) → meio (looper, pushes, biblioteca + palco) → rodapé
+ * da pedaleira (IN · marca · OUT). Biblioteca de FÁBRICA é real (select no
+ * device), o display LED do patch mora no palco, o Settings persiste local
+ * (badge "prévia local"), o boot é INTEGRADO à navbar e a trava ⇄ mover
+ * pertence ao PALCO (EmptyBoard).
  *
- * O board ainda não renderiza pedais: knobs/toggle/set_param entram um
- * efeito por vez — até lá o palco mostra só os lugares da cadeia.
+ * O board é REAL (`device_board`): 9 PEDAIS REAIS da cadeia (modelo do
+ * catálogo fxModels); knob vira `device_set_param`, toggle/switch/combox
+ * ainda são prévia local (sem comando no protocolo).
  *
  * Atalhos globais (doc na aba Help do Settings): Espaço = drum play/stop,
  * R = REC do looper, Esc = fecha o painel do topo (Settings → Drum → pushes).
+ *
+ * ── POR QUE ESTE ARQUIVO É FINO (#82) ─────────────────────────────────────
+ * A #82 mediu 514 linhas aqui — o sintoma de um componente que passou a
+ * hora de virar hook. O corte foi **coesão**: `useStage` (palco + operações),
+ * `usePrefs` (persistência local), `useGlobals` (registradores §13.13:
+ * seed do aparelho + write-through). O que fica AQUI é o que só o App tem:
+ * boot, log de pushes, atalhos, quais modais estão abertos e o JSX.
+ * `docs/ARCHITECTURE.md` tem o mapa.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { DeviceInfo } from "./ipc/types";
-import { deviceBoard, deviceInfo, deviceSelectPreset } from "./ipc/device";
+import { deviceInfo, escritaLiberada } from "./ipc/device";
 import { useBoot } from "./hooks/useBoot";
-import { BOOT_STAGE_LABEL } from "./hooks/useBoot";
 import { usePushLog } from "./hooks/usePushLog";
 import { useGlobalShortcuts } from "./hooks/useGlobalShortcuts";
+import { useStage } from "./hooks/useStage";
+import { useTones } from "./hooks/useTones";
+import { useIrs } from "./hooks/useIrs";
+import { useContentMenu } from "./hooks/useContentMenu";
+import { usePrefs } from "./hooks/usePrefs";
+import { useGlobals } from "./hooks/useGlobals";
 import { TopBar } from "./components/TopBar";
+import { BootGate } from "./components/BootGate";
+import { ErrorBanner } from "./components/ErrorBanner";
 import { LibraryPanel } from "./components/LibraryPanel";
-import { EmptyBoard } from "./components/EmptyBoard";
-import { SettingsModal, loadGeneral } from "./components/SettingsModal";
-import type { GeneralSettings } from "./components/SettingsModal";
-import { loadTuner, TUNER_KEY } from "./components/TunerPanel";
-import type { TunerSettings } from "./components/TunerPanel";
-import type { DrumState } from "./components/DrumPanel";
-import { LooperPanel, loadLooper } from "./components/LooperPanel";
-import type { LooperSettings } from "./components/LooperPanel";
+import { Stage } from "./components/Stage";
+import { SettingsModal } from "./components/SettingsModal";
+import { PedalModal } from "./components/PedalModal";
+import { LooperPanel } from "./components/LooperPanel";
+import { SnapTonePanel } from "./components/SnapTonePanel";
+import { IrLabPanel } from "./components/IrLabPanel";
 import { PushLog } from "./components/PushLog";
+import { FieldDiagPanel } from "./components/FieldDiagPanel";
 import { MSG } from "./i18n/messages";
-
-const DRUM_KEY = "gp100.drum.v2";
-const MASTER_KEY = "gp100.master.v1";
-
-function loadDrum(): DrumState {
-  try {
-    const raw = localStorage.getItem(DRUM_KEY);
-    if (raw) return JSON.parse(raw) as DrumState;
-  } catch {
-    /* teste: sem localStorage */
-  }
-  return { on: false, genre: "Rock", style: "Rock 1", bpm: 120, beat: "4/4", volume: 80, speed: 50 };
-}
 
 export default function App() {
   const boot = useBoot();
   const { log, clear } = usePushLog();
+  const prefs = usePrefs();
+  const { masterVol, setMasterVol, drum, setDrum, tuner, setTuner, looper, setLooper, general, onChangeGeneral } = prefs;
+
   const [info, setInfo] = useState<DeviceInfo | null>(null);
-  const [pp, setPp] = useState(0);
-  const [presetName, setPresetName] = useState("…");
-  const [ppTypeName, setPpTypeName] = useState("…");
-  const [masterVol, setMasterVol] = useState(() => {
-    try {
-      const raw = localStorage.getItem(MASTER_KEY);
-      return raw ? (Number(raw) || 99) : 99;
-    } catch {
-      return 99;
-    }
-  });
-  const [drum, setDrum] = useState<DrumState>(loadDrum);
-  const [general, setGeneral] = useState<GeneralSettings>(loadGeneral);
-  const [looper, setLooper] = useState<LooperSettings>(loadLooper);
-  const [arrangeMode, setArrangeMode] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [celebrate, setCelebrate] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
-  const [drumOpen, setDrumOpen] = useState(false); // popover do drum (subiu do TopBar p/ precedência do Esc)
+  const [drumOpen, setDrumOpen] = useState(false); // modal do drum (subiu do TopBar p/ precedência do Esc)
   const [recRequest, setRecRequest] = useState(0); // pulso do atalho R (looper)
-  const [tuner, setTuner] = useState<TunerSettings>(loadTuner);
-  const [, setLooperPlaying] = useState(false); /* looper reporta tocar/gravar */
+  const [arrangeMode, setArrangeMode] = useState(false);
+  const [celebrate, setCelebrate] = useState(false);
+  /** Slot da cadeia em edição ampliada (PedalModal; null = fechado). */
+  const [editing, setEditing] = useState<number | null>(null);
   const pushRef = useRef<HTMLDetailsElement>(null); // drawer "pushes do device" (Esc fecha)
 
-  // info + biblioteca no mount
+  // O palco é abre-e-fecha: trocar de preset/patch fecha a edição ampliada.
+  // O callback precisa ser ESTÁVEL (o `openPreset` é dependência de efeito),
+  // por isso é um useCallback vazio de dependências.
+  const onPresetChanged = useCallback(() => setEditing(null), []);
+  // A biblioteca do aparelho é produto do SCAN do boot (#150 + campo
+  // 12/10): o useStage só pode pedi-la quando o boot validou o relatório
+  // (#161). Pedir antes era correr a fila do actor contra o script de 25 s.
+  const stage = useStage(onPresetChanged, boot.state.kind === "ready");
+  // O gestor de tons (#25) e o laboratório de IRs (#24) têm o estado no
+  // hook inteiro: lista, A/B e envio EM ANDAMENTO (minutos) sobrevivem ao
+  // fechar/reabrir a tela — perder o "enviando…" mandaria um 2º stream.
+  const tones = useTones();
+  const irs = useIrs();
+  // A PORTA do conteudo (#24/#25/#114) fica no hook porque e ela que decide qual
+  // das telas abre (botao na navbar estoura em 1280); o preset vem por `stage`.
+  const conteudo = useContentMenu({ tones, irs, preset: { pp: stage.pp, onImport: stage.openImported }, ab: { openUserId: stage.openUserId, rotulo: stage.board?.ppLabel ?? MSG.libPp(stage.pp), podeGravar: escritaLiberada(info) } });
+  const {
+    pp,
+    board,
+    openUserId,
+    lib,
+    deviceLib,
+    err,
+    openPreset,
+    openUserPatch,
+    saveUserPatch,
+    deleteUserPatch,
+    applyKnob,
+    onKnobReset,
+    onChangeEffect,
+    onToggle,
+  } = stage;
+
+  // info no mount (#150: o aviso "aparelho não conectado" nasce daqui —
+  // `backend: "none"` + o motivo que o backend declarou; a biblioteca do
+  // aparelho é o useStage que carrega no load: app → device → app)
   useEffect(() => {
     void deviceInfo()
       .then(setInfo)
       .catch(() => setInfo(null));
-    // Biblioteca de fábrica = artefato gerado do all.prst (presetData.ts).
-    // `device_preset_library` volta a alimentar esta lista na integração real.
   }, []);
 
-  // abre um preset (select real no device; fallback local do device.ts)
-  const openPreset = useCallback(async (target: number) => {
-    try {
-      await deviceSelectPreset(target);
-      const b = await deviceBoard(target);
-      setPp(b.pp);
-      setPresetName(b.name);
-      setPpTypeName(b.ppTypeName);
-      setErr(null);
-    } catch (e) {
-      // Usuário vê mensagem amigável; o detalhe técnico fica no console.
-      console.error("openPreset falhou:", e);
-      setErr(MSG.errOpenPreset);
-    }
-  }, []);
-
-  // ◀ ▶ reproduzem a coluna do patch do app oficial: 0..98 em ciclo.
-  // Efeito FORA do updater (updater tem que ser puro — StrictMode chama 2×).
-  const stepPreset = useCallback(
-    (delta: 1 | -1) => {
-      setPp((cur) => (cur + delta + 99) % 99);
-    },
-    [],
-  );
+  // Boot FALHOU = o device não respondeu; boot OK → re-lê o device. #161:
+  // no ERRO o info é RE-LIDO (não anulado): o gate precisa do motivo do
+  // backend (backend "none" → detail + Reconectar do #150).
   useEffect(() => {
-    void openPreset(pp);
-  }, [pp, openPreset]);
+    if (boot.state.kind === "error" || boot.state.kind === "ready") {
+      void deviceInfo()
+        .then(setInfo)
+        .catch(() => setInfo(null));
+    }
+  }, [boot.state.kind]);
 
   // LED display: flip só no boot MANUAL (re-escanear) — o auto-boot do
   // mount é silencioso (a navbar já mostra "on"; flip automático deixaria
@@ -126,158 +128,143 @@ export default function App() {
     }
   }, [boot.state.kind, boot.origin]);
 
-  // persistência local (prévia) — drum/master/settings
-  useEffect(() => {
-    try {
-      localStorage.setItem(DRUM_KEY, JSON.stringify(drum));
-    } catch {
-      /* noop */
-    }
-  }, [drum]);
-  useEffect(() => {
-    try {
-      localStorage.setItem(MASTER_KEY, String(masterVol));
-    } catch {
-      /* noop */
-    }
-  }, [masterVol]);
-  const onChangeGeneral = useCallback((s: GeneralSettings) => {
-    setGeneral(s);
-    try {
-      localStorage.setItem("gp100.settings.general.v1", JSON.stringify(s));
-    } catch {
-      /* noop */
-    }
-  }, []);
-
   // Atalhos globais (doc: aba Help do Settings) — Espaço = drum, R = REC do
   // looper, Esc fecha o painel do topo. Transporte fica inerte com o modal
   // aberto (Esc fecha o modal antes).
   useGlobalShortcuts({
     onDrumToggle: () => {
-      if (!settingsOpen) setDrum((d) => ({ ...d, on: !d.on }));
+      if (!settingsOpen && editing == null) setDrum((d) => ({ ...d, on: !d.on }));
     },
     onLooperRec: () => {
-      if (!settingsOpen) setRecRequest((n) => n + 1);
+      if (!settingsOpen && editing == null) setRecRequest((n) => n + 1);
     },
     onEscape: () => {
-      if (settingsOpen) setSettingsOpen(false);
+      // precedência do painel do TOPO: edição do pedal → settings → drum → pushes
+      if (editing != null) setEditing(null);
+      else if (settingsOpen) setSettingsOpen(false);
       else if (drumOpen) setDrumOpen(false);
       else pushRef.current?.removeAttribute("open");
     },
   });
 
-  const connected = info != null;
+  // **(#150/#161) "on" só com boot validado** — `backend: "none"` não é
+  // conectado (LED mentiroso sobre quem está na USB), e durante o boot ou
+  // no erro o LED fica off até o gate liberar a casca.
+  const pronto = boot.state.kind === "ready";
 
+  // §13.13: master/DRUM herdados do APARELHO no boot + write-through quando
+  // o build permite (ADR-5). O acoplamento device×prefs mora no hook (#82:
+  // App fino — coesão de vizinhos, não do casco).
+  const { mudaMaster, mudaDrum } = useGlobals({
+    pronto,
+    writeVerified: info?.writeVerified ?? false,
+    setMasterVol,
+    drum,
+    setDrum,
+  });
+  // Conexão VALIDADA pelo boot (fórmula do cluster antigo, #161): device_info
+  // respondendo não é conexão — boot falho mantém o LED off, senão a navbar
+  // mentiria sobre um device que o gate recusou (e2e mid-boot).
+  const conectado = pronto && info != null && info.backend !== "none";
 
-  // faixa de progresso só durante o boot (não ocupa layout permanente);
-  // stage pode vir de um beat pendente após o fim — congelar em 100%/fim
-  const stageNow = booting ? boot.stage : null;
-
-  // viewport única: navbar → meio (scroll próprio) → rodapé fixos;
-  // só o MEIO rola (a página inteira nunca cresce — layout de "mesa")
+  // página FLUIDA: navbar → conteúdo → rodapé num só fluxo; a rolagem é a
+  // natural da JANELA (nada de scroll interno no meio da página). O
+  // min-height + a linha 1fr mantêm o rodapé no fundo quando sobra espaço.
   return (
     <main
       style={{
-        height: "100vh",
+        minHeight: "100vh",
         background: "var(--bg)",
         color: "var(--text)",
         padding: "var(--space-8) var(--space-20) var(--space-12)",
         display: "grid",
         gridTemplateRows: "auto 1fr auto",
         gap: "var(--space-12)",
-        overflow: "hidden",
       }}
     >
-      <TopBar
-        connected={connected}
-        mock={info?.backend === "mock"}
-        presetLabel={`P${String(pp + 1).padStart(2, "0")} ${presetName}`}
-        masterVol={masterVol}
-        drum={drum}
-        drumOpen={drumOpen}
-        booting={booting}
-        onBoot={() => boot.startBoot("manual")}
-        settingsOpen={settingsOpen}
-        onOpenSettings={() => setSettingsOpen(true)}
-        onMasterVol={setMasterVol}
-        onDrum={setDrum}
-        onDrumOpenChange={setDrumOpen}
-        onPrevPatch={() => stepPreset(-1)}
-        onNextPatch={() => stepPreset(1)}
-      />
+      {/* topo da mesa: navbar + faixas transitórias de boot/erro num bloco
+          só — a grade da página tem 3 filhos exatos (topo · meio · rodapé) */}
+      <div style={{ display: "grid", gap: "var(--space-12)" }}>
+        <TopBar
+          info={info}
+          conectado={conectado}
+          mock={info?.backend === "mock"}
+          masterVol={masterVol}
+          drum={drum}
+          drumOpen={drumOpen}
+          booting={booting}
+          onBoot={() => boot.startBoot("manual")}
+          settingsOpen={settingsOpen}
+          onOpenSettings={() => setSettingsOpen(true)}
+          onMasterVol={mudaMaster}
+          onDrum={mudaDrum}
+          onDrumOpenChange={setDrumOpen}
+        />
 
-      {/* boot/erros: faixas transitórias FORA do scroll (sempre visíveis) */}
+        {/* gate de boot (#161): fora do ready a página é navbar + gate;
+            pronto, a única faixa transitória é o erro do palco */}
+        {pronto ? (
+          err != null && <ErrorBanner message={err.message} onRetry={err.retry} />
+        ) : (
+          <BootGate boot={boot} info={info} />
+        )}
+      </div>
 
-      {booting && boot.progress !== null && (
-        <div role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={boot.progress} aria-label={MSG.bootProgressAria} style={{ position: "relative", height: 18, borderRadius: 9, overflow: "hidden", background: "color-mix(in srgb, var(--text-muted) 18%, transparent)" }}>
-          <div style={{ position: "absolute", inset: 0, width: `${boot.progress}%`, background: "linear-gradient(90deg, color-mix(in srgb, var(--accent) 65%, transparent), var(--accent))", transition: "width var(--motion-fast) var(--ease-out)" }} />
-          <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "var(--text-xs)", color: "var(--text)", textShadow: "0 1px 2px rgba(0,0,0,.6)" }}>
-            {stageNow ? BOOT_STAGE_LABEL[stageNow] : MSG.bootStarting} · {boot.progress}%
-          </span>
-        </div>
-      )}
-      {boot.state.kind === "error" && (
-        <div role="alert" style={{ background: "color-mix(in srgb, var(--error) 12%, transparent)", border: "1px solid color-mix(in srgb, var(--error) 45%, transparent)", color: "var(--error)", borderRadius: "var(--space-8)", padding: "var(--space-8) var(--space-12)", fontSize: "var(--text-sm)" }}>
-          {MSG.connBootError}
-        </div>
-      )}
-      {err != null && (
-        <div role="alert" style={{ background: "#2a1414", border: "1px solid #5b2626", color: "#ffb3b3", padding: "8px 12px", borderRadius: 8, fontSize: 13 }}>
-          {err}
-        </div>
-      )}      {/* MEIO da mesa (única área que rola): looper no topo, pushes,
-          biblioteca (300px, lista rolável) à esquerda e palco à direita */}
+      {/* MEIO da mesa: looper no topo, pushes, biblioteca (248px, com a
+          LISTA rolável por dentro) à esquerda e palco à direita — o meio
+          nunca tem scroll próprio: quem rola é a página inteira.
+          #161: só existe com o boot validado (a casca monta em `ready`). */}
+      {pronto && (
       <div className="shell-content">
         <LooperPanel
           settings={looper}
           recRequest={recRequest}
-          onChange={(s) => {
-            setLooper(s);
-            try {
-              localStorage.setItem("gp100.looper.v1", JSON.stringify(s));
-            } catch {
-              /* noop */
-            }
-          }}
-          onPlayingChange={setLooperPlaying}
+          onChange={setLooper}
+          onPlayingChange={() => { /* looper reporta tocar/gravar */ }}
         />
 
-        <details ref={pushRef} style={{ border: "1px solid #232932", borderRadius: 10, background: "var(--bg-raised)" }}>
+        <details ref={pushRef} className="gp-surface gp-surface--flat" style={{ overflow: "hidden" }}>
           <summary style={{ cursor: "pointer", padding: "8px 12px", fontSize: 12, color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>
             {`${MSG.pushSummary} (${log.length})`}
           </summary>
           <PushLog log={log} onClear={clear} />
         </details>
+        <FieldDiagPanel info={info} />
 
         {/* linha biblioteca ↔ pedalboard: alturas iguais (stretch), sem lacunas */}
         <div className="shell-main">
-          <LibraryPanel currentPp={pp} onSelect={(target) => void openPreset(target)} />
-          <EmptyBoard
-            pp={pp}
-            presetName={presetName}
-            ppTypeName={ppTypeName}
+          <LibraryPanel
+            currentPp={pp}
+            bankDoPalco={board?.bank ?? "factory"}
+            lib={lib}
+            deviceLib={deviceLib}
+            currentUserId={openUserId}
+            onOpenFactory={(target) => void openPreset(target)}
+            onOpenUser={(id, index) => void openUserPatch(id, index)}
+            onSave={saveUserPatch}
+            onDelete={deleteUserPatch}
+            onOpenContent={conteudo.abrir}
+          />
+          <Stage
+            board={board}
             celebrate={celebrate}
+            engineer={general.engineerMode}
             arrangeMode={arrangeMode}
             onToggleArrange={() => setArrangeMode((v) => !v)}
             tuner={tuner}
-            onTunerChange={(s) => {
-              setTuner(s);
-              try {
-                localStorage.setItem(TUNER_KEY, JSON.stringify(s));
-              } catch {
-                /* noop */
-              }
-            }}
-            onReorder={() => {
-              /* a reordenação real chega quando os pedais forem renderizados */
-            }}
+            onTunerChange={setTuner}
+            onToggle={onToggle}
+            onKnobChange={applyKnob}
+            onKnobReset={onKnobReset}
+            onEdit={(s) => setEditing(s.slot)}
           />
         </div>
       </div>
+      )}
 
       {/* rodapé da pedaleira: ENTRADA · GP · SAÍDA (o chassi fecha a página;
           ⚙ voltou para a navbar — o drawer do drum cobre o rodapé) */}
+      {pronto && (
       <footer className="page-footer" role="contentinfo">
         <span className="pg-jack" aria-hidden="true">{MSG.stageIn}</span>
         <span className="pg-mark" aria-hidden="true">
@@ -286,8 +273,24 @@ export default function App() {
         </span>
         <span className="pg-jack" aria-hidden="true">{MSG.stageOut}</span>
       </footer>
+      )}
 
+      {pronto && (<>
       <SettingsModal open={settingsOpen} general={general} onChangeGeneral={onChangeGeneral} onClose={() => setSettingsOpen(false)} />
+      {tones.aberto && <SnapTonePanel tones={tones} podeGravar={escritaLiberada(info)} />}
+      {irs.aberto && <IrLabPanel irs={irs} podeGravar={escritaLiberada(info)} />}
+      {conteudo.node}
+      <PedalModal
+        slot={editing == null ? null : (board?.slots.find((s) => s.slot === editing) ?? null)}
+        podeGravar={escritaLiberada(info)}
+        engineer={general.engineerMode}
+        onToggle={onToggle}
+        onKnobChange={applyKnob}
+        onKnobReset={onKnobReset}
+        onChangeEffect={onChangeEffect}
+        onClose={() => setEditing(null)}
+      />
+      </>)}
     </main>
   );
 }

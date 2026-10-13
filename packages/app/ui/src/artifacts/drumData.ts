@@ -1,13 +1,14 @@
 /**
  * Ritmos da bateria (drum) da GP-100 — GERADO do firmware V2.1
  * (tabela de estilos entre as divisões de nota e os compassos).
- * NÃO editar mão. Regenerar: uv run python analysis/dump_drum_kit.py
+ * NÃO editar à mão. Fonte canônica: packages/core/data/parameters.json
+ * (HW-3/#163); regeneração: gerador da era RE (dissolução na #168).
  *
  * Os RÓTULOS de gênero são inferidos (o firmware ordena os estilos por
  * grupo sem gravar os nomes); a LISTA e a ORDEM dos estilos são reais.
  */
 
-export interface DrumGenre {
+interface DrumGenre {
   genre: string;
   styles: string[];
 }
@@ -20,7 +21,15 @@ export const DRUM_GENRES: DrumGenre[] = [
   { genre: "Jazz", styles: ["Jazz 1", "Funk1", "Jazz 2", "Funk2", "Jazz 3", "Funk3", "Jazz 4", "Fusion"] },
 ];
 
-export const DRUM_TOTAL_STYLES = 87;
+/**
+ * Total de estilos do drum. DERIVADO, nunca literal: 87 é o que o firmware
+ * expõe e o que o painel deixa claro, mas um gênero novo sem ajuste aqui
+ * viraria silenciosamente errado. O teste fixa o valor contra o firmware.
+ */
+export const DRUM_TOTAL_STYLES = DRUM_GENRES.reduce(
+  (total, g) => total + g.styles.length,
+  0,
+);
 
 /** Compassos do drum (firmware: 2/4…9/8). */
 export const DRUM_BEATS = ["2/4", "3/4", "4/4", "6/4", "7/4", "6/8", "7/8", "9/8"] as const;

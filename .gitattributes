@@ -23,13 +23,28 @@ docs/protocol_golden.json -text
 # Classe 2 — patches de referência (round-trip R4):
 files/patches/*.prst -text
 # Classe 3 — evidência de campo (capturas; ir_slot*.bin já coberto por *.bin):
-analysis/captures/*.jsonl -text
+#   casa desde #163: `analysis/` foi dissolvido e a evidência vive em
+#   `docs/arquivo/analysis/` — as regras mudam de caminho, a política não.
+docs/arquivo/analysis/captures/*.jsonl -text
+# A sessao do gate H1 (issue #21) e evidencia de CAMPO e fica versionada:
+# e a materia-prima do golden v1.1 no H3 (#23) e a unica prova de que a
+# leitura real obedeu o §13. O padrao acima e de um nivel so.
+docs/arquivo/analysis/captures/sessionH1/*.jsonl -text
 # Classe 4 — fixtures de replay (comparação byte-a-byte no M0.6):
-analysis/fixtures/*.jsonl -text
+#   casa desde #178 (dados canônicos em `packages/core/data/`):
+packages/core/data/fixtures/*.jsonl -text
 # Classe 5 — kit de campo do gate H1: referências do mock (framing é a prova)
 # e logs de sessão de campo (evidência append-only, fluxo R3):
-analysis/h1_reference/* -text
-analysis/h1_*/**/*.jsonl -text
+docs/arquivo/analysis/h1_reference/* -text
+docs/arquivo/analysis/h1_*/**/*.jsonl -text
+# Classe 6 — kit de campo do gate H2 (#22): a referência dos 3 fluxos de
+# escrita e o que ancora a tabela de invariantes do juiz, entao os bytes
+# importam tanto quanto no H1; e as sessões de campo
+# (`docs/arquivo/analysis/h2/<sessão>/`) são a ÚNICA evidência de que o preset
+# do dono foi gravado — o fio não tem read-back (D3/D4) e a prova é o log:
+docs/arquivo/analysis/h2_reference/* -text
+docs/arquivo/analysis/h2_*/* -text
+docs/arquivo/analysis/h2/**/*.jsonl -text
 #
 # NÃO entra aqui: produto editável/regenerável (docs *.md, scripts, knob_map,
 # parameters.json — identidade semântica, não byte).

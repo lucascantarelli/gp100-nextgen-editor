@@ -1,15 +1,18 @@
 /**
- * ipc/device — o fallback MOCK completo (mesmo shape do MockDevice real).
+ * ipc/device — o fallback de TESTE (mesmo shape do MockDevice real).
  * O Tauri não existe no jsdom (sem __TAURI_INTERNALS__), então É O FALLBACK
- * que roda — e é ele que alimenta dev-fora-do-shell, unit e e2e. Aqui o
- * device_boot sai do ponto cego: lotes de 64 beats (main thread respira),
- * estágios na ordem do script real, ciclo do currentPp e unlisten dos
- * eventos. Falha simulada por operação fecha o triângulo info/boot/board.
+ * que roda em unit/e2e. **(#150) o fallback não serve dado de fábrica:** a
+ * biblioteca é o INVENTÁRIO (198 slots, ADR-12) com nome vazio — a mesma
+ * forma do aparelho real — e o nome do info/board é a fixture rotulada.
+ * Aqui o device_boot sai do ponto cego: lotes de 64 beats (main thread
+ * respira), estágios na ordem do script real, ciclo do currentPp e unlisten
+ * dos eventos. Falha simulada por operação fecha o triângulo info/boot/board.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   deviceBoard,
   deviceBoot,
+  deviceConectar,
   deviceInfo,
   devicePresetLibrary,
   deviceSelectPreset,
@@ -17,8 +20,8 @@ import {
   onBootProgress,
   onDevicePush,
 } from "../src/ipc/device";
-import { FACTORY_PRESETS } from "../src/artifacts/presetData";
 import { FX_MODULES } from "../src/artifacts/fxData";
+import { PRESET_COUNT } from "../src/i18n/facts";
 
 const KEY = "gp100.debug.failDevice";
 
@@ -30,23 +33,27 @@ afterEach(() => {
   localStorage.clear();
 });
 
-describe("ipc/device — info e biblioteca (fallback mock)", () => {
-  it("deviceInfo reflete o 1º preset do artefato (nunca transcrito à mão)", async () => {
-    await expect(deviceInfo()).resolves.toMatchObject({
+describe("ipc/device — info e biblioteca (fallback de teste)", () => {
+  it("deviceInfo é o shape do backend com fixture rotulada (nunca nome de fábrica)", async () => {
+    const info = await deviceInfo();
+    expect(info).toMatchObject({
       backend: "mock",
-      presetCount: FACTORY_PRESETS.length,
-      currentPp: FACTORY_PRESETS[0].pp,
-      currentName: FACTORY_PRESETS[0].name,
+      detail: "",
+      presetCount: 99,
+      currentPp: 0,
       irSlotsWithCrc: 20,
     });
+    expect(info.currentName).toContain("não é aparelho");
   });
 
-  it("devicePresetLibrary devolve as 99 entradas com corrente P01", async () => {
+  it("devicePresetLibrary é o INVENTÁRIO do aparelho: 198 slots, nome vazio (#150)", async () => {
     const lib = await devicePresetLibrary();
-    expect(lib.entries.length).toBe(99);
+    expect(lib.entries.length).toBe(198);
     expect(lib.currentPp).toBe(0);
-    expect(lib.entries[0]).toMatchObject({ pp: 0, name: "It's GP100" });
-    expect(lib.entries[98]).toMatchObject({ pp: 98, name: "Dreamy Aco" });
+    // A ordem é a da captura S1: banco 0x0100 primeiro (ADR-12).
+    expect(lib.entries[0]).toMatchObject({ pp: 0x0100, name: "" });
+    expect(lib.entries[99]).toMatchObject({ pp: 0x0000, name: "" });
+    expect(lib.entries.at(-1)).toMatchObject({ pp: 0x0062, name: "" });
   });
 
   it("gancho de falha é POR OPERAÇÃO: info/boot/board rejeitam, library não tem gancho", async () => {
@@ -73,7 +80,11 @@ describe("ipc/device — boot em lotes (a main thread nunca congela)", () => {
     const setTimeoutSpy = vi.spyOn(window, "setTimeout");
     const report = await deviceBoot();
 
-    expect(report).toEqual({ transactions: 2297 });
+    expect(report).toEqual({
+      transactions: 2297,
+      presets: PRESET_COUNT * 2,
+      names: PRESET_COUNT * 2,
+    });
     expect(beats.length).toBe(2297);
     // done é incrementado ANTES do emit: o beat 1 já anuncia currentPp 1
     expect(beats[0]).toMatchObject({ stage: "tables", done: 1, total: 2297, currentPp: 1 });
@@ -99,14 +110,25 @@ describe("ipc/device — boot em lotes (a main thread nunca congela)", () => {
   });
 });
 
-describe("ipc/device — board (artefato da biblioteca → BoardView)", () => {
-  it("deviceBoard() sem pp usa o corrente: P01, 9 slots na ordem da cadeia", async () => {
+describe("ipc/device — board (estrutura do fallback de teste → BoardView)", () => {
+  it("deviceBoard() sem pp usa o corrente (pp 0): 9 slots na ordem da cadeia", async () => {
     const b = await deviceBoard();
     expect(b.pp).toBe(0);
-    expect(b.name).toBe("It's GP100");
+    expect(b.name).toContain("não é aparelho");
+    expect(b.ppLabel).toBe("P01");
+    expect(b.bank).toBe("factory");
     expect(b.slots.map((s) => s.family)).toEqual([
       "PRE", "DST", "AMP", "NR", "CAB", "EQ", "MOD", "DLY", "RVB",
     ]);
+  });
+
+  /* 20 dos 99 presets têm a cadeia TROCADA (`@x` manda, não a família) —
+     P06 (ppID 5) é o caso mais visível: o DST vem antes do PRE. */
+  it("presets com cadeia trocada trocam os pedais de posição (não só o nome)", async () => {
+    const b = await deviceBoard(5);
+    expect(b.slots.map((s) => s.family).slice(0, 2)).toEqual(["DST", "PRE"]);
+    // e o exibido pelo palco é o slot REAL, não a ordem canônica das famílias
+    expect(b.slots[0].name).not.toBe(b.slots[1].name);
   });
 
   it("slots carregam knobs/switches/comboxes DO CATÁLIGO com code derivado", async () => {
@@ -119,25 +141,28 @@ describe("ipc/device — board (artefato da biblioteca → BoardView)", () => {
       }
     }
     // DERIVAÇÃO do code a partir do artefato: nibble do módulo no byte alto
-    // + index do algoritmo — provado contra o catálogo para o COMP do slot 0
-    const comp = b.slots[0];
-    const alg = FX_MODULES.PRE.find((a) => a.name === "COMP");
-    expect(alg).toBeTruthy();
-    expect(comp.code).toBe((alg!.nibble << 24) | alg!.index);
-    // PRE/COMP: o 1º controle é knob com range real do dicionário
-    expect(comp.knobs[0].kind).toBe("knob");
+    // + index do algoritmo — provado contra o catálogo para o PRE do P01
+    // (que no all.prst é C-Wah, não COMP: o board segue a cadeia REAL)
+    const pre = b.slots[0];
+    const alg = FX_MODULES.PRE.find((a) => ((a.nibble << 24) | a.index) === pre.code);
+    expect(alg?.name, "o code do PRE bate com um algoritmo do dicionário").toBeTruthy();
+    expect(pre.name).toBe(alg!.name);
+    // PRE/C-Wah: o 1º controle é knob com range real do dicionário
+    expect(pre.knobs[0].kind).toBe("knob");
   });
 
-  it("deviceBoard(pp) reflete o pp pedido (P25 Mist) — nada de nome congelado", async () => {
+  it("deviceBoard(pp) reflete o pp pedido — nada de pp congelado", async () => {
     const b = await deviceBoard(24);
     expect(b.pp).toBe(24);
-    expect(b.name).toBe(FACTORY_PRESETS[24].name);
   });
 
-  it("pp fora do inventário cai no fallback do corrente (?? FACTORY_PRESETS[0])", async () => {
-    const b = await deviceBoard(999);
-    expect(b.pp).toBe(0);
-    expect(b.name).toBe("It's GP100");
+  it("pp do banco do aparelho (0x0100+) tem o ENDEREÇO como rótulo (#150)", async () => {
+    const b = await deviceBoard(0x0100);
+    expect(b.ppLabel).toBe("0x0100");
+  });
+
+  it("deviceConectar existe e resolve no fallback (o retry do aviso é testável)", async () => {
+    await expect(deviceConectar()).resolves.toBeUndefined();
   });
 });
 

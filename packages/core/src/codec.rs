@@ -92,8 +92,17 @@ pub fn nibble_collapse(data: &[u8]) -> Result<Vec<u8>, ProtocolError> {
 /// Payload do SET de parâmetro (§13.11): 20B nibble-exp de
 /// `[effectCode u32 LE][ctrl u8][00][f32 LE]`.
 ///
+/// **Valida a faixa do valor ANTES de montar os bytes (#110, ADR-10).** A
+/// trava mora aqui, e não no `Session` nem no transporte, por dois motivos:
+/// este é o ÚNICO ponto por onde todo `set-param` passa (CLI de campo,
+/// `DeviceActor` do app, replay das fixtures), e nenhum byte existe ainda —
+/// logo a recusa é literalmente "antes do `send_raw`". Ver
+/// [`param_range`](crate::param_range) para a política e a evidência.
+///
 /// # Erros
-/// [`ProtocolError::InvalidShape`] se `slot` fora de 1..=9 (cadeia de 9).
+/// [`ProtocolError::InvalidShape`] se `slot` fora de 1..=9 (cadeia de 9);
+/// [`ProtocolError::ValueOutOfRange`] se `value` estiver fora da faixa que o
+/// dicionário declara para `(code, ctrl)`, ou não for finito.
 pub fn set_param_payload(
     slot: u8,
     code: u32,
@@ -106,6 +115,12 @@ pub fn set_param_payload(
             got: format!("slot={slot}"),
         });
     }
+    // O RECUSA AQUI, e não depois do Vec: um `Err` neste ponto devolve o
+    // frame inteiro como erro, e o chamador (Session/CLI/actor) nunca chega
+    // a `send_raw`. Sem esta linha, o `99.5` do runbook do H2 derrubava o
+    // aparelho num assert do firmware (audio.c:1828) sem nenhum aviso no
+    // fio — set-param é fire-and-forget (§13.11, D4).
+    crate::param_range::check(slot, code, ctrl, value)?;
     let mut real = Vec::with_capacity(10);
     real.extend_from_slice(&code.to_le_bytes()); // effectCode u32 LE
     real.push(ctrl);
@@ -115,6 +130,13 @@ pub fn set_param_payload(
 }
 
 /// SysEx COMPLETO do set-param: `… | 12 | 10 [slot] 00 02 | payload | F7`.
+///
+/// A faixa do valor é validada por [`set_param_payload`] (#110) — logo um
+/// valor fora da faixa falha aqui e **nenhum byte chega ao transporte**.
+///
+/// # Erros
+/// [`ProtocolError::InvalidShape`] (slot inválido) ou
+/// [`ProtocolError::ValueOutOfRange`] (valor fora da faixa do dicionário).
 pub fn set_param(slot: u8, code: u32, ctrl: u8, value: f32) -> Result<Vec<u8>, ProtocolError> {
     let payload = set_param_payload(slot, code, ctrl, value)?;
     Ok(envelope(
@@ -314,6 +336,54 @@ pub fn write_parse(frame: &[u8]) -> Result<([u8; 4], &[u8]), ProtocolError> {
     Ok((addr, payload))
 }
 
+/// READ canônico dos registradores globais (§13.13.1):
+/// `HEADER | 11 | ADDR(4B) | F7` — o simétrico de [`write_frame`].
+///
+/// Por que existe um caminho próprio (e não `golden.build_request`): a
+/// família `000102xx`/`000200xx` **não está no golden** (aquele arquivo é o
+/// mundo do preset); a forma do read global é a medida na sessão G3–G6
+/// (§13.13.1: `READ 11/00020003..0b` sem vars), e a montagem continua num
+/// PONTO ÚNICO (ADR-6: binário não monta SysEx).
+pub fn read_frame(addr: &[u8; 4]) -> Vec<u8> {
+    envelope(0x11, *addr, &[])
+}
+
+/// Contador nibble-par medido (§13.13.4 — diff controlado 11/10): os dois
+/// primeiros bytes do payload são DOIS DÍGITOS nibble (cada um 0..15, com
+/// carry entre eles) e o valor é `D0*16 + D1`. Prova de fio: o registrador
+/// do drumBpm contou `080b → 080e → 0901` (low +3 com carry no alto), e o
+/// gVolume viveu em `0201..0409` (33..73 — plausível no 0..99 do Suite).
+/// `0f0f` (255) aparece como teto nas bordas (§13.13.1).
+///
+/// `None` quando o payload não é um contador nibble-par (nibble > 0x0f —
+/// inclusive os 0xFF de "vazio" de tabelas); o chamador decide se expõe o
+/// bruto (ADR-13: sem decode inventado).
+pub fn nibble_pair_value(payload: &[u8]) -> Option<u16> {
+    let d0 = *payload.first()?;
+    let d1 = *payload.get(1)?;
+    if d0 > 0x0f || d1 > 0x0f {
+        return None;
+    }
+    Some(u16::from(d0) * 16 + u16::from(d1))
+}
+
+/// Codifica valor → payload 4B `[D0, D1, 00, 00]` (inverso exato de
+/// [`nibble_pair_value`] para 0..=255 — o espaço de dois dígitos nibble).
+/// É o payload dos writes medidos `12/00020004 ×21`/`12/00010203 ×15`
+/// (§13.13.4).
+///
+/// # Erros
+/// [`ProtocolError::InvalidShape`] para valor fora de 0..=255.
+pub fn nibble_pair_payload(value: u16) -> Result<[u8; 4], ProtocolError> {
+    if value > 255 {
+        return Err(ProtocolError::InvalidShape {
+            expected: "valor 0..=255 (dois dígitos nibble)".into(),
+            got: format!("{value}"),
+        });
+    }
+    Ok([(value / 16) as u8, (value % 16) as u8, 0, 0])
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -333,6 +403,49 @@ mod tests {
     fn nibble_collapse_is_strict() {
         assert!(nibble_collapse(&[0x0F, 0x1F]).is_err());
         assert!(nibble_collapse(&[0x01]).is_err());
+    }
+
+    /// Contador nibble-par nos VETORES MEDIDOS (§13.13.4): drumBpm contou
+    /// `080b→080e→0901` (+3 com carry) e o gVolume viveu em 33..73.
+    #[test]
+    fn nibble_pair_vetores_medidos() {
+        assert_eq!(nibble_pair_value(&[0x08, 0x0B, 0, 0]), Some(139));
+        assert_eq!(nibble_pair_value(&[0x09, 0x01, 0, 0]), Some(145));
+        assert_eq!(nibble_pair_value(&[0x04, 0x05, 0, 0]), Some(69));
+        assert_eq!(nibble_pair_value(&[0x02, 0x01, 0, 0]), Some(33));
+        assert_eq!(nibble_pair_value(&[0x06, 0x03, 0, 0]), Some(99));
+        assert_eq!(nibble_pair_value(&[0x0F, 0x0F, 0, 0]), Some(255)); // teto "off"
+
+        // payload que NÃO é contador nibble-par (ex.: 0xFF de tabela vazia)
+        assert_eq!(nibble_pair_value(&[0xFF, 0x00]), None);
+        assert_eq!(nibble_pair_value(&[0x00]), None);
+    }
+
+    /// Encode/decode roundtrip em 0..=255 (inverso exato) + faixa.
+    #[test]
+    fn nibble_pair_roundtrip() {
+        for v in [0u16, 1, 99, 120, 139, 255] {
+            let payload = nibble_pair_payload(v).unwrap();
+            assert_eq!(payload[2..], [0, 0]);
+            assert_eq!(nibble_pair_value(&payload), Some(v), "roundtrip {v}");
+        }
+        assert!(nibble_pair_payload(256).is_err());
+        // BPM 120 medido no mock = 0708 (7*16+8)
+        assert_eq!(nibble_pair_payload(120).unwrap(), [0x07, 0x08, 0, 0]);
+    }
+
+    /// read_frame: read canônico §13.13.1 = `HEADER | 11 | ADDR | F7`.
+    #[test]
+    fn read_frame_vector() {
+        let frame = read_frame(&[0x00, 0x02, 0x00, 0x03]);
+        assert_eq!(&frame[..SYSEX_HEADER.len()], SYSEX_HEADER);
+        assert_eq!(frame[SYSEX_HEADER.len()], 0x11);
+        assert_eq!(
+            &frame[SYSEX_HEADER.len() + 1..SYSEX_HEADER.len() + 5],
+            &[0x00, 0x02, 0x00, 0x03]
+        );
+        assert_eq!(*frame.last().unwrap(), 0xF7);
+        assert_eq!(frame.len(), SYSEX_HEADER.len() + 6);
     }
 
     /// set_param: envelope + payload do vetor real da fixture knobs (linha 1).

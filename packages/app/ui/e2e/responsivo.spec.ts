@@ -1,8 +1,10 @@
 /**
  * R-RESPONSIVO (docs/UI_TEST_PLAN.md) — alinhamento da casca em 1440/1280/1024
- * no Chromium (CI e local). Asserts portados de analysis/responsivo_checks.js
- * (27/27 validados no Chrome do sistema): overflow, colunas do board (9 → 3×3),
- * biblioteca lado a lado/empilhada, looper sem sobreposição e sem texto clipado.
+ * no Chromium (CI e local). Asserts portados dos checks de responsivo da
+ * era de RE (histórico no git; ver #163).
+ * (27/27 validados no Chrome do sistema): overflow, cadeia do board numa
+ * ÚNICA fileira de 9 pedais, biblioteca lado a lado/empilhada, looper sem
+ * sobreposição e sem texto clipado.
  *
  * Refactor POM (V-7): _helpers.ts segue como módulo de MEDIDAS (não é page
  * object — é geometria de página inteira); o spec usa o ShellPage só para
@@ -31,9 +33,10 @@ for (const [w, h] of [
 
     await expectShellAligned(page, w);
 
-    // looper: nº de tracks por largura (auto-fit; 4ª colapsa a 0px @1440 — ok)
+    // looper (#12): 2 colunas (deck | medição+transporte) com o head e o
+    // mix atravessando as duas; abaixo de 900px empilha em 1 coluna
     const m = await measureShell(page);
-    const wantTracks = w <= 1100 ? 3 : w <= 1340 ? 3 : 4;
+    const wantTracks = w <= 900 ? 1 : 2;
     expect(m.looper.tracks).toBe(wantTracks);
   });
 }

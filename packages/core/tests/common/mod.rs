@@ -15,20 +15,19 @@ use gp100_core::model::DICTIONARY_JSON;
 
 use std::path::PathBuf;
 
-/// Lê uma fixture JSONL de `analysis/fixtures/` como linhas JSON cruas
+/// Lê uma fixture JSONL de `packages/core/data/fixtures/` (registro do
+/// fio de campo; casa canônica desde HW-3/#163) como linhas JSON cruas
 /// (`serde_json::Value`). FONTE ÚNICA do caminho de leitura (regime de
 /// bytes: arquivo do repo, checkout limpo — skill `rust-practices`); antes
 /// estava duplicado em `codec_wire.rs` e `replay_fixtures.rs` (achado do
 /// core review 29/09). O acesso aos campos fica no consumidor (`v["dir"]`).
 pub fn fixture_rows(name: &str) -> Vec<serde_json::Value> {
     let mut p = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    p.pop(); // packages/ (crate vive em packages/core)
-    p.pop(); // raiz do repo
-    p.push("analysis");
+    p.push("data"); // packages/core/data (dado canônico, #163)
     p.push("fixtures");
     p.push(name);
     std::fs::read_to_string(&p)
-        .expect("fixture existe (make_fixtures.py)")
+        .expect("fixture existe (registro do fio de campo)")
         .lines()
         .filter(|l| !l.trim().is_empty())
         .map(|l| serde_json::from_str(l).expect("JSONL válido"))

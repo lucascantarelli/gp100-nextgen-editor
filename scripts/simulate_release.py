@@ -2,16 +2,17 @@
 """
 Simulação END-TO-END do release-gitflow (rc1→rcN→promote) num sandbox git
 local — sem GitHub e sem Docker. Os blocos `run:` são extraídos DO PRÓPRIO
-`.github/workflows/release.yml` e executados contra um "origin" bare
-temporário, com `${{ inputs/steps/env }}` resolvidos como o Actions faria
-(GITHUB_OUTPUT simulado, env de job injetado). O que NÃO é exercido aqui:
-a execução real no Actions e o pipeline de build por tag (esse roda no push).
+`.github/workflows/ci.yml` (jobs `release-rc` e `release-promote`) e
+executados contra um "origin" bare temporário, com
+`${{ inputs/steps/env }}` resolvidos como o Actions faria (GITHUB_OUTPUT
+simulado, env de job injetado). O que NÃO é exercido aqui: a execução real no
+Actions e o pipeline de distribuição por tag (esse roda no push).
 
 Cenários provados:
   1. rc corta release/x.y.z de develop e etiqueta vX.Y.Z-rc.1
   2. fix em develop + rc de novo → rc.2 REUTILIZANDO a branch
-  3. promote → tag final vX.Y.Z, merge --no-ff em main, backport em
-     develop, release branch apagada, manifests na versão final
+  3. promote → tag final vX.Y.Z, main recebe o SHA da tag, merge --no-ff em
+     develop com a PRÓXIMA versão, release branch apagada
   4. promote é idempotente: tag final existente recusa
   5. rc sem bump pendente (sem feat desde a última tag) recusa
 
@@ -29,8 +30,19 @@ import tempfile
 
 import yaml
 
+# Console do Windows (cp1252) não encoda os acentos/setas dos prints deste
+# script — o gate roda no runner Linux (UTF-8), mas o host de dev precisa
+# disto para a simulação não morrer no meio.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-WF = os.path.join(REPO, ".github", "workflows", "release.yml")
+# Desde a #68 o fluxo de release virou um ESTÁGIO do workflow único; os jobs
+# se chamam `release-rc` e `release-promote`.
+WF = os.path.join(REPO, ".github", "workflows", "ci.yml")
+JOBS = {"rc": "release-rc", "promote": "release-promote"}
 BOT = {"BOT_NAME": "sim-bot", "BOT_EMAIL": "sim-bot@example.test"}
 
 EXPR = re.compile(r"\$\{\{\s*([a-zA-Z_][\w.]*)\s*\}\}")
@@ -70,16 +82,33 @@ class Sandbox:
     def setup(self) -> None:
         sh("git init --bare -b main origin.git", self.root)
         sh("git clone -q origin.git seed", self.root)
+        # Os 5 manifests que `sync_version.py` governa (#73) — antes eram 3, e
+        # faltando `tauri.conf.json`/`package.json` a cadeia rc/promote rodava
+        # num repo que nao se parecia com o real: o bug so aparecia no repo de
+        # verdade, nunca aqui. O `frontendDist` aponta para um `dist/` minimo
+        # para o conf ser um conf de verdade.
         manifests = {
             "Cargo.toml": '[package]\nname = "sim"\nversion = "0.1.0"\n',
             "packages/app/api/Cargo.toml": '[package]\nname = "sim-api"\nversion = "0.1.0"\n',
+            "packages/app/api/tauri.conf.json": '{\n  "version": "0.1.0",\n  "build": {\n    "frontendDist": "../ui/dist"\n  }\n}\n',
+            "packages/app/ui/package.json": '{\n  "name": "sim-ui",\n  "version": "0.1.0"\n}\n',
             "version.json": '{\n  "version": "0.1.0"\n}\n',
         }
         for path, content in manifests.items():
             full = os.path.join(self.seed, path)
             os.makedirs(os.path.dirname(full), exist_ok=True)
-            with open(full, "w", encoding="utf-8") as fh:
+            with open(full, "w", encoding="utf-8", newline="") as fh:
                 fh.write(content)
+
+        # O `run:` dos jobs chama `python3 scripts/sync_version.py` (issue #73),
+        # entao o sandbox precisa do script — sem ele a cadeia morre com
+        # "can't open file .../sync_version.py" e o gate do Lint reprova.
+        script_dst = os.path.join(self.seed, "scripts")
+        os.makedirs(script_dst, exist_ok=True)
+        shutil.copyfile(
+            os.path.join(REPO, "scripts", "sync_version.py"),
+            os.path.join(script_dst, "sync_version.py"),
+        )
         for repo in (self.seed,):
             sh('git config user.name sim && git config user.email sim@example.test', repo)
         sh('git add -A && git commit -qm "chore: base 0.1.0"', self.seed)
@@ -108,7 +137,7 @@ class Sandbox:
 
 
 class Workflow:
-    """executa os run blocks de um job do release.yml com contexto simulado."""
+    """executa os run blocks de um job do ci.yml com contexto simulado."""
 
     def __init__(self, root: str):
         with open(WF, encoding="utf-8") as fh:
@@ -130,6 +159,8 @@ class Workflow:
                 return self.wf_env.get(path.split(".", 1)[1], "")
             if path == "github.event.inputs.tag":
                 return ""
+            if path in ("github.repository", "github.server_url", "github.actor"):
+                return f"example/{path.split('.')[-1]}"
             raise AssertionError(f"expressão não simulada: ${{{{ {path} }}}}")
 
         return EXPR.sub(sub, text)
@@ -148,7 +179,10 @@ class Workflow:
         """
         self.inputs = inputs
         self.steps = {}
-        for idx, step in enumerate(self.jobs[job]["steps"]):
+        job_id = JOBS.get(job, job)
+        if job_id not in self.jobs:
+            raise AssertionError(f"job '{job_id}' não existe em ci.yml (tem: {', '.join(self.jobs)})")
+        for idx, step in enumerate(self.jobs[job_id]["steps"]):
             if "run" not in step:
                 continue
             sid = re.sub(r"[^\w-]", "_", str(step.get("id") or f"step{idx}"))
@@ -207,7 +241,7 @@ def main() -> int:
 
     print("1) rc: corta release/0.2.0 de develop e etiqueta v0.2.0-rc.1")
     wd = sandbox.workdir("rc1", branch="develop")
-    wf.run_job("rc", wd, inputs={"action": "rc", "version": ""})
+    wf.run_job("rc", wd, inputs={"action": "release", "version": "", "source": "develop"})
     assert wf.steps["prep"]["full"] == "0.2.0-rc.1", wf.steps["prep"]
     assert sandbox.remote_has("refs/tags/v0.2.0-rc.1")
     assert sandbox.remote_has("refs/heads/release/0.2.0")
@@ -216,15 +250,16 @@ def main() -> int:
     sh('git commit -q --allow-empty -m "fix(ui: x): correção entre rcs"', sandbox.seed)
     sh("git push -q origin develop", sandbox.seed)
     wd = sandbox.workdir("rc2", branch="develop")
-    wf.run_job("rc", wd, inputs={"action": "rc", "version": ""})
+    wf.run_job("rc", wd, inputs={"action": "release", "version": "", "source": "develop"})
     assert wf.steps["prep"]["full"] == "0.2.0-rc.2", wf.steps["prep"]
 
     print("3) promote → tag final, merge main, backport develop, branch apagada")
     wd = sandbox.workdir("promote")
     wf.run_job("promote", wd, inputs={"action": "promote", "version": ""})
     assert sandbox.remote_has("refs/tags/v0.2.0")
+    # main recebe o SHA da tag; develop sai da release JA na próxima versão.
     assert sandbox.remote_manifest_version("origin/main") == "0.2.0"
-    assert sandbox.remote_manifest_version("origin/develop") == "0.2.0"
+    assert sandbox.remote_manifest_version("origin/develop") == "0.3.0"
     assert not sandbox.remote_has("refs/heads/release/0.2.0")
 
     print("4) promote de novo → recusa (idempotente)")
@@ -234,9 +269,9 @@ def main() -> int:
 
     print("5) rc sem bump pendente → recusa (exige feat ou input version)")
     wd = sandbox.workdir("rc3", branch="develop")
-    wf.run_job("rc", wd, inputs={"action": "rc", "version": ""}, expect_failure=True)
+    wf.run_job("rc", wd, inputs={"action": "release", "version": "", "source": "develop"}, expect_failure=True)
 
-    print("\n✅ cadeia rc1→rcN→promote íntegra no sandbox (release.yml executado de verdade)")
+    print("\n✅ cadeia rc1→rcN→promote íntegra no sandbox (ci.yml executado de verdade)")
     if keep:
         print(f"sandbox preservado em {root}")
         return 0

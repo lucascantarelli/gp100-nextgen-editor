@@ -3,7 +3,7 @@
 > **Fontes de verdade:** [docs/protocol_golden.json](../../docs/protocol_golden.json)
 > (spec executável, 40 templates) · [docs/PROTOCOL.md](../../docs/PROTOCOL.md) §13
 > (narrativa do fio) · [docs/DECISIONS.md](../../docs/DECISIONS.md) (ADR-1..6) ·
-> [analysis/fixtures/](../../analysis/fixtures) (replay)
+> [fixtures do fio](data/fixtures) (replay — casa canônica desde #163)
 
 Biblioteca de protocolo e presets da pedaleira Valeton GP-100, construída por
 engenharia reversa **sem adivinhar um byte** (regra R1): todo formato vem do
@@ -19,6 +19,17 @@ model       dicionário serde: 185 algs / 639 controles, validação na carga
     ↓
 preset      .prst = XML; parser/writer com LAYOUT COMO DADO —
     ↓       round-trip byte-idêntico (regra R4, sagrada)
+preset_json .prst em JSON VERSIONADO (#114): o layout é PUBLICADO, não
+    ↓       derivado — o wrap do Suite não segue largura (medido: 82 a 91
+    ↓       colunas quebram e não quebram), então adivinhar violaria o R1
+    ↓
+tone_sheet  folha de timbre em PDF (#114): writer próprio, fontes base-14,
+    ↓       sem dependência nativa (ADR-9) e sem stream comprimido
+pedalboard  o BoardView: o preset projetado pelo dicionário, na ordem do sinal
+gain        o ASSISTENTE DE GAIN STAGING (#115): função PURA sobre o BoardView
+    ↓       — posição na faixa do dicionário, nunca dB medido; o método e a
+    ↓       limitação saem NO relatório para a tela mostrar. Sem transporte:
+    ↓       não existe caminho para um byte sair daqui
 golden      GoldenFile::embedded() (OnceLock, 1 parse por processo):
     ↓       Template::build_request / matches_response (despacho by-len)
 codec       fio PURO e sem estado: envelope §13.1, trim no 1º F7,
@@ -27,6 +38,8 @@ transport   trait DeviceTransport (ADR-4, bytes crus, sync, ciclo de
     ↓       vida do CHAMADOR) + MockDevice (responde conforme o golden,
             D1–D8) · RealDevice (H1) atrás da feature `real-device`:
             midir/WinMM, callback→fila, trim no 1º F7 na entrada
+            `permite_escrita()` (ADR-5 rev. 06/10): o boot OMITE o keepalive
+            com a escrita travada (2295 transações, não 2297)
 session     FSM Session<T: DeviceTransport> (ADR-6 rev.3): boot/scan,
             select/state_page, set_param, save_preset (fire-and-forget D3),
             upload_ir (ACK por chunk), list_user_irs, backlog D7
@@ -117,6 +130,9 @@ drop(session); // devolve o transporte ao dono (D8: consumidor único)
 | `golden_consumer.rs` | propriedade extract→build == exemplo nos 40 templates |
 | `codec_wire.rs` | 92 knobs + 2 saves + 1186 frames IR byte a byte (fixtures P4) |
 | `roundtrip_prst.rs` | round-trip byte-idêntico dos 3 `.prst` (R4) |
+| `preset_json_roundtrip.rs` | `.prst` → JSON → `.prst` byte-idêntico, JSON canônico e recusa de versão futura (#114) |
+| `tone_sheet.rs` | folha em PDF: integridade da `xref`, 1 página por preset, determinismo, sem compressão (#114) |
+| `gain_staging.rs` | assistente de gain (#115): origem de cada número recalculada do board, exclusões declaradas, risco/ordem de ajuste e o ByteGuard do "nenhum byte sai" |
 | `model_dictionary.rs` | carga/validação/rejeição do dicionário |
 | `transport_trait.rs` | trait pub/object-safe, DeviceGone, reconexão |
 | `golden_response.rs` | simetria `build_response` nos 15 exemplos IN |

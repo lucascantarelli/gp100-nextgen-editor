@@ -3,7 +3,7 @@
 **Como ler:** §13 = protocolo de FIO (confirmado em campo, capturas 1–4) — é o que o
 gp100-core fala; §1–12 = formato de ARQUIVO (TLV/CRC-8/objetos). A especificação
 executável byte-a-byte é `docs/protocol_golden.json` (validada por
-`analysis/validate_golden.py`). Mapa geral da documentação: `docs/INDEX.md`.
+`scripts/validate_golden.py`). Mapa geral da documentação: `docs/INDEX.md`.
 **Histórico:** framing do GP-50/GP-5 validado por terceiros (§7); GP-100 confirmado
 DIFERENTE no wire-format por disassembly (§9) — mesma CRC-8/0x07, framing TLV de bits.
 
@@ -115,7 +115,7 @@ GP-50 (binário): header `GP-50` 20B + CRC-8@0x14 + sentinel 4B + nome 16B + cor
 - Comando de leitura global (`gParam/gPatch/gBank/gChannel/gVolume/gInput/gUsbGain/...`).
 
 ## 9. DESASSEMBLY DO GP-100.exe — RESULTADO (v2.0)
-Método e evidências completas: `analysis/FINDINGS_PROTOCOL.md` (scripts em `analysis/`, venv com capstone+pefile).
+Método e evidências completas: `docs/arquivo/analysis/FINDINGS_PROTOCOL.md` (scripts em `docs/arquivo/analysis/`, venv com capstone+pefile).
 
 **Veredito: o GP-100 NÃO usa o wire-format nibble+F0..F7 do GP-50.**
 
@@ -146,7 +146,7 @@ Evidências diretas no código (VA, base 0x400000):
 ---
 
 ## 10. SESSÃO 2 DE DESASSEMBLY — CODEC RESOLVIDO ESTRUTURALMENTE
-Detalhes completos: `analysis/FINDINGS_FSM.md`. Correções à §9:
+Detalhes completos: `docs/arquivo/analysis/FINDINGS_FSM.md`. Correções à §9:
 
 1. **A tabela `0x621210` não é jump-table** — é *thrunk* MSVC de `this`-adjust
    (múltipla herança). `0x621020` = set-state trivial; `0x621030` = no-op;
@@ -179,8 +179,8 @@ Detalhes completos: `analysis/FINDINGS_FSM.md`. Correções à §9:
 ---
 
 ## 11. SESSÃO 3 — OS 7 FORMATOS DE OBJETO DO SERIALIZER `0x6209D0`
-Documentação completa com offsets e bit-widths: `analysis/FINDINGS_OBJECTS.md`.
-**Veredito da sessão 4** (`analysis/FINDINGS_COMMANDMAP.md`): estes objetos são
+Documentação completa com offsets e bit-widths: `docs/arquivo/analysis/FINDINGS_OBJECTS.md`.
+**Veredito da sessão 4** (`docs/arquivo/analysis/FINDINGS_COMMANDMAP.md`): estes objetos são
 os payloads de um protocolo **state-sync orientado a objetos** — o envelope de
 4 bits + classe de 3 bits endereça o objeto; não há opcodes de operação.
 
@@ -208,7 +208,7 @@ writeBytes(ptr,push), `0x4B4800` = reserva/zero-fill de N bits.
 ---
 
 ## 12. SESSÃO 4 — MAPA DE COMANDOS FECHADO (state-sync, não opcodes)
-Evidência: `analysis/FINDINGS_COMMANDMAP.md`. As 4 únicas chamadas VLQ/tagmap
+Evidência: `docs/arquivo/analysis/FINDINGS_COMMANDMAP.md`. As 4 únicas chamadas VLQ/tagmap
 no binário inteiro:
 ```
 0x6208A9 -> 0x633520 (varint32)    0x6208B6 -> 0x6331D0 (varint64)
@@ -251,9 +251,9 @@ gestão de buffers de slots de preset/IR em RAM, coerente com state-sync.
 
 ## 13. SESSÃO 5 — CAPTURA REAL (ROTA 1): FORMATO DE FIO CONFIRMADO
 
-Fonte: `analysis/captures/session1.jsonl` (4.653 eventos MIDI, Suite instrumentado
+Fonte: `docs/arquivo/analysis/captures/session1.jsonl` (4.653 eventos MIDI, Suite instrumentado
 com proxy winmm.dll; sessão = scan → trocar preset → editar knob → save).
-Decoder: `analysis/decode_wire.py`. Build do proxy: `analysis/build_proxy.py`.
+Decoder: `docs/arquivo/analysis/decode_wire.py`. Build do proxy: `docs/arquivo/analysis/build_proxy.py`.
 
 ### 13.1 Envelope SysEx (não é o envelope de objetos §10-11!)
 
@@ -305,17 +305,17 @@ o contador da página — coerente com §12).
 ### 13.4 Padrões de transação
 
 > **Referência executável:** `docs/protocol_golden.json` (gerado por
-> `analysis/build_golden.py` a partir das sessões 1–4) contém os 40 templates
+> `scripts/build_golden.py` a partir das sessões 1–4) contém os 40 templates
 > request→resposta com padrões de payload (const/var) e semântica por
 > endereço. Este §13 é a narrativa; o golden é a referência byte-a-byte
 > para implementação e fixtures de teste.
 > **Baseline v1.0 (congelada 28/09/2026 — regra R2/R3 do ROADMAP):**
 > - `docs/protocol_golden.json` sha256 `0426d6a8843c57d16ab917170ed5f50eb95026281f1f460f4c2520aaeefef859`
-> - `analysis/parameters.json` sha256 `196c67992cd072bbd78c1f7ce3cfc615133d73934e2aa034c6f32b13c171a020`
+> - `packages/core/data/parameters.json` sha256 `196c67992cd072bbd78c1f7ce3cfc615133d73934e2aa034c6f32b13c171a020`
 > Qualquer mudança nesses arquivos exige: nova captura → build_golden → validate 100% →
 > novo hash + justificativa aqui.
 >
-> **Validado por** `analysis/validate_golden.py` — 5 provas:
+> **Validado por** `scripts/validate_golden.py` — 5 provas:
 > accounting IN 100% / OUT 99,57% (sobras = fragmentos truncados do ring
 > buffer do proxy); regeneração byte-a-byte: knobs 89/89 + 3/3 (§13.11),
 > boot/scan 2.299/2.299 (§13.10), save 77/77 (§13.12, metadados gerados do
@@ -429,7 +429,7 @@ absorve; o MockDevice não emite.
 Evidência: `.prst` exportado pelo Suite é **XML puro** (`<?xml …><GP-100>…`),
 zero ocorrências byte-aligned de 81 7F / 08 17 e 1 falso-positivo bit-shifted
 (texto `ms_1="0.5"` — decodifica como 0x817 no shift 3; NÃO é o magic).
-Varredura de imediatos no .text (`analysis/find_817_imm.py`): exatamente
+Varredura de imediatos no .text (`docs/arquivo/analysis/find_817_imm.py`): exatamente
 **2 usos reais**, ambos no par serializer/deserializer de objetos:
 
 | VA | Papel | Código |
@@ -467,7 +467,7 @@ alto e o NIBBLE do modulo (PRE=1 DST=3 AMP=7 RVB=0C...), NAO o slot x/y
 (cfr. parameters.json: Bog RedM = 0x0700006E, nibble 7, index 110; Hall =
 0x0C000001, nibble 12, index 1). `params_N` = valores crus dos controles
 (0-14, mesma ordem do dicionario); `ppIRNum` = IR selecionado. Compatível com o dicionário
-`analysis/parameters.json` (códigos validados 0-conflito). O gp100-core pode
+`packages/core/data/parameters.json` (códigos validados 0-conflito). O gp100-core pode
 importar/exportar bibliotecas completas SEM tocar no hardware.
 
 ### 13.10 Scan de presets e paginação de estado (modelo final da sessão 1)
@@ -484,7 +484,7 @@ OUT 13 01 00 04 <- [pp u16BE] [PG u16BE] 01   avanca pagina (5B, ambos u16BE)
 
 **Larguras exatas confirmadas pela validação do golden-file** (sessão 1,
 198 presets × 9 páginas = 1.782 requests de página regenerados byte-a-byte
-por `analysis/validate_golden.py`): quirk de boot = o preset atual (pp 0x0100
+por `scripts/validate_golden.py`): quirk de boot = o preset atual (pp 0x0100
 no exemplo) recebe select+open DUPLICADOS (re-leitura): 2 selects respondem
 meta6 cada (e 1 resposta de tabela T1 chega TARDIA entre elas — backlog),
 depois 2 opens respondem PÁGINA 0 duas vezes em `13010003` (não é um 3º
@@ -501,6 +501,56 @@ banco 0x03 com 13 (61 leituras).
 pela UI usa writes semânticos diretos (ver §13.11), sem offsets de página.
 As páginas 13 01 00 03 servem para LER o estado (e foram a base do pareio
 por timeline da sessão 3).
+
+#### Layout da página (DECIFRADO 08/10/2026 — #155)
+
+O corpo, que chegava opaco, nibble-decodifica para **96 B** (pg 0..7) e
+**14 B** (pg 8):
+
+| | no fio | decodificado |
+|---|---|---|
+| pg 0..7 | 196 B = 4 B header + 192 B de nibbles | 4 B + 96 B |
+| pg 8 | 32 B = 4 B header + 28 B de nibbles | 4 B + 14 B |
+
+**Header (4 B, fora do nibble):** `[pp u16BE] [00] [PG]`. O `PG` é o
+**número da página** (0..8) e **não a posição do pedido**: o `open`
+`13 01 00 02` entrega a página 0, os reqs `13 01 00 04` com PG 0..7
+entregam as páginas 1..8, e o req PG 8 devolve só o ACK de 4 B em
+`13 01 00 05` — que **não é página**. Conta fechada: 1 open + 8 reqs = 9
+páginas = 1.782 mensagens de `13 01 00 03` na captura.
+
+**Corpo:** pares de nibbles expandidos (`codec::nibble_collapse`).
+
+**pg 0 decodificada (offsets provados):**
+
+| offset | o que |
+|---|---|
+| 0..2 | `pp` u16 LE |
+| 2..14 | **nome ASCII[12]** com pad NUL |
+| 14..32 | **cadeia** — 9 × u16 LE (posição → `x` do `<Effect>` no `.prst`) |
+| 32..68 | **`effectCode`** — 9 × u32 LE |
+| 68..96 | params ×7 (f32 LE) |
+
+Os params são 135 f32 LE (9 slots × 15) em bloco contíguo atravessando as
+páginas: pg0[68..96] + pg1..pg5 inteiros + pg6[0..32]. `effectState` mora
+em pg6 @32 (9 × u16 LE).
+
+**Provas** (gate `state_pages` — `scripts/validate_state_pages.py`,
+artefato `packages/core/data/state_pages_offsets.json`, embutido no binário):
+
+| o quê | medido |
+|---|---|
+| cadeia (posição → `x`) | **198/198** — 40 pps têm a cadeia TROCADA no fio |
+| `effectCode` | **1782/1782** |
+| `effectState` | **1782/1782** |
+| params | **26552/26554** (as 2 divergências são valores editados no hardware depois do dump) |
+| nome | **198/198** + prova-negativa |
+
+**Consumo:** `gp100_core::preset_pages::{decode, Paginas::{nome, slots}}` —
+entram 9 `StatePage`, sai o domínio. O boot já baixa as 1.782 páginas e as
+guarda em `Session::preset_state(pp)`; o actor serve o palco e os nomes a
+partir delas, **nunca de um `select` novo** (ler outro pp não pode mudar o
+preset que o pedal mostra).
 
 ### 13.11 Writes de edição pela UI — envelope semântico do knob (sessão 3)
 
@@ -534,7 +584,7 @@ existe no hardware e no .prst (`params_1=80`) mas NÃO virou `controls[]`
 no algorithm.xml do Suite — controle oculto do dicionário. Corolário: ao
 serializar presets, PRESERVAR todos `params_N` 0..14 mesmo sem nome.
 
-Mapa completo (89 edits com timeline): `analysis/knob_map.json`.
+Mapa completo (89 edits com timeline): `scripts/knob_map.json`.
 
 **Corolário para o gp100-core:** para SETAR um parâmetro basta 1 SysEx
 `F0 21 25 7F 47 50 2D 64 | 12 | 10 <slot> 00 02 | <20B nibble-expandido> |
@@ -575,7 +625,27 @@ OUT 11 12001002 [pág]      → IN 12 75B nibble-exp., d[0]=pág (0..0x13);
                               — layout decifrado: [0]=slot cru; [1..74]
                               nibble-exp = 37B reais = nome 32B + tag 5B
 OUT 11 12001012 [i]        → IN 12 44B nibble-exp. `12 10 2c 00 [i] 00 01 …`
-                              (5 entradas, provavelmente setlist/loja)
+                              (5 entradas de estado; SEMÂNTICA NÃO DECIFRADA —
+                              o repo a chama(va) de "setlist", mas a GP-100
+                              NÃO tem função setlist no manual; ver
+                              `GP100_DEVICE.md` §5#1. Não expor como produto.)
+                              **Layout MEDIADO em campo (10/10, aparelho real,
+                              `docs/arquivo/analysis/field/2026-10-10/state5.jsonl`):**
+                              `[0]=0x12` (eco do func IN) · `[1..3]=10 2c 00`
+                              (constante; 0x2c=44=B do payload) · `[4]=i` (índice
+                              ecoado) · `[5..6]=00 01` · `[7..43]=00` (defaults).
+                              Neste aparelho as 5 entradas estão zeradas =
+                              defaults de fábrica. O prefixo casa com a captura
+                              S1.
+                              **PROVA NEGATIVA (10/10, mesmo aparelho):** diff
+                              controlado com o dono alterando o **BPM do drum
+                              125→145** no pedal: `read-state5` antes/depois →
+                              **0 bytes divergentes** nas 5 entradas
+                              (`state5_before_bpm.jsonl` ×
+                              `state5_after_bpm145.jsonl`). State5 **NÃO** é a
+                              família de globals do drum. O endereço do drum
+                              segue desconhecido (captura G3–G6 via Suite é o
+                              caminho).
 OUT 11 11000008 [hi][lo] 00 00   (61 leituras, chave de 2B)
                              → IN 12 14B: [0..3]=chave ecoada, [4..13]=nome
                                ASCII do slot. 0x0000..0x000F = slots de
@@ -680,3 +750,257 @@ pedaleira que o slot de destino recebeu o preset com os valores editados
 da sessão 3 (AMP Gain ~99) — ou seja, o save persiste o **ESTADO AO VIVO**
 (writes 10xx0002 acumulados), não uma cópia do preset original, e o fluxo
 acima é o caminho real de commit. Item 11 do BLOCKERS: FECHADO.
+
+---
+
+### 13.14 Baseline v1.1 — o que o golden NÃO sabe (e por que)
+
+> Escrito em 04/10 (#23, gate H3). A baseline é `docs/protocol_golden.json`;
+> a versão, o hash, o motivo e o histórico vivem em **`scripts/baseline.json`**
+> (`uv run python scripts/baseline.py show`). Até a v1.0 o hash era um literal
+> dentro de um teste, sem versão e sem motivo: colar o hash novo passava.
+>
+> **v1.2 (11/10, #163)** — bump só de proveniência: a dissolução de `analysis/`
+> moveu o gerador para `scripts/` e `_meta.generated_by` no golden apontava o
+> caminho antigo. **Nenhum byte de template mudou**: 39 templates intactos,
+> `validate_golden` 100% (provas A–E) e as fixtures regeneradas batem byte a
+> byte com as versionadas. O que segue é a narrativa da v1.1 e continua valendo;
+> o registro completo está em `scripts/baseline.json` (`v1.2`).
+
+**O achado.** O `build_golden.py` cortava cada frame no **primeiro** par de
+nibbles `f7` (`hx.find("f7")`) em vez do `F7` **final** do SysEx. Nomes de preset
+em ASCII quase sempre têm esse par no meio — "World" = `576f726c64` contém `f7`
+em `6f72`, e `o` seguido de `p`–`z` é o caso comum. **16 frames completos** das
+4 capturas eram truncados assim, e o nome "Acoustic" virava 5 bytes de 11.
+
+**O erro maior.** As capturas têm **100 linhas sem `F7` final**: o proxy morreu
+no flush e deixou buffers de 256 bytes preenchidos com `ff`. Reconstruir o fim
+delas com `rfind("f7")` produz frames de 196 bytes que **nunca existiram no
+fio**. A regra agora é o contrário: **linha sem `F7` final não é frame** — é
+saída truncada, e o certo é contá-la e seguir (R1: protocolo adivinhado não
+entra). O golden declara os descartes em `_meta.excluded`.
+
+**O que a v1.0 afirmava sem evidência (e a v1.1 não afirma mais):**
+
+| Endereço | O que a v1.0 dizia | Por que caiu |
+|---|---|---|
+| `13000000` | `push` com `const` de 242 bytes | É o **prefixo** de uma linha cortada (o proxy corta em 256 bytes). O único template dele vinha de dado corrompido, então o template **saiu** (40 → 39 templates). |
+| `12001002` resync | `push` com `by_len` {4B, 75B}, 192 instâncias | As 32 instâncias de 4 bytes eram **fabricadas**. As 592 instâncias REAIS de 4 bytes são os ACKs do upload de IR (§13.7) e estão no template `req`. |
+| `11000008` resync | 290 push | 290 = 244 frames completos + 46 dos fabricarados. Contagem correta: **244**. |
+
+**Consequência no save (§13.12).** A prova D era `77/77`. **63 dessas 77
+mensagens eram fabricaradas** — o `find("f7")` cortava dentro do buffer `ff` e
+o `body()` devolvia `010e000000000000000000000000`, 14 bytes que são exatamente
+a forma de um registro de usuário, e passava na regra. Hoje a prova D é **14/14**:
+o lado **OUT** (9 frames do S4 + 5 do S2, derivados do `.prst`), que é
+byte-a-byte e continua provado. O lado **IN** (resync `11000008`, resync
+`12001002`, status `12000001`) é **gap de captura**.
+
+> **Isto não volta por ajuste de código.** Volta com captura nova (R2/R3). O
+> `docs/H3_CHECKLIST.md` tem o roteiro, e o `--log` do `gp100-cli` agora grava
+> `t` (ms desde a abertura) justamente para que essa captura possa entrar no
+> pipeline: sem relógio não há segmentação por fase nem casamento OUT→IN.
+
+**Os três gaps que a sessão de campo fecha:**
+
+1. **Resposta completa ao `13000000`** — o dump de boot. É o maior frame do
+   protocolo e nunca foi capturado inteiro.
+2. **Resync do save** — os ACKs e o status pós-save, que a v1.0 "provou" com
+   bytes inventados.
+3. **Regeneração da baseline a partir do gp100-core** — o DoD literal do H3, que
+   antes era impossível: o `build_golden` carregava **0 eventos** de um log do
+   core (só aceitava `out_long`/`in_long` + `hex`). `scripts/wirelog.py`
+   normaliza os dois formatos, e `scripts/validate_core_capture.py` julga a
+   sessão frame a frame.
+
+### 13.13 Bloco de registros `0000xxxx/0001xxxx/0002xxxx` + CCs curtos (G3–G5, sessão 11/10)
+
+**Fonte:** `docs/arquivo/analysis/captures/sessionG3-G6.jsonl` (Suite oficial + proxy winmm,
+5322 frames SysEx + 3 CCs, 292 s; o dono operou a UI do Suite). Tudo abaixo é
+**medido**, sem semântica inventada (ADR-13): endereço e forma são fato;
+"o que o controla" fica para o diff de ação→endereço (§13.13.4).
+
+**13.13.1 — O bloco `000200xx` (o que o golden não tinha):**
+
+```
+READ   11/00020003..0002000b   → IN 12/…  payload 4B (`00XX0000`) ou 8B
+READ   11/00020011..0002001f   → IN 12/…  payload 8B (`080f0c020305030f`)
+WRITE  12/00020003..0002001f   (edições do usuário)
+PUSH   12/00020003..0002001f   device→host — TODOS os 22 endereços fazem
+                                push em bloco (×3 na sincronização de +39s e
+                                novamente em +261s)
+```
+
+- O Suite **sincroniza em bloco**: lê `00020003..0b` num passo (~61 frames)
+  e o device **empurra** o bloco `00020003..1f` de volta — o push existe e o
+  Suite o usa como confirmação (write seguido de re-push).
+- Formas medidas: 4B com padrão `00XX0000` (contador/selector arrastável —
+  observado 0→13→0) e `0f0f0f0f` (= "off/max", aparece ao cruzar o mínimo);
+  8B = 4 pares nibble (`080f0c020305030f`).
+- `00020009` tem write mas **não** aparece no push IN (exceção medida).
+
+**13.13.2 — `00010203` / `00010204` (slider duplo de 4B):** 59 + 113 writes
+numa interação de 11,9 s; payload `XX YY 00 00` arrastado em passos de +3
+com wrap de nibble (low nibble estoura em 16 → carry no byte alto). Os DOIS
+endereços mudam juntos, sempre no mesmo segmento de tempo.
+
+**13.13.3 — `0000xxxx` pontuais e CCs:**
+- `12/00000000` 4B: `0f0f0f0f` → `00010000` (toggle medido)
+- `12/00000005` 4B (`00030000`); `12/00001000` 16B estruturado
+  (`0f0f0f0f000…` → `00000000000800000000000500000000`)
+- `12/10010001` 16B com um nibble flag 0→1 — família próxima de
+  `10xx0002` (set_param §13.11), formato NÃO é o do knob
+- **CCs curtos (fora de SysEx):** `B1 30 05` · `B1 31 7F` · `B1 30 7F` —
+  CC 48/49 no canal 2 (host→device). É por aí que anda EXP/footswitch (G5).
+
+**13.13.4 — Mapa ação→endereço (diff CONTROLADO, 11/10 — `sessionMap.jsonl`):**
+segunda sessão com protocolo de ordem fixa (uma ação por passo, pausa ≥10 s;
+segmentação por gap ≥6 s = ação por construção, sem depender de memória):
+
+| Passo (ordem fixa) | Endereço ÚNICO que mudou | Payload medido |
+|---|---|---|
+| 1. **drum BPM** (+5) | `12/00010203` ×15 | contador nibble +3 com carry (`080b→080e→0901→…→0b03`) |
+| 2. **Input Level** | `12/00020004` ×21 | byte1 conta 6→f→0… (`0f0f0f0f` = máx; envolve p/ `0000`) |
+| 3. **Global EQ** (1 banda) | `12/00020012` ×42 | reg. 8B `00000000 XX YY 04 01`, nibble-pair +8 (`0a08→0b00→…`) |
+| 4. **FS ×2 + varredura EXP** | CC out `B1 30 05` + re-push do bloco IN | **EXP: 0 eventos no fio** (prova negativa) |
+
+Consequências medidas:
+- **`00010203` = registrador do drum BPM** (ação isolada, único endereço).
+  `00010204` (§13.13.2) **NÃO** é BPM — na sessão de mapeamento não mudou;
+  na sessão G3–G6 os dois mudaram juntos. **Fechado por RE do binário do
+  Suite (§13.13.7): `00010204` = `drumVolume`** (par na mesma função do BPM).
+- **`00020004` = Input Level** (reg. 4B; `0f0f0f0f` = saturação máx).
+- **`00020012` (e a família 8B `00020011..1f`) = Global EQ** — um registrador
+  por banda/parâmetro.
+- **EXP não streameia** com o Suite aberto (varredura completa = 0 frames);
+  o único CC foi host→device (`B1 30 05`), não device→host.
+- Passo 5 ("outro ajuste") não produziu tráfego — ou não executado, ou
+  controle sem MIDI. **Restantes `0000xxxx`/`00020003/05/06/09` foram
+  nomeados pela RE do binário do Suite (§13.13.7)** — pareamento por código,
+  nunca por dedução (ADR-13); o diff de ação isolada continua sendo a prova
+  de fio para o que cada registrador *faz no device*.
+
+**13.13.5 — G7 segue aberto:** o `in 12/13000000` desta sessão veio
+**TRUNCADO** de novo (corte de 256 B do proxy) — confirma que o caminho do
+dump completo é o `--log` do `gp100-cli`, não o proxy.
+
+**13.13.6 — RE do firmware V2.1: a tabela de acessadores corrobora as famílias
+(`files/firmware/GP-100 Firmware V2.1.bin`, 3.424.316 B, ARM Cortex-M7 sem
+criptografia):** a região 96k–108k contém as funções mínimas de acesso a
+registrador (épilogo `bd08` = `pop {r3,pc}` seguido do literal do endereço).
+Literais de registrador encontrados, em ordem de firmware:
+
+```
+0x00010205 · 0x00010203 (BPM, medido) · 0x00010201 · 0x00010204 ·
+0x00010104 · 0x00010103                       → família DRUM (000102xx/000101xx)
+0x00020004 (Input Level, medido) · 0x00020003 · 0x00020009 · 0x00020006 ·
+0x00020005 · 0x00020001                       → família SYSTEM (000200xx)
+```
+
+- `0x00010204` é **vizinho direto** do BPM no firmware — reforça (com a
+  co-ocorrência da sessão G3–G6) que é o 2º registrador do drum. **NOME
+  FECHADO por rótulo no binário do Suite (§13.13.7): `drumVolume`.**
+- A família do EQ (`00020011..1f`, 8B) não tem accessor literal nesta região
+  (acesso indexado/genérico) — permanece com o nome de campo (§13.13.4).
+- Método repetível: scan de words LE `0x00000100..0x0003FFFF` após `bd08` na
+  seção de acessadores; nenhum byte foi alterado (só leitura).
+
+**13.13.7 — RE do Suite oficial: mapa completo chave→registrador (11/10, só
+leitura):** o binário do Suite (`C:/Program Files/Valeton/GP-100/GP-100.exe`,
+MSVC/Qt — referência legítima de RE, VISION §10.1) contém o pareamento
+**explícito**: cada handler carrega a chave QString de settings e chama o
+writer com o registrador imediato. Três classes de prova, nenhuma dedução:
+
+- **A — bloco de código:** chave carregada → `mov edx, <reg>` → `call 0x44f580`
+  (writer SysEx: edx = endereço 4B, byte0 = família, buf+len nos outros
+  regs; 38 sites). Wrapper `0x587d20` = write(reg, buf, len) (21 sites).
+- **B — cadeia+vetor:** o dispatcher `0x569d80(key)→índice` devolve índice
+  explícito por ramo; o writer `0x569ac0` grava `B[índice]`, com B =
+  `{00020004,00020007,00020008,00020000,00020005,00020006,00020003,00020006,0002000a,0002000b}`
+  (`.rdata` 0x1a54ca0/0x1a54cc0+0x2c/0x28). **Duas âncoras independentes
+  validam o vetor:** `gInput→00020004` (bate com o diff medido §13.13.4) e
+  `gVolume→00020003` (bate com a classe A).
+- **C — rótulos de UI:** strings `.rdata` dos dialogs (`stompmode_on/off`,
+  `Update Firmware will delete user preset…`, `The firmware file is not
+  compatible…`).
+
+*Família DRUM `000102xx`:*
+
+| reg | chave do Suite | prova |
+|---|---|---|
+| `00010201` | `drumPlayStyle` | A (refs 0x49cc11/cc8f → write 0x49cd74) |
+| `00010203` | `drumBpm` | A (bloco 0x49d1xx) **+ wire ✓** |
+| `00010204` | **`drumVolume`** ★ | A (key@116B → write 0x49d1d6, mesma função do BPM) |
+| `00010205` | `drumState` | A (dois writes 0x49bb3d/0x49bcfd) |
+
+★ = o “2º registrador do drum” que §13.13.4 deixou em aberto: é **volume**
+(não BPM). `00010103`/`00010104` (só no firmware, §13.13.6): **0 ocorrências**
+em `.text`/`.rdata` do Suite em qualquer forma (mov/push/lea/add) — o Suite
+não os usa; rótulo exige outro diff ou RE mais funda do firmware.
+
+*Família SYSTEM `0002xxxx` — o menu GLOBAL inteiro:*
+
+| reg | chave | significado | prova |
+|---|---|---|---|
+| `00020000` | `gPatch` | preset/patch atual | B (índice 3) |
+| `00020001` | `gWorkMode` | **stomp mode** (labels `stompmode_on/off`) | A (0x5e8bd3) + C |
+| `00020003` | `gVolume` | volume master | A (key@57B → 0x5dc892) + B (índice 6) |
+| `00020004` | `gInput` | **Input Level** | **wire ✓** + B (índice 0) |
+| `00020005` | `gUsbGain` | ganho USB | B (índice 4) |
+| `00020006` | `gUsbMonitorVol` | volume monitor USB | B (índice 7) |
+| `00020007` | `gUsbAudioLeft` | saída USB L | B (índice 1) |
+| `00020008` | `gUsbAudioRight` | saída USB R | B (índice 2) |
+| `00020009` | `gTapTempoSetting` | alvo do tap tempo (PRE/DLY/MOD…) | A (0x5a9495) |
+| `0002000a` | `gNoCabLeft` | no-cab L | B (índice 8) |
+| `0002000b` | `gNoCabRight` | no-cab R | B (índice 9) |
+| `00020011` | — | **enable do Global EQ** (bool→float, 2 sites 0x57d7c3/0x57ea5d) | A |
+| `00020012..1f` | — | **EQ por banda** (família 8B medida §13.13.4) | wire ✓ + C |
+
+Obs.: o calculador `0x2000e + 3·i + p` com casos i=0→`00020012`, i=7→
+`00020013` existe em 2 funções **sem chamadores** (código morto); o caminho
+vivo usa o reg pré-computado em `obj+0x164` e o cache `00020011..14`.
+
+*`0000xxxx` — ppCtrl e EXP (os que faltavam do diff):*
+
+| reg | chave | prova |
+|---|---|---|
+| `00000000`..`00000005` | `c11,c12,c13,c21,c22,c23` | A (alternância chave→write na função 0x55a930; `00000005` tem `push 5` explícito em 0x55b7ad) **+ `00000005` wire ✓** |
+| `00001000` | bloco de config do **EXP** (16B) | A (write 0x575ce6 len=16; chaves `ppEXP1/expMId/expIndex/expCode`) **+ wire ✓** |
+| `00001009` | `expVolumeMin` | A (key@114B → 0x56240a) |
+| `0000100a` | `expVolumeMax` | A (key@114B → 0x56228a; min<max confere) |
+| `0000100e` | `expVolume` | A (key@121B → 0x55f092) |
+| `00001001..08` | parâmetros EXP (família) | A — mesmos blocos de função (`ppEXP1`), 8 writes 4B: 1001/1002/1004/1005/1007/1008 + 1003/1006; **sub-rótulo individual pendente** |
+
+`0000100b..0d` não aparecem nem no Suite nem no fio. Os ppCtrl `c11..c23` são
+os slots de parâmetro das duas linhas (é o que o Suite grava em `0000xxxx`);
+o que o *device faz* com cada um continua para diff de ação isolada.
+
+*Outros endereços nomeados no caminho:*
+
+- `0011000001` = escrito da **página de efeitos** (2 sites: 0x5db47f após a
+  cadeia PRE..RVB, stub 0x570f4a) — nome exato pendente.
+- `0011000002` = **`ppBPM`** (bloco `ppBPM`→write 0x5dc689) — irmão novo do
+  save (golden tem `11000000/04/05/07/08`). `0011000005` = `ppType`
+  (corrobora golden §13.12 pelo bloco).
+- `0012000002` = fecho de metadados (golden §13.12; bloco
+  `ppAuthor/ppType→write` corrobora).
+- `0012001001` = bloco com lookup `AMP`/`CAB` (0x5dccc3) — irmão de
+  `12001002` (tabela lida §13.3); nome pendente.
+- `0012002000` = **fluxo de firmware update** (4 writes; labels C acima).
+  (Não tocamos em update — política G6.)
+- Slots de parâmetro: **`10 <slot01..09> 00 01`** e **`10 <slot01..09> 00 02`**
+  = 18 setters stub em 0x570d2f..0x570f2d (`10xx0002` = SET de param §13.11
+  ✓ medido) + `11000001` no mesmo bloco de stubs.
+
+*CC (fora de SysEx):* `0x44f1c0` monta **`B1 <cc> <val>`** (byte0 = 0xb1;
+imediatos 0x14..0x38). Sites: cc `0x30..0x38` (48..56) × {0x00,0x7f} na
+página de efeitos e cc `07` no fluxo de save; wrapper `0x587c70(cc,val)`
+emite o valor dinâmico. **Bate com os CCs medidos** `B1 30 7F`/`B1 31 7F`
+(G5). O `B1 30 05` medido (valor dinâmico) sai do wrapper. Significado de
+CC48/49 no device segue para diff de ação.
+
+*O que continua SEM nome (honestidade ADR-13):* sub-rótulos de
+`00001001..08`; `00010103`/`00010104` (ausentes do Suite); semântica fina de
+`0011000001`/`0012001001`; ação de UI→endereço para os ppCtrl; banda×
+parâmetro do Global EQ (0x20012..1f — um diff por banda fecha). **Nenhum byte
+do Suite/firmware foi alterado (só leitura).**

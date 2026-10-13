@@ -1,9 +1,9 @@
 # 🖼️ UI_REFERENCE — Referencial de UI do editor (app oficial + achados + plano por etapas)
 
 > **Status:** 🔨 em andamento (Fase 1 — casca/navegação) · **Criado:** 30/09/2026 ·
-> **Fontes:** capturas do app oficial (`files/images/`, `analysis/screens.html`), manual oficial
-> (`files/GP-100_Online Manual_EN_Firmware V2.0.pdf` → texto em `analysis/manual_streams.txt`),
-> dicionário (`analysis/parameters.json` — 185 algs/639 controles), `docs/UI_DESIGN.md`,
+> **Fontes:** capturas do app oficial (`files/images/`, `docs/arquivo/analysis/screens.html`), manual oficial
+> (`files/GP-100_Online Manual_EN_Firmware V2.0.pdf` → texto em `docs/arquivo/analysis/manual_streams.txt`),
+> dicionário (`packages/core/data/parameters.json` — 185 algs/639 controles), `docs/UI_DESIGN.md`,
 > `docs/UI_PLAN.md`, decisões do owner (30/09, conversa de revisão de UI).
 >
 > **Por que este doc existe:** decisão do owner — "anote todos os achados que temos até
@@ -15,7 +15,7 @@
 ## 1. O app oficial (Valeton GP-100 Suite v1.5.1) — layout completo (capturas)
 
 Fonte: `files/images/Captura de tela 2026-09-25 174604.png` (tela principal) e
-`...174654.png` (modal Settings). Cópia servida em `analysis/screens.html` (base64).
+`...174654.png` (modal Settings). Cópia servida em `docs/arquivo/analysis/screens.html` (base64).
 
 ### 1.1 Tela principal (uma janela única, ~1502×687)
 
@@ -85,7 +85,7 @@ General:
 - **Política nossa (UI_PLAN §5):** escritas globais só pós-captura (G3–G6); a aba
   General da fase 1 persiste LOCAL (localStorage) e marca "prévia local".
 
-### 1.3 Achados do manual (texto extraído, `analysis/manual_grep.py`)
+### 1.3 Achados do manual (texto extraído, `docs/arquivo/analysis/manual_grep.py`)
 
 | Item | Evidência (fio/manual) | Impacto na UI |
 |---|---|---|
@@ -93,7 +93,7 @@ General:
 | Footswitch Mode | texto do manual ao lado do Global EQ | Stomp Mode / FS1-FS2 (fase futura) |
 | USB Audio ON/OFF | idem | aba General (toggle prévia) |
 | Tap Tempo Mode | tooltip do manual no checkbox (PRE/MOD/DLY) | aba General (checkbox trio) |
-| APP Language | combo English (firmware tem en/zh/CN/es) | i18n 4 línguas (UI_PLAN M1.5) |
+| APP Language | combo English (firmware tem en/zh/CN/es) | i18n 4 línguas — **FEITO (#30)**, select funcional |
 | Página do pedal | painel grande = 1 módulo com knobs + ⓘ | modal de edição do pedal (fase 2) |
 
 ---
@@ -102,8 +102,8 @@ General:
 
 | Fonte | Conteúdo | Onde a UI usa |
 |---|---|---|
-| `analysis/parameters.json` | 185 algoritmos/639 controles (knob/switch/combox, pos/min/max/default/options) | Effects List por módulo, knobs, ranges |
-| `analysis/fx_map.json` + `packages/app/ui/src/artifacts/fxData.ts` | catálogo gerado por módulo (variant/nibble/index/name/controles) | fallback dev + models |
+| `packages/core/data/parameters.json` | 185 algoritmos/639 controles (knob/switch/combox, pos/min/max/default/options) | Effects List por módulo, knobs, ranges |
+| `packages/core/data/fx_map.json` + `packages/app/ui/src/artifacts/fxData.ts` | catálogo gerado por módulo (variant/nibble/index/name/controles) | fallback dev + models |
 | `.prst` XML da máquina (fábrica) | presets nomeados (ex.: "It's GP100", PP25 "Mist") | biblioteca de fábrica (99 presets) |
 | `docs/PROTOCOL.md` §13.9/13.10 | formato XML + scan de presets | leitura REAL da biblioteca |
 | Stats por família | PRE16 DST19 AMP51 NR2 CAB60 (IRs, 1 knob) EQ3 MOD12 DLY12 (max 9 ctrl) RVB10 | tamanhos dos pedais, contagem da Effects List |
@@ -121,42 +121,109 @@ completamente funcional"):** importar/gerar a lista REAL dos 99 presets de fábr
 > NADA disso se perde: vira o checklist da fase 2 (issue U-3+).
 
 ### 3.1 Comportamento (aprovado pelo owner)
-- [ ] **Trava do drag-and-drop** — toggle no CABEÇALHO DO PALCO ("⇄ mover",
-      `aria-pressed`): drag
-  SÓ funciona com ela ativa. Motivo: sem trava, arrastar knob errado move o pedal.
-- [ ] **Um efeito por vez primeiro** — validar CADA efeito isolado (o COMP primeiro)
+- [x] **Trava do drag-and-drop** — toggle no CABEÇALHO DO PALCO ("⇄ mover",
+      `aria-pressed`): drag só com ela ativa; no palco real (fatia 1) o pedal
+      arrasta para QUALQUER posição com a trava destravada (`draggable`).
+- [x] **Um efeito por vez primeiro** — validar CADA efeito isolado (o COMP primeiro)
   antes de devolver os 9 slots ao board. Owner: "primeiro vc deve ajustar todos os
-  efeitos de comp, apenas com esse efeito visível".
-- [ ] **Modal de edição do pedal** — clicar no pedal amplifica para edição dos
-  parâmetros (estilo painel grande do oficial). Board = visão geral; modal = edição.
-- [ ] **Nome do patch fora do board** — display LED (estilo hardware) no topo e/ou
-  navbar; o board é só a cadeia.
-- [ ] **Toggle/LED** — LED VERDE = ON, VERMELHO = OFF, em todos os pedais.
-- [ ] **Valor editável via textbox** sob/ junto ao knob (Enter aplica, Esc cancela,
-  duplo-clique no knob = default; setas ±1%, Shift ±5%).
+  efeitos de comp, apenas com esse efeito visível". *Fatia 1 (PR da #19):* o
+  Stage renderiza só as famílias de `PEDAL_FAMILIES_READY` e mantém os demais
+  lugares como placeholders. *Fatia 4:* entraram **PRE/COMP e DST** (2 pedais
+  reais + 7 placeholders); cada rodada do R7 acrescenta a próxima família.
+- [x] **Modal de edição do pedal** — clique (ou Enter) em QUALQUER ponto do pedal
+  amplia para edição dos parâmetros (estilo painel grande do oficial): **1.25×**
+  do layout de edição (knob 64 → 80px), mesmos handlers (estado ÚNICO com o
+  palco), fecha com **Esc / ✕ / clique fora** e o transporte global fica inerte
+  enquanto aberto. Com a trava ⇄ ativa o clique pertence ao drag (não amplia).
+  **Board = leitura, modal = edição.**
+- [x] **Knobs do palco são SÓ LEITURA (pedido do owner, fatia 4)** — o pedal do
+  board é compacto e mostra o VALOR de cada knob em texto; não há textbox nem
+  gesto de ajuste no palco ("a edição pode ficar ruim com ele pequeno"):
+  clica → abre o modal → ajusta → o palco reflete. O knob travado é
+  `role="img"` (sem foco/handlers) e mantém o tooltip (modo engenheiro incluso);
+  só o **footswitch** conserva clique próprio (liga/desliga).
+- [x] **Nome do patch fora do board** — display LED (estilo hardware) no cabeçalho
+  do palco (e na navbar); o board é só a cadeia.
+- [x] **Toggle/LED** — LED VERDE = ON, VERMELHO = OFF. *Fatia 1:* footswitch
+  alterna por prévia LOCAL (o protocolo capturado não tem comando de toggle).
+- [x] **Valor editável via textbox** sob o knob (Enter aplica, Esc cancela,
+  duplo-clique no knob = default; setas ±1%, Shift ±5%). A textbox vive no
+  **modal** (no palco o valor é texto de leitura). Aplicar é LOCAL +
+  `device_set_param` quando o knob é numérico (switch/combox só local — o
+  protocolo capturado não tem encoding de opção).
 
 ### 3.2 Geometria/tamanhos (aprendidos com os testes)
-- [ ] Knob grande (64px testado; base p/ modal: 72–80px). Pitch da grade ≥ 116px
-  para 64px + nome + valor sem sobreposição.
+- [x] **Pedal do PALCO: compacto, dentro do espaçamento do board** — largura
+  `clamp(catálogo fxModels, 118, 132)` (os dois mínimos do `.board-slots`),
+  knob 32px, passo 46px (encolhe p/ caber), rótulo + VALOR em texto, sem placa;
+  altura cresce por linha (174 / 228 / 282px). `flexShrink: 0` no svg: o flex do
+  slot nunca reescala o desenho (encolher o svg desalinhava tudo).
+- [x] **Escala de EDIÇÃO (modal)**: layout grande próprio (420px de largura
+  mínima, knob 64, pitch 116, placa GP-100) × `MODAL_SCALE = 1.25` → 525×470px
+  com knob 80px. O bloco interno do modal PRECISA de `width/height` explícitos
+  (sem eles ele herda a largura do wrapper e o 1.25× vira 1.5625×).
 - [ ] Formas por variante: mini/box/widebox/treadle/filter/tscream/fuzz/rotary/
   amphead/echo (catálogo `fxModels.ts`). AMP = cabeçote NA CADEIA (Bog RedM: 6 knobs,
   PRES/MASTER/BASS/MIDDLE/TREBLE/GAIN); CAB = gabinete IR (1 knob de mic; 60 IRs);
   DLY pode ter 9 controles (6 knobs + 3 switches); wah = treadle com rocker.
 - [ ] Testar CADA pedal em TODAS as 9 posições do board (tamanho/espaçamento/linhas).
 - [ ] Knobs bidirecionais (min>max = centro físico) normalizados; EQ usa sliders.
-- [ ] Tooltip do modo engenheiro: `addr 10 0X 00 02 · code 0x… · ctrl N · payload §13.11`.
+- [x] Tooltip do modo engenheiro — **liga/desliga na aba General do Settings**
+      (persistido local): `Sustain: 42 · SET · addr 10 01 00 02 · code 0x… · ctrl 0 ·
+      payload [code u32 LE][ctrl][00][f32 LE]`. Sem referência à doc interna
+      (`§13.11`) — lição Q-8 travada por teste (unit + e2e).
 
 ### 3.3 Lições de engenharia (não repetir)
+- ⚠️ **`transform: scale()` + wrapper dimensionado = escala aplicada 2×** se o
+  bloco interno não tiver `width/height` próprios: o bloco herda a largura já
+  escalada do wrapper e o scale multiplica de novo. Sintomas: corpo menor que a
+  área (espaço vazio), conteúdo descentralizado e barra de rolagem. O
+  `PedalModal` ficou assim desde a fatia 3 e só apareceu no `Modal` real
+  (medir `scrollWidth` do container é o teste rápido).
+- ⚠️ **Item de flex encolhe o SVG** (padrão `flex-shrink: 1`): um pedal mais largo
+  que a coluna do board era reduzido com o `viewBox` “meet” (desenho menor e
+  centralizado, com letterbox). Ou o enclosure cabe no espaçamento (é o caso do
+  palco: 118–132px) ou o svg precisa de `flexShrink: 0`.
+- ⚠️ **`place-items: center` + overflow = conteúdo cortado à esquerda e
+  inalcançável** (não dá scroll para o lado negativo). Use `justifyItems:
+  safe center` quando o conteúdo pode ser maior que o container (modal).
 - ⚠️ `str_replace` com texto parcial já quebrou o `Pedal.tsx` 2× — sempre reler o
   arquivo após edições grandes; preferir reescrever o bloco inteiro.
 - ⚠️ Fallback dev exige nomes EXATOS do `fxData.ts` (era "4x12 Green", correto é
   "UK-GN 4x12").
 - ⚠️ `fxData.ts` é GERADO (não editar mão) — fonte é `parameters.json` via
-  `analysis/dump_fx_map.py`.
+  `scripts/dump_fx_map.py`.
 - ⚠️ `control_count` no fxData quebrou o tsc (removido).
 - ⚠️ Crate `gp100-ui` NÃO compila no host (MSVC ausente — ADR-7); CI é a prova.
+- ⚠️ **Coluna estreita + `flex` sem `flexWrap` = o RÓTULO encolhe, não o botão.**
+  A nota do rodapé da biblioteca (`flex: 0 1 auto`) encolheu para ~100px e o
+  texto de 4 palavras virou uma coluna de 4 linhas — o rodapé cresceu 30px e,
+  como a biblioteca e o pedalboard dividem a fileira por `stretch`, o
+  pedalboard desceu junto. A `flexWrap` devolveu o rótulo à largura inteira
+  (linha própria) e o rodapé ficou com 61px em vez de 91: **o layout ficou
+  MENOR e legível**. O sintoma não é "estourou", é "ficou esquisito de
+  alto" — e ele aparece nas baselines visuais, não em nenhum assert.
 
-### 3.4 Referências externas (VISION §8.1)
+### 3.4 Afinador do palco (issue #8 — refinamento profissional)
+- **Botão do monitor é VISUAL**: ícone ♪ + LED verde (ligado) / vermelho
+  (desligado), sem palavra de estado; o rótulo acessível mora no
+  `aria-label`/`title` (que já diz o estado). `data-tuner-power` para teste.
+- **Grade FIXA de 4 colunas** (`auto auto 1fr auto` = monitor · modo · ref ·
+  demo) que **nunca colapsa**: antes, com o monitor desligado, modo e REF
+  PITCH sumiam e sobrava um buraco na linha (o painel ainda mudava de altura
+  78→82px ao ligar). O slider do REF absorve a sobra — zero espaço vazio.
+- **Ordem = fluxo**: on/off junto do display (LED/escala) e a demo — que é
+  ferramenta de teste — na ponta direita.
+- **O monitor MANDA na leitura**: desligado = não ouve (nota “—”, agulha
+  centrada, LED próprio cinza) e nenhuma demo roda em background. Clicar em
+  “▶ demo” com o monitor desligado **liga o monitor junto** (demonstrar exige
+  ouvir) e desligar o monitor para a demo.
+- **Nada vai para o device**: o tuner do GP-100 entra por gesto de hardware
+  (segurar os 2 footswitches) e o protocolo capturado ainda não tem comando —
+  os ajustes são prévia LOCAL persistida (`gp100.tuner.v1`). A leitura real
+  entra pela prop `reading` quando o canal de áudio existir.
+
+### 3.5 Referências externas (VISION §8.1)
 - Neural DSP (cadeia visual drag-and-drop), Line 6 Helix Native (editores grandes
   por bloco, snapping), Boss Tone Studio (biblioteca+editor numa tela).
 - Padrão vencedor: **cadeia horizontal + painel contextual + biblioteca lateral** —
@@ -223,7 +290,7 @@ FASE 3 — CONTO E POLIMENTO
 
 ### 7.1 Bateria (drum) — 87 ritmos REAIS do firmware V2.1
 - **Fonte:** tabela de estilos no `GP-100 Firmware V2.1.bin` (entre as divisões
-  de nota `1/8T` e os compassos) — gerador `analysis/dump_drum_kit.py` →
+  de nota `1/8T` e os compassos) — gerador `scripts/dump_drum_kit.py` →
   `packages/app/ui/src/artifacts/drumData.ts` (GERADO).
 - **Estilos (87) em 5 grupos** na ordem do firmware: Electronic (Metro, Electro1,
   Electro2, Techno, TripHop, H-Hop1-4, D&B, Break, E-Pop) · Rock (Surfin, Hard 1-3,
@@ -238,46 +305,98 @@ FASE 3 — CONTO E POLIMENTO
   tinha só 2/4…7/4 — corrigido).
 - Marketing Valeton diz "100 patterns incl. metrônomos"; a tabela extraída tem
   87 estilos nomeados (inclui Metro). Mantemos os 87 reais.
-- **UI:** chip no topbar abre o `DrumPanel` (gênero → estilo dependente, BPM,
-  compasso, volume, speed; prévia local persistente).
+- **UI:** o chip no topbar tem play/stop e stepper de BPM DIRETO na navbar
+  (sem abrir o painel); o chip abre o `DrumPanel` como MODAL no padrão do
+  Settings (gênero → estilo dependente, BPM, compasso, volume, speed;
+  prévia local persistente — o drum NUNCA volta tocando).
 
-### 7.2 Looper — máquina de fita reel-to-reel (skeuomórfico)
+### 7.2 Looper — máquina de fita reel-to-reel, em alumínio violeta (issue #12, 03/10)
 - **Dados reais (firmware menu LOOPER):** Rec VOL (0–99) · Play VOL (0–99) ·
   Pre/Post · P-VOL.
 - **Specs oficiais (valeton.net + manual v1.8):** loop stereo com efeitos,
   **90 s em PRE / 45 s em POST** (24-bit · 44.1 kHz · SNR 110 dB).
-- **Referências visuais (pesquisa):** Studer A807 / Nagra / Tandberg — dois rolos
-  (supply/take-up) girando quando roda, VU meters com face âmbar e agulha animada,
-  contador mecânico estilo fita, transporte com símbolos clássicos
-  (⏪ ■ ▶ ●) e cabeçotes REC/PB + capstan no caminho da fita.
-- **UI (`LooperPanel`):** deck de fitas + VU L/R + contador mm:ss + transporte
-  (REW/STOP/PLAY/REC/CLEAR com confirmação; PLAY desabilitado com fita vazia;
-  REC→PLAY→DUB→PLAY como looper de pedaleira) + rack com os 4 parâmetros do
-  firmware + seletor PRE·90s/POST·45s + nota de specs. Prévia local (fio aguarda
-  captura G3–G6).
-- **Ajuste de linguagem visual:** painel "madeira/metal" escuro compatível com a
-  paleta palco; animações desligam com `prefers-reduced-motion`.
+- **Referências visuais:** Studer A807 / Nagra / Tandberg — dois rolos
+  (supply/take-up), VU meters com face âmbar e agulha, contador mecânico,
+  cabeçotes REC/PB + capstan no caminho da fita.
+
+**O que mudou na #12 (o painel anterior era sépia/bege dentro de uma casca
+violeta, com três colunas soltas e muito espaço morto):**
+
+| Peça | Antes | Agora |
+|---|---|---|
+| **Cor** | sépia/bege — um deck de 1990 dentro de uma UI violeta | **violeta da identidade**; o âmbar fica só no ANALÓGICO (a fita e a luz de fundo do VU). Violeta = digital, âmbar = analógico |
+| **Deck** | 3 `<svg>` soltos (2 rolos + blocos REC/PB) que não se encaixavam quando a coluna mudava de largura | **1 SVG só** (`viewBox 560×170`) com rolos, ponte, cabeçotes, capstan e o caminho da fita — a geometria é exata em qualquer largura |
+| **Rolos** | disco escuro com 3 raios | flange de alumínio anodizado com canalheado, **3 raios cônicos por cima do pacote de fita** (a fita aparece pelos vãos ENTRE os raios, como no rolo real) + cubo e furo |
+| **Fita** | não existia | **um caminho só**, saindo do fundo do supply, descendo aos cabeçotes e subindo para o take-up. Pintada **POR CIMA** dos cabeçotes (é assim que ela passa de verdade; atrás, a linha sumia no metal) |
+| **Pacote de fita** | fixo | **dirigido pelos segundos**: supply esvazia e take-up enche, e `supply + takeup` é constante (a fita não é criada nem sumida). No repouso a máquina aparece ENFIADA (supply cheio, take-up vazio) |
+| **Contador** | texto mono numa caixa | **7 segmentos** de verdade (28 polígonos) com brilho violeta que muda com o transporte; o texto acessível continua sendo o `mm:ss` exato |
+| **VU** | retângulo bege com agulha curta | visor de vidro com **face mais clara no topo** (lâmpada atrás da escala), régua VU **não-linear** (-30→+3 dB), zona vermelha no +1, risco de luz no vidro, agulha em repouso que só varre com sinal |
+| **Transporte** | 5 botões com gradiente | **teclas de metal com chanfro** (fio de luz em cima + sombra de contato embaixo + recuo no `:active`) e **LED de estado** na face; ícones em SVG (emoji de fonte de sistema denunciava o truque) |
+| **Rota PRE/POST** | 2 botões soltos | **chave de duas posições** num sulco escuro, com a posição ativa acesa por dentro |
+| **Ganhos** | `<input type=range>` com `accentColor` | **fader de verdade**: sulco rebaixado, barra de sinal e **capuz metálico**; o `input` fica transparente por cima (teclado e teste seguem funcionando) |
+| **Layout** | `repeat(auto-fit, minmax(300px,1fr))`, 3–4 colunas soltas | **2 colunas** (deck \| medição+transporte) com head e mix atravessando; 1 coluna ≤900px |
+| **Altura** | 260px | 423px @1440 — **mais alto, e esse é o ponto**: a máquina virou o elemento mais presente da tela, que era o pedido ("a pérola do projeto") |
+
+- **Tema:** a máquina é **escura nos dois temas**. `.lp` remapeia os tokens de
+  superfície para os valores escuros: um instrumento de rack não fica branco
+  quando o sistema fica (sem isto o looper virava painel branco com visor preto).
+- **Uma direção de luz só** em todo o painel (cima, como o `.gp-specular`):
+  peça convexa ganha fio de luz em cima e sombra de contato embaixo; peça côncava
+  (poço do deck, sulco do fader, visor do VU) ganha o inverso. É o que faz o
+  painel ler como um objeto e não como um conjunto de caixas.
+- **Estado nunca só por cor:** transporte em `aria-pressed`, LED da tecla
+  espelhando o mesmo estado, LED de armed no deck aceso em REC/DUB.
+- Animações (rolo girando, agulha, LED piscando) desligam com
+  `prefers-reduced-motion`.
+- **Limite declarado:** é PRÉVIA LOCAL — a escrita no device do looper continua
+  esperando a captura G3–G6 (fio).
+
+### 7.3a Navbar como RACK de largura igual (issue #12, 03/10)
+
+> Pedido do owner: "os componentes estão com tamanhos diferentes de largura,
+> alinha todos os componentes". Os quatro módulos (conexão · patch · drum ·
+> master) ocupavam 220/267/266/317px — larguras sorteadas.
+
+- `.nb-controls` saiu de `flex` para **`grid` de 3 colunas `minmax(0, 1fr)`**
+  (eram 4 — o cluster de patch ◀ ▶ + nome saiu da navbar por decisão do dono
+  em 12/10: a troca de patch vive na lista e o rótulo no display LED do palco)
+  — larguras iguais por construção, medidas e travadas em teste.
+- `flex: 1 1 0` (e não `auto`): com `auto` a base do flex vira o max-content do
+  rack e o header — que é `flex-wrap` — quebrava o banner em duas fileiras.
+- **Gramática interna única em todo módulo:** leitura à esquerda, ação à direita
+  (`.nb-push` empurra o segundo grupo para a borda oposta), separador marcando
+  a virada. `.nb-cluster` nunca mais usa `space-between` (espalhava o módulo de
+  conexão em 4 vãos de 51px).
+- **Abaixo de 1024** o rack vira **2 colunas** (com os 4 módulos antigos era
+  2×2 — o `flex-wrap` antigo devolvia larguras diferentes, voltando ao defeito)
+  e **1 coluna ≤620px**.
+- **Reescanear (⟳)** deixou de ser um quadrado violeta que gritava mais que o
+  logo: virou botão de ícone quieto que **gira enquanto o boot roda**.
+- **Stepper de BPM** encolhe em ≤1024 (`.nb-step`/`.nb-bpm` foram para o CSS
+  justamente para o media query poder apertá-lo sem mexer no componente) —
+  sem isso o chip do ritmo virava "R…".
 
 ### 7.3 Responsividade da casca (R-responsivo, 30/09)
 
 > Pedido do owner: board + looper em 1280/1024 sem quebrar o alinhamento dos
 > painéis. Implementado em CSS (sem estilos inline de grid) e verificado por
-> MEDIÇÃO no Chrome (`analysis/responsivo_checks.js` — 9 asserts/viewport,
+> MEDIÇÃO no Chrome (`docs/arquivo/analysis/responsivo_checks.js` — 9 asserts/viewport,
 > 27/27 ✅; registro em docs/UI_TEST_PLAN.md, rodada R-RESPONSIVO).
 
 | Regra | Onde vive | Comportamento |
 |---|---|---|
-| `.shell-main` | `design.css` (usada em `App.tsx`) | `minmax(0,1fr) 320px`; ≤1100px EMPILHA (biblioteca vira linha, mesma largura do board) |
-| `.board-slots` | `design.css` (usada em `EmptyBoard.tsx`) | 9 colunas; ≤1340px vira 3×3 (sem slots órfãos) |
-| Looper `card` | `LooperPanel.tsx` | `repeat(auto-fit, minmax(300px,1fr))`: 4 tracks @1440 (a 4ª colapsa a 0px — sem buraco), 3 tracks @1280/1024 |
+| `.shell-main` | `design.css` (usada em `App.tsx`) | `minmax(0,1fr) 248px` (era 320px; estreitada na #11 para devolver largura ao pedalboard — 9 slots ganham ~50px de palco); ≤1100px EMPILHA (biblioteca vira linha, mesma largura do board) |
+| `.board-slots` | `design.css` (usada em `Stage.tsx`) | colunas por conteúdo: `repeat(3, minmax(132px, max-content))`; ≥1700px `repeat(9, minmax(118px, max-content))`; `overflow-x: auto` |
+| Looper `card` | `looper.css` | `minmax(0,1.08fr) minmax(0,1fr)`: **2 colunas** (deck \| medição+transporte) com a faixa de head e o mix atravessando as duas; **1 coluna ≤900px** (#12) |
 | `.gp-num` | `design.css` | number input sem spinners (visual idêntico aos selects) |
 
-- **Medidas canônicas (Chrome):** overflow X = 0 nos 3 tamanhos; slots com
-  larguras idênticas e pitch uniforme; looper tracks 439.3×3+0 @1440, 386×3 @1280,
-  300.7×3 @1024; nenhum texto clipado nos painéis.
+- **Medidas canônicas (Chrome):** overflow X = 0 nos 3 tamanhos; slots medidos
+  POR LINHA com colunas por conteúdo (o lugar vazio tem 142px; o pedal do palco
+  fica em 118–132px dentro dele) e **zero sobreposição**; looper tracks
+  439.3×3+0 @1440, 386×3 @1280, 300.7×3 @1024; nenhum texto clipado nos painéis.
 - **Ferramenta:** os asserts de alinhamento viraram TESTE e2e
   (`e2e/responsivo.spec.ts` + `e2e/_helpers.ts::expectShellAligned` — rodam na
-  CI e localmente, 3 viewports). O script `analysis/responsivo_shots.js`
+  CI e localmente, 3 viewports). O script `docs/arquivo/analysis/responsivo_shots.js`
   continua útil só para gerar screenshots/recortes de inspeção do owner.
 
 ### 7.4 Atalhos globais de teclado (R-ATALHOS, 30/09)
@@ -288,7 +407,7 @@ FASE 3 — CONTO E POLIMENTO
 
 | Tecla | Ação | Detalhe |
 |---|---|---|
-| `Espaço` | Drum play/stop | alterna `drum.on` (mesmo efeito do botão ⏵/⏹ do chip e do painel) |
+| `Espaço` | Drum play/stop | alterna `drum.on` (mesmo efeito do toggle ⏵/⏹ da navbar e do modal de gestão) |
 | `R` | Looper REC | dispara o MESMO `onRec` do botão ● (rec → play → dub → play) |
 | `Esc` | Fecha o painel do TOPO | precedência: Settings → Drum → drawer de pushes |
 
@@ -310,16 +429,76 @@ FASE 3 — CONTO E POLIMENTO
   toggle do drum, REC→PLAY, guarda de digitação, precedência do Esc) e 3 e2e em
   `e2e/atalhos.spec.ts` no Chromium — suíte total: **23 unit · 11 e2e** ✅.
 
-### 7.5 CI: e2e da casca contra o `pnpm dev` + cobertura do manual (30/09)
+### 7.5 BANCOS DE PATCH: o patch aberto É o que o pedalboard mostra (#11)
 
-- **Job `e2e` no pipeline.yml** (ubuntu, Chromium via `playwright install
-  --with-deps`): roda a suíte completa contra o dev server que o próprio
-  `playwright.config.ts` sobe (`webServer` + strictPort + reuseExistingServer).
-  Mesmo filtro de caminho do job front (mudança em `packages/app/ui/`).
-- **Gate de release:** `tag-release` (e os 2 jobs de release) têm `needs:
-  [plan, gate, spec, rust, front, e2e]` — **tag só sai com o e2e verde**.
-- **Suíte total:** 14 e2e ✅ (R1–R6 + drum + looper + 3 atalhos + 3 responsivos)
-  · 23 unit ✅. Asserts de alinhamento portados p/ `e2e/_helpers.ts`
+> Antes desta rodada a biblioteca era decorativa: trocar de preset mudava o nome
+> no LED/navbar e os 9 pedais seguiam IGUAIS. A causa era o **mock web**
+> (`localMockBoard`), que tinha uma cadeia FIXA (COMP/Green OD/Bog RedM/…) para
+> os 99 presets. O core Rust já montava a cadeia por preset
+> (`pedalboard::board_view_for`: `slot` = `@x`, `family` = `effectModuleName`,
+> `code` = `effectCode`, knob = `params_N`) — o gap era só a fonte do mock.
+
+| Peça | Onde | O que faz |
+|---|---|---|
+| Cadeia real dos 99 | `src/artifacts/presetChains.ts` (**GERADO** por `scripts/dump_preset_chains.py` do `all.prst`) | 99 × 9 slots com `family`, `name`, `state`, `code`, `params` crus |
+| Leitura no mock | `src/ipc/device.ts::localMockBoard` | `algFor` pelo `effectCode`; knob = `params[pos]` se plausível (dentro do range, nunca o sentinel `0xFFFF`); algoritmo fora do dicionário → pedal SEM knobs (regra do core) |
+| Ordem do palco | `Stage.tsx::baseOrder` | ordena pelo `slot` REAL, não pela família: **20 dos 99 presets têm a cadeia trocada** (ex.: P06 = DST antes de PRE) |
+| Banco + rótulo | `BoardView.bank` / `BoardView.ppLabel` | `"factory"`/`"user"` + `"P25"` (1-based) ou `"U01"` — o LED e a navbar leem o rótulo do board |
+| Patch de usuário | `src/userPatches.ts` + `src/hooks/useLibrary.ts` | snapshot PROFUNDO dos 9 slots (retrato imutável) gravado no **banco SQLite** (`library_save`; #26), **migrado do `localStorage` no boot**; `patchDeRegistro` devolve o `BoardView` no mesmo formato do device, `boardOfUserPatch` monta a partir dele |
+| Busca da biblioteca | `src/ipc/library.ts` | o texto e o filtro de estilo vão para o **banco** (`library_search`), com debounce de 180ms; casa nome, estilo, número de display (1-based) e `ppID` cru |
+
+**Contrato de honestidade da UI:** `pp` só muda DEPOIS do device confirmar
+(`openPreset`); abrir patch de usuário não pode falhar (nada é escrito); excluir
+o patch que está no palco devolve o preset de fábrica confirmado; a aba segue o
+BANCO ABERTO (abrir um patch troca a aba, clicar na aba só navega a visão).
+
+**Por enquanto o patch de usuário é PRÉVIA LOCAL.** O `save_preset` do device
+precisa do canal de escrita USB (BLOCKERS §4: fluxos novos ficam atrás de
+`WRITE_VERIFIED=false` até captura própria). O formato salvo é o do `.prst`
+(`PP ppID` + `Effect`), então a migração é escrever o arquivo — não refazer a UI.
+
+### 7.6 Effects List — trocar o efeito dentro do pedal (issue #19, U-3)
+
+> O manual do firmware (EDIT mode, pág. 7-8) confirma o modelo: 9 módulos,
+> parâmetros do módulo selecionado, e a troca do que está nele. O wireframe do
+> §1.1 previa a coluna "Effects List" — ela virou o painel LATERAL dentro do
+> `PedalModal`, ao lado do pedal ampliado (o palco continua limpo, que é o
+> ganho da #11).
+
+| Peça | Onde | Regra |
+|---|---|---|
+| Lista do módulo | `src/effects.ts::algorithmsOf` | só os algoritmos DAQUELA família (PRE oferece PREs, DST oferece DSTs) e nunca as entradas de nome vazio do dicionário (slots internos do firmware) |
+| Busca | `effects.ts::filterAlgorithms` | substring do nome OU do slug do `variant`, sem diferenciar caixa |
+| Identidade | `effects.ts::codeOf` | `effectCode = (nibble << 24) \| index`, exatamente o `effectCode` do `.prst` |
+| Troca | `effects.ts::withAlgorithm` | preserva posição, família, ligado/desligado e `archetype`; troca nome, `code`, `variant` e os controles |
+| Tela | `PedalModal.tsx` | `role="listbox"` "Lista de efeitos do módulo PRE", atual marcado com ✓ + `aria-selected`, `title` com a ação |
+
+**Regra que não se negocia:** os controles do efeito novo voltam nos DEFAULTS do
+dicionário. Herdar o valor do efeito anterior (ex.: o `Range` do C-Wah virando
+`Sustain` do COMP) seria a UI mentindo sobre o som que está saindo. Pelo mesmo
+motivo, o `state` (ligado/desligado) sobrevive à troca — quem manda no slot é o
+patch, não o algoritmo.
+
+**Limite declarado:** a troca é **prévia local**. O `change-effect` (`0x47` da
+família `0x4X`, PROTOCOL §4) é o ÚNICO opcode dessa família sem formato
+validado (`0x43` select, `0x48` change-param §13.11 e `0x4F` bulk §4 já têm
+bytes fechados) — BLOCKERS item 10b, roteiro de captura em
+`docs/CAPTURE_PLAN.md` (CAPTURA 5). A nota "prévia local" está na própria tela.
+Enquanto isso, o efeito novo entra no patch de usuário normalmente: o patch é
+o retrato do PALCO, não do preset de fábrica.
+
+### 7.7 CI: e2e da casca contra o `pnpm dev` + cobertura do manual (30/09)
+
+- **Job `Testes · E2E shell (Chromium)`** do `ci.yml` (ubuntu, Chromium via
+  `playwright install --with-deps`): roda a suíte completa contra o dev server
+  que o próprio `playwright.config.ts` sobe (`webServer` + strictPort +
+  reuseExistingServer). Mesmo filtro de caminho dos demais jobs de front
+  (mudança em `packages/app/ui/`).
+- **Gate de release:** a `Release · RC` só roda por `workflow_dispatch` e a
+  distribuição depende de `needs:` da cadeia inteira (gate+spec+matrizes+e2e+
+  visual+smoke) — **tag só sai com a casca verde**.
+- **Suíte total:** contagem atual em `docs/INDEX.md` §6 (fonte única). Asserts
+  de alinhamento portados p/ `e2e/_helpers.ts`
   (`measureShell`/`expectShellAligned`) — alinhamento de componentes é testado
   AUTOMATICAMENTE (não depende de observação manual).
 - **Cobertura funcional:** `docs/MANUAL_COVERAGE.md` — matriz item-por-item do
@@ -329,6 +508,85 @@ FASE 3 — CONTO E POLIMENTO
   o UA só aplica `border-box` a `<select>`; `.gp-num` ganhou `box-sizing`, com
   assert e2e), redundância do looper removida (estado da fita num lugar só),
   navegação ◀ ▶ do manual implementada e testada, Help verificado por e2e.
+
+### 7.8 Gestor de tons SnapTone/NAM (issue #25)
+
+> O `.nam` é convertido pelo **Valeton Suite** para `.clo` (`docs/arquivo/analysis/exe_strings.txt`:
+> `Choose a nam file to open it` → `*.nam` → `nam_output_clo.wav` +
+> `nam_output_wav.wav`) e o motor NAM mora no exe da Valeton — o app importa o
+> `.clo` JÁ CONVERTIDO e não finge converter o que não converte.
+
+**O botão `∿` mora no RODAPÉ DA BIBLIOTECA, não na navbar.** A navbar tem ~11px
+de folga em 1280 e qualquer botão novo a estoura (overflow horizontal — o e2e
+de responsivo pegou). O rodapé já é a casa das ações de arquivo (export/import da
+biblioteca) e um `.clo` é exatamente isso: conteúdo que o dono importa para o
+arquivo. O botão é de ÍCONE porque a coluna tem 248px e o texto "SnapTone"
+empurraria os outros botões para uma segunda linha (medido: rodapé 91px → 61px).
+
+**O aviso do CAB é visível e o envio pede confirmação.** O release note da
+Valeton (`docs/arquivo/analysis/release_note.txt`) diz que o SnapTone **desliga o CAB** do
+aparelho — e o dono **confirmou em campo, com o pedal na mão, em 05/10/2026**:
+o SnapTone desliga o CAB. O que era inferência de documentação virou
+comportamento observado; o modal de aviso e o `confirm` antes do primeiro
+bloco continuam, porque um stream de 143 blocos que derruba o sinal do
+gabinete sem o dono pedir seria o app mentindo sobre o que faz.
+
+**O A/B toca o WAV do Suite, não o modelo.** O app não reimplementa o motor NAM
+(`BLOCKERS.md`), então o preview (`nam_output_wav.wav`) é o que dá para ouvir;
+o botão fica desabilitado COM o motivo quando o tom não tem áudio — que é o
+caso normal (o Suite só exporta o WAV se pedirem).
+
+**Contrato do fio (§5):** 5 slots (`SnapTone1..5`), blocos de 19B com ACK de
+16B por bloco e settle de 250ms entre eles; o id do tom no banco é o **CRC-32
+do conteúdo** nos DOIS lados (Rust e TS) — reimportar o mesmo `.clo` atualiza
+o registro, e uma colisão de CRC ganha sufixo `-2` em vez de sobrescrever outro
+arquivo.
+
+**As 18 baselines de `board-*`/`lib-*` foram renovadas** (o rodapé ficou 30px
+mais baixo, o que move os dois painéis por `stretch`). Renovadas pelo caminho
+documentado: `--update-snapshots=all` local (só `win32`) + workflow dedicado
+`visual-baselines.yml` para as de `linux`. `looper-*`, `topbar-*` e
+`erro-*` NÃO foram tocadas — o que prova que a mudança ficou no rodapé e não
+na casca.
+
+### 7.9 Laboratorio de IRs (issue #24)
+
+> Um IR (impulse response) e o **retrato do gabinete**: o que o microfone
+> gravou na caixa. O dono importa o `.ir` que o Suite exportou, nomeia, escolhe
+> um dos 20 slots do aparelho e sobe o arquivo pelo fio.
+
+**A tela tem DUAS listas de slots, e elas nao podem ser confundidas.** A
+primeira e o que o DONO guardou no arquivo dele (`.ir` + tabela `ir_lib`); a
+segunda e o que o **APARELHO relata** (`list_user_irs`, §13.12), lida do fio.
+As duas divergem de verdade: o dono importa um IR pelo painel de hardware do
+GP-100, ou outra sessao do app faz isso, e o arquivo local nao fica sabendo.
+Com uma lista só, o botao de enviar para o slot 3 sobrescreveria **em
+silencio** um IR que o dono gravou na semana passada.
+
+**O envio e longo de verdade, e a confirmacao mostra o NOME.** Na captura, 296
+chunks levaram ~5 s. Um IR de 300 KB sao ~20.000 chunks e quase 6 minutos. Um
+"tem certeza?" generico e o que se responde sem ler; por isso a confirmacao
+mostra o **nome que o aparelho ja tem naquele slot** — e o primeiro clique so
+ABRE a confirmacao, o segundo envia (o mesmo desenho do SnapTone, §7.8).
+
+**Apagar da biblioteca NAO apaga do aparelho.** O `erase` do slot e um comando
+de fio que o projeto ainda nao tem fechado (§13.12). A tela diz isso no aviso
+de confirmacao em vez de deixar o dono acreditar que o slot ficou livre.
+
+**A porta do conteudo: UM botao, DOIS ambientes.** O botao `∿` do rodape da
+biblioteca (§7.8) abriu o SnapTone; a #24 transformou-o na **porta** de um
+modal que escolhe entre tons e IRs, e nao em um segundo botao. Um quarto botao
+no rodape estoura a linha, o rodape vira duas fileiras, a coluna cresce por
+`stretch` e o pedalboard desce junto — foi o que a #25 custou em 18 baselines.
+A porta tambem diz a verdade: as duas telas guardam conteudo do dono no
+arquivo dele. **Nenhuma baseline foi regenerada pela #24** (os 78 e2e de
+`playwright` passam sem `--update-snapshots`): a geometria da mesa ficou
+intacta, que era o ponto.
+
+**Contrato do fio (§13.7/§13.12):** 20 slots, blocos de **15B**, ACK por chunk
+e paginas de 128 no indice. Chunk de 15B e nao 19B porque o IR e binario cru
+(sem framing de texto) e 15 e o que o `chunk_ack` da §13.7 devolve inteiro sem
+o resto do pacote sobrando.
 
 ---
 
@@ -349,8 +607,8 @@ FASE 3 — CONTO E POLIMENTO
 3. **Números e dados reais** — 87 ritmos, 99 presets, 90/45 s vêm dos artefatos
    gerados; nada de "100 patterns" de marketing.
 4. **Módulo pronto p/ i18n** — `MSG` é um dict plano tipado (strings e
-   funções puras `t(q) => string`); trocar por dicionário por idioma é
-   mecânico quando o i18n entrar (M1.5 do UI_PLAN).
+   funções puras `t(q) => string`). **FEITO na #30** (ver §8.1 abaixo): hoje
+   `MSG` é um `Proxy` que troca de catálogo inteiro com uma linha.
 
 **Já removidos por violação:** "pedal na fase 2" → "vazio"; "(D7)" no PushLog;
 "captura G3–G6" (drum/looper/settings); "Fase M"/"H1" na ConnectionBar;
@@ -364,6 +622,65 @@ literal (`{cond ? "ok?" : "✕"}`) nos mesmos pontos de texto. A mensagem manda
 mover para MSG. Texto novo de usuário = chave nova em `messages.ts` — se o lint
 deixou passar, é buraco da regra (fechar, não contornar); só sobrevivem
 literais técnicos (className, data-*, role, state).
+
+### 8.1 i18n de 4 idiomas — entregue na #30 (pt-BR · en · es · zh)
+
+> APP Language saiu de "desabilitado + próxima versão" para **funcional**: é
+> software local puro, nunca precisou de canal USB.
+
+**Arquitetura (o mínimo que resolve o problema):**
+
+| Peça | Papel |
+|---|---|
+| `src/i18n/dictionaries/pt-BR.ts` | dicionário BASE; exporta `Dict` (o tipo que o app consome) e `DictPatch` |
+| `src/i18n/dictionaries/{en,es,zh}.ts` | `DictPatch` — sobrescrita parcial por idioma |
+| `src/i18n/facts.ts` | os NÚMEROS dos textos (`PRESET_COUNT`, `DRUM_COUNT`, `FX_COUNT`, `REACT_VER`…), derivados dos artefatos |
+| `src/i18n/messages.ts` | registro: `merge()` profundo, `MSG` (Proxy), `setLanguage`/`getLanguage`, `useLanguage()` |
+
+**Três decisões que valem a pena saber:**
+
+1. **Proxy em vez de contexto React.** ~200 textos em ~15 componentes já fazem
+   `import { MSG }`. Exigir `useT()` de cada um seria uma migração que só
+   pagaria bem depois. O Proxy mantém a assinatura `MSG.x` intacta e troca o
+   idioma inteiro com `setLanguage("en")` + o App re-renderizar — só o App
+   assina (`useLanguage()`), nenhum outro componente sabe que existe idioma.
+2. **`DictPatch` alarga rótulos, não chaves.** O `as const` do pt-BR fixa
+   `"PRONTO"` como tipo — nenhum valor cabe nele, nem `"LISTO"`. `DictPatch`
+   abre o *conteúdo* dos rótulos para `string` e mantém a *forma*: nome da
+   chave, aridade e tipos dos parâmetros das funções, tipo dos arrays. Traduzir
+   continua impossível de quebrar a tipagem em qualquer ponto do app.
+3. **Fallback por `merge` profundo.** O que falta num idioma (ou num
+   sub-objeto como `bootStages`) vem do pt-BR no registro. Sub-objeto MESCLA;
+   array e função SUBSTITUEM por inteiro — metade de uma lista de dados
+   traduzida é pior do que a lista inteira em português. Um idioma incompleto
+   nunca mostra chave crua nem string vazia: degrada para a língua garantida.
+
+**Costura fechada na mesma rodada:** o TIPO do pedal ("Pre", "Drive", "Amp",
+"Gate", "Cabinet", "EQ", "Mod", "Delay", "Reverb") vivia hard-coded em
+`Pedal.tsx` e aparecia 9 vezes no palco + em todos os `aria-label` — é texto de
+usuário, não artefato, e o lint `no-user-literals` não pega porque não é JSX.
+Virou `MSG.pedalKind` (9 chaves, uma por família). pt-BR devolve os mesmos
+loanwords que a UI já mostrava (virar "Pré"/"Cabine" é decisão editorial do
+owner, não falta de i18n); es/zh traduzem os que têm palavra própria
+(`Cabinete`, `前级`, `噪声门`…). A assinatura `pedalGroupAria(kind, name, on)`
+foi preservada — o que muda é a origem do `kind`, não o contrato.
+
+**O que NÃO é traduzido (e por quê):** termos que o próprio device imprime —
+PRE/POST, REC, PLAY, DUB, STOP, REW, BPM, FREQ/Q/GAIN, SET, e as abas/linhas de
+Settings (`Settings`, `General`, `Global EQ`, `About`, `Info Frame`, `Help`,
+`Release Note`, `Input Level`, `Footswitch Mode`, `Effects List`, `Factory/User
+Patch`, `Supply`/`Take-up`). O usuário precisa bater o olho na UI e no painel
+de-hardware ao mesmo tempo; traduzir os dois separadamente os faz discordar.
+Marca (`GP-100`, `Valeton`, `Mock Device`) e os nomes de ritmo/efeito dos
+artefatos gerados também ficam.
+
+**Testes (`tests/i18n.test.tsx`, 14):** troca de idioma troca `MSG.*` · merge
+preenche sub-objeto parcial · array/função substituem inteiro · nenhum idioma
+deixa `undefined` ou texto vazio · nenhum idioma imprime a chave crua · a ÁRVORE
+inteira do catálogo é idêntica nos 4 (pega buraco em sub-objeto) · overlays só
+usam chaves que existem · os 3 idiomas cobrem todas as chaves de topo · termos
+do device iguais nos 4 · o selector lista os 4, persiste e redesenha a casca ·
+reabrir o app volta no idioma salvo.
 
 ---
 

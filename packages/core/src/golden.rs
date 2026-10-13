@@ -248,6 +248,22 @@ impl Pattern {
         }
     }
 
+    /// `true` se `data` tem a FORMA do padrão: o comprimento esperado (no
+    /// `by-len`, um dos comprimentos da tabela). **Não compara os bytes
+    /// `const`** — ver [`Template::matches_shape`].
+    pub fn matches_shape(&self, data: &[u8]) -> bool {
+        match self.pattern_kind {
+            PatternKind::ByLen => self
+                .by_len
+                .get(&data.len().to_string())
+                .is_some_and(|sub| sub.matches_shape(data)),
+            // `variable-len` não ocorre no golden (0 ocorrências, baseline
+            // v1.1); sem comprimento conhecido não há forma a validar.
+            PatternKind::VariableLen => false,
+            _ => Some(data.len()) == self.len,
+        }
+    }
+
     /// Constrói o payload no `out`, consumindo `cursor` (as vars, em ordem).
     ///
     /// # Erros
@@ -454,6 +470,26 @@ impl Template {
     /// e devolve os trechos variáveis extraídos (`None` = não casa).
     pub fn matches_response<'a>(&self, data: &'a [u8]) -> Option<Vec<&'a [u8]>> {
         self.response_payload.as_ref()?.extract_vars(data)
+    }
+
+    /// `true` se `data` tem a FORMA da resposta — comprimento (no `by-len`,
+    /// um dos comprimentos da tabela) — sem comparar os bytes `const`.
+    ///
+    /// **Por que existe:** os segmentos `const` do golden são o payload
+    /// CONGELADO das capturas S1–S4 — o estado de FÁBRICA do aparelho
+    /// analisado (ADR R2/R3). Uma resposta legítima do aparelho do dono
+    /// difere sempre que o dono editou o objeto: renomear um preset muda o
+    /// nome em pg0 (medido em campo no boot do H4, 2026-10-09: pp 0x0000
+    /// renomeado para `H2 TESTE` deixou o `0x30` stale do nome antigo).
+    /// `match_response` completo rejeitaria essa resposta — comparar
+    /// conteúdo vivo contra snapshot de análise é a falha que a issue #177
+    /// registra. A FORMA (endereço + comprimento) é schema; o conteúdo é do
+    /// hardware, e é validado pelo DECODE dos objetos (`preset_pages`,
+    /// `codec`), não pelo golden.
+    pub fn matches_shape(&self, data: &[u8]) -> bool {
+        self.response_payload
+            .as_ref()
+            .is_some_and(|p| p.matches_shape(data))
     }
 
     /// Monta o SysEx COMPLETO da RESPOSTA (lado IN) — o simétrico de
@@ -751,6 +787,19 @@ impl GoldenFile {
         self.for_response(func, addr)
             .into_iter()
             .find_map(|t| t.matches_response(data).map(|vars| (t, vars)))
+    }
+
+    /// Despacho por FORMA: entre os templates do endpoint TIPADO, o primeiro
+    /// cujo comprimento casa (no `by-len`, um dos comprimentos da tabela).
+    /// **Não compara bytes `const`** — ver [`Template::matches_shape`].
+    ///
+    /// É o que a FSM (`wait_for`) usa para validar respostas do aparelho:
+    /// o conteúdo é do hardware e passa pelo decode dos objetos, nunca por
+    /// comparação com snapshot de análise (#177).
+    pub fn match_shape(&self, func: u8, addr: &[u8; 4], data: &[u8]) -> Option<&Template> {
+        self.for_response(func, addr)
+            .into_iter()
+            .find(|t| t.matches_shape(data))
     }
 
     /// Todos os templates de REQUEST cujo OUT é o endpoint TIPADO — o

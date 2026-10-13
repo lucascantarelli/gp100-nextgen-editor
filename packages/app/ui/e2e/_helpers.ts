@@ -1,7 +1,7 @@
 /**
  * Helpers compartilhados dos testes e2e (medidas de layout/alinhamento).
  * Tudo roda no browser (page.evaluate) — os asserts ficam nos specs.
- * Origem: analysis/responsivo_checks.js.
+ * Origem: checks de responsivo da era de RE (histórico no git; #163).
  */
 import type { Page } from "@playwright/test";
 
@@ -10,8 +10,7 @@ export interface ShellMeasure {
   slotCols: number;
   slotRows: number;
   cssCols: number;
-  sameSlotWidth: boolean;
-  pitchUniform: boolean;
+  slotOverlap: number;
   board: { x: number; w: number; right: number; bottom: number; y: number };
   lib: { x: number; w: number; y: number; bottom: number; sameRowAsBoard: boolean };
   looper: { x: number; w: number; tracks: number; trackWs: number[] };
@@ -20,6 +19,9 @@ export interface ShellMeasure {
   vuInside: boolean;
   clippedCount: number;
   clippedSample: string[];
+  /** navbar como RACK: largura/altura de cada um dos 3 módulos (#12;
+   *  o cluster de patch saiu da navbar — dono 12/10) */
+  navbar: { count: number; widths: number[]; heights: number[]; topSpread: number } | null;
 }
 
 /** mede o shell inteiro: board × biblioteca, slots e looper */
@@ -33,31 +35,36 @@ export async function measureShell(page: Page): Promise<ShellMeasure> {
     const r1 = (n: number) => Math.round(n * 10) / 10;
 
     const boardEl = q('[aria-label="Pedalboard (9 lugares da cadeia)"]')!;
-    const libEl = q('[aria-label="Biblioteca de presets"]')!;
+    const libEl = q('[aria-label="Patches do aparelho"]')!;
     const looperEl = q('[aria-label="Looper (máquina de fita)"]')!;
     const board = rectOf(boardEl);
     const lib = rectOf(libEl);
     const looper = rectOf(looperEl);
 
-    // slots: grade derivada das caixas (colunas = x únicos, linhas = y únicos)
+    // slots: colunas/linhas contadas POR LINHA (a cadeia é uma fileira só;
+    // a contagem por linha segue como rede de segurança) + sobreposição
     const slotRects = [...document.querySelectorAll('[aria-label^="Slot "]')].map(rectOf);
-    const uniq = (arr: number[]) => {
-      const s = [...arr].sort((a, b) => a - b);
-      const out = [s[0]];
-      for (const v of s.slice(1)) if (v - out[out.length - 1] > 2) out.push(v);
-      return out;
-    };
-    const xs = uniq(slotRects.map((r) => r.x));
-    const ys = uniq(slotRects.map((r) => r.y));
-    const widths = slotRects.map((r) => r.w);
-    const dx = xs.slice(1).map((v, i) => v - xs[i]);
-    const pitchUniform = dx.length === 0 || Math.max(...dx) - Math.min(...dx) < 1;
-
-    // looper: filhos diretos (deck | VU/transporte | rack) sem sobreposição
-    const kids = [...looperEl.children].map(rectOf);
     const overlapArea = (a: ReturnType<typeof rectOf>, b: ReturnType<typeof rectOf>) =>
       Math.max(0, Math.min(a.right, b.right) - Math.max(a.x, b.x)) *
       Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.y, b.y));
+    const byRow = new Map<number, number[]>();
+    for (const r of slotRects) {
+      const key = Math.round(r.y);
+      byRow.set(key, [...(byRow.get(key) ?? []), r.x]);
+    }
+    const rowXs = [...byRow.values()].map((xs) => {
+      const s = [...xs].sort((a, b) => a - b);
+      const out = [s[0]];
+      for (const v of s.slice(1)) if (v - out[out.length - 1] > 2) out.push(v);
+      return out.length;
+    });
+    let slotOverlap = 0;
+    for (let i = 0; i < slotRects.length; i++)
+      for (let j = i + 1; j < slotRects.length; j++)
+        slotOverlap += overlapArea(slotRects[i], slotRects[j]);
+
+    // looper: filhos diretos (deck | VU/transporte | rack) sem sobreposição
+    const kids = [...looperEl.children].map(rectOf);
     let kidOverlap = 0;
     for (let i = 0; i < kids.length; i++)
       for (let j = i + 1; j < kids.length; j++) kidOverlap += overlapArea(kids[i], kids[j]);
@@ -80,13 +87,26 @@ export async function measureShell(page: Page): Promise<ShellMeasure> {
     const looperCols = getComputedStyle(looperEl)
       .gridTemplateColumns.split(" ")
       .map((v) => parseFloat(v));
+
+    // NAVBAR (#12): os 3 módulos da navbar têm que ter a MESMA largura e a
+    // MESMA altura, e compartilhar o mesmo topo — é o que separa um rack
+    // de uma fileira de blocos de tamanho sorteado.
+    const mods = [...document.querySelectorAll(".nb-controls > *")].map(rectOf);
+    const navbar = mods.length
+      ? {
+          count: mods.length,
+          widths: mods.map((m) => r1(m.w)),
+          heights: mods.map((m) => r1(m.h)),
+          topSpread: r1(Math.max(...mods.map((m) => m.y)) - Math.min(...mods.map((m) => m.y))),
+        }
+      : null;
+
     return {
       overflowX: document.documentElement.scrollWidth - window.innerWidth,
-      slotCols: xs.length,
-      slotRows: ys.length,
+      slotCols: rowXs.length ? Math.max(...rowXs) : 0,
+      slotRows: byRow.size,
       cssCols: getComputedStyle(q(".board-slots")!).gridTemplateColumns.split(" ").length,
-      sameSlotWidth: Math.max(...widths) - Math.min(...widths) < 1,
-      pitchUniform,
+      slotOverlap: r1(slotOverlap),
       board: { x: r1(board.x), w: r1(board.w), right: r1(board.right), bottom: r1(board.bottom), y: r1(board.y) },
       lib: { x: r1(lib.x), w: r1(lib.w), y: r1(lib.y), bottom: r1(lib.bottom), sameRowAsBoard: Math.abs(lib.y - board.y) < 2 },
       looper: { x: r1(looper.x), w: r1(looper.w), tracks: looperCols.length, trackWs: looperCols.map(r1) },
@@ -95,6 +115,7 @@ export async function measureShell(page: Page): Promise<ShellMeasure> {
       vuInside,
       clippedCount: clipped.length,
       clippedSample: clipped.slice(0, 5),
+      navbar,
     };
   });
 }
@@ -123,22 +144,38 @@ export async function expectShellAligned(page: Page, width: number): Promise<voi
     expect(m.lib.x).toBe(m.board.x);
     expect(m.lib.w).toBe(m.board.w);
   } else {
-    // hierarquia nova: biblioteca (300px) à ESQUERDA, pedalboard esticando à
-    // direita — MESMA altura (align stretch), sem lacuna entre eles
+    // hierarquia nova: biblioteca (248px, encolhida na #11 p/ o pedalboard
+    // respirar) à ESQUERDA, pedalboard esticando à direita — MESMA altura
+    // (align stretch), sem lacuna entre eles
     expect(m.lib.sameRowAsBoard, `lado a lado @${width}`).toBe(true);
-    expect(m.lib.w, `biblioteca com 300px @${width}`).toBeLessThanOrEqual(300.5);
+    expect(m.lib.w, `biblioteca com 248px @${width}`).toBeLessThanOrEqual(248.5);
     expect(m.lib.x + m.lib.w, `biblioteca à esquerda do board @${width}`).toBeLessThanOrEqual(m.board.x + 0.5);
     expect(Math.abs(m.lib.y - m.board.y), `topos alinhados @${width}`).toBeLessThanOrEqual(1);
   }
 
-  const wantCols = width <= 1340 ? 3 : 9; // breakpoint .board-slots (design.css)
-  expect(m.slotCols, `colunas dos slots @${width}`).toBe(wantCols);
-  expect(m.cssCols, `colunas do CSS @${width}`).toBe(wantCols);
-  expect(m.sameSlotWidth, `slots com larguras iguais @${width}`).toBe(true);
-  expect(m.pitchUniform, `pitch uniforme @${width}`).toBe(true);
+  // .board-slots (design.css): cadeia INTEIRA numa única fileira — 9 colunas
+  // fluidas em qualquer largura (o pedal do palco desenha na largura da
+  // coluna; abaixo do piso de 88px por coluna a faixa rola na horizontal)
+  expect(m.slotCols, `colunas dos slots @${width}`).toBe(9);
+  expect(m.cssCols, `colunas do CSS @${width}`).toBe(9);
+  expect(m.slotRows, `fileira única @${width}`).toBe(1);
+  expect(m.slotOverlap, `slots sem sobreposição @${width}`).toBe(0);
 
   expect(m.kidOverlap, `sobreposição dos blocos do looper @${width}`).toBe(0);
   expect(m.rackW ?? 0, `rack do looper ≥ 240 @${width}`).toBeGreaterThanOrEqual(239.5);
   expect(m.vuInside, `VU meters contidos @${width}`).toBe(true);
   expect(m.clippedCount, `texto clipado @${width}: ${m.clippedSample.join(" | ")}`).toBe(0);
+
+  // NAVBAR EM RACK (#12): 3 módulos, mesma largura, mesma altura, mesmo
+  // topo. Abaixo de 620px eles empilham (1 coluna) — aí só o topo vale.
+  const nb = m.navbar;
+  expect(nb, `navbar medida @${width}`).not.toBeNull();
+  const nbWidths = nb!.widths;
+  const nbSpread = Math.max(...nbWidths) - Math.min(...nbWidths);
+  if (width > 620) {
+    expect(nb!.count, `3 módulos na navbar @${width}`).toBe(3);
+    expect(nbSpread, `larguras iguais na navbar @${width}: ${nbWidths.join("/")}`).toBeLessThanOrEqual(0.5);
+    expect(Math.max(...nb!.heights) - Math.min(...nb!.heights), `alturas iguais @${width}`).toBeLessThanOrEqual(0.5);
+  }
+  expect(nb!.topSpread, `mesmo topo na navbar @${width}`).toBeLessThanOrEqual(1);
 }

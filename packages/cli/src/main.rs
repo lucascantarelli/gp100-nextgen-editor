@@ -10,8 +10,9 @@
 //!
 //! **Subcomandos (todos contra o mock por default):**
 //!   `info`, `list-user-irs`, `dump-preset <pp>`, `set-param --dry-run`,
-//!   `save --dry-run`. Escrita EFETIVA não existe nesta fase (escritas exigem
-//!   `--dry-run`; escrita real só no gate H2, `WRITE_VERIFIED`).
+//!   `save --dry-run`, `upload-ir --dry-run`. A escrita EFETIVA no device real
+//!   só existe num binário compilado com a feature `write-verified` (ADR-5),
+//!   e mesmo assim só depois do gate H2 — ver o USAGE para as duas camadas.
 //!
 //! **`--log` (requisito do `docs/H1_CHECKLIST.md`):** grava TODOS os frames de
 //! fio (OUT e IN) no MESMO schema das fixtures P4 —
@@ -22,16 +23,42 @@
 //! pequena e estável: 5 subcomandos e 4 flags; manter o binário enxuto na
 //! toolchain gnu). Se a superfície crescer, reabrir a decisão com ADR-lite.
 //!
+//! ── CONGELADO PARA NOVAS CAPACIDADES (decisão do owner, 05/10) ────────────
+//! O produto é o **app**. Esta é hoje a decisão do owner: "manter, mas
+//! congelar". O que ela significa, sem ambiguidade:
+//!
+//!   - **Capability nova NÃO entra aqui.** Vai para o `app/api` (command +
+//!     porta em `ui/src/ipc/`) ou não existe.
+//!   - **O binário continua compilando, testando e no gate.** Ele não está
+//!     moribundo: é o executável com que o core é exercitado nos gates H1–H3,
+//!     e `--log`/`--dry-run` continuam sendo o insumo do juiz de campo.
+//!   - **Correção de bug aqui é bem-vinda; capacidade nova, não.** Se o CLI
+//!     divergir do app, a correção entra — divergir para sempre, não.
+//!
+//! **POR QUE (e por que a decisão pode ser revista).** O CLI era o dono de
+//! parte das capacidades do core; o app tinha um subconjunto DIFERENTE. Os
+//! passos 4/4b/4c do `docs/REAL_DEVICE_GAP.md` §6 fecharam isso, e o passo 6b
+//! tirou o último motivo técnico para ele existir (era a única cobertura de
+//! CoreMIDI do transporte — o `RealDevice` do app agora é compilado para
+//! macOS na CI). Hoje o app é um **superset estrito**: o core tem 12
+//! capacidades, o CLI expõe 9, o app expõe essas 9 mais o SnapTone.
+//!
+//! Revisão: quando a sessão de campo (#17) sair assinada pelo aparelho, a
+//! pergunta "o CLI ainda serve a alguém que não o app?" tem resposta medida —
+//! e essa resposta, e não este arquivo, decide o futuro do crate.
+//!
 //! **Rodar:** `cargo run -p gp100-cli -- info` (gates em
 //! `.agents/skills/rust-practices/SKILL.md`).
 
-use std::io::Write as _;
 use std::path::PathBuf;
-use std::time::Duration;
 
 use gp100_core::session::Session;
 use gp100_core::transport::mock::{MockDevice, MockState};
-use gp100_core::transport::{DeviceTransport, TransportError};
+// O logger de fio e o MESMO do app: duas implementacoes do mesmo schema
+// P4 divergem em silencio, e quem consome a captura (h1_compare.py /
+// h2_compare.py) nao distingue as duas.
+use gp100_core::transport::DeviceTransport;
+use gp100_core::wire_log::LoggingTransport;
 
 /// Código de saída para violação de uso/política de hardware.
 ///
@@ -44,17 +71,21 @@ const EXIT_PROTOCOL_ERROR: i32 = 3;
 
 /// Uso documentado (impresso por `--help` e por erro de uso).
 const USAGE: &str = "\
-gp100-cli — operação do GP-100 NextGen Editor (mock por default)
+gp100-cli — operação do GP-100 NextGen Editor (transporte MOCK por default)
 
 USO: gp100-cli [opções] <subcomando> [args]
 
 SUBCOMANDOS
   info                        estado do mock (pp, nome, tipo, nº de presets)
   list-user-irs               tabela dos 20 User IRs (nome por slot)
+  read-state5                 as 5 leituras cruas de 11/12001012 (estado;
+                              era chamado de setlist, mas a GP-100 não tem
+                              setlist — PROTOCOL §13.3 / GP100_DEVICE §5#1)
   dump-preset <pp>            select + 9 páginas de estado do preset (hex)
   set-param <slot> <code> <ctrl> <value>
                               knob da cadeia (§13.11) — exige --dry-run
   save <pp> <pp-type> <name>  metadados + ops (§13.12) — exige --dry-run
+  upload-ir <slot> <arquivo> blob de User IR (§13.7) — exige --dry-run
 
 OPÇÕES
   --dry-run                   imprime os frames e NÃO envia (escritas)
@@ -62,13 +93,27 @@ OPÇÕES
   --real                      modo hardware (requer --i-know-what-im-doing
                               E o build com --features real-device)
   --i-know-what-im-doing      dupla confirmação do --real (não contorna o gate)
+  --mock-device               SELO do transporte mock (teste/offline; exclui --real)
   --help                      esta mensagem
 
 POLÍTICA DE HARDWARE (VISION §7)
   DUAS camadas: (1) --real exige --i-know-what-im-doing; (2) o build precisa
-  da feature `real-device` (default OFF). No build de campo, H1 = leitura
-  real (roteiro do docs/H1_CHECKLIST.md; NENHUMA escrita); escrita real só
-  pós-H2 com WRITE_VERIFIED — a guarda de --dry-run permanece sempre.
+  da feature `real-device` (default OFF NESTE crate; no APP ela é default ON
+  desde a #165 — o CLI é ferramenta de campo e segue explícito). No build de
+  campo, H1 = leitura real (roteiro do docs/H1_CHECKLIST.md; NENHUMA escrita).
+  O harness de teste DECLARA o mock com --mock-device (conflita com --real).
+
+  ESCRITA REAL = gate H2, e ela é uma TERCEIRA camada, no TRANSPORTE
+  (ADR-5): um frame mutante num device real só passa num binário compilado
+  com a feature `write-verified` (que depende de `real-device`).
+
+      H1 (leitura)   cargo build --release -p gp100-cli --features real-device
+      H2 (escrita)   cargo build --release -p gp100-cli \
+                       --features real-device,write-verified
+
+  Sem essa feature a escrita é IMPOSSÍVEL — não há flag, env ou argumento
+  que destrave. E o keepalive de boot (12/00020001) é escrita, então o
+  boot completo (B5 do H1) exige a feature do H2: o boot não é só leitura.
   Números aceitam hex (0x0100) ou decimal.
 ";
 
@@ -77,6 +122,9 @@ POLÍTICA DE HARDWARE (VISION §7)
 enum Command {
     Info,
     ListUserIrs,
+    /// As 5 leituras cruas de `11/12001012` (T2 do boot; semântica não
+    /// decifrada — medição de campo, PROTOCOL §13.3).
+    ReadState5,
     DumpPreset {
         /// pp do preset (u16 BE no fio; hex `0x0100` ou decimal).
         pp: u16,
@@ -96,6 +144,15 @@ enum Command {
         pp_type: u16,
         name: String,
     },
+    /// Gate H2, 3º fluxo: upload de User IR (§13.7).
+    UploadIr {
+        /// Slot de destino do User IR (0..=19) — NAO confundir com o slot da
+        /// cadeia de efeito (1..=9 de `set-param`; rev.2 do ADR-6).
+        slot: u8,
+        /// Caminho do blob binario do IR (multiplo de 15B; §13.7 rev.2
+        /// REJEITA o resto, nao padroniza).
+        path: PathBuf,
+    },
 }
 
 /// Linha de comando parseada.
@@ -107,6 +164,11 @@ struct Args {
     /// `--real` JÁ VALIDADO: exige `--i-know-what-im-doing` e um build com
     /// a feature `real-device` (recusas feitas no parser — política).
     real: bool,
+    /// `--mock-device`: SELO do transporte mock (teste/offline). É o caminho
+    /// default do CLI — a flag existe para o harness DECLARAR a intenção e
+    /// para impedir `--real` acidental num script (exclusão verificada no
+    /// parser). Não muda o comportamento do mock.
+    mock_device: bool,
 }
 
 /// Erro de parse (impresso com usage).
@@ -123,6 +185,7 @@ fn parse_args<I: Iterator<Item = String>>(args: I) -> Result<Args, UsageError> {
     let mut log: Option<PathBuf> = None;
     let mut real = false;
     let mut acknowledge = false;
+    let mut mock_device = false;
     let mut positional: Vec<String> = Vec::new();
     let mut it = args.into_iter().peekable();
     while let Some(a) = it.next() {
@@ -140,6 +203,7 @@ fn parse_args<I: Iterator<Item = String>>(args: I) -> Result<Args, UsageError> {
             }
             "--real" => real = true,
             "--i-know-what-im-doing" => acknowledge = true,
+            "--mock-device" => mock_device = true,
             _ => positional.push(a),
         }
     }
@@ -147,12 +211,20 @@ fn parse_args<I: Iterator<Item = String>>(args: I) -> Result<Args, UsageError> {
     // (a) `--real` exige `--i-know-what-im-doing` (dupla confirmação);
     // (b) o build precisa da feature `real-device` (default OFF — ADR-4/ADR-5).
     // Com as duas, o binário de campo abre o RealDevice: LEITURA real = gate
-    // H1 (roteiro do H1_CHECKLIST; só leitura); ESCRITA real segue bloqueada
-    // pela guarda de dry-run (pós-H2 WRITE_VERIFIED) — independente de mock.
+    // H1 (roteiro do H1_CHECKLIST; só leitura); ESCRITA real é uma TERCEIRA
+    // camada, no transporte (ADR-5, feature `write-verified`) — e ainda exige
+    // o gate H2. independente de mock.
     if real && !acknowledge {
         return Err(UsageError(
             "modo --real exige também --i-know-what-im-doing (dupla confirmação; \
              política de hardware VISION §7)"
+                .into(),
+        ));
+    }
+    if real && mock_device {
+        return Err(UsageError(
+            "--real e --mock-device são exclusivos: um abre o APARELHO, o outro \
+             sela o MOCK (teste/offline)"
                 .into(),
         ));
     }
@@ -175,6 +247,7 @@ fn parse_args<I: Iterator<Item = String>>(args: I) -> Result<Args, UsageError> {
     let command = match sub.as_str() {
         "info" => Command::Info,
         "list-user-irs" => Command::ListUserIrs,
+        "read-state5" => Command::ReadState5,
         "dump-preset" => {
             let pp_raw = pos
                 .pop()
@@ -209,6 +282,28 @@ fn parse_args<I: Iterator<Item = String>>(args: I) -> Result<Args, UsageError> {
                 .map_err(|e| UsageError(format!("pp: {e}")))?;
             Command::Save { pp, pp_type, name }
         }
+        // H2 3º fluxo: upload de User IR. O slot é 0..=19 (§13.7) e o blob
+        // tem de ser múltiplo de 15B — a FSM valida o resto (rev.2: rejeita,
+        // não padroniza); aqui só o caminho do arquivo.
+        "upload-ir" => {
+            if pos.len() != 2 {
+                return Err(UsageError(
+                    "upload-ir exige <slot 0..=19> <arquivo-do-blob>".into(),
+                ));
+            }
+            let path = pos.pop().expect("len == 2 garantido acima");
+            let slot = parse_u8(&pos.pop().expect("len >= 1 garantido"))
+                .map_err(|e| UsageError(format!("upload-ir slot: {e}")))?;
+            if slot >= 20 {
+                return Err(UsageError(format!(
+                    "upload-ir: slot {slot} fora de 0..=19 (§13.7 — os 20 User IRs)"
+                )));
+            }
+            Command::UploadIr {
+                slot,
+                path: PathBuf::from(path),
+            }
+        }
         other => {
             return Err(UsageError(format!(
                 "subcomando desconhecido: {other} (veja --help)"
@@ -220,6 +315,7 @@ fn parse_args<I: Iterator<Item = String>>(args: I) -> Result<Args, UsageError> {
         dry_run,
         log,
         real,
+        mock_device,
     })
 }
 
@@ -262,73 +358,17 @@ fn parse_u32(s: &str) -> Result<u32, String> {
 // ═════════════════════════════════════════════════════════════ logger P4
 //
 // Mesmo schema das fixtures P4 (make_fixtures.py): 1 linha JSON por msg,
-// `{"s","dir","func","addr","data"}`, `data` = payload puro (sem envelope)
-// em hex minúsculo — consumível por `decode_wire.py` e pelos replays.
-
-/// Logger de fio no schema P4.
-struct WireLogger {
-    file: std::fs::File,
-}
-
-impl WireLogger {
-    /// Cria/trunca o arquivo de log.
-    fn create(path: &std::path::Path) -> Result<Self, String> {
-        Ok(Self {
-            file: std::fs::File::create(path).map_err(|e| e.to_string())?,
-        })
-    }
-
-    /// Registra um frame completo (envelope SysEx cru). Frame sem envelope
-    /// NUNCA derruba a sessão (truncamento SEM-HDR é dado conhecido do
-    /// proxy) — avisa no stderr e segue.
-    fn record(&mut self, dir: &str, frame: &[u8]) {
-        let (func, addr, payload) = match gp100_core::golden::decode_envelope(frame) {
-            Ok(v) => v,
-            Err(e) => {
-                eprintln!("[!] frame sem envelope ({e}); não gravado no log");
-                return;
-            }
-        };
-        let data: String = payload.iter().map(|b| format!("{b:02x}")).collect();
-        let addr_hex: String = addr.iter().map(|b| format!("{b:02x}")).collect();
-        let line = format!(
-            "{{\"s\":\"H1\",\"dir\":\"{dir}\",\"func\":\"{func:02x}\",\"addr\":\"{addr_hex}\",\"data\":\"{data}\"}}"
-        );
-        if let Err(e) = writeln!(self.file, "{line}") {
-            eprintln!("[!] falha ao gravar log: {e}");
-        }
-    }
-}
-
-/// Transporte transparente que registra cada frame OUT/IN no logger — o log
-/// vê exatamente o que o "fio" vê, sem tocar na Session (D8: consumidor
-/// único continua sendo a Session; o logger não lê nem filtra nada).
-struct LoggingTransport<T: DeviceTransport> {
-    inner: T,
-    logger: Option<WireLogger>,
-}
-
-impl<T: DeviceTransport> DeviceTransport for LoggingTransport<T> {
-    fn open(&mut self) -> Result<(), TransportError> {
-        self.inner.open()
-    }
-    fn close(&mut self) -> Result<(), TransportError> {
-        self.inner.close()
-    }
-    fn send_raw(&mut self, data: &[u8]) -> Result<(), TransportError> {
-        if let Some(l) = self.logger.as_mut() {
-            l.record("out", data);
-        }
-        self.inner.send_raw(data)
-    }
-    fn recv_raw(&mut self, timeout: Duration) -> Result<Vec<u8>, TransportError> {
-        let msg = self.inner.recv_raw(timeout)?;
-        if let Some(l) = self.logger.as_mut() {
-            l.record("in", &msg);
-        }
-        Ok(msg)
-    }
-}
+// `{"s","t","dir","func","addr","data"}`, `data` = payload puro (sem envelope)
+// em hex minúsculo — consumível pelo wirelog do projeto (normalizador de fio) e
+// pelos replays.
+//
+// **`t` entrou na v1.1 do H3 (#23) e antes disso nao existia.** Sem relogio,
+// o `build_golden.py` nao consegue NADA do que faz com uma captura do
+// gp100-core: nem segmentar em fases (gap > 30 s), nem casar OUT→IN com a
+// janela de 3 s do ADR-3. O golden inteiro e derivado de tempo, entao um log
+// sem `t` nao alimenta o pipeline de spec — que era exatamente o DoD do H3.
+// `t` e ms desde a abertura do log, com 1 casa decimal, igual ao
+// `make_fixtures.py`, para que as duas capturas vivam na mesma escala.
 
 // ═══════════════════════════════════════════════════════════════ execução
 
@@ -342,8 +382,10 @@ fn main() {
         }
     };
 
-    // Passo 2 — transporte: MOCK por default (ADR-4/ADR-5) ou REAL com a
-    // feature + dupla confirmação (validadas no parser). Dispatch por trait
+    // Passo 2 — transporte: MOCK por default do CLI (motor de TESTE/offline;
+    // `--mock-device` sela essa escolha) ou REAL com a feature + dupla
+    // confirmação (validadas no parser). No APP o default é o aparelho
+    // (#165); aqui a ferramenta de campo segue explícita. Dispatch por trait
     // object (a Session continua dona única do stream, D8). O snapshot de
     // estado só existe no mock (o device real não tem estado local).
     #[cfg_attr(not(feature = "real-device"), allow(unused_mut))]
@@ -374,6 +416,9 @@ fn main() {
             unreachable!("--real sem feature é recusado no parser")
         }
     } else {
+        if args.mock_device {
+            eprintln!("[i] --mock-device: transporte MOCK declarado (teste/offline)");
+        }
         let mut mock = match MockDevice::new() {
             Ok(m) => m,
             Err(e) => {
@@ -398,7 +443,9 @@ fn main() {
     // Passo 3 — logger envolve o transporte (o log vê o que o "fio" vê,
     // idêntico no mock e no real); Session sobre o transporte (D1–D8).
     transport.logger = match &args.log {
-        Some(path) => match WireLogger::create(path) {
+        // O rotulo `H3` e o das capturas de origem: o log do CLI alimenta
+        // o mesmo pipeline de spec que elas.
+        Some(path) => match gp100_core::wire_log::WireLogger::with_session(path, "H3") {
             Ok(l) => Some(l),
             Err(e) => {
                 eprintln!("[!] --log {path:?}: {e}");
@@ -457,6 +504,23 @@ fn run<T: DeviceTransport>(
             }
             Err(e) => fail(&e),
         },
+        Command::ReadState5 => match session.read_state5() {
+            // HEX CRU de propósito: a semântica de 12001012 ainda não é
+            // decode, é medição (R1: não inventar layout). O `--log` guarda
+            // a captura para o `build_golden`/juiz.
+            Ok(entradas) => {
+                println!(
+                    "12001012 — {} entradas (44B esperado cada):",
+                    entradas.len()
+                );
+                for (i, p) in entradas.iter().enumerate() {
+                    let hex: String = p.iter().map(|b| format!("{b:02x}")).collect();
+                    println!("  [{i}] {}B: {hex}", p.len());
+                }
+                0
+            }
+            Err(e) => fail(&e),
+        },
         Command::DumpPreset { pp } => {
             // dump-preset = select + 9 páginas: as MESMAS rotas do §13.10
             // provadas pelo replay do boot (D1; meta6 do select vem no
@@ -476,14 +540,27 @@ fn run<T: DeviceTransport>(
             }
             0
         }
-        Command::SetParam { .. } | Command::Save { .. } => {
-            // Política: escrita real NÃO existe nesta fase —
-            // só --dry-run (imprime frames). Efetiva = pós-H2 WRITE_VERIFIED.
-            if !args.dry_run {
+        Command::SetParam { .. } | Command::Save { .. } | Command::UploadIr { .. } => {
+            // A política de escrita tem DUAS camadas independentes, e a
+            // segunda é a que realmente segura o hardware:
+            //
+            //   1. `--dry-run` (aqui): imprime os frames e NÃO envia nada.
+            //   2. `WRITE_VERIFIED` (o TRANSPORTE, ADR-5): um frame
+            //      mutante num device real so passa num binário compilado
+            //      com `--features real-device,write-verified`.
+            //
+            // Por que a segunda não é redundante: o `if !args.dry_run` e
+            // uma linha do CLI. Quem viesse falar com o `RealDevice` sem
+            // passar pelo `run` — um subcomando novo, um teste de campo, um
+            // dia a UI — não encontraria essa linha. O ADR-5 pede a trava
+            // no transporte, e a 2 é a que sobrevive ao próximo subcomando.
+            if !args.dry_run && !escrita_verificada() {
                 eprintln!(
-                    "[!] escrita exige --dry-run nesta fase (escrita efetiva = \
-                     gate H2, WRITE_VERIFIED).\n    o dry-run imprime os frames \
-                     e NÃO envia nada ao device."
+                    "[!] escrita exige --dry-run neste binário.\n    \
+                     O dry-run imprime os frames e NÃO envia nada ao device.\n    \
+                     Escrita REAL é o gate H2 e depende da feature de \
+                     compilação (ADR-5):\n      cargo build --release -p gp100-cli \
+                     --features real-device,write-verified"
                 );
                 return EXIT_POLICY_BLOCKED;
             }
@@ -493,18 +570,34 @@ fn run<T: DeviceTransport>(
                     code,
                     ctrl,
                     value,
-                } => run_set_param(*slot, *code, *ctrl, *value),
-                Command::Save { pp, pp_type, name } => run_save(*pp, *pp_type, name),
+                } => run_set_param(session, *slot, *code, *ctrl, *value, args),
+                Command::Save { pp, pp_type, name } => run_save(session, *pp, *pp_type, name, args),
+                Command::UploadIr { slot, path } => run_upload_ir(session, *slot, path, args),
                 _ => unreachable!("o match externo já filtrou estes comandos"),
             }
         }
     }
 }
 
-/// `set-param --dry-run`: imprime o frame §13.11 completo e o payload
-/// decodificado de volta (prova de ida e volta do codec, como no
-/// `set_param_matches_all_fixture_writes`).
-fn run_set_param(slot: u8, code: u32, ctrl: u8, value: f32) -> i32 {
+/// `set-param`: imprime o frame §13.11 e o payload decodificado de volta
+/// (prova de ida e volta do codec, como no `set_param_matches_all_fixture_writes`).
+///
+/// **O `--dry-run` e o que segura o F1 do H2 (#22).** Sem ele, este
+/// subcomando ENVIARIA um frame mutante a um preset que o dono escolheu —
+/// e a trava de verdade continua sendo a do transporte (ADR-5), que ja foi
+/// conferida antes de chegar aqui.
+///
+/// Sem read-back: o `set_param` e fire-and-forget e a captura nao tem
+/// resposta (D4). Por isso a última linha manda olhar o DISPLAY, e nao
+/// promete confirmacao que o fio nao pode dar.
+fn run_set_param<T: DeviceTransport>(
+    session: &mut Session<T>,
+    slot: u8,
+    code: u32,
+    ctrl: u8,
+    value: f32,
+    args: &Args,
+) -> i32 {
     // A validação de slot (1..=9) é da CODEC (§13.11) — o shape não é
     // revalidado aqui (R1: uma fonte de verdade só).
     let frame = match gp100_core::codec::set_param(slot, code, ctrl, value) {
@@ -512,7 +605,8 @@ fn run_set_param(slot: u8, code: u32, ctrl: u8, value: f32) -> i32 {
         Err(e) => return fail(&e),
     };
     let hex: String = frame.iter().map(|b| format!("{b:02x}")).collect();
-    println!("dry-run set-param (§13.11): {} bytes", frame.len());
+    let rotulo = if args.dry_run { "dry-run " } else { "" };
+    println!("{rotulo}set-param (§13.11): {} bytes", frame.len());
     println!("  {hex}");
     match gp100_core::codec::set_param_parse(&frame[13..33]) {
         Ok((c, ctrl2, v)) => {
@@ -520,18 +614,44 @@ fn run_set_param(slot: u8, code: u32, ctrl: u8, value: f32) -> i32 {
         }
         Err(e) => return fail(&e),
     }
-    println!("  (nada enviado — dry-run)");
+    if args.dry_run {
+        println!("  (nada enviado — dry-run)");
+        return 0;
+    }
+    if let Err(e) = session.set_param(slot, code, ctrl, value) {
+        return fail(&e);
+    }
+    println!("  ENVIADO ao device (1 frame OUT, ZERO IN — D4, sem read-back).");
+    println!("  CONFIRME NO DISPLAY: o valor {value} tem que aparecer no knob.");
     0
 }
 
 /// `save --dry-run`: imprime os 9 frames do §13.12 re-derivado (5 meta + ops
 /// da S4: op0 ×2 → op1 ×2). ZERO IN esperado (D3: fire-and-forget).
-fn run_save(pp: u16, pp_type: u16, name: &str) -> i32 {
+/// `save`: imprime os 9 frames do §13.12 re-derivado (5 meta + ops da S4:
+/// op0 ×2 → op1 ×2) e, sem `--dry-run`, ENVIA.
+///
+/// **Este é o fluxo que PERSISTE** (regra 3.2 do H2_CHECKLIST: só para
+/// preset descartável). O save grava o estado ao vivo do preset (§13.12,
+/// confirmado na S4), então ele persiste o que o `set-param` acabou de
+/// mexer — "salvar para testar" grava o que você mexeu.
+///
+/// ZERO IN esperado (D3: fire-and-forget). A última linha manda olhar o
+/// display DEPOIS de sair e voltar do preset, porque o que se prova aqui é
+/// persistência, e não só cache.
+fn run_save<T: DeviceTransport>(
+    session: &mut Session<T>,
+    pp: u16,
+    pp_type: u16,
+    name: &str,
+    args: &Args,
+) -> i32 {
     let block = match gp100_core::codec::meta_block(pp, pp_type, name) {
         Ok(b) => b,
         Err(e) => return fail(&e),
     };
-    println!("dry-run save (§13.12): 9 frames (5 meta + 4 ops); ZERO IN esperado (D3)");
+    let rotulo = if args.dry_run { "dry-run " } else { "" };
+    println!("{rotulo}save (§13.12): 9 frames (5 meta + 4 ops); ZERO IN esperado (D3)");
     // Os frames vêm de codec::write_frame — o PONTO ÚNICO de montagem de
     // envelope (ADR-6: o binário não monta SysEx; imprime o que a lib faz).
     for (addr, payload) in &block {
@@ -548,7 +668,16 @@ fn run_save(pp: u16, pp_type: u16, name: &str) -> i32 {
         let hex: String = m.iter().map(|b| format!("{b:02x}")).collect();
         println!("  op   00020000 (op={op}, {}B): {hex}", m.len());
     }
-    println!("  (nada enviado — dry-run)");
+    if args.dry_run {
+        println!("  (nada enviado — dry-run)");
+        return 0;
+    }
+    if let Err(e) = session.save_preset(pp, pp_type, name) {
+        return fail(&e);
+    }
+    println!("  ENVIADO ao device (9 frames OUT, ZERO IN — D3, sem resposta).");
+    println!("  CONFIRME NO DISPLAY: o nome '{name}' tem que aparecer, e continuar");
+    println!("  depois de sair do preset e voltar — isso que prova PERSISTENCIA.");
     0
 }
 
@@ -556,6 +685,75 @@ fn run_save(pp: u16, pp_type: u16, name: &str) -> i32 {
 fn fail(e: &gp100_core::ProtocolError) -> i32 {
     eprintln!("[!] erro de protocolo: {e}");
     EXIT_PROTOCOL_ERROR
+}
+
+/// `WRITE_VERIFIED` DESTE binário (ADR-5), por compilação.
+///
+/// `cfg!` nos dois ramos é o que torna a resposta uma CONSTANTE: não há
+/// `env::var`, flag de CLI ou arquivo que a vire. O `--dry-run` acima é a
+/// conveniência; isto é a trava.
+fn escrita_verificada() -> bool {
+    #[cfg(feature = "write-verified")]
+    {
+        true
+    }
+    #[cfg(not(feature = "write-verified"))]
+    {
+        false
+    }
+}
+
+/// `upload-ir` — gate H2, 3º fluxo (§13.7).
+///
+/// **O `--dry-run` e honesto sobre o que imprime:** o caminho dos 295
+/// chunks (com idx em páginas de 128) e o marcador de fim sao o que o
+/// device vai receber, e a FSM e quem monta isso. Aqui o que muda é o
+/// destino: no dry-run o blob vai para o log de fio e nada mais.
+fn run_upload_ir<T: DeviceTransport>(
+    session: &mut Session<T>,
+    slot: u8,
+    path: &PathBuf,
+    args: &Args,
+) -> i32 {
+    let blob = match std::fs::read(path) {
+        Ok(b) => b,
+        Err(e) => {
+            eprintln!("[!] não li o blob {path:?}: {e}");
+            return EXIT_POLICY_BLOCKED;
+        }
+    };
+    if !blob.len().is_multiple_of(15) {
+        // A FSM também rejeita (rev.2 do ADR-6); aqui é para a mensagem
+        // dizer o número, que é o que o operador precisa para cortar o WAV.
+        eprintln!(
+            "[!] blob de {} bytes não é múltiplo de 15 (§13.7 rev.2: a FSM \
+             REJEITA, não padroniza — corte ou escolha outro arquivo)",
+            blob.len()
+        );
+        return EXIT_POLICY_BLOCKED;
+    }
+    let chunks = blob.len() / 15;
+    println!(
+        "upload-ir slot {slot} ({} bytes = {chunks} chunks de 15B)",
+        blob.len()
+    );
+    if args.dry_run {
+        println!("  §13.7: ir_begin -> {chunks} chunks (idx em páginas de 128) -> último chunk 2x");
+        println!("  DRY-RUN: frames no log, NADA enviado ao device.");
+        return 0;
+    }
+    match session.upload_ir(slot, &blob) {
+        Ok(r) => {
+            println!(
+                "  enviado: {r} chunks, {acks} ACKs (inclui o dup final §13.7)",
+                r = r.chunks,
+                acks = r.acks
+            );
+            println!("  CONFIRME NO DISPLAY antes de considerar o H2 verde.");
+            0
+        }
+        Err(e) => fail(&e),
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════ testes
@@ -566,9 +764,202 @@ fn fail(e: &gp100_core::ProtocolError) -> i32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use gp100_core::transport::{TransportError, WireKind};
+    use std::cell::{Cell, RefCell};
+    use std::rc::Rc;
 
     fn args(list: &[&str]) -> Vec<String> {
         list.iter().map(|s| s.to_string()).collect()
+    }
+
+    /// Transporte que CONTA os frames de escrita e delega no `MockDevice`.
+    ///
+    /// Ele existe porque o teste anterior (que so olhava o codigo de saida)
+    /// passava com o defeito de volta: o `set-param` devolvia 0 sem ter
+    /// mandado nada, e um `assert_eq!(codigo, 0)` nao ve diferenca entre
+    /// "enviou" e "imprimiu e esqueceu". Aqui a contagem e a prova — e o
+    /// mesmo espelho que o `--log` faz em campo.
+    ///
+    /// A contagem mora num `Rc<Cell>` porque o campo `transport` da
+    /// `Session` e privado: o teste precisa ler o que saiu sem fazer o core
+    /// expor o transporte so por causa de um teste.
+    struct Contador {
+        inner: MockDevice,
+        writes: Rc<Cell<usize>>,
+        ultimos: Rc<RefCell<Vec<Vec<u8>>>>,
+    }
+
+    /// O que o `Contador` entrega ao teste: a contagem de writes e a lista
+    /// de frames que sairam.
+    type Celulas = (Rc<Cell<usize>>, Rc<RefCell<Vec<Vec<u8>>>>);
+
+    impl Contador {
+        fn new() -> (Self, Celulas) {
+            let mut inner = MockDevice::new().expect("mock");
+            inner.open().expect("mock.open");
+            let writes = Rc::new(Cell::new(0));
+            let ultimos = Rc::new(RefCell::new(Vec::new()));
+            (
+                Self {
+                    inner,
+                    writes: Rc::clone(&writes),
+                    ultimos: Rc::clone(&ultimos),
+                },
+                (writes, ultimos),
+            )
+        }
+    }
+
+    impl DeviceTransport for Contador {
+        fn open(&mut self) -> Result<(), TransportError> {
+            self.inner.open()
+        }
+        fn close(&mut self) -> Result<(), TransportError> {
+            self.inner.close()
+        }
+        fn send_raw(&mut self, data: &[u8], kind: WireKind) -> Result<(), TransportError> {
+            if kind == WireKind::Write {
+                self.writes.set(self.writes.get() + 1);
+                self.ultimos.borrow_mut().push(data.to_vec());
+            }
+            self.inner.send_raw(data, kind)
+        }
+        fn recv_raw(&mut self, timeout: std::time::Duration) -> Result<Vec<u8>, TransportError> {
+            self.inner.recv_raw(timeout)
+        }
+    }
+
+    fn nao_dry_run() -> Args {
+        Args {
+            command: Command::Info,
+            dry_run: false,
+            log: None,
+            real: false,
+            mock_device: false,
+        }
+    }
+
+    /// O BUG que o gate H2 (#22) estava esperando: `set-param` e `save`
+    /// imprimiam o frame e diziam "(nada enviado — dry-run)" MESMO sem o
+    /// `--dry-run`, porque nenhum dos dois chamava a `Session`. No ensaio
+    /// contra o mock passava despercebido (o `--log` ficava vazio e o juiz
+    /// via "sem evidencia"), e em campo o operador teria acreditado que
+    /// gravou.
+    ///
+    /// A prova e a CONTAGEM de writes no transporte: 1 para o set-param,
+    /// 9 para o save (5 do meta + 4 ops, D3).
+    ///
+    /// O valor e o vetor REAL do H2 (`knobs.jsonl` linha 1: slot 3, AMP
+    /// Gain, 15.0) e nao um numero inventado — o `99.5` que o runbook
+    /// mandava esta agora recusado pela trava da #110, e um teste que
+    /// voltasse a usa-lo ensinaria o numero que derrubou o aparelho.
+    #[test]
+    fn set_param_sem_dry_run_manda_o_frame_ao_transporte() {
+        let (t, (writes, ultimos)) = Contador::new();
+        let mut s = Session::new(t);
+        let codigo = run_set_param(&mut s, 3, 0x0700_006e, 0, 15.0, &nao_dry_run());
+        assert_eq!(codigo, 0, "set-param de campo nao pode falhar");
+        assert_eq!(
+            writes.get(),
+            1,
+            "o §13.11 e UM frame de escrita; sem isto o knob nao girou"
+        );
+        // E o frame exato que a §13.11 manda, byte a byte.
+        assert_eq!(
+            ultimos.borrow()[0],
+            gp100_core::codec::set_param(3, 0x0700_006e, 0, 15.0).unwrap()
+        );
+    }
+
+    /// **A trava da #110 no nivel do CLI (#110, ADR-10).** O `99.5` que o
+    /// runbook do H2 mandava derrubou o aparelho num assert do firmware
+    /// (`audio.c:1828`), sem nenhum aviso no fio. Aqui o comando recusa
+    /// ANTES de montar o frame: sai codigo de erro, NAO sai frame, e o
+    /// operador le o teto na stderr.
+    #[test]
+    fn set_param_fora_da_faixa_falha_sem_mandar_nada() {
+        let (t, (writes, _ultimos)) = Contador::new();
+        let mut s = Session::new(t);
+        let codigo = run_set_param(&mut s, 3, 0x0700_006e, 0, 99.5, &nao_dry_run());
+        assert_eq!(
+            codigo, EXIT_PROTOCOL_ERROR,
+            "99.5 acima do teto 99 tem que falhar, nao 'enviado com sucesso'"
+        );
+        assert_eq!(
+            writes.get(),
+            0,
+            "ZERO frames no transporte — o byte nao pode sair da maquina"
+        );
+    }
+
+    /// A trava vale tambem no `--dry-run`: o dry-run existe para o operador
+    /// inspecionar o frame, e um frame que o firmware rejeitaria nao e
+    /// inspecionavel — e nada e impresso como se fosse mandavel.
+    #[test]
+    fn dry_run_tambem_recusa_valor_fora_da_faixa() {
+        let (t, (writes, _ultimos)) = Contador::new();
+        let mut s = Session::new(t);
+        let dry = Args {
+            command: Command::Info,
+            dry_run: true,
+            log: None,
+            real: false,
+            mock_device: false,
+        };
+        assert_eq!(
+            run_set_param(&mut s, 3, 0x0700_006e, 0, 99.5, &dry),
+            EXIT_PROTOCOL_ERROR
+        );
+        assert_eq!(writes.get(), 0, "nada sai em dry-run — nem frame");
+    }
+
+    /// O `save` e a escrita que PERSISTE (regra 3.2 do H2_CHECKLIST). Um
+    /// `save` que so imprime e o pior defeito possivel neste gate: o
+    /// operador le "enviado" no terminal, acredita, e o preset nunca foi
+    /// gravado — e nao ha como desfazer a suposicao.
+    #[test]
+    fn save_sem_dry_run_manda_os_9_frames() {
+        let (t, (writes, _ultimos)) = Contador::new();
+        let mut s = Session::new(t);
+        let codigo = run_save(&mut s, 0, 4, "H2 TESTE", &nao_dry_run());
+        assert_eq!(codigo, 0, "save de campo nao pode falhar");
+        assert_eq!(
+            writes.get(),
+            9,
+            "o §13.12 re-derivado e 5 writes de meta + 4 ops (D3)"
+        );
+    }
+
+    /// O `--dry-run` continua sendo o que NAO envia: os dois subcomandos
+    /// impressos antes do conserto e a trava de conveniencia do ADR-5 nao
+    /// podem ter sumido junto com o defeito.
+    #[test]
+    fn dry_run_continua_imprimindo_sem_mandar() {
+        let dry = Args {
+            command: Command::Info,
+            dry_run: true,
+            log: None,
+            real: false,
+            mock_device: false,
+        };
+        let (t, (writes, _ultimos)) = Contador::new();
+        let mut s = Session::new(t);
+        assert_eq!(run_set_param(&mut s, 3, 0x0700_006e, 0, 15.0, &dry), 0);
+        assert_eq!(
+            writes.get(),
+            0,
+            "dry-run nao pode mandar nada — e o que segura o F1 de campo"
+        );
+        assert_eq!(run_save(&mut s, 0, 4, "H2 TESTE", &dry), 0);
+        assert_eq!(writes.get(), 0, "save em dry-run nao grava nada");
+    }
+
+    /// `read-state5` é LEITURA pura: parseia sozinho (sem travas de escrita) —
+    /// o gate de hardware (camada 2, `--real`+feature) é do TRANSPORTE.
+    #[test]
+    fn read_state5_parseia_como_leitura() {
+        let parsed = parse_args(args(&["read-state5"]).into_iter()).expect("parse ok");
+        assert!(matches!(parsed.command, Command::ReadState5));
     }
 
     /// Camada 1 da política: `--real` sem `--i-know-what-im-doing` é recusado
@@ -600,6 +991,28 @@ mod tests {
             parsed.is_ok(),
             "feature on: parser aceita (abertura é runtime)"
         );
+    }
+
+    /// `--mock-device` é o SELO do mock de teste (#165): passa no parser e
+    /// deixa `real` desligado — o harness declara a intenção sem depender do
+    /// default do crate.
+    #[test]
+    fn mock_device_sela_o_transporte() {
+        let parsed = parse_args(args(&["info", "--mock-device"]).into_iter()).expect("parse ok");
+        assert!(parsed.mock_device);
+        assert!(!parsed.real);
+    }
+
+    /// `--real` e `--mock-device` juntos são uso inválido: um abre o aparelho,
+    /// o outro sela o mock — aceitar os dois faria o script mentir sobre o
+    /// transporte. A recusa é do parser (exit 2), nunca do runtime.
+    #[test]
+    fn real_com_mock_device_e_recusado() {
+        let err = parse_args(
+            args(&["--real", "--i-know-what-im-doing", "--mock-device", "info"]).into_iter(),
+        )
+        .unwrap_err();
+        assert!(err.0.contains("exclusivos"), "mensagem: {}", err.0);
     }
 
     /// O parser ACEITA escrita sem --dry-run (o bloqueio é no `run`, com a
@@ -668,35 +1081,146 @@ mod tests {
             "--log",
             "--real",
             "--i-know-what-im-doing",
+            "--mock-device",
             "info",
             "list-user-irs",
+            "read-state5",
             "dump-preset",
             "set-param",
             "save",
+            "upload-ir",
         ] {
             assert!(USAGE.contains(term), "USAGE não documenta {term}");
         }
     }
 
-    /// Logger P4: linha no schema `{"s","dir","func","addr","data"}` com
+    /// **A constante do ADR-5 reflete a feature de compilação.** É o teste
+    /// que garante que o binário de campo do H1 (compilado SEM a feature)
+    /// não se declara verificado — e que o do H2 se declara.
+    ///
+    /// Os dois ramos são `cfg!` de propósito: com a feature ligada o teste
+    /// continua rodando e confere o outro valor.
+    #[test]
+    fn escrita_verificada_segue_a_feature() {
+        #[cfg(not(feature = "write-verified"))]
+        assert!(
+            !escrita_verificada(),
+            "build sem `write-verified` NÃO pode se declarar verificado — é o \
+             que segura o H1 (leitura) de escrever"
+        );
+        #[cfg(feature = "write-verified")]
+        assert!(
+            escrita_verificada(),
+            "build com `write-verified` se declara verificado (gate H2)"
+        );
+    }
+
+    /// O USAGE diz COMO destravar a escrita. Sem isso, quem pega a recusa
+    /// "escrita bloqueada" em campo conclui que o binário está quebrado.
+    #[test]
+    fn o_uso_diz_como_destravar_a_escrita() {
+        assert!(
+            USAGE.contains("write-verified"),
+            "o USAGE precisa nomear a feature que destrava a escrita (ADR-5)"
+        );
+        assert!(
+            USAGE.contains("upload-ir"),
+            "o 3º fluxo do H2 precisa estar no USAGE"
+        );
+    }
+
+    /// `upload-ir` valida o slot no parser: 20 é o primeiro inválido (os 20
+    /// User IRs são 0..=19, §13.12). Um slot 20 aceito aqui viraria um
+    /// `begin` para um slot que o device não tem.
+    #[test]
+    fn upload_ir_recusa_slot_fora_de_0_a_19() {
+        for slot in ["0", "19"] {
+            assert!(
+                parse_args(args(&["upload-ir", slot, "blob.bin"]).into_iter()).is_ok(),
+                "slot {slot} é válido"
+            );
+        }
+        let err = parse_args(args(&["upload-ir", "20", "blob.bin"]).into_iter())
+            .expect_err("slot 20 não existe");
+        assert!(err.0.contains("0..=19"), "{}", err.0);
+
+        let err = parse_args(args(&["upload-ir", "0x14", "blob.bin"]).into_iter())
+            .expect_err("0x14 = 20, também inválido");
+        assert!(err.0.contains("0..=19"), "{}", err.0);
+    }
+
+    /// `upload-ir` sem os 2 posicionais é erro de uso, não um caminho que
+    /// chegue a ler arquivo.
+    #[test]
+    fn upload_ir_exige_slot_e_arquivo() {
+        assert!(parse_args(args(&["upload-ir"]).into_iter()).is_err());
+        assert!(parse_args(args(&["upload-ir", "0"]).into_iter()).is_err());
+    }
+
+    /// O nome tem espaço: `upload-ir` recebe o caminho por `pos`, não por
+    /// flag, então o arquivo não pode ser confundido com o slot.
+    #[test]
+    fn upload_ir_guarda_o_caminho_do_blob() {
+        let parsed =
+            parse_args(args(&["upload-ir", "3", "C:/meus/test ir.bin"]).into_iter()).expect("ok");
+        match parsed.command {
+            Command::UploadIr { slot, path } => {
+                assert_eq!(slot, 3);
+                assert_eq!(path, PathBuf::from("C:/meus/test ir.bin"));
+            }
+            _ => panic!("comando errado"),
+        }
+    }
+
+    /// Logger P4: linha no schema `{"s","t","dir","func","addr","data"}` com
     /// payload puro (sem envelope) em hex.
     #[test]
     fn logger_grava_schema_p4() {
         let dir = std::env::temp_dir().join("gp100_cli_test_log");
         std::fs::create_dir_all(&dir).expect("tmp dir");
         let path = dir.join("t.jsonl");
-        let mut log = WireLogger::create(&path).expect("arquivo");
+        let mut log = gp100_core::wire_log::WireLogger::with_session(&path, "H3").expect("arquivo");
         // Vetor real da fixture knobs: slot 3, Bog RedM @ 15.0.
         let frame = gp100_core::codec::set_param(3, 0x0700_006e, 0, 15.0).expect("vetor");
         log.record("out", &frame);
         let content = std::fs::read_to_string(&path).expect("conteúdo");
         let v: serde_json::Value =
             serde_json::from_str(content.lines().next().expect("1 linha")).expect("JSONL");
-        assert_eq!(v["s"], "H1");
+        assert_eq!(v["s"], "H3");
         assert_eq!(v["dir"], "out");
         assert_eq!(v["func"], "12");
         assert_eq!(v["addr"], "10030002");
         // payload puro: 20B nibble-exp = 40 chars hex (envelope fora).
         assert_eq!(v["data"].as_str().map(|s| s.len()), Some(40));
+        // `t` é o que faltava: sem relogio o build_golden não segmenta nem
+        // casa OUT→IN numa captura do core (o DoD do H3).
+        let t = v["t"].as_f64().expect("t numerico");
+        assert!((0.0..5_000.0).contains(&t), "t em ms desde a abertura: {t}");
+    }
+
+    /// O `t` é MONOTÔNICO: um pipeline que fatia a sessão em fases por gap
+    /// (30 s) e casa OUT→IN por janela (3 s) depende de ordem + relogio.
+    #[test]
+    fn o_relogio_do_log_avanca() {
+        let dir = std::env::temp_dir().join("gp100_cli_test_log_t");
+        std::fs::create_dir_all(&dir).expect("tmp dir");
+        let path = dir.join("t.jsonl");
+        let mut log = gp100_core::wire_log::WireLogger::with_session(&path, "H3").expect("arquivo");
+        let frame = gp100_core::codec::set_param(3, 0x0700_006e, 0, 15.0).expect("vetor");
+        log.record("out", &frame);
+        std::thread::sleep(std::time::Duration::from_millis(25));
+        log.record("in", &frame);
+        let content = std::fs::read_to_string(&path).expect("conteúdo");
+        let ts: Vec<f64> = content
+            .lines()
+            .map(|l| {
+                serde_json::from_str::<serde_json::Value>(l).expect("JSONL")["t"]
+                    .as_f64()
+                    .expect("t")
+            })
+            .collect();
+        assert_eq!(ts.len(), 2, "2 frames gravados");
+        assert!(ts[1] > ts[0], "t avancou entre os frames: {ts:?}");
+        assert!(ts[1] - ts[0] >= 20.0, "delta cobre o sleep: {ts:?}");
     }
 }

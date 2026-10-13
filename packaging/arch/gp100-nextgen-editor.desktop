@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=GP-100 NextGen Editor
+GenericName=Pedalboard Editor
+Comment=Editor de presets e parâmetros da pedaleira Valeton GP-100 (NextGen)
+# O .desktop precisa casar com o campo `Exec` do binário instalado — daí o
+# `mainBinaryName` da tauri.conf.json. Se um mudar, o outro tem que mudar.
+Exec=gp100-nextgen-editor
+Icon=gp100-nextgen-editor
+Terminal=false
+Categories=AudioVideo;Audio;Music;
+Keywords=guitar;pedal;effect;preset;gp-100;valeton;
+StartupWMClass=GP-100 NextGen Editor

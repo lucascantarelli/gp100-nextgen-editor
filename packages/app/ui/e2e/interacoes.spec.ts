@@ -18,7 +18,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 /* ── Master VOL (topbar) ── */
-test("master: slider muda o display numérico e persiste após reload", async ({ page }) => {
+test("master: slider muda o display; após reload o SEED DO DEVICE vence o localStorage (#200)", async ({ page }) => {
   const slider = shell.masterVolume();
   await expect(slider).toHaveValue("99"); // inicial
   await slider.fill("42");
@@ -28,9 +28,14 @@ test("master: slider muda o display numérico e persiste após reload", async ({
     () => document.querySelector('[aria-label="Master volume"]')?.nextElementSibling?.textContent ?? null,
   );
   expect(display).toBe("42");
+  // o valor editado foi persistido como fallback (localStorage)
+  expect(await page.evaluate(() => localStorage.getItem("gp100.master.v1"))).toBe("42");
 
+  // #200: no boot VALIDADO o registrador do device (aqui o fallback devolve
+  // 99) é a fonte — o master volta pro valor LIDO, não pro editado. O
+  // localStorage só manda quando o boot não completa (cortado/USB out).
   await shell.reload();
-  await expect(shell.masterVolume()).toHaveValue("42");
+  await expect(shell.masterVolume()).toHaveValue("99");
 });
 
 /* ── Drum: sliders do painel de ritmos ── */
@@ -98,7 +103,7 @@ test("kill switch: mute global (master→0 + drum off) por teclado e volta", asy
   await page.keyboard.press("Enter");
   await expect(kill).toHaveAttribute("aria-pressed", "true");
   await expect(master).toHaveValue("0");
-  await expect(shell.drum.chip).not.toContainText("⏹"); // bateria parada
+  await expect(shell.drum.toggle).not.toContainText("⏹"); // bateria parada
   await expect(shell.banner).toBeVisible();
   await expect(shell.library.listbox()).toBeVisible();
 
@@ -167,7 +172,7 @@ test("settings: input/normal level, USB Audio, Hint Mode e Tap Tempo — reflexo
 });
 
 /* ── afinador do palco (V-7): display sempre visível, monitor + demo ── */
-test("Afinador: display visível, monitor liga, demo move agulha e nota, ref pitch", async ({ page }) => {
+test("Afinador: painel fixo, monitor visual, demo move agulha e nota, ref pitch", async ({ page }) => {
   const tuner = shell.tuner;
   await expect(tuner.group).toBeVisible();
 
@@ -175,9 +180,22 @@ test("Afinador: display visível, monitor liga, demo move agulha e nota, ref pit
   await expect(tuner.led()).toBeVisible();
   await expect(tuner.note()).toHaveText("—");
 
+  // #8: o painel NÃO colapsa — modo e REF PITCH seguem na grade com o
+  // monitor desligado (antes eles sumiam e abriam um buraco no painel)
+  await expect(tuner.modeButton()).toBeVisible();
+  await expect(tuner.group.getByLabel(/Pitch de referência/)).toBeVisible();
+  await expect(tuner.powerLed(), "LED do botão vermelho com o monitor off").toHaveAttribute(
+    "data-tuner-power-led",
+    "off",
+  );
+
   // monitor liga (persistência testada no fim)
   await tuner.powerButton().click();
   await expect(tuner.powerButton()).toHaveAttribute("aria-pressed", "true");
+  await expect(tuner.powerLed(), "LED do botão verde com o monitor on").toHaveAttribute(
+    "data-tuner-power-led",
+    "on",
+  );
 
   // demo alimenta o MOTOR REAL com senoide varrendo ±30 cents em A2:
   // nota aparece e a agulha desloca (esquerda flat → direita sharp)
@@ -194,6 +212,18 @@ test("Afinador: display visível, monitor liga, demo move agulha e nota, ref pit
 
   // demo desliga sozinha: volta ao repouso (monitor segue ligado)
   await expect(tuner.note()).toHaveText("—", { timeout: 10_000 });
+
+  // #8: o monitor MANDA na leitura — desligado não ouve nem deixa demo rodando
+  await tuner.powerButton().click();
+  await expect(tuner.powerButton()).toHaveAttribute("aria-pressed", "false");
+  await expect(tuner.note()).toHaveText("—");
+
+  // ▶ demo com o monitor desligado liga o monitor junto (demonstrar exige ouvir)
+  await tuner.demoButton().click();
+  await expect(tuner.powerButton()).toHaveAttribute("aria-pressed", "true");
+  await expect(tuner.demoButton()).toHaveAttribute("aria-pressed", "true");
+  await expect(tuner.demoButton()).toContainText("■");
+  await expect(tuner.note()).toHaveText(/A\d/);
 
   // ref pitch padrão visível; persistência do monitor após reload
   await expect(tuner.refPitch()).resolves.toBe("440Hz");

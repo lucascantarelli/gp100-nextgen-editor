@@ -16,15 +16,17 @@ test.beforeEach(async ({ page }) => {
   await shell.beforeStandard();
 });
 
-test("R-ATALHOS Espaço: liga/para o drum pelo chip ⏵/⏹", async () => {
-  const chip = shell.drum.chip;
-  await expect(chip).toContainText("⏵");
+test("R-ATALHOS Espaço: liga/para o drum pelo toggle ⏵/⏹ da navbar", async () => {
+  const toggle = shell.drum.toggle;
+  await expect(toggle).toContainText("⏵");
 
   await shell.page.keyboard.press("Space");
-  await expect(chip).toContainText("⏹");
+  await expect(toggle).toContainText("⏹");
+  await expect(toggle).toHaveAttribute("aria-pressed", "true");
 
   await shell.page.keyboard.press("Space");
-  await expect(chip).toContainText("⏵");
+  await expect(toggle).toContainText("⏵");
+  await expect(toggle).toHaveAttribute("aria-pressed", "false");
 });
 
 test("R-ATALHOS R: REC→PLAY no looper; digitar 'r' na busca não dispara", async ({ page }) => {
@@ -50,22 +52,25 @@ test("R-ATALHOS Esc: fecha Settings → Drum → pushes (precedência); modal bl
   const drum = shell.drum;
   const settings = shell.settings;
 
-  await drum.open();
+  // modal aberto: Espaço/R inertes (Espaço no ⚙ focado reativa o próprio
+  // botão — ele só ABRE —, não o drum)
   await shell.openSettings();
-
-  // modal aberto: Espaço/R inertes (Espaço no ⚙ focado ativa o botão, não o drum)
   await page.keyboard.press("Space");
-  await expect(drum.chip).toContainText("⏵");
+  await expect(drum.toggle).toContainText("⏵");
   await expect(shell.looper.tapeText("● VAZIA")).toBeVisible();
 
-  // Esc 1: fecha o Settings (topo); o drum segue aberto
+  // Esc 1: fecha o Settings (topo)
   await settings.pressEscape();
   await settings.expectHidden();
-  await expect(drum.chip).toHaveAttribute("aria-expanded", "true");
 
-  // Esc 2: fecha o drum
+  // Esc 2: fecha o drum (os dois modais se cobrem — o estado de ambos
+  // ABERTOS ao mesmo tempo é do teste unitário de precedência; por mouse
+  // um modal de cada vez)
+  await drum.open();
+  await expect(drum.chip).toHaveAttribute("aria-expanded", "true");
   await page.keyboard.press("Escape");
   await expect(drum.chip).toHaveAttribute("aria-expanded", "false");
+  await expect(drum.panel).toBeHidden();
 
   // Esc 3: fecha o drawer de pushes
   const details = await shell.openPushes();

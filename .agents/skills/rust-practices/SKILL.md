@@ -26,12 +26,41 @@ cargo build
 
 ## CI (GitHub Actions) — mesma régua do local
 
-O CI (`.github/workflows/ci.yml`) roda os MESMOS gates por push/PR em runner
-`windows-latest` (o pin gnu do `rust-toolchain.toml` não compila no Linux).
-Armadilhas já mordidas — não reabrir:
+A CI é o pipeline `.github/workflows/ci.yml` + o workflow próprio de fechamento
+`issues-fechamento.yml` (#169) + o `visual-baselines.yml`, workflow de
+manutenção read-only que regenera as baselines `-linux` por dispatch (#204:
+saiu do ci.yml porque o `default: release` do dispatch cortava tag junto com
+regeneração). Os gates Rust são **três jobs separados**, não um `rust` único:
 
-- **Runner `windows-latest` é obrigatório** por causa do pin gnu; não
-  "simplificar" para ubuntu.
+| Job | Gate | Matriz |
+|---|---|---|
+| `Lint · Rust (fmt)` | `cargo fmt --check` | — |
+| `Lint · Rust (clippy · …)` | `cargo clippy --all-targets -- -D warnings` | core/cli/ui-rust |
+| `Compilação · Rust (cargo check · …)` | `cargo check` | core/cli/ui-rust |
+| `Testes · Rust (cargo test · …)` | `cargo test` + build do binário de campo | core/cli/ui-rust |
+
+Matriz de OS (#169): **core e cli em 4 OS** — windows-latest, ubuntu-24.04,
+macos-15-intel e **archlinux** (container `archlinux:base-devel` no runner
+ubuntu; o Arch é o Linux rolling da matriz). **ui-rust em 2 OS** — Windows
+(MSVC) + Linux no container `ci-linux` (issue #41); o macOS saiu do ui-rust de
+propósito: compilar o shell Tauri lá não pegava classe de bug própria.
+
+**Quando roda:** `push` em `develop`/`main` e em tags `v*`; branch de trabalho
+**não** dispara push — entra só por `pull_request` (a #68 restringiu `on.push`
+a integration porque `feature/**` + `pull_request` davam duas runs por push).
+O filtro é de *caminho* (`scripts/ci_plan.py`): PR que só mexe em `docs/` não
+sobe Rust nem front.
+
+Armadilhas mordidas — não reabrir:
+
+- **Toolchain por OS/projeto (ADR-8)**: o pin gnu do `rust-toolchain.toml` da
+  raiz vale para o host Windows; a CI define `RUSTUP_TOOLCHAIN` por OS/projeto
+  (gnu na raiz, msvc em `packages/app/api`, stable fora do Windows), no
+  `env:` do JOB (não via GITHUB_ENV: o probe `rustc -vV` do rust-cache roda
+  dentro da composite e não enxerga a var exportada — o pin gnu da raiz vence
+  e aparece "target tuple in channel name" nas annotations) — sem isso,
+  qualquer cargo no Linux morre com o mesmo erro. Não "simplificar" para
+  runner único.
 - Instalar a toolchain pinada com `rustup toolchain install <pin> --component
   rustfmt --component clippy`. **`--component` é REPETÍVEL**: escrever
   `--component rustfmt clippy` faz o rustup ler `clippy` como uma toolchain
@@ -66,9 +95,10 @@ Armadilhas já mordidas — não reabrir:
 - Sem `unsafe` no M0. Caso legítimo apareça (ex.: WinMM real), novo ADR antes.
 - Magic number de protocolo NUNCA inline: vira `const` documentada ou entra no
   golden (R1). Dados de protocolo vêm de `docs/protocol_golden.json`; replay
-  usa `analysis/fixtures/` (P4) — nunca hardcode de captura.
-- Feature `real-device` default OFF; nada de I/O de device fora do módulo
-  `transport` (ADR-4). Mock é o caminho default de tudo.
+  usa `packages/core/data/fixtures/` (P4) — nunca hardcode de captura.
+- Feature `real-device`: default **ON no app** (`gp100-ui`, #165 — `tauri dev`
+  fala com o aparelho) e **OFF no core/CLI/testes**; nada de I/O de device fora
+  do módulo `transport` (ADR-4). Nos testes o caminho default é o `MockDevice`.
 - Tipos novos quando baratos: newtype para ids (pp, slot, página) com métodos
   de conversão BE/LE concentrados no codec (ADR-1) — espalhar conversões é bug.
 
@@ -83,8 +113,8 @@ em 29/09: golden e .prst).
 - Classes na lista (ver seção comentada no `.gitattributes`):
   1. especificação executável (`docs/protocol_golden.json`);
   2. patches de referência (`files/patches/*.prst`, R4);
-  3. evidência de campo (`analysis/captures/*.jsonl`, `ir_slot*.bin`);
-  4. fixtures de replay (`analysis/fixtures/*.jsonl` — o replay do M0.6
+  3. evidência de campo (`docs/arquivo/analysis/captures/*.jsonl`, `ir_slot*.bin`);
+  4. fixtures de replay (`packages/core/data/fixtures/*.jsonl` — o replay do M0.6
      compara byte a byte).
 - **NÃO** entra: produto editável/regenerável (docs, scripts, knob_map,
   parameters.json — identidade semântica, não byte).

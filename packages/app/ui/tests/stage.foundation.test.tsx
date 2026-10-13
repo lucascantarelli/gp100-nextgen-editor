@@ -3,7 +3,7 @@
  * Fase 2 de pedais, antes coberta só "de raspão" pelo App):
  *   - fxModels: variante conhecida, fallback por archetype e capacidade
  *     para TODOS os slots possíveis do mock (contrato de nunca-undefined);
- *   - Pedalboard: 3 linhas de pedais, display LED, ordem custom com slots
+ *   - Pedalboard: 1 fileira de 9 pedais, display LED, ordem custom com slots
  *     ausentes preservados e pulsos de sinal por par ON;
  *   - Pedal: LED on/off, truncamento de nome e ValueBox (Enter commit,
  *     Esc restaura);
@@ -17,6 +17,9 @@ import { beforeAll, describe, expect, it, vi } from "vitest";
 import { Pedalboard } from "../src/components/Pedalboard";
 import { Pedal } from "../src/components/Pedal";
 import { Knob } from "../src/components/Knob";
+import { PEDAL_FAMILIES_READY, Stage } from "../src/components/Stage";
+import { MODAL_SCALE, PedalModal } from "../src/components/PedalModal";
+import { loadTuner } from "../src/components/TunerPanel";
 import { modelFor } from "../src/artifacts/fxModels";
 import { CHAIN_FAMILIES } from "../src/ipc/types";
 import type { BoardKnob, BoardSlot, BoardView } from "../src/ipc/types";
@@ -60,6 +63,8 @@ const BOARD: BoardView = {
   ppType: 0,
   ppTypeName: "Factory",
   slots: CHAIN_FAMILIES.map((f, i) => mkSlot(i, f)),
+  bank: "factory",
+  ppLabel: "P01",
 };
 
 function mount(ui: React.ReactElement): { root: Root; host: HTMLElement } {
@@ -102,7 +107,7 @@ describe("fxModels — catálogo de modelos por variante", () => {
   });
 });
 
-describe("Pedalboard — o palco em 3 linhas", () => {
+describe("Pedalboard — o palco em 1 fileira de 9 pedais", () => {
   it("monta os 9 pedais com display LED do preset (pp + nome + contagem ON)", () => {
     const { root, host } = mount(
       <Pedalboard
@@ -119,6 +124,8 @@ describe("Pedalboard — o palco em 3 linhas", () => {
     expect(status?.textContent).toContain("00");
     expect(status?.textContent).toContain("Preset Teste");
     expect(status?.textContent).toContain("9/9"); // states vazio = estado do slot (todos ON)
+    // cadeia inteira em 1 fileira: 9 pedais lado a lado, nenhum vazio
+    expect(host.querySelectorAll('svg[role="group"]').length).toBe(9);
     act(() => root.unmount());
     host.remove();
   });
@@ -128,7 +135,7 @@ describe("Pedalboard — o palco em 3 linhas", () => {
       <Pedalboard
         board={BOARD}
         states={{}}
-        order={[4, 0, 1, 2, 3, 5, 6, 7]} // NR vai para a 1ª posição; RVB-8 fica de fora
+        order={[4, 0, 1, 2, 3, 5, 6, 7]} // CAB vai para a 1ª posição; RVB-8 fica de fora
         onToggle={noopSlot}
         onKnobChange={noopSlot}
         onKnobReset={noopSlot}
@@ -139,6 +146,8 @@ describe("Pedalboard — o palco em 3 linhas", () => {
     expect(labels.length).toBe(9); // nenhum slot perdido
     expect(labels[0]).toContain("CAB-4"); // slot 4 (CAB) vai para a 1ª posição
     expect(labels[8]).toContain("RVB-8"); // slot 8, ausente da ordem → preservado no fim
+    // depois do reorder a cadeia ainda é 1 fileira de 9 pedais
+    expect(host.querySelectorAll('svg[role="group"]').length).toBe(9);
     act(() => root.unmount());
     host.remove();
   });
@@ -154,7 +163,8 @@ describe("Pedalboard — o palco em 3 linhas", () => {
         onReorder={noop}
       />,
     );
-    // 3 linhas × 3 pedais = 2 cabos por linha, todos com pulso
+    // o Pedalboard artístico monta 3 fileiras de 3 pedais; cada fileira tem
+    // 2 cabos entre vizinhos → 3 × 2 = 6 pulsos com todos os pares ON
     expect(host.querySelectorAll('circle[fill="#ffd23f"]').length).toBe(6);
     act(() => root.unmount());
     host.remove();
@@ -221,21 +231,60 @@ describe("Pedal — o pedal individual", () => {
     host.remove();
   });
 
-  it("nome longo é truncado com reticências (nunca estoura o enclosure)", () => {
+  it("nome longo é truncado com reticências (o corte do palco é pela LARGURA)", () => {
     const long = { ...mkSlot(0, "PRE"), name: "N".repeat(30) };
-    const { root, host } = mount(
+    const board = mount(
       <Pedal slot={long} onToggle={noopSlot} onKnobChange={noopSlot} onKnobReset={noopSlot} />,
     );
-    const texts = Array.from(host.querySelectorAll("text")).map((t) => t.textContent ?? "");
-    expect(texts.some((t) => t === `${"N".repeat(25)}…`)).toBe(true);
+    const boardTexts = Array.from(board.host.querySelectorAll("text")).map(
+      (t) => t.textContent ?? "",
+    );
+    expect(boardTexts.some((t) => t.endsWith("…")), "corte com reticências").toBe(true);
+    expect(boardTexts.every((t) => t.length < 30), "o nome inteiro não vaza").toBe(true);
+    expect(boardTexts.some((t) => t === `${"N".repeat(25)}…`), "no compacto cabe menos").toBe(false);
+    act(() => board.root.unmount());
+    board.host.remove();
+
+    // o modal é a escala GRANDE: mais caracteres antes do corte
+    const modal = mount(
+      <Pedal slot={long} variant="modal" onToggle={noopSlot} onKnobChange={noopSlot} onKnobReset={noopSlot} />,
+    );
+    const modalTexts = Array.from(modal.host.querySelectorAll("text")).map(
+      (t) => t.textContent ?? "",
+    );
+    expect(modalTexts.some((t) => t === `${"N".repeat(25)}…`)).toBe(true);
+    act(() => modal.root.unmount());
+    modal.host.remove();
+  });
+
+  it("palco (compacto): valor de cada knob em TEXTO e knobs travados, sem caixa de edição", () => {
+    const { root, host } = mount(
+      <Pedal slot={mkSlot(0, "PRE")} onToggle={noopSlot} onKnobChange={noopSlot} onKnobReset={noopSlot} />,
+    );
+    const values = Array.from(host.querySelectorAll("[data-value]")).map((t) =>
+      t.getAttribute("data-value"),
+    );
+    expect(values, "um valor por knob (numérico, switch e combox)").toEqual(["50", "off", "A"]);
+    expect(host.querySelectorAll('svg[role="img"]').length, "3 knobs travados").toBe(3);
+    expect(host.querySelectorAll('svg[role="slider"]').length).toBe(0);
+    expect(
+      host.querySelector('input[aria-label="Valor (Enter para editar)"]'),
+      "sem textbox no palco — edição só no modal",
+    ).toBeNull();
     act(() => root.unmount());
     host.remove();
   });
 
-  it("ValueBox: Enter aplica ao device; Esc restaura; valor não-numérico é ignorado", () => {
+  it("modal (escala grande): ValueBox Enter aplica; Esc restaura; valor não-numérico é ignorado", () => {
     const onKnobChange = vi.fn();
     const { root, host } = mount(
-      <Pedal slot={mkSlot(0, "PRE")} onToggle={noopSlot} onKnobChange={onKnobChange} onKnobReset={noopSlot} />,
+      <Pedal
+        slot={mkSlot(0, "PRE")}
+        variant="modal"
+        onToggle={noopSlot}
+        onKnobChange={onKnobChange}
+        onKnobReset={noopSlot}
+      />,
     );
     const box = host.querySelector<HTMLInputElement>('input[aria-label="Valor (Enter para editar)"]');
     expect(box, "caixa de valor em modo leitura").toBeTruthy();
@@ -319,7 +368,7 @@ describe("Knob — controle rotativo paramétrico", () => {
       const svg = h.host.querySelector('svg[role="slider"]')!;
       act(() => svg.dispatchEvent(new KeyboardEvent("keydown", { key, shiftKey: shift, bubbles: true })));
       expect(onChange).toHaveBeenLastCalledWith(2, expected);
-      h.root.unmount();
+      act(() => h.root.unmount());
       h.host.remove();
     };
     pressFrom("50", "ArrowUp", "51");
@@ -347,7 +396,7 @@ describe("Knob — controle rotativo paramétrico", () => {
     act(() => svg2.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true })));
     const v = onChange.mock.lastCall?.[1] as string;
     expect(v).toMatch(/^\d+\.\d$/); // 1 decimal em range fracionário
-    host2.root.unmount();
+    act(() => host2.root.unmount());
     host2.host.remove();
   });
 
@@ -363,7 +412,7 @@ describe("Knob — controle rotativo paramétrico", () => {
       const svg = h.host.querySelector('svg[role="button"][aria-label="Mode"]')!;
       act(() => svg.dispatchEvent(new MouseEvent("click", { bubbles: true })));
       expect(onChange).toHaveBeenLastCalledWith(1, expected);
-      h.root.unmount();
+      act(() => h.root.unmount());
       h.host.remove();
     };
     cycleStep("off", "on1");
@@ -377,7 +426,7 @@ describe("Knob — controle rotativo paramétrico", () => {
       const svg2 = h2.host.querySelector('svg[role="button"][aria-label="Type"]')!;
       act(() => svg2.dispatchEvent(new MouseEvent("click", { bubbles: true })));
       expect(onChange).toHaveBeenLastCalledWith(2, expected);
-      h2.root.unmount();
+      act(() => h2.root.unmount());
       h2.host.remove();
     };
     cycleCombox("A", "B");
@@ -389,7 +438,209 @@ describe("Knob — controle rotativo paramétrico", () => {
     const svg3 = h3.host.querySelector('svg[role="slider"]')!;
     act(() => svg3.dispatchEvent(new MouseEvent("click", { bubbles: true })));
     expect(onChange.mock.calls.length).toBe(before);
-    h3.root.unmount();
+    act(() => h3.root.unmount());
     h3.host.remove();
+  });
+});
+
+describe("Stage — palco real da Fase 2 (cadeia inteira)", () => {
+  const stageProps = {
+    celebrate: false,
+    arrangeMode: false,
+    onToggleArrange: noop,
+    tuner: loadTuner(),
+    onTunerChange: noop,
+    onToggle: noopSlot,
+    onKnobChange: noopSlot,
+    onKnobReset: noopSlot,
+    onEdit: noopSlot,
+  };
+
+  it("a cadeia INTEIRA vira pedal REAL: as 9 famílias (visão completa)", () => {
+    const { root, host } = mount(<Stage board={BOARD} {...stageProps} />);
+    for (const fam of CHAIN_FAMILIES) {
+      expect(PEDAL_FAMILIES_READY.has(fam), `${fam} desenha pedal no palco`).toBe(true);
+    }
+    expect(groupLabels(host).length, "9 pedais no palco").toBe(9);
+    expect(groupLabels(host)[0]).toContain("PRE-0");
+    expect(groupLabels(host)[8]).toContain("RVB-8");
+    expect(
+      host.querySelector('[aria-label="Slot 5: CAB"] svg[role="group"]'),
+      "o pedal ocupa o slot da própria família",
+    ).toBeTruthy();
+    // 9 lugares, nenhum vazio: o hint só existe ANTES da 1ª leitura do board
+    expect(host.querySelectorAll('[aria-label^="Slot "]').length).toBe(9);
+    const hints = Array.from(host.querySelectorAll("span")).filter(
+      (s) => s.textContent === "vazio",
+    );
+    expect(hints.length, "0 lugares vazios").toBe(0);
+    act(() => root.unmount());
+    host.remove();
+  });
+
+  it("board ausente (1ª leitura): 9 placeholders, nenhum pedal", () => {
+    const { root, host } = mount(<Stage board={null} {...stageProps} />);
+    expect(groupLabels(host).length).toBe(0);
+    expect(host.querySelectorAll('[aria-label^="Slot "]').length).toBe(9);
+    act(() => root.unmount());
+    host.remove();
+  });
+
+  it("com a trava ATIVA o pedal reordena (prévia local) sem perder nenhum lugar", () => {
+    const { root, host } = mount(<Stage board={BOARD} {...stageProps} arrangeMode />);
+    const slot = (n: number, fam: string) =>
+      host.querySelector(`[aria-label="Slot ${n}: ${fam}"]`)!;
+    // arrasta o pedal do slot 1 (PRE) para a posição 5
+    act(() => {
+      slot(1, "PRE").dispatchEvent(new Event("dragstart", { bubbles: true }));
+      slot(5, "CAB").dispatchEvent(new Event("dragover", { bubbles: true }));
+      slot(5, "CAB").dispatchEvent(new Event("drop", { bubbles: true }));
+    });
+    expect(slot(5, "PRE").querySelector('svg[role="group"]')).toBeTruthy();
+    expect(groupLabels(host).length).toBe(9);
+    expect(host.querySelectorAll('[aria-label^="Slot "]').length).toBe(9);
+    act(() => root.unmount());
+    host.remove();
+  });
+
+  it("knobs do palco são SÓ LEITURA; clique em qualquer ponto do pedal abre a edição", () => {
+    const onEdit = vi.fn();
+    const { root, host } = mount(<Stage board={BOARD} {...stageProps} onEdit={onEdit} />);
+    // knob travado: role img (sem foco/aria-valuenow) e valor em texto — quem
+    // ajusta é o modal, então o clique sobre o knob TAMBÉM abre a edição
+    const knob = host.querySelector('[aria-label="Slot 1: PRE"] svg[role="img"]')!;
+    expect(knob, "knob do palco é display (não slider)").toBeTruthy();
+    expect(knob.getAttribute("tabindex")).toBeNull();
+    expect(knob.getAttribute("aria-label")).toContain("Gain: 50");
+    expect(host.querySelector('[aria-label="Slot 1: PRE"] svg[role="slider"]')).toBeNull();
+    act(() => knob.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    expect(onEdit).toHaveBeenCalledTimes(1);
+    expect(onEdit.mock.calls[0][0]).toMatchObject({ slot: 0, family: "PRE" });
+
+    // footswitch continua com o clique próprio (liga/desliga o efeito)
+    const foot = host.querySelector('[aria-label="Slot 1: PRE"] [role="button"]')!;
+    act(() => foot.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    expect(onEdit).toHaveBeenCalledTimes(1);
+
+    // corpo do pedal (svg do grupo) abre com o slot certo
+    const pedal = host.querySelector('[aria-label="Slot 1: PRE"] svg[role="group"]')!;
+    act(() => pedal.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    expect(onEdit).toHaveBeenCalledTimes(2);
+    expect(onEdit.mock.calls[1][0]).toMatchObject({ slot: 0, family: "PRE" });
+
+    // teclado: Enter no grupo do pedal também abre (R7 — acessível sem mouse)
+    act(() =>
+      host
+        .querySelector('[aria-label="Slot 1: PRE"]')!
+        .dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true })),
+    );
+    expect(onEdit).toHaveBeenCalledTimes(3);
+    act(() => root.unmount());
+    host.remove();
+  });
+
+  it("com a trava ATIVA o clique não abre a edição (o clique pertence ao drag)", () => {
+    const onEdit = vi.fn();
+    const { root, host } = mount(<Stage board={BOARD} {...stageProps} arrangeMode onEdit={onEdit} />);
+    act(() =>
+      host
+        .querySelector('[aria-label="Slot 1: PRE"] svg[role="group"]')!
+        .dispatchEvent(new MouseEvent("click", { bubbles: true })),
+    );
+    expect(onEdit).not.toHaveBeenCalled();
+    act(() => root.unmount());
+    host.remove();
+  });
+
+  it("modo engenheiro: tooltip com addr/code/ctrl; desligado fica o texto simples", () => {
+    // desligado (default): tooltip de uso (palco = só leitura), SEM endereço
+    // e SEM vocabulário interno
+    const off = mount(<Stage board={BOARD} {...stageProps} />);
+    const titleOff = off.host.querySelector('svg[role="img"] title')!.textContent ?? "";
+    expect(titleOff).toContain("clique no pedal para editar");
+    expect(titleOff).not.toContain("addr");
+    act(() => off.root.unmount());
+    off.host.remove();
+
+    // ligado: addr do SET (10 01 00 02), code do efeito e ctrl do knob
+    const on = mount(<Stage board={BOARD} {...stageProps} engineer />);
+    const titleOn = on.host.querySelector('svg[role="img"] title')!.textContent ?? "";
+    expect(titleOn).toContain("SET");
+    expect(titleOn).toContain("addr 10 01 00 02");
+    expect(titleOn).toContain("code 0x00000001");
+    expect(titleOn).toContain("ctrl 0");
+    expect(titleOn, "referência à doc interna não vaza (Q-8)").not.toContain("§13.11");
+    act(() => on.root.unmount());
+    on.host.remove();
+  });
+
+  it("sem a trava o arrasto do pedal não reordena (protege o knob)", () => {
+    const { root, host } = mount(<Stage board={BOARD} {...stageProps} />);
+    const slot = (n: number, fam: string) =>
+      host.querySelector(`[aria-label="Slot ${n}: ${fam}"]`)!;
+    act(() => {
+      slot(1, "PRE").dispatchEvent(new Event("dragstart", { bubbles: true }));
+      slot(5, "CAB").dispatchEvent(new Event("dragover", { bubbles: true }));
+      slot(5, "CAB").dispatchEvent(new Event("drop", { bubbles: true }));
+    });
+    expect(slot(1, "PRE").querySelector('svg[role="group"]')).toBeTruthy();
+    act(() => root.unmount());
+    host.remove();
+  });
+});
+
+describe("PedalModal — edição ampliada do pedal (U-3)", () => {
+  it("amplia o pedal (1.25×) com os mesmos controles; ✕, Esc e backdrop fecham", () => {
+    const onClose = vi.fn();
+    const slot = mkSlot(0, "PRE");
+    const { root, host } = mount(
+      <PedalModal
+        slot={slot}
+        onToggle={noopSlot}
+        onKnobChange={noopSlot}
+        onKnobReset={noopSlot}
+        onChangeEffect={noopSlot}
+        onClose={onClose}
+      />,
+    );
+    const dlg = host.querySelector('[role="dialog"]')!;
+    expect(dlg).toBeTruthy();
+    expect(dlg.getAttribute("aria-label")).toBe("Edição do pedal PRE-0");
+    // pedal AMPLIADO: transform scale(1.25) (knob 64 → 80px) e controles vivos
+    const scaled = Array.from(dlg.querySelectorAll<HTMLDivElement>("div")).find(
+      (d) => d.style.transform !== "",
+    );
+    expect(scaled?.style.transform).toBe(`scale(${MODAL_SCALE})`);
+    expect(dlg.querySelectorAll('svg[role="slider"], svg[role="button"]').length).toBe(3);
+
+    // três saídas: ✕, Esc e clique no backdrop
+    act(() =>
+      dlg.querySelector<HTMLButtonElement>("button")!.dispatchEvent(new MouseEvent("click", { bubbles: true })),
+    );
+    expect(onClose).toHaveBeenCalledTimes(1);
+    act(() => dlg.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })));
+    expect(onClose).toHaveBeenCalledTimes(2);
+    act(() =>
+      dlg.parentElement!.dispatchEvent(new MouseEvent("mousedown", { bubbles: true })),
+    );
+    expect(onClose).toHaveBeenCalledTimes(3);
+    act(() => root.unmount());
+    host.remove();
+  });
+
+  it("slot null não renderiza nada (fechado)", () => {
+    const { root, host } = mount(
+      <PedalModal
+        slot={null}
+        onToggle={noopSlot}
+        onKnobChange={noopSlot}
+        onKnobReset={noopSlot}
+        onChangeEffect={noopSlot}
+        onClose={noop}
+      />,
+    );
+    expect(host.querySelector('[role="dialog"]')).toBeNull();
+    act(() => root.unmount());
+    host.remove();
   });
 });

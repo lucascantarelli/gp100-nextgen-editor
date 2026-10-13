@@ -5,7 +5,9 @@
  *    janela curta = sem leitura e suavização do TunerEngine;
  *  - TunerPanel (COMPONENTE): liga/desliga com controles, modo em ciclo
  *    bypass→thru→mute, REF PITCH clampa 435–445 e persiste via callback;
- *    repouso honesto (agulha central, nota "—") sem áudio real.
+ *    repouso honesto (agulha central, nota "—") sem áudio real;
+ *    grade fixa (não colapsa), botão do monitor VISUAL e o monitor como
+ *    gate da leitura (desligado = não ouve, demo incluso) — issue #8.
  */
 import { act } from "react";
 import { createRoot } from "react-dom/client";
@@ -155,6 +157,93 @@ describe("TunerPanel — painel do palco", () => {
     });
     act(() => range?.dispatchEvent(new Event("change", { bubbles: true })));
     expect(onChange.mock.lastCall?.[0].refPitch).toBe(445);
+    act(() => root.unmount());
+  });
+
+  it("botão do monitor é VISUAL: ícone + LED verde/vermelho, sem palavra de estado (#8)", () => {
+    const on = mount(<TunerPanel settings={{ ...BASE, on: true }} onChange={vi.fn()} />);
+    const btnOn = on.host.querySelector<HTMLButtonElement>("[data-tuner-power]")!;
+    expect(btnOn.getAttribute("data-tuner-power")).toBe("on");
+    expect(btnOn.getAttribute("aria-pressed")).toBe("true");
+    expect(btnOn.textContent, "só o ícone — nada de 'Ligado'").toBe("♪");
+    expect(
+      on.host.querySelector("[data-tuner-power-led]")!.getAttribute("data-tuner-power-led"),
+      "LED do botão verde quando ligado",
+    ).toBe("on");
+    act(() => on.root.unmount());
+
+    const off = mount(<TunerPanel settings={BASE} onChange={vi.fn()} />);
+    const btnOff = off.host.querySelector<HTMLButtonElement>("[data-tuner-power]")!;
+    expect(btnOff.getAttribute("data-tuner-power")).toBe("off");
+    expect(btnOff.getAttribute("aria-pressed")).toBe("false");
+    expect(btnOff.textContent).toBe("♪");
+    expect(
+      off.host.querySelector("[data-tuner-power-led]")!.getAttribute("data-tuner-power-led"),
+      "LED do botão vermelho quando desligado",
+    ).toBe("off");
+    act(() => off.root.unmount());
+  });
+
+  it("grade de controles NÃO colapsa: modo e REF seguem no DOM com o monitor desligado (#8)", () => {
+    const controlsOf = (host: HTMLElement) =>
+      host.querySelector('[aria-label="Afinador"]')!.children[1].children.length;
+
+    const off = mount(<TunerPanel settings={BASE} onChange={vi.fn()} />);
+    expect(off.host.querySelector("[data-tuner-mode]"), "modo visível desligado").toBeTruthy();
+    expect(
+      off.host.querySelector('[aria-label^="Pitch de referência"]'),
+      "REF PITCH visível desligado",
+    ).toBeTruthy();
+    const offCount = controlsOf(off.host);
+    act(() => off.root.unmount());
+
+    const on = mount(<TunerPanel settings={{ ...BASE, on: true }} onChange={vi.fn()} />);
+    expect(
+      controlsOf(on.host),
+      "mesma grade ligado/desligado (sem salto de layout)",
+    ).toBe(offCount);
+    expect(offCount, "monitor + modo + ref + demo").toBe(4);
+    act(() => on.root.unmount());
+  });
+
+  it("monitor desligado NÃO ouve: leitura do device fica em repouso (#8)", () => {
+    const reading = frequencyToReading(110); /* A2 real do motor */
+    const off = mount(<TunerPanel settings={BASE} reading={reading} onChange={vi.fn()} />);
+    expect(off.host.querySelector("[data-tuner-note]")!.textContent).toBe("—");
+    expect(
+      off.host.querySelector<HTMLElement>("[data-tuner-needle]")!.style.left,
+      "agulha no centro",
+    ).toContain("50%");
+    act(() => off.root.unmount());
+
+    const on = mount(
+      <TunerPanel settings={{ ...BASE, on: true }} reading={reading} onChange={vi.fn()} />,
+    );
+    expect(on.host.querySelector("[data-tuner-note]")!.textContent).toBe("A2");
+    act(() => on.root.unmount());
+  });
+
+  it("demo liga o monitor quando estava desligado e para quando ele desliga (#8)", () => {
+    let current: TunerSettings = { ...BASE };
+    const onChange = vi.fn((s: TunerSettings) => {
+      current = s;
+      act(() => root.render(<TunerPanel settings={current} onChange={onChange} />));
+    });
+    const { root, host } = mount(<TunerPanel settings={current} onChange={onChange} />);
+
+    /* demonstrar exige o monitor ouvindo: o clique liga os dois de uma vez */
+    act(() => host.querySelector<HTMLButtonElement>('[aria-label^="Tocar demonstração"]')!.click());
+    expect(current.on, "monitor ligado pela demo").toBe(true);
+    expect(current.mode, "demais ajustes intocados").toBe("mute");
+    expect(host.querySelector("[data-tuner-demo]")!.getAttribute("data-tuner-demo")).toBe("on");
+
+    /* desligar o monitor para a demo (nada roda em background) */
+    act(() => host.querySelector<HTMLButtonElement>("[data-tuner-power]")!.click());
+    expect(current.on).toBe(false);
+    expect(
+      host.querySelector("[data-tuner-demo]")!.getAttribute("data-tuner-demo"),
+      "demo parou junto com o monitor",
+    ).toBe("off");
     act(() => root.unmount());
   });
 

@@ -11,7 +11,8 @@
 
 ### R1. Topbar e identidade
 1. Logo GP-100 + tag do backend (mock) visíveis; LED "conectado" verde (fallback dev).
-2. Navbar mostra o patch corrente no formato `P25 Mist` (nome REAL de fábrica).
+2. Display LED do palco mostra o patch corrente no formato `P25 Mist` (a navbar
+   NÃO tem ◀ ▶ — cluster removido pelo dono 12/10; a troca é pela lista).
 3. Resize da janela: topbar não quebra (wrap limpo), nada sobrepõe.
 4. Tab atravessa TODOS os controles com foco visível (âmbar); ordem lógica.
 
@@ -19,7 +20,7 @@
 1. Painel direito lista 99 linhas `P00…P98` com nome e estilo (Rock/Funk/…).
 2. Buscar "mist" → só `P25 Mist`; buscar "Rock" → filtra estilos; buscar "98" → `P98`.
    Busca sem resultado mostra dica (empty state com hint, não tela vazia).
-3. Clicar em qualquer linha: display LED do board e a navbar trocam para o preset
+3. Clicar em qualquer linha: o display LED do board troca para o preset
    (fallback dev: determinístico; no shell Tauri: §13.10 REAL).
 4. Linha corrente fica destacada (âmbar) e com aria-selected.
 5. Teclado: setas + Enter selecionam um preset (listbox nativo de botões).
@@ -37,9 +38,10 @@
 ### R4. Modal Settings (⚙)
 1. ⚙ abre o modal com 6 abas: General | Global EQ | About | Info Frame | Help |
    Release Note; badge "prévia local" visível.
-2. General: sliders (Input/Normal Level), toggles (Noise Gate 1/2, USB Audio),
-   selects (Hint/Noise Mode), checkboxes Tap Tempo (PRE/MOD/DLY) e idioma — todos
-   operam e PERSISTEM: recarregar a página mantém os valores (localStorage).
+2. General: sliders (Input/Normal Level), toggles (USB Audio),
+   select Hint Mode, checkboxes Tap Tempo (PRE/MOD/DLY) e **APP Language**
+   (4 idiomas, funcional desde a #30) — todos operam e PERSISTEM: recarregar a
+   página mantém os valores (localStorage).
 3. Global EQ: seletor 1/5…5/5 e controles desabilitados (aguardando captura G3–G6).
 4. Esc fecha; clique no fundo fecha; ✕ fecha; foco não "escapa" do modal.
 5. `prefers-reduced-motion` respeitado (sem animações).
@@ -93,7 +95,7 @@
 ## 📐 EXECUÇÃO — R-RESPONSIVO (30/09, Playwright · Chrome do sistema 1440/1280/1024)
 
 > Pedido do owner: board + looper em telas menores (1280/1024) sem quebrar o
-> alinhamento dos painéis. Verificação OBJETIVA via `analysis/responsivo_checks.js`
+> alinhamento dos painéis. Verificação OBJETIVA via `docs/arquivo/analysis/responsivo_checks.js`
 > no Chrome real (channel "chrome" — preview webview instável; mesmo método da
 > rodada e2e). 9 asserts por viewport, **27/27 PASSARAM**; screenshots regenerados.
 
@@ -116,9 +118,83 @@
 5. Ferramenta viva: os asserts desta rodada foram PROMOVIDOS a e2e permanente
    (`e2e/responsivo.spec.ts` + `e2e/_helpers.ts`, 30/09) — rodam na CI a cada
    mudança de `packages/app/ui/`. Screenshots/recortes: `pnpm dev` +
-   `node analysis/responsivo_shots.js`.
+   `node docs/arquivo/analysis/responsivo_shots.js`.
 
 ---
+
+## \U0001f9f0 EXECUÇÃO — #11 LIBRARYPANEL: a biblioteca comanda o pedalboard (02/10)
+
+> Escopo fechado com o owner: (a) estreitar a biblioteca; (b) fazer o patch
+> selecionado REFLETIR nos 9 pedais; (c) implementar a UI de User Patch (até
+> então decorativa, bloqueada). Gates: tsc · eslint · vitest · coverage · build ·
+> playwright. Resultado: **144 unit ✅ (12 arquivos) · 77 e2e ✅ · cobertura
+> 89,9% stmts / 86,6% branch** (gate 85) · 18 baselines win32 regeneradas.
+
+**Achado de fundo (o bug real):** o core Rust já montava a cadeia por preset;
+o que estava congelado era o **mock web**, com uma cadeia FIXA para os 99. Dois
+consequências que os testes revelaram ao deixar de mentir:
+1. **20 dos 99 presets têm a cadeia TROCADA** (`@x` manda, não a família) — P06
+   (ppID 5) tem DST antes do PRE. O `Stage` ordenava por família e mentia.
+2. **O PRE do P01 no all.prst é C-Wah, não COMP.** Vários asserts (unit + R7)
+   foram escritos contra o COMP que o mock inventava; foram refeitos para ler o
+   artefato GERADO (`PRESET_CHAINS`) em vez de repetir a mentira.
+
+| O que | Onde | Teste |
+|---|---|---|
+| Cadeia real dos 99 no mock | `presetChains.ts` (GERADO) + `localMockBoard` | unit `ipc.device` (12) |
+| Ordem do palco pelo `slot` real | `Stage::baseOrder` | unit `stage.foundation` (25) |
+| Patch de usuário (snapshot/U##/excluir) | `userPatches.ts` + `App` | unit `userPatches` (8) + 3 unit em `app.interactions` |
+| Biblioteca estreita (300 → 248px) | `.shell-main` | e2e `responsivo` (assert 248.5) + baselines |
+| Roteiro R2b (novo) | `shell.roteiros.spec.ts` | e2e R2b |
+
+**Achados desta rodada:**
+- `deleteUserPatch` tinha que devolver o palco à fábrica — deixar o patch apagado
+  na tela seria a UI mentindo sobre o que existe.
+- A aba da biblioteca passou a seguir o BANCO ABERTO (abrir um patch troca a aba;
+  clicar na aba só navega a visão) — senão a biblioteca mente sobre o que toca.
+- A lista de patches de usuário é um `list`/`listitem`, não `listbox`: com o
+  botão de excluir dentro, o `option` órfão ficaria com filhos presentacionais
+  para o leitor de tela.
+- Flake: `erro-boot` (visual) deu timeout na suíte completa (8 min) e passou
+  isolado — contenção de recurso, não regressão.
+
+### R2b. Patch de usuário: salvar a cadeia corrente, abrir de volta e excluir
+1. Abrir a aba User → estado vazio orienta o caminho + nota de prévia local.
+2. Nomear e salvar → a lista mostra `U01` + o nome + de qual patch veio.
+3. Abrir o patch → `U01` no LED e na navbar; os 9 pedais mostram o SNAPSHOT.
+4. Excluir → volta ao preset de fábrica confirmado pelo device.
+
+## \U0001f3ae EXECUÇÃO — #19 EFFECTS LIST: trocar o efeito dentro do pedal (02/10)
+
+> Escopo definido com o owner: UI inteira da lista de efeitos por pedal, em
+> prévia local, morando como painel lateral do `PedalModal` (o palco fica
+> limpo). Só a escrita no device espera a captura do `0x47`
+> (`docs/CAPTURE_PLAN.md`, CAPTURA 5).
+>
+> **Resultado: 155 unit ✅ (13 arquivos) · 78 e2e ✅ · cobertura 90,3% stmts /
+> 86,5% branch** (gate 85). `effects.ts` e `PedalModal.tsx` em 100% de linhas.
+
+**Regras que os testes travam (as que dão sentido ao editor):**
+- A lista é do **MÓDULO**: PRE não oferece `Bog RedM` (que é AMP).
+- As entradas de **nome vazio** do dicionário (variante `fx`, índice 1.048.576+,
+  slots internos do firmware) nunca aparecem — a lista não mostra linha em branco.
+- Trocar **preserva** posição, família e ligado/desligado.
+- Trocar **zera os controles para o default do algoritmo novo** — herdar o
+  `Range` do C-Wah como `Sustain` do COMP seria a UI mentindo sobre o som.
+- O efeito trocado entra no **patch de usuário**: o patch é o retrato do palco,
+  não do preset de fábrica.
+
+| O que | Onde | Teste |
+|---|---|---|
+| Lista do módulo + filtro + `effectCode` | `effects.ts` | `tests/effects.test.ts` (9) |
+| Troca refletindo no palco (estado único) | `App.onChangeEffect` | `app.interactions` (2) |
+| Efeito trocado entra no patch de usuário | `userPatches` | `app.interactions` (1) |
+| Roteiro R7b (novo) | `shell.roteiros.spec.ts` | e2e R7b |
+
+**Achado desta rodada:** o nome acessível da opção é o NOME do efeito (o botão
+tem texto); o `title` carrega a ação e só vira nome acessível quando não há
+conteúdo. A e2e tentou casar pelo `title` e o Playwright não resolveu — o
+seletor correto é `getByRole("option", { name: "COMP", exact: true })`.
 
 ## ⌨️ EXECUÇÃO — R-ATALHOS (30/09, Playwright · Chromium + vitest)
 
@@ -172,9 +248,16 @@ REC→PLAY, digitação não dispara, precedência do Esc).
 5. Matriz de cobertura do manual: `docs/MANUAL_COVERAGE.md` (33 ✅ · 5 🟡 · 5 🔴 —
    nada silencioso; 🔴 = Fase 2/3 documentadas).
 
-**CI (pipeline.yml):** job `e2e` = setup pnpm → `playwright install --with-deps
-chromium` → `playwright test` (webServer sobe o `pnpm dev` na :5173);
-`tag-release` agora exige `e2e` no needs — tag não corta com casca quebrada.
+**CI (`.github/workflows/ci.yml`, um workflow de pipeline desde a #68 — mais o
+workflow de manutenção `visual-baselines.yml`, ver abaixo):** job
+`Testes · E2E shell (Chromium)` = setup pnpm → `playwright install --with-deps
+chromium` → `playwright test` (o `webServer` sobe o `pnpm dev` na :5173).
+O job `Testes · E2E visual` compara as baselines, e o `Testes · E2E webview`
+sobe o shell Tauri real no Linux. A distribuição só roda depois de tudo isso —
+`Release · RC` exige `workflow_dispatch`, e a tag não corta com casca quebrada.
+O `Release · RC` é o REASON de a regeneração de baseline ter saído daqui: um
+dispatch do `ci.yml` com o input `update-snapshots` preenchido e o `action`
+vazio APLICAVA o `default: release` e cortava rc junto (run 38070949933).
 
 ---
 
@@ -187,7 +270,7 @@ chromium` → `playwright test` (webServer sobe o `pnpm dev` na :5173);
 | Achado | Correção | Teste que trava agora |
 |---|---|---|
 | Noise Gate (1)/(2) e Noise Mode NÃO existem no device | removidos do Settings | unit: `not.toContain("Noise Gate")` |
-| APP Language ativo mas sem trocar idioma (mesmo engano) | desabilitado + "próxima versão" | R4 e2e (desabilitado) |
+| APP Language ativo mas sem trocar idioma (mesmo engano) | desabilitado + "próxima versão" → **resolvido na #30**: os 4 idiomas existem e o select troca a casca inteira | R4 e2e + `tests/i18n.test.tsx` (14) |
 | Nome do preset congelado (fallback do board ignorava o pp) | fallback usa presetData; pp/ppType reais | e2e: NOME completo nos 3 locais (R1/R2) |
 | Efeito colateral dentro do updater (StrictMode 2×) | updater puro + useEffect([pp]) | unit R1 (◀ ▶ com nome) |
 | Vocabulário interno visível (fases/fios/capturas/§) | centralizado em `src/i18n/messages.ts` + limpeza | padrão §8 do UI_REFERENCE |
@@ -206,22 +289,29 @@ issues Q-6/Q-7 (sliders/kill/error states).
 + erro-boot/erro-preset × 1440/1280/1024), animações congeladas, tolerância 1%,
 **baseline por
 plataforma** (`{arg}-{platform}`; fontes divergem Win/Linux). Estado atual:
-baselines `win32` commitadas e estáveis (2 rodadas idênticas ✅); baselines
-`linux` geram-se no CI pelo **input `update-snapshots`** do pipeline (job
-`e2e-visual` sobe o artefato → commitar). Sem baseline no CI = SKIP.
+baselines `win32` **e `linux`** commitadas e comparando no CI ✅ (issue #45);
+baselines novas nascem pelo workflow dedicado **`visual-baselines.yml`**
+(`gh workflow run visual-baselines.yml --ref <branch>` → artefato
+`visual-snapshots` → commitar os `-linux`; ele é `contents: read` e não
+committa nada sozinho). Sem baseline no CI = job VERMELHO (o skip silencioso
+não existe mais).
 
 **U-7 — e2e-tauri (job na CI, Ubuntu):** build debug do `gp100-ui` com o
 dist embutido (mock, sem hardware) → `tauri-driver` + `WebKitWebDriver` sob
 `xvfb-run` → Selenium (`e2e/tauri.smoke.mjs`): banner no webview, os 3 painéis
-no DOM e a biblioteca com os **99 presets reais dentro do webview**. Receita
+no DOM e a biblioteca com os **99 presets reais dentro do webview**. Cobre
+também o **DeviceGone ponta-a-ponta** (#48): o app sobe com
+`GP100_DEBUG_FAULT=die-after:60`, o device morre no meio do boot e o smoke
+clicla o ⟳ exigindo, após a 2ª falha: alerta amigável (sem vazar o detalhe
+técnico), LED off, zero barra de progresso e retry vivo. Receita
 oficial Tauri v2 (webkit2gtk-driver + xvfb + WEBKIT_DISABLE_DMABUF_RENDERER).
 
 | Item | Estado |
 |---|---|
 | 9 baselines win32 geradas e estáveis | ✅ (rodada 30/09) |
-| job e2e-visual (Ubuntu) + input update-snapshots | ✅ pipeline.yml |
-| baselines linux commitadas | 🔜 1º run do input (artefato → commit) |
-| job e2e-tauri (smoke webview real) | ✅ pipeline.yml (não é gate de release ainda) |
+| job `Testes · E2E visual` (Ubuntu) | ✅ ci.yml (compara; regenerar = `visual-baselines.yml`) |
+| baselines linux commitadas | ✅ (issue #45; contagem atual em `docs/INDEX.md` §6) |
+| job `Testes · E2E webview` (smoke webview real + DeviceGone) | ✅ ci.yml (gate de release: só roda com o resto verde) |
 
 ---
 
@@ -229,19 +319,46 @@ oficial Tauri v2 (webkit2gtk-driver + xvfb + WEBKIT_DISABLE_DMABUF_RENDERER).
 
 > Um efeito por vez, começando pelo COMP. A cada rodada: executar R7 com o efeito
 > em TODAS as 9 posições antes de aprovar e partir para o próximo.
+>
+> **Entregue (fatia 1 da issue #19):** o palco renderiza o board REAL
+> (`device_board`): COMP (PRE) no slot da família com os knobs do dicionário
+> editáveis (arrasto/teclado/valor por textbox; knob numérico →
+> `device_set_param` §13.11), LED verde/vermelho e footswitch por prévia LOCAL,
+> trava ⇄ mover com reordenação local (arrastar o pedal para qualquer posição)
+> e os 8 lugares restantes como placeholders.
+>
+> **Entregue (fatia 2):** liga/desliga do **modo engenheiro** na aba General do
+> Settings (persistido local) — o tooltip do knob passa a mostrar
+> `addr/code/ctrl`, sem a referência interna `§13.11` (passo 5 do R7).
+>
+> **Entregue (fatia 3):** **modal de edição** — clique/Enter no corpo do pedal
+> (com a trava ⇄ em repouso) amplia 1.25× (knob 80px); Esc/✕/clique fora fecham
+> e o valor ajustado no modal aparece no palco na hora (estado único).
+>
+> **Entregue (fatia 4):** **pedal compacto no palco** — enclosure no espaçamento
+> do board (118–132px, knob 32px) com o VALOR de cada knob em texto e **knobs
+> travados** (`role="img"`: sem foco/handlers); QUALQUER clique/Enter no pedal
+> abre o modal (o footswitch conserva o clique próprio), a edição inteira mora
+> lá e volta para o palco na hora. **DST entrou** como 2º efeito real (2 pedais +
+> 7 placeholders). Falta a **validação manual do owner** (R7 em todas as 9
+> posições) antes de partir para a próxima família.
 
 ### R7. Um pedal (ex.: COMP) em cada posição do board
-1. O efeito aparece no slot da vez; os 8 restantes continuam placeholders.
+1. O efeito aparece no slot da vez; os demais continuam placeholders.
 2. Modelo/cores coerentes com a família (PRE = cinza-azulado; DST vermelho; …).
 3. TODOS os knobs/switches/comboxes do algoritmo aparecem (contar vs fxData).
-4. Knob grande (≥64px), nome e VALOR visíveis; nada sobrepõe em NENHUMA posição.
-5. Arrastar o knob vertical muda o valor (fino: dy/260); setas ±1% (Shift 5%);
-   duplo-clique = default; tooltip do modo engenheiro mostra addr §13.11.
-6. Valor EDITÁVEL: clicar na caixa → digitar → Enter aplica (device_set_param no
-   real); valor inválido é ignorado; Esc restaura; blur aplica.
-7. Switch/combox cicla por clique; valor da opção reflete.
+4. **No palco** o pedal é compacto (118–132px) e caberia 9 numa linha larga:
+   nome + VALOR de cada knob em texto, nada sobrepõe em NENHUMA posição, e o
+   pedal não é reescalado/estoura a coluna.
+5. Knob do palco é SÓ LEITURA (não arrasta, não foca, não muda valor); o tooltip
+   continua útil (com o modo engenheiro mostra `addr/code/ctrl`).
+6. **Toda a edição acontece no modal**: clicar no pedal abre; arrastar o knob
+   (dy/260), setas ±1% (Shift 5%), duplo-clique = default.
+7. Valor EDITÁVEL (textbox do modal): digitar → Enter aplica (`device_set_param`
+   no real); inválido é ignorado; Esc restaura; blur aplica; o palco reflete.
 8. LED do pedal: verde quando ON, vermelho quando OFF; footswitch alterna.
-9. Modal de edição (clique no pedal): knobs ampliados, fecha com Esc.
+9. Modal de edição: pedal 1.25× (knob 80px) SEM barra de rolagem em janela
+   ≥640px, nada cortado/sobreposto, fecha com Esc/✕/clique fora.
 10. `⇄ mover` OFF: tentar arrastar o pedal NÃO move (protege o knob).
 11. `⇄ mover` ON: drag reordena (prévia local) e cabos seguem os jacks.
 12. Cabo de sinal: entra no jack IN do próximo; pulso anima só entre pedais ON.
@@ -251,6 +368,27 @@ oficial Tauri v2 (webkit2gtk-driver + xvfb + WEBKIT_DISABLE_DMABUF_RENDERER).
 2. Preset de fábrica carrega a cadeia real (nomes/efeitos do preset).
 3. Tamanho/espaçamento revisados em cada uma das 9 posições.
 4. Roteiro R6 (a11y) reexecutado com os pedais no ar.
+
+### R9. Afinador do palco (issue #8 — refinamento profissional)
+> Executado no e2e (`e2e/interacoes.spec.ts`, "Afinador: painel fixo, monitor
+> visual, demo move agulha e nota, ref pitch"); o que sobra é julgamento visual.
+1. O painel está sempre visível no cabeçalho, do tamanho do display do patch
+   (nada de colapsar/saltar de altura ao ligar o monitor).
+2. **Grade fixa**: monitor, modo, REF PITCH e demo na MESMA linha, com o
+   monitor desligado também — zero buraco no meio, zero quebra de linha.
+3. **Botão do monitor é visual**: ícone ♪ + LED VERDE ligado / VERMELHO
+   desligado, sem palavra de estado (tooltip explica e diz o estado atual).
+4. Ordem de fluxo: on/off junto do display (LED/escala) e a demo na ponta.
+5. LED próprio do painel: cinza desligado, âmbar ouvindo, verde/vermelho pela
+   banda — o LED do patch (pp/nome) nunca é tomado.
+6. Monitor DESLIGADO = repouso honesto: nota “—”, agulha centrada, nenhuma demo
+   rodando; ligar mostra a leitura e a cor da banda.
+7. “▶ demo” com o monitor desligado liga o monitor junto (vira “■ demo”);
+   desligar o monitor para a demo na hora.
+8. REF PITCH 435–445 Hz persiste (`gp100.tuner.v1`), junto do monitor e do modo;
+   modo em ciclo bypass→thru→mute.
+9. Nada disso vai ao device (o tuner do GP-100 é gesto de hardware) — sem
+   promessa de comando inexistente na UI.
 
 ---
 
@@ -287,8 +425,9 @@ oficial Tauri v2 (webkit2gtk-driver + xvfb + WEBKIT_DISABLE_DMABUF_RENDERER).
 - Regressão visual dos ERROS (seguimento da rodada): 6 baselines novas em
   visual.spec.ts (`erro-boot` = alerta do boot; `erro-preset` = banner do
   App) × 3 viewports, usando o gancho failDevice — capturadas em win32 e
-  comparadas limpas na 2ª execução (38 e2e ✅ no total; CI compara com as
-  `linux` via update-snapshots).
+  comparadas limpas na 2ª execução (38 e2e ✅ no total; o CI compara com as
+  `linux`, que na época nasceram pelo input `update-snapshots` do ci.yml —
+  hoje pelo workflow `visual-baselines.yml`).
 
 ---
 
@@ -350,6 +489,82 @@ oficial Tauri v2 (webkit2gtk-driver + xvfb + WEBKIT_DISABLE_DMABUF_RENDERER).
 > retomado pegou drift real de 2px no palco (VU no cabeçalho) e as
 > baselines de painéis foram regeneradas. 72/72 e2e ✅ com comparação
 > limpa na 2ª execução.
+
+### Rodada #12 — Looper deck + navbar em rack (03/10)
+
+**Efeito:** painel do looper redesenhado (issue #12) + navbar com largura de
+módulo igual.
+
+**Achados:**
+- **Cronômetro ao contrário (achado pelo owner em tela).** O `mm:ss` tem 5
+  caracteres e só 4 dígitos; indexando a posição do dígito pelo índice do
+  CARACTERE, a vírgula ocupava um slot da lista e o último dígito caía fora
+  (`undefined` → `x=0`), se sobrepondo ao primeiro. Só era visível quando os
+  segundos saíam do zero: "00:05" desenhava "50:00". O teste anterior contava
+  28 polígonos e passava — contava a pele, não a posição. Agora há assert de
+  4 posições distintas e crescentes.
+- **Fita sumindo atrás do metal.** A fita era pintada antes dos cabeçotes: nos
+  40px onde ela cruza o corpo do cabeçote, o traço âmbar desaparecia e o deck
+  parecia ter um mecanismo solto. A fita vai **por cima** — é assim que ela
+  passa de verdade, contra a face polida do cabeçote.
+- **Alvos abaixo do piso.** A chave de rota (26px) e os faders (26px)
+  reprovaram o gate R6 (≥32px). Ambos foram a 32px.
+- **Chip do drum virando "R…" em 1024.** Com a navbar em colunas iguais o
+  stepper de BPM passou a comer o módulo do drum. `.nb-step`/`.nb-bpm` foram
+  para o CSS para o media query poder encolher o bloco.
+- **Banner quebrando em 2 fileiras.** `flex: 1 1 auto` no rack faz a base do
+  flex virar o max-content (~1360px) e o header quebra a linha. `flex: 1 1 0`
+  resolve — banner volta a 54px.
+- **Tema claro incoerente.** Os tokens de superfície invertem e o looper virava
+  painel branco com deck preto. `.lp` remapeia os tokens para os valores
+  escuros: a máquina é escura nos dois temas.
+- **Espaço vertical.** A 1ª versão do deck ficou 489px (quase o dobro do
+  looper antigo). ViewBox reencolhido para 560×170 (3,3:1) → 423px.
+
+**Posições testadas:** 1–9 (9 slots do palco) + 7 controles do looper
+(REW/STOP/PLAY/REC/CLEAR, PRE/POST, 3 faders) + 4 módulos da navbar.
+
+**Status:** ✅ 141 unit · 53 e2e funcionais (R1–R6 + drum + looper + 3
+responsivos + atalhos) · cobertura 90,1%/85,9% · baselines visuais
+regeneradas pela CI.
+
+### Rodada #30 — i18n pt-BR/en/es/zh (03/10)
+
+**Efeito:** APP Language sai de "desabilitado + próxima versão" e passa a
+trocar a casca inteira entre os 4 idiomas que o próprio Settings sempre
+previu. Configuração em `src/i18n/` (base `pt-BR` + `en`/`es`/`zh` como
+sobrescritas, `facts.ts` com os números derivados dos artefatos, registro com
+Proxy + `useLanguage`).
+
+**Achados:**
+- **`as const` no base bloqueava a tradução.** `looperMode.ready` tem tipo
+  `"PRONTO"` — nenhum valor cabe nele, nem o "LISTO" do espanhol nem o "就绪"
+  do chinês. Traduzir exigia afrouxar o rótulo sem afrouxar o resto: nasceu o
+  `DictPatch`, que abre o *conteúdo* dos rótulos para `string` e mantém a
+  *forma* (chave, aridade e tipos dos parâmetros, tipo dos arrays).
+- **Fallback por merge profundo, não spread.** Um `{...base, ...EN}` troca o
+  sub-objeto inteiro: traduzir `bootStages.probe` e perderia os outros cinco
+  rótulos de boot. O merge mescla objeto, e substitui array/função por inteiro
+  (metade de uma lista de dados traduzida é pior que a lista inteira em PT).
+- **"Números" divergiam entre idiomas.** "99 presets", "87 ritmos" e "52
+  algoritmos" vivem em 3 idiomas: traduzir reescrevendo o número abre caminho
+  para o texto dizer 99 com o catálogo em 100. Viraram `facts.ts`, derivados
+  dos artefatos, lidos pelos 4 dicionários.
+- **Terms do device não são traduzidos** (PRE/POST, REC/PLAY/DUB/STOP, REW,
+  BPM, FREQ/Q/GAIN, SET, e as abas e linhas de Settings). O usuário compara a
+  UI com o painel de-hardware na mão; dois idiomas para o mesmo botão é
+  pior que nenhum. Isso virou teste (`terms do device iguais nos 4`).
+- **O tipo do pedal escapava do catálogo.** "Pre · Cry Baby" era literal em
+  `Pedal.tsx` — fora do alcance do lint (que só lê JSX) e 9 vezes no palco.
+  Virou `MSG.pedalKind`; pt-BR mantém o texto atual para não mexer nas
+  baselines, es/zh traduzem.
+
+**Posições testadas:** os 4 idiomas × todas as ~210 chaves do catálogo, os
+sub-objetos (`bootStages`, `looperMode`, `settingsTabs`, `tapTempoLabels`), os
+formatadores (chamados com placeholders), e o seletor em Settings → General.
+
+**Status:** ✅ 178 unit (15 arquivos, +14 de i18n) · 78 e2e verdes sem mexer
+em baseline · cobertura 91,7%/86,7% (gate 85%) · tsc + eslint limpos.
 
 ## Registro de rodada (colar no fim de docs/UI_REFERENCE.md §3)
 

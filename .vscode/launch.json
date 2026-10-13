@@ -1,38 +1,25 @@
 {
   // Debug do GP-100 NextGen Editor (layout: packages/app/ui + packages/app/api).
   //
-  // COMO VER A UI (owner, escolha pelo objetivo):
-  //  1. Visual rápido (sem shell nativo): rode a task "app/ui: dev server" e
-  //     abra http://localhost:5173 no browser — o ipc tem fallback mock
-  //     (mesmos valores do MockDevice) e o boot mostra a barra com
-  //     progresso sintético. Launch "UI (Chrome)" faz isso com F5.
-  //  2. Janela desktop real: launch "Tauri (dev)" — sobe o shell WebView2
-  //     + vite. REQUER MSVC no host (rustup toolchain install
-  //     stable-x86_64-pc-windows-msvc + VS Build Tools; ADR-7). Sem MSVC,
-  //     a janela nativa não compila — use a opção 1 ou a CI.
-  //  3. Depurar o backend Rust dentro do shell nativo: launch "Tauri
-  //     (backend C++/Rust attach)" após iniciar o tauri dev.
-  "version": "0.2.0",
+  // COMO VER A UI (owner, escolha pelo objetivo — #165, Era Hardware):
+  //  1. **DEFAULT — janela nativa com o APARELHO.** Launch "Tauri (dev) —
+  //     aparelho (default)" sobe o shell WebView2 + vite com o RealDevice
+  //     ligado (a feature `real-device` é default do crate desde a #165). Com
+  //     o GP-100 na USB, `device_info` responde `backend: "real"`. REQUER MSVC
+  //     no host (rustup toolchain install stable-x86_64-pc-windows-msvc + VS
+  //     Build Tools; ADR-7). Sem MSVC a janela nativa não compila — use a CI.
+  //  2. UI-only, SEM aparelho: task "app/ui: dev server (vite — UI-only)" e
+  //     abra http://localhost:5173. No navegador NÃO existe IPC do Tauri
+  //     (limite por construção, não política): o front usa o fallback de
+  //     DEV/TESTE e o badge "Mock Device" na navbar DECLARA isso. Não é o
+  //     default.
+  //  3. Depurar o core pelo CLI (mock explícito): launch "Rust — debug
+  //     gp100-cli"; com aparelho, `--real --i-know-what-im-doing` exige o
+  //     binário de campo (feature `real-device`).
+  "version": "0.3.0",
   "configurations": [
     {
-      "name": "UI (Chrome) — vite dev + mock",
-      "type": "chrome",
-      "request": "launch",
-      "url": "http://localhost:5173",
-      "webRoot": "${workspaceFolder}/packages/app/ui/src",
-      "preLaunchTask": "app/ui: dev server (vite — UI no browser)",
-      "runtimeArgs": ["--auto-open-devtools-for-tabs"]
-    },
-    {
-      "name": "UI (Edge) — vite dev + mock",
-      "type": "msedge",
-      "request": "launch",
-      "url": "http://localhost:5173",
-      "webRoot": "${workspaceFolder}/packages/app/ui/src",
-      "preLaunchTask": "app/ui: dev server (vite — UI no browser)"
-    },
-    {
-      "name": "Tauri (dev) — janela desktop real",
+      "name": "Tauri (dev) — aparelho (default)",
       "type": "node",
       "request": "launch",
       "runtimeExecutable": "${workspaceFolder}/packages/app/ui/node_modules/.bin/tauri.cmd",
@@ -48,7 +35,7 @@
       "type": "cppvsdbg",
       "request": "launch",
       "program": "${workspaceFolder}/target/debug/gp100-cli.exe",
-      "args": ["info"],
+      "args": ["info", "--mock-device"],
       "cwd": "${workspaceFolder}",
       "console": "integratedTerminal",
       "preLaunchTask": "rust: core+cli — fmt/clippy/test (toolchain gnu da raiz)"
@@ -62,12 +49,29 @@
       "cwd": "${workspaceFolder}/packages/app/ui",
       "console": "integratedTerminal",
       "skipFiles": ["<node_internals>/**", "**/node_modules/**"]
+    },
+    {
+      "name": "UI-only (Chrome) — vite + fallback mock",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:5173",
+      "webRoot": "${workspaceFolder}/packages/app/ui/src",
+      "preLaunchTask": "app/ui: dev server (vite — UI-only, sem aparelho)",
+      "runtimeArgs": ["--auto-open-devtools-for-tabs"]
+    },
+    {
+      "name": "UI-only (Edge) — vite + fallback mock",
+      "type": "msedge",
+      "request": "launch",
+      "url": "http://localhost:5173",
+      "webRoot": "${workspaceFolder}/packages/app/ui/src",
+      "preLaunchTask": "app/ui: dev server (vite — UI-only, sem aparelho)"
     }
   ],
   "compounds": [
     {
       "name": "UI + backend (tauri dev com watch do front)",
-      "configurations": ["Tauri (dev) — janela desktop real"],
+      "configurations": ["Tauri (dev) — aparelho (default)"],
       "stopAll": true
     }
   ]

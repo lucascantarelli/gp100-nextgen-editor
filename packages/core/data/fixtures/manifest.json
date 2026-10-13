@@ -1,0 +1,97 @@
+{
+  "_meta": {
+    "title": "Fixtures de replay do protocolo GP-100 (ROADMAP P4)",
+    "generated_by": "make_fixtures.py",
+    "method": "loaders de build_golden.py (repair de aspa, trim ate o F7 FINAL via wirelog.py, body()); janelas = provas de validate_golden.py",
+    "format": "JSONL compacto, 1 mensagem por linha na ordem do log; campos: s (sessao), t (ms desde o inicio do arquivo), dir (out/in), func (11/12), addr (8 hex), data (payload hex)",
+    "semi_hdr": "mensagens truncadas pelo ring buffer do proxy (SEM-HDR) sao excluidas e contadas por fase",
+    "golden_sha256": "2a3c12e6f90f3fd04c4b15bb604338af2428b5c450495ea7834250a53ef6c58b",
+    "golden_baseline": "2a3c12e6f90f3fd04c4b15bb604338af2428b5c450495ea7834250a53ef6c58b",
+    "reference": "docs/PROTOCOL.md §13.1-13.12; docs/ROADMAP.md P4; docs/protocol_golden.json",
+    "note": "se o golden mudar (fluxo R2/R3), REGENERAR as fixtures"
+  },
+  "fixtures": {
+    "boot": {
+      "session": "S1",
+      "window": "t <= 30s",
+      "out": 2299,
+      "in": 2301,
+      "semi_hdr_skipped": 6,
+      "file": "boot.jsonl",
+      "events": 4600
+    },
+    "knobs": {
+      "s3_writes": 89,
+      "s1_doc_writes": 3,
+      "file": "knobs.jsonl",
+      "events": 92
+    },
+    "save": {
+      "s4_out": 9,
+      "s4_resync_in_11000008": 0,
+      "s4_status_in_12000001": 0,
+      "s2_out": 5,
+      "s2_resync_in_12001002": 0,
+      "excluded_other": 0,
+      "file": "save.jsonl",
+      "events": 14
+    },
+    "ir": {
+      "slots": [
+        {
+          "t0": 57469,
+          "begin": 1,
+          "chunks": 296,
+          "acks": 296
+        },
+        {
+          "t0": 121125,
+          "begin": 1,
+          "chunks": 296,
+          "acks": 296
+        }
+      ],
+      "excluded_other": 0,
+      "begins": 2,
+      "chunks": 592,
+      "acks": 592,
+      "file": "ir.jsonl",
+      "events": 1186
+    }
+  },
+  "parity": {
+    "boot_out": [
+      2299,
+      2299
+    ],
+    "knobs_s3": [
+      89,
+      89
+    ],
+    "knobs_s1_doc": [
+      3,
+      3
+    ],
+    "save_proof": [
+      14,
+      14
+    ],
+    "ir_total": [
+      1186,
+      1186
+    ],
+    "ir_begins": [
+      2,
+      2
+    ],
+    "golden_sha256": [
+      "2a3c12e6f90f3fd04c4b15bb604338af2428b5c450495ea7834250a53ef6c58b",
+      "2a3c12e6f90f3fd04c4b15bb604338af2428b5c450495ea7834250a53ef6c58b"
+    ],
+    "knob_map_edits": [
+      89,
+      89
+    ]
+  },
+  "ok": true
+}

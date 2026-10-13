@@ -1,0 +1,87 @@
+# Maintainer: lucascantarelli
+#
+# PKGBUILD do GP-100 NextGen Editor para Arch Linux (#29 / REL-ARCH).
+#
+# POR QUE ESTE ARQUIVO EXISTE: o Tauri não gera pacote Arch (gera nsis/msi/dmg/
+# deb/AppImage). Arch não tem "pacote de aplicação" — a unidade de distribuição
+# é o PKGBUILD, então o pacote É o arquivo de receita versionado no repositório.
+#
+# O binário vem do mesmo tarball da release que alimenta o `.deb` e o `.dmg`
+# (mesma SHA256, mesmo `cargo build --release`), e não de um build local: um
+# AUR que compila de um branch diferente do tag é um AUR que serve código
+# diferente do que a release anuncia.
+#
+# Testar localmente:
+#   makepkg -si                        # a partir deste diretório
+#   makepkg --printsrcinfo > .SRCINFO  # metadados do AUR
+#
+# Subir para o AUR: publicar o .SRCINFO e este PKGBUILD em
+# https://aur.archlinux.org/packages/gp100-nextgen-editor (issue #29 fecha com
+# o README apontando para as duas vias: `pacman -S` e `makepkg -si`).
+
+pkgname=gp100-nextgen-editor
+_pkgver=0.1.0
+pkgver=${_pkgver}
+pkgrel=1
+pkgdesc='Editor de presets e parâmetros da pedaleira Valeton GP-100 (NextGen)'
+arch=('x86_64')
+url='https://github.com/lucascantarelli/gp100-nextgen-editor'
+license=('MIT')
+# webkit2gtk-4.1 e gtk3: o shell Tauri 2 renderiza por WebKitGTK. Mesmas libs do
+# .deb — divergir aqui e lá produz "instala mas não abre" em uma plataforma só.
+depends=('webkit2gtk-4.1' 'gtk3')
+# ⚠️ Só `cargo`. As dependências de build do FRONT saíram de propósito (#72):
+# o tarball da release já embarca `packages/app/ui/dist` compilado, então não
+# há npm/pnpm aqui. As duas razões que faziam o front ser compilado no
+# `makepkg` morrem com isso:
+#   1. o `pnpm-lock.yaml` do projeto é lockfileVersion 9.0 — o `npm` do Arch
+#      não o lê, então `npm ci` nem seria uma opção honesta;
+#   2. o AUR compilar a árvore de testes do Vite a cada build seria lento, e
+#      o resultado poderia diferir do `.deb` da mesma versão — dois pacotes
+#      "da mesma versão" com binários diferentes.
+makedepends=('cargo')
+provides=("$pkgname")
+conflicts=()
+options=('!strip' '!emptydirs')
+# O tarball vem da Release do GitHub e é produzido por
+# `scripts/make_sdist.py` no job `Distribuição · tarball de fonte`. Ele já
+# contém `packages/app/ui/dist` (o `frontendDist` do tauri.conf.json) e
+# `packages/core` (dependência de caminho do crate do Tauri).
+source=("$pkgname-$_pkgver.tar.gz")
+sha256sums=('SKIP')
+# O digest é REPRODUZÍVEL (o tarball usa mtime fixo, ordem estável e gzip com
+# mtime=0), então dá para fixar um valor de verdade aqui. O passo é:
+#   1. publique a release (o job anexa o SHA256SUMS.txt na Release);
+#   2. copie o sha256 para `sha256sums` acima e incremente `pkgrel`;
+#   3. ou, se preferir não editar à mão, `updpkgsums` — ele preenche sozinho.
+# Enquanto for `SKIP`, `makepkg` avisa e o AUR recusa: isso é intencional e
+# conhecido, não um esquecimento (issue #72).
+
+build() {
+  cd "${srcdir}/${pkgname}-${_pkgver}/packages/app/api"
+  # `--locked`: sem isto o build local pode resolver versions diferentes das
+  # travadas, e o binário da release deixa de reproduzir.
+  # O `frontendDist` (`../ui/dist`) já vem pronto no tarball — sem ele o
+  # `tauri::generate_context!()` faz `panic!` em tempo de compilação.
+  cargo build --release --locked
+}
+
+package() {
+  cd "${srcdir}/${pkgname}-${_pkgver}"
+
+  install -Dm755 \
+    packages/app/api/target/release/gp100-nextgen-editor \
+    "${pkgdir}/usr/bin/${pkgname}"
+
+  # Ícones no diretório padrão do hicolor — é o que o menu de aplicativos do
+  # ambiente de escritorio procura, sem indice extra.
+  install -Dm644 packages/app/api/icons/128x128.png \
+    "${pkgdir}/usr/share/icons/hicolor/128x128/apps/${pkgname}.png"
+  install -Dm644 packages/app/api/icons/128x128@2x.png \
+    "${pkgdir}/usr/share/icons/hicolor/256x256/apps/${pkgname}.png"
+
+  install -Dm644 README.md "${pkgdir}/usr/share/doc/${pkgname}/README.md"
+
+  install -Dm644 packaging/arch/gp100-nextgen-editor.desktop \
+    "${pkgdir}/usr/share/applications/${pkgname}.desktop"
+}

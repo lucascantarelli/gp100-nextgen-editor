@@ -75,12 +75,28 @@ fn build_response_e_simetrico_aos_exemplos_congelados() {
     assert_eq!(checked, 15, "todos os templates com lado IN buildável");
 }
 
-/// O caso by-len de `12001002` (ACK 4B × tabela 75B): `build_response`
-/// respeita o `desired_len` e cada formato casa de volta no template.
+/// O ACK de 4 bytes do upload de IR (`12001002`, §13.7): `build_response`
+/// monta e o resultado casa de volta no proprio template.
+///
+/// O template e procurado pelo **endpoint**, nunca por indice posicional. Na
+/// baseline v1.1 (#23) o `push 13000000` saiu do golden (o padrao dele vinha
+/// de captura truncada) e todo `templates()[31]` virou "o template errado"
+/// silenciosamente — o teste falhou por causa do dado, mas so porque por
+/// acaso apontava para outro template com o mesmo formato. Indice posicional
+/// num arquivo que pode mudar de tamanho e um teste que se mente.
 #[test]
 fn build_response_by_len_escolhe_o_subpadrao() {
     let golden = GoldenFile::embedded().expect("golden embutido");
-    let tpl = &golden.templates()[31]; // req chunk -> ACK (t31, mixed 4B)
+    let tpl = golden
+        .templates()
+        .iter()
+        .find(|t| {
+            t.template_type == "req"
+                && t.func_out() == Some("12")
+                && t.addr_out() == Some("12001002")
+                && t.response_pattern().and_then(|p| p.expected_len()) == Some(4)
+        })
+        .expect("req 12001002 com resposta de 4B (ACK de chunk, §13.7)");
     let built = tpl
         .build_response(
             &mut |i, count| {

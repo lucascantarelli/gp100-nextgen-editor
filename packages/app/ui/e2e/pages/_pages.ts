@@ -26,6 +26,9 @@ export class ShellPage {
   readonly settings: SettingsDialog;
   readonly tuner: TunerPage;
   readonly brand: BrandPage;
+  readonly presetFile: PresetFilePage;
+  readonly gain: GainPage;
+  readonly ab: AbPage;
 
   constructor(page: Page) {
     this.page = page;
@@ -33,7 +36,18 @@ export class ShellPage {
     this.alerts = page.getByRole("alert");
     this.bootProgress = page.locator('[aria-label="Progresso do boot"]');
     this.rescanButton = this.banner.getByRole("button", { name: "Reescanear device" });
-    this.pushDetails = page.locator("details");
+    // `page.locator("details")` casava com o drawer de pushes por ACIDENTE:
+    // ele era o unico `<details>` da casca, e um seletor que depende de "sou
+    // o unico" quebra no dia que a tela ganha um segundo. O painel de
+    // diagnostico de campo (passo 4c do REAL_DEVICE_GAP) adicionou um, e o
+    // e2e passou a falhar em strict mode ("resolved to 2 elements").
+    //
+    // Ancorar pelo texto do summary mantem o spirit do POM: o objeto de
+    // pagina descreve O QUE procura ("o drawer de pushes"), e nao conta
+    // elementos da tela.
+    this.pushDetails = page.locator("details").filter({
+      hasText: /pushes do device/,
+    });
     this.pushSummary = page.getByText(/pushes do device/);
     this.library = new LibraryPage(page);
     this.board = new BoardPage(page);
@@ -42,12 +56,23 @@ export class ShellPage {
     this.settings = new SettingsDialog(page);
     this.tuner = new TunerPage(page);
     this.brand = new BrandPage(this);
+    this.presetFile = new PresetFilePage(page);
+    this.gain = new GainPage(page);
+    this.ab = new AbPage(page);
   }
 
-  /** contrato comum dos specs: goto + banner visível */
+  /** contrato comum dos specs: goto + banner visível + casca carregada */
   async beforeStandard(): Promise<void> {
     await this.page.goto("/");
     await expect(this.banner).toBeVisible();
+    // O mount roda limpo até o load inicial (device_preset_library →
+    // openPreset) CONCLUIR: o display LED sai de "…" só quando o board do
+    // device chegou. Sem esta espera, um `armFailDevice` logo em seguida
+    // pega o load NO MEIO do backoff e o banner nasce de uma operação que
+    // ainda vai se resolver — a corrida do cenário "select permanente"
+    // (banner de uma origem, clique de retry de outra, estado que muda
+    // debaixo do Playwright).
+    await expect(this.board.display()).not.toContainText("…");
   }
 
   async goto(): Promise<void> {
@@ -59,29 +84,43 @@ export class ShellPage {
     await expect(this.banner).toBeVisible();
   }
 
-  /** ganho de teste: falha simulada de device ANTES do load (mount lê o storage) */
-  async failDevice(op: "info" | "boot" | "board" | "all"): Promise<void> {
+  /**
+   * Ganho de teste: falha simulada de device ANTES do load (o mount lê o
+   * storage). Valores (src/ipc/device.ts):
+   *   - `info|boot|board|select|set_param|all` — falha SEMPRE;
+   *   - `<op>:<n>` — falha TRANSITÓRIA (retry/backoff cobre; issue #20);
+   *   - `boot-mid` — device cai NO MEIO do boot (progresso real e então erro).
+   */
+  async failDevice(op: string): Promise<void> {
     await this.page.addInitScript((o) => {
       localStorage.setItem("gp100.debug.failDevice", o);
     }, op);
   }
 
-  /** patch corrente exibido na navbar: Pnn + nome (1-based, app oficial) */
-  patchLabel(): Locator {
-    return this.banner.getByText(/^P\d{2}/);
+  /**
+   * Arma o gancho DEPOIS do load (o mount já rodou limpo) — para cenários
+   * de falha do MEIO da sessão (ex.: select só falha no clique do usuário).
+   */
+  async armFailDevice(op: string): Promise<void> {
+    await this.page.evaluate((o) => localStorage.setItem("gp100.debug.failDevice", o), op);
   }
 
-  /** connection status curto (on/off) */
+  /** Desarma o gancho no meio do teste (prova a recuperação). */
+  async clearFailDevice(): Promise<void> {
+    await this.page.evaluate(() => localStorage.removeItem("gp100.debug.failDevice"));
+  }
+
+  /** Ação de recuperação do banner de erro (botão DENTRO do role="alert"). */
+  alertRetry(): Locator {
+    return this.page
+      .getByRole("alert")
+      .getByRole("button", { name: "Tentar novamente a operação que falhou" });
+  }
+
+  /** connection status curto (on/off) — o cluster de conexão da navbar
+   *  (dot + linha de status) mantém o "on"/"off" em span próprio. */
   statusText(text: string): Locator {
     return this.banner.getByText(text, { exact: true });
-  }
-
-  async prevPatch(): Promise<void> {
-    await this.banner.getByRole("button", { name: "Patch anterior" }).click();
-  }
-
-  async nextPatch(): Promise<void> {
-    await this.banner.getByRole("button", { name: "Próximo patch" }).click();
   }
 
   killSwitch(): Locator {
@@ -103,6 +142,210 @@ export class ShellPage {
     await expect(this.settings.dialog).toBeVisible();
     return this.settings;
   }
+
+  /**
+   * Abre o preset em arquivo (#114) pela PORTA do conteudo (o ∿ do rodape da
+   * biblioteca). Passa pelo menu de proposito: e o caminho do dono — a tela
+   * nasce como destino da porta, e um atalho de teste pularia justamente o
+   * passo que pode quebrar (o item do menu).
+   */
+  async openPresetFile(): Promise<PresetFilePage> {
+    await this.page.getByRole("button", { name: /Abrir o conteúdo/ }).click();
+    // `exact`: o ∿ da biblioteca tem "preset em arquivo" no aria-label (é o
+    // botão que abre esta porta) e o name por substring casaria os dois.
+    await this.page.getByRole("button", { name: "Preset em arquivo", exact: true }).click();
+    await expect(this.presetFile.root).toBeVisible();
+    return this.presetFile;
+  }
+
+  /**
+   * Abre o assistente de gain staging (#115) pela PORTA do conteudo. Mesmo
+   * caminho do preset em arquivo — e o do dono: o item do menu e um passo que
+   * pode quebrar, e um atalho de teste o pularia.
+   */
+  async openGain(): Promise<GainPage> {
+    await this.page.getByRole("button", { name: /Abrir o conteúdo/ }).click();
+    await this.page.getByRole("button", { name: "Assistente de gain staging", exact: true }).click();
+    await expect(this.gain.root).toBeVisible();
+    return this.gain;
+  }
+
+  /**
+   * Abre o A/B com blind (#116) pela PORTA do conteúdo. Mesmo caminho do
+   * gain: o item do menu é um passo que pode quebrar, e um atalho de teste o
+   * pularia.
+   */
+  async openAb(): Promise<AbPage> {
+    await this.page.getByRole("button", { name: /Abrir o conteúdo/ }).click();
+    await this.page.getByRole("button", { name: "A/B do patch", exact: true }).click();
+    await expect(this.ab.root).toBeVisible();
+    return this.ab;
+  }
+
+  /**
+   * Ganho de teste: simula um build de LEITURA (face (A) da #126, ADR-5)
+   * ANTES do load — o mount lê o storage, e é o mesmo caminho que o e2e do
+   * `failDevice` usa. Sem este gancho o mock relata escrita liberada (ADR-5).
+   */
+  async readOnlyBuild(): Promise<void> {
+    await this.page.addInitScript(() => {
+      localStorage.setItem("gp100.debug.writeVerified", "false");
+    });
+  }
+
+  /** Abre o laboratório de IRs (#24) pela PORTA do conteudo (mesmo caminho
+   *  do dono: o item do menu, não um atalho de teste). */
+  async openIrLab(): Promise<Locator> {
+    await this.page.getByRole("button", { name: /Abrir o conteúdo/ }).click();
+    await this.page.getByRole("button", { name: "Laboratório de IRs", exact: true }).click();
+    const dlg = this.page.getByRole("dialog", { name: "Laboratório de IRs" });
+    await expect(dlg).toBeVisible();
+    return dlg;
+  }
+
+  /** Abre o gestor de tons SnapTone (#25) pela PORTA do conteudo. */
+  async openSnapTone(): Promise<Locator> {
+    await this.page.getByRole("button", { name: /Abrir o conteúdo/ }).click();
+    await this.page.getByRole("button", { name: "Tons SnapTone", exact: true }).click();
+    const dlg = this.page.getByRole("dialog", { name: "Tons SnapTone" });
+    await expect(dlg).toBeVisible();
+    return dlg;
+  }
+}
+
+/* ── Assistente de gain staging (#115): leitura da cadeia, sem escrita ── */
+export class GainPage {
+  readonly page: Page;
+  readonly root: Locator;
+
+  constructor(page: Page) {
+    this.page = page;
+    this.root = page.getByRole("dialog", { name: "Assistente de gain staging" });
+  }
+
+  /** o selo do risco declarado (o P01 de fábrica sai em "BAIXO") */
+  risk(nivel: string): Locator {
+    return this.root.getByText(nivel, { exact: true });
+  }
+
+  /** a linha de um módulo, 1-based como no palco (ex.: /2º · DST · Green OD/) */
+  modulo(re: RegExp): Locator {
+    return this.root.getByText(re);
+  }
+
+  /** o bloco de MÉTODO e limitação — ele tem de estar NA TELA */
+  metodo(): Locator {
+    return this.root.getByText(/não é nível de sinal medido/);
+  }
+
+  /** todos os botões do relatório — o esperado é exatamente um (o ✕) */
+  botoes(): Locator {
+    return this.root.getByRole("button");
+  }
+
+  close(): Locator {
+    return this.root.getByRole("button", { name: "Fechar o assistente de gain staging" });
+  }
+}
+
+/* ── A/B com blind test entre versões (#116) ── */
+export class AbPage {
+  readonly page: Page;
+  readonly root: Locator;
+
+  constructor(page: Page) {
+    this.page = page;
+    this.root = page.getByRole("dialog", { name: "A/B do patch" });
+  }
+
+  /** o interruptor do blind (o input; o rótulo é o texto ao lado) */
+  blindToggle(): Locator {
+    return this.root.locator('input[type="checkbox"]');
+  }
+
+  /** "Ouvir o lado A/B" — só existe com o blind DESARMADO */
+  ouvir(q: "A" | "B"): Locator {
+    return this.root.getByRole("button", { name: `Ouvir o lado ${q}` });
+  }
+
+  /** "Trocar de lado" — o único botão do blind que não nomeia destino */
+  trocar(): Locator {
+    return this.root.getByRole("button", { name: "Trocar de lado" });
+  }
+
+  /** a pergunta do blind (role=status; o intro também fala em "qual lado",
+   *  por isso o `role` e não o texto livre) */
+  pergunta(): Locator {
+    return this.root.getByRole("status").filter({ hasText: "qual lado está tocando" });
+  }
+
+  /** um palpite ("É o lado A"): é ele que revela a tela */
+  palpite(q: "A" | "B"): Locator {
+    return this.root.getByRole("button", { name: `É o lado ${q}` });
+  }
+
+  /** "soando agora" — o marcador do lado ativo (escondido no blind) */
+  soando(): Locator {
+    return this.root.getByText("soando agora");
+  }
+
+  /** o bloco de nível com método e limitação (escondido no blind) */
+  metodo(): Locator {
+    return this.root.getByText(/não expõe dB por SysEx/);
+  }
+
+  /** o relatório da última troca/calibração (escondido no blind) */
+  relato(): Locator {
+    return this.root.getByRole("status").filter({ hasText: /knob|controle|idênticos/ });
+  }
+
+  /** o resultado do palpite (só depois da resposta) */
+  resposta(): Locator {
+    return this.root.getByText(/você (acertou|errou)/);
+  }
+
+  close(): Locator {
+    return this.root.getByRole("button", { name: "Cancelar" });
+  }
+}
+
+/* ── Preset em arquivo (#114): export JSON/folha e import ── */
+export class PresetFilePage {
+  readonly page: Page;
+  readonly root: Locator;
+
+  constructor(page: Page) {
+    this.page = page;
+    this.root = page.getByRole("dialog", { name: "Preset em arquivo" });
+  }
+
+  exportJson(): Locator {
+    return this.root.getByRole("button", { name: "Exportar o preset para um arquivo JSON versionado" });
+  }
+
+  /** a folha de timbre (PDF) — desabilitada no navegador, sem motor de PDF */
+  toneSheet(): Locator {
+    return this.root.getByRole("button", { name: "Exportar a folha de timbre do preset em PDF" });
+  }
+
+  /** o botão de importar (o input de arquivo tem o mesmo nome — daí o first) */
+  importButton(): Locator {
+    return this.root.getByRole("button", { name: "Importar um preset de um arquivo JSON" }).first();
+  }
+
+  /** o input invisivel por tras do botao de importar */
+  fileInput(): Locator {
+    return this.root.locator('input[type="file"]');
+  }
+
+  /** o relato do import ("Cadeia importada: …" / "Arquivo recusado: …") */
+  status(): Locator {
+    return this.root.getByRole("status");
+  }
+
+  close(): Locator {
+    return this.root.getByRole("button", { name: "Fechar o preset em arquivo" }).first();
+  }
 }
 
 /* ── Navbar: logo/tagline/branding (estáticos) ── */
@@ -118,27 +361,64 @@ export class BrandPage {
   }
 }
 
-/* ── Biblioteca de presets (aside esquerdo) ── */
+/* ── Patches do aparelho (aside esquerdo, #150) ── */
 export class LibraryPage {
   readonly page: Page;
   readonly root: Locator;
 
   constructor(page: Page) {
     this.page = page;
-    this.root = page.getByRole("complementary", { name: "Biblioteca de presets" });
+    // o aside é o complementary; a listbox, a lista. O nome do aside é o
+    // MSG.libAria — a lista do APARELHO, nunca "biblioteca de presets".
+    this.root = page.getByRole("complementary", { name: "Patches do aparelho" });
   }
 
-  /** listbox dos 99 de fábrica (o aside é o complementary; a listbox, a lista) */
+  /** listbox do INVENTÁRIO do aparelho (198 slots, dois bancos — #150) */
   listbox(): Locator {
-    return this.page.getByRole("listbox", { name: /Presets de fábrica/ });
+    return this.page.getByRole("listbox", { name: /Patches do aparelho/ });
   }
 
+  /** A busca da biblioteca (#26): o texto vai para o BANCO, com debounce. */
   search(): Locator {
-    return this.page.getByRole("textbox", { name: /Buscar preset/ });
+    return this.page.getByRole("textbox", { name: /Buscar na biblioteca de presets/ });
   }
 
+  /** Botão de limpar a busca (o ✕ que só existe com texto na caixa) */
+  clearSearch(): Locator {
+    return this.page.getByRole("button", { name: "Limpar busca" });
+  }
+
+  /** Botões de arquivo: o backup da biblioteca em JSON. */
+  exportButton(): Locator {
+    return this.page.getByRole("button", { name: /Exportar a biblioteca/ });
+  }
+
+  importButton(): Locator {
+    return this.page.getByRole("button", { name: /Importar uma biblioteca/ }).first();
+  }
+
+  /**
+   * Preenche a busca e ESPERA a lista do banco responder. O `fill` sozinho
+   * voltaria antes do debounce (180ms) e o `expect` seguinte leria a lista
+   * antiga — que é exatamente o estado intermediário que a UI corrige.
+   */
   async searchFor(q: string): Promise<void> {
     await this.search().fill(q);
+    // O hook tem debounce de 180ms. Duas leituras seguidas podem cair na MESMA
+    // janela e "estabilizar" num valor velho — por isso o tempo mínimo antes
+    // de começar a olhar, e DUAS confirmações iguais (não uma).
+    await this.page.waitForTimeout(260);
+    let anterior = -1;
+    let iguais = 0;
+    const limite = Date.now() + 8000;
+    while (Date.now() < limite) {
+      const n = await this.options().count();
+      iguais = n === anterior ? iguais + 1 : 0;
+      anterior = n;
+      if (iguais >= 2) return;
+      await this.page.waitForTimeout(60);
+    }
+    throw new Error(`a lista da biblioteca nao estabilizou para "${q}"`);
   }
 
   options(): Locator {
@@ -149,15 +429,109 @@ export class LibraryPage {
     return this.options().nth(index);
   }
 
-  userTab(): Locator {
-    return this.page.getByRole("tab", { name: "User Patch" });
+  /** aba "Patches" — `exact`, senão o substring pega também "Meus patches" */
+  factoryTab(): Locator {
+    return this.page.getByRole("tab", { name: "Patches", exact: true });
   }
 
-  /** seleciona pelo texto do accessible name (ex.: /P25 Mist Rock/) */
+  /** aba "Fábrica" — o banco ALTO do aparelho (F01–F99, manual V1.8; medido em campo 12/10) */
+  fabTab(): Locator {
+    return this.page.getByRole("tab", { name: "Fábrica", exact: true });
+  }
+
+  userTab(): Locator {
+    return this.page.getByRole("tab", { name: /^Meus patches/ });
+  }
+
+  /** campo de nome do patch de usuário (aba User) */
+  userName(): Locator {
+    return this.page.getByRole("textbox", { name: /Nome do patch de usuário/ });
+  }
+
+  saveUserPatch(): Locator {
+    return this.page.getByRole("button", { name: "Salvar", exact: true });
+  }
+
+  /** linhas dos patches de usuário (U01…) */
+  userRows(): Locator {
+    return this.page.getByRole("list", { name: "Patches de usuário" }).getByRole("listitem");
+  }
+
+  userRowAt(index: number): Locator {
+    return this.userRows().nth(index);
+  }
+
+  deleteUserPatch(name: string): Locator {
+    return this.page.getByRole("button", { name: `Excluir o patch “${name}”` });
+  }
+
+  /** nomeia e salva o patch CORRENTE como patch de usuário */
+  async saveAs(name: string): Promise<void> {
+    await this.userTab().click();
+    await this.userName().fill(name);
+    await this.saveUserPatch().click();
+  }
+
+  /** seleciona pelo texto do accessible name (ex.: /0x0162/) */
   async select(re: RegExp): Promise<Locator> {
     const opt = this.options().filter({ hasText: re }).first();
     await opt.click();
     return opt;
+  }
+
+  /** abre o histórico de um patch de usuário (issue #113) */
+  historyButton(name: string): Locator {
+    return this.page.getByRole("button", { name: `Abrir o histórico de “${name}”` });
+  }
+
+  /** a tela de histórico (a folha que abre por cima) */
+  history(): HistoryPanelPage {
+    return new HistoryPanelPage(this.page);
+  }
+}
+
+/* ── Histórico do patch (issue #113) ── */
+export class HistoryPanelPage {
+  readonly page: Page;
+  readonly root: Locator;
+
+  constructor(page: Page) {
+    this.page = page;
+    this.root = page.getByRole("dialog", { name: /Histórico do patch/ });
+  }
+
+  /** a ponta "antes" do par comparado */
+  beforeSelect(): Locator {
+    return this.root.locator("#hist-antes");
+  }
+
+  /** a ponta "depois" do par comparado */
+  afterSelect(): Locator {
+    return this.root.locator("#hist-depois");
+  }
+
+  /** as opções de versão de um dos seletores (o 1º é "escolha uma versão") */
+  versionOptions(which: "before" | "after"): Locator {
+    return (which === "before" ? this.beforeSelect() : this.afterSelect()).locator("option");
+  }
+
+  close(): Locator {
+    return this.root.getByRole("button", { name: "Fechar o histórico" });
+  }
+
+  /** restauração TOTAL da versão `seq` */
+  restoreAll(seq: number): Locator {
+    return this.root.getByRole("button", { name: `Restaurar o patch inteiro na versão ${seq}` });
+  }
+
+  /** restauração PONTUAL de um knob que mudou de `from` para `to` */
+  restoreKnob(knob: string, from: string, to: string): Locator {
+    return this.root.getByRole("button", { name: `Restaurar ${knob} de ${to} para ${from}` });
+  }
+
+  /** o relato da última restauração ("virou a versão N") */
+  status(): Locator {
+    return this.root.getByRole("status");
   }
 }
 
@@ -282,16 +656,19 @@ export class LooperPage {
   }
 }
 
-/* ── Drum: chip da navbar + drawer ── */
+/* ── Drum: chip da navbar + MODAL de gestão (padrão Settings) ── */
 export class DrumPage {
   readonly page: Page;
   readonly chip: Locator;
+  /** play/stop DIRETO na navbar (não exige o modal) */
+  readonly toggle: Locator;
   readonly panel: Locator;
 
   constructor(page: Page) {
     this.page = page;
     this.chip = page.getByRole("button", { name: /^Bateria \(drum\):/ });
-    this.panel = page.getByRole("group", { name: /Gestão de ritmos/ });
+    this.toggle = page.getByRole("button", { name: "Tocar ou parar o ritmo da bateria" });
+    this.panel = page.getByRole("dialog", { name: /Gestão de ritmos/ });
   }
 
   /** chip alternativo com nome acessível longo (muda com o estado) */
@@ -428,6 +805,16 @@ export class TunerPage {
   /** botão monitorar (liga/desliga a monitoração de afinação) */
   powerButton(): Locator {
     return this.group.getByRole("button", { name: /Ligar ou desligar a monitoração/ });
+  }
+
+  /** LED do próprio botão do monitor: verde ligado, vermelho desligado (#8) */
+  powerLed(): Locator {
+    return this.group.locator("[data-tuner-power-led]");
+  }
+
+  /** botão de modo (bypass/thru/mute) — SEMPRE presente, mesmo com o monitor off */
+  modeButton(): Locator {
+    return this.group.getByRole("button", { name: /Modo do afinador/ });
   }
 
   demoButton(): Locator {

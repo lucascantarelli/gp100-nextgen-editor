@@ -3,7 +3,7 @@
 > 📜 **HISTÓRICO (2026-09-28):** plano cumprido — a Rota 1b (proxy winmm) foi a
 > vencedora e as sessões 1–4 fecharam tudo isto. Estado atual do protocolo:
 > `docs/PROTOCOL.md` §13 + `docs/protocol_golden.json`. Gaps restantes de captura:
-> `analysis/capture_gaps.md` (G3–G6). Mapa geral: `docs/INDEX.md`.
+> `docs/arquivo/analysis/capture_gaps.md` (G3–G6). Mapa geral: `docs/INDEX.md`.
 
 **Objetivo:** capturar 1 sessão real do Suite GP-100 para calibrar os campos
 ambíguos do protocolo já mapeado. **Não é para "descobrir o protocolo"** — o
@@ -23,7 +23,7 @@ Procedimento:
 2. Rodar como admin, ativar `Capture Win32 + Global Win32`.
 3. Abrir o Suite GP-100, conectar a pedaleira, fazer: scan de presets,
    editar 1 parâmetro, salvar, importar 1 IR, importar 1 NAM (SnapTone).
-4. Salvar o log (`File > Save`) → `analysis/captures/debugview_session1.log`.
+4. Salvar o log (`File > Save`) → `docs/arquivo/analysis/captures/debugview_session1.log`.
 
 O que procurar no log: linhas com `checksum:` (confirma CRC-8/0x07 no fio),
 `effectCode: %08X` (tags de objeto), `IR Data:`/`Nam Data:` (payload dos
@@ -58,7 +58,7 @@ para o device (somente leitura das mensagens); reversível removendo a DLL.
    gravar em slot vazio, importar 1 IR e 1 NAM.
 3. O sniffer produz `captures/session1.jsonl` com eventos
    `{ts, dir, bytes[]}`.
-4. Rodar `analysis/decode_capture.py` (a criar) que decodifica com o mapa
+4. Rodar `docs/arquivo/analysis/decode_capture.py` (a criar) que decodifica com o mapa
    atual e aponta os campos desconhecidos — deve fechar `0x817` e flags em
    minutos.
 
@@ -75,3 +75,61 @@ para o device (somente leitura das mensagens); reversível removendo a DLL.
 - [ ] 1 trace completo de leitura + 1 de escrita decodificados sem campos
       desconhecidos.
 - [ ] `WRITE_VERIFIED=true` no gp100-core (só com Rota 2).
+
+---
+
+# CAPTURA 5 — `change-effect` (`0x47`): trocar o algoritmo dentro de um slot
+
+> **Por que esta é a única captura que ainda segura a edição de patch.** A
+> família `0x4X` do PROTOCOL §4 é `0x43` select, **`0x47` change-effect**,
+> `0x48` change-param, `0x49` toggle-block, `0x4F` bulk write. Só `0x48`
+> (§13.11, envelope `10 <slot> 00 02`) e `0x4F` (§4, bulk do `.prst`, op `0x1D`)
+> têm formato validado em campo. Sem o `0x47`, a **lista de efeitos por pedal**
+> (issue #19) fica em prévia local — a UI é inteira, a escrita não.
+>
+> Não é um fluxo novo: é o mesmo envelope semântico do §13.11 com outro
+> endereço. A hipótese mais provável (a testar, não a assumir) é
+> `10 <slot> 00 01 | [effectCode u32 LE]` — espelhando o `00 02` do knob, com
+> `effectCode` = `(nibble << 24) | index` do `.prst`. **Só a captura decide.**
+
+## Roteiro (30–45 min com a pedaleira, mesma instrumentação das sessões 1–4)
+
+1. Instrumentar o Suite com a **Rota 1b** (proxy winmm) ou espelhar na
+   `loopMIDI` — a sessão 3 (`docs/arquivo/analysis/captures/session3.jsonl`) já tem o
+   ferramental pronto, inclusive `docs/arquivo/analysis/dump_edit_writes.py`, que extrai os
+   `12 10 XX 00 02`.
+2. Conectar a GP-100, abrir um patch de fábrica **não vazio** (o mesmo da
+   sessão 3), e abrir o painel do módulo PRE.
+3. **Uma troca por vez**, com 2 s de settle entre elas e o DebugView aberto:
+   - PRE: `C-Wah` → `COMP` (mesma família, mesmo slot) — isola o **código**;
+   - PRE: `C-Wah` → `OCTA` (família PRE, índice alto) — confirma se o índice
+     entra como u32 cru ou campo a campo;
+   - qualquer módulo: `PRE` → `Boost`/`Boost` (o MESMO algoritmo `0x1A0001A`
+     existe em PRE, DST, MOD, DLY e CAB) — separa **troca de algoritmo** de
+     **troca de módulo/família** (nibble muda junto?).
+4. Em cada par, capturar **um write logo após** a troca e confirmar o read-back
+   pelo display da pedaleira (o efeito mostrado muda para o escolhido).
+5. Repetir um passo com a **troca de POSIÇÃO** de um módulo (o "arraste ⇄" da
+   UI): é o `0x49`/reordenação e provavelmente sai no mesmo `0x4F` — separar os
+   dois no log é o ponto.
+
+## O que a captura precisa responder
+
+- [ ] Endereço e formato exatos do `change-effect` (`0x47` ou `10 <slot> 00 01`?).
+- [ ] O `effectCode` vai como **u32 LE** (como no §13.11) ou expandido nibble-a-nibble?
+- [ ] Ao trocar de efeito, o device **zera os `params_N`** do slot? (O `.prst`
+      tem 15 `params` por `Effect`; se o wire mandar só o código, os params
+      antigos ficam — e isso decide se a UI precisa mandar defaults junto.)
+- [ ] A troca de **posição** entre módulos é um write próprio ou sai no bulk
+      `0x4F` do `.prst` inteiro?
+- [ ] Ack/resposta? (O §13.11 registra ZERO ack nas edições de knob.)
+
+## Depois da captura
+
+1. Congelar os bytes em `packages/core/data/fixtures/` + um caso no golden
+   (`scripts/build_golden.py` → `docs/protocol_golden.json`), como nas sessões
+   3 e 4.
+2. Promover o item 10 da matriz do `docs/BLOCKERS.md` (opcodes lógicos) de
+   "parcial" para "RESOLVIDO EM CAMPO" **só** para o `change-effect`.
+3. Habilitar `WRITE_VERIFIED` do `change_effect` no gp100-core e ligar o
+   `device_change_effect` no front (hoje a UI da #19 é prévia local).

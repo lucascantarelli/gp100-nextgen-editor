@@ -1,53 +1,67 @@
 /**
  * TopBar — navbar "painel da pedaleira" (referência visual do manual do
- * device): logo, cluster de conexão+boot, patch corrente, chip do DRUM
- * (abre o DrumPanel com os 87 ritmos do firmware) e Master VOL + kill.
+ * device): logo, cluster de conexão+boot, chip do DRUM (play/stop e BPM
+ * DIRETO na navbar — sem abrir o painel; o chip abre o DrumPanel com os 87
+ * ritmos do firmware) e Master VOL + kill.
+ *
+ * **(dono 12/10) o cluster de PATCH foi REMOVIDO daqui** — ◀ ▶ + nome do
+ * patch saíram da navbar "para não adicionar mais complexidade"; a troca de
+ * patch acontece pela LISTA da biblioteca e o rótulo corrente vive no
+ * display LED do palco. O indicador de conexão também perdeu a miniatura
+ * SVG (DeviceBadge: dot + linha de status honesta).
+ *
+ * Refino da navbar (issue #10):
+ *  - alturas UNIFORMES: todo botão daqui tem 32px (`nbBtn`) → clusters iguais;
+ *  - larguras RESPONSIVAS: sem minWidth rígido; textos encolhem com
+ *    reticências (minWidth 0) em vez de quebrar a linha do banner;
+ *  - cores por FUNÇÃO: perigo=kill, ok=play/stop, acento=boot/patch —
+ *    relevo e gradiente continuam vindo do design system (.gp-btn);
+ *  - hierarquia do chip: toggle (estado) · chip (identidade/abre o modal)
+ *    · stepper de BPM (numérico tabular).
  * Nada aqui escreve no device: os fluxos globais ainda não têm escrita via USB.
  */
 import { useEffect, useRef } from "react";
 import type { CSSProperties } from "react";
 import { DrumPanel } from "./DrumPanel";
 import type { DrumState } from "./DrumPanel";
+import { DeviceBadge } from "./DeviceBadge";
+import type { DeviceInfo } from "../ipc/types";
 import { MSG } from "../i18n/messages";
 
 interface Props {
-  connected: boolean;
   /** backend simulado (mock): badge de estado, não faixa de aviso */
   mock: boolean;
+  /** `device_info` corrente — o DeviceBadge lê backend/presetCount/writeVerified
+   *  dele para mostrar estado honesto do aparelho (nada é inventado no fio) */
+  info: DeviceInfo | null;
+  /** conexão VALIDADA pelo boot (fórmula do App: pronto && backend !== "none")
+   *  — sem ela o badge mostraria "on" com o boot falho (#161) */
+  conectado: boolean;
   /** boot em andamento (botão desabilitado + ocupado) */
   booting: boolean;
   /** dispara o script de boot (estava na seção de conexão, removida por
    *  duplicar a navbar — o boot agora mora aqui, junto do status) */
   onBoot: () => void;
-  presetLabel: string;
   masterVol: number;
   drum: DrumState;
-  /** aberto do drawer do drum vive no App (precedência do Esc global) */
+  /** aberto do MODAL do drum vive no App (precedência do Esc global) */
   drumOpen: boolean;
-  /** settings é GLOBAL: mora na navbar (o drawer do drum cobre o rodapé
-   *  quando aberto — ⚙ no rodapé ficaria inalcançável) */
+  /** settings é GLOBAL: mora na navbar (os modais do corpo cobrem a tela
+   *  quando abertos — ⚙ no rodapé ficaria inalcançável) */
   settingsOpen: boolean;
   onOpenSettings: () => void;
   onMasterVol: (v: number) => void;
   onDrum: (d: DrumState) => void;
   onDrumOpenChange: (open: boolean) => void;
-  /** ◀ ▶: preset anterior/seguinte (manual do device, ciclo P01→P99) */
-  onPrevPatch: () => void;
-  onNextPatch: () => void;
 }
 /* ⇄ mover migrou para o PALCO (EmptyBoard: controla o arrastar dos
  * slots) e o VU reativo (V-7) também — identidade visual do pedalboard;
  * Boot é o ícone ⟳ de re-escanear; kill/⚙ ficam na navbar — globais. */
 
 const row: CSSProperties = { display: "flex", alignItems: "center", gap: "var(--space-12)" };
-const cluster: CSSProperties = {
-  ...row,
-  background: "var(--bg-raised)",
-  border: "1px solid color-mix(in srgb, var(--text-muted) 25%, transparent)",
-  borderRadius: 12,
-  padding: "6px var(--space-12)",
-  position: "relative",
-};
+/* clusters da navbar: módulos do sistema (`gp-surface--flat` + reflexo
+   especular + `.nb-cluster`, que carrega ritmo/padding em CSS — o media
+   query ≤1024 aperta o gap SEM bater em estilo inline) */
 const label: CSSProperties = {
   fontSize: "var(--text-xs)",
   color: "var(--text-muted)",
@@ -62,33 +76,73 @@ const val: CSSProperties = {
   color: "var(--accent)",
   minWidth: 30,
   textAlign: "right",
+  /* números tabulares: o valor não "treme" ao arrastar o slider */
+  fontVariantNumeric: "tabular-nums",
 };
-const btnBase: CSSProperties = {
-  background: "var(--bg-raised)",
-  border: "1px solid color-mix(in srgb, var(--text-muted) 25%, transparent)",
-  color: "var(--text)",
-  borderRadius: 8,
-  padding: "7px 12px",
-  cursor: "pointer",
+/* separador vertical: agrupa sem borda pesada (status|boot, master|kill) */
+const divider: CSSProperties = { width: 1, height: 20, background: "var(--border)", flex: "0 0 auto" };
+
+/* TODOS os botões da navbar com a MESMA caixa (32px, border-box) →
+   clusters com altura idêntica; some com o 34px do .btn-glass */
+const nbBtn: CSSProperties = { height: 32, boxSizing: "border-box" };
+
+/* cores por FUNÇÃO (issue #10) — overrides inline por cima do .gp-btn:
+   o gradiente/relevo de base é do design system; aqui só identidade */
+const tone = {
+  /* acento anodizado: boot ⟳ e passos ◀ ▶ (repouso; hover vive no CSS
+     .nb-accent — estilo inline nunca perderia para :hover) */
+  accent: {
+    color: "var(--accent-text)",
+    border: "1px solid color-mix(in srgb, var(--accent) 55%, var(--border))",
+  },
+  /* estado ligado (⚙ com settings aberto): acento com brilho */
+  accentOn: {
+    color: "var(--accent-text)",
+    border: "1px solid color-mix(in srgb, var(--accent) 70%, var(--border))",
+    background:
+      "linear-gradient(180deg, color-mix(in srgb, var(--accent) 30%, var(--bg-raised)) 0%, color-mix(in srgb, var(--accent) 14%, var(--bg-raised)) 100%)",
+    boxShadow: "inset 0 1px 0 var(--light-top), 0 2px 0 var(--shade-deep), 0 0 12px color-mix(in srgb, var(--accent-glow) 40%, transparent)",
+  },
+  /* energia/ok: play/stop do drum */
+  ok: {
+    color: "var(--ok)",
+    border: "1px solid color-mix(in srgb, var(--ok) 50%, var(--border))",
+  },
+  okOn: {
+    color: "var(--text)",
+    border: "1px solid color-mix(in srgb, var(--ok) 65%, var(--border))",
+    background:
+      "linear-gradient(180deg, color-mix(in srgb, var(--ok) 26%, var(--bg-raised)) 0%, color-mix(in srgb, var(--ok) 12%, var(--bg-raised)) 100%)",
+    boxShadow: "inset 0 1px 0 var(--light-top), 0 2px 0 var(--shade-deep), 0 0 12px color-mix(in srgb, var(--ok) 40%, transparent)",
+  },
+  /* perigo: kill (repouso) e killed (solto, vermelho sólido + brilho) */
+  danger: {
+    color: "var(--error)",
+    border: "1px solid color-mix(in srgb, var(--error) 50%, var(--border))",
+  },
+  dangerOn: {
+    color: "var(--text)",
+    border: "1px solid color-mix(in srgb, var(--error) 70%, var(--border))",
+    background:
+      "linear-gradient(180deg, color-mix(in srgb, var(--error) 38%, var(--bg-raised)) 0%, color-mix(in srgb, var(--error) 20%, var(--bg-raised)) 100%)",
+    boxShadow: "inset 0 1px 0 var(--light-top), 0 2px 0 var(--shade-deep), 0 0 12px color-mix(in srgb, var(--error) 45%, transparent)",
+  },
+} satisfies Record<string, CSSProperties>;
+
+/* botões da navbar usam o botão do SISTEMA (`gp-btn`) com a geometria
+   própria de cada um; `btn-glass` é o modificador translúcido do mock */
+const btn = (on = false): string => `gp-btn${on ? " gp-btn--on" : ""}`;
+/* stepper de BPM da navbar: − valor + (tabular; clamp 40–240 igual ao modal).
+   As medidas vivem no CSS (`.nb-step`/`.nb-bpm`) para o media query ≤1024
+   poder encolher o bloco e devolver largura ao chip do ritmo. */
+const stepper: CSSProperties = { display: "inline-flex", alignItems: "center", gap: "var(--space-4)" };
+const bpmVal: CSSProperties = {
   fontFamily: "var(--font-mono)",
   fontSize: "var(--text-sm)",
-  minHeight: 32,
-};
-const btnActive: CSSProperties = {
-  background: "var(--accent)",
-  border: "1px solid var(--accent-glow)",
-  color: "var(--on-accent)",
   fontWeight: 700,
-};
-const badge: CSSProperties = {
-  fontSize: "var(--text-xs)",
-  fontFamily: "var(--font-mono)",
-  padding: "1px 8px",
-  borderRadius: 8,
-  color: "var(--accent-text)",
-  border: "1px solid color-mix(in srgb, var(--accent) 45%, transparent)",
-  background: "color-mix(in srgb, var(--accent) 12%, transparent)",
-  whiteSpace: "nowrap",
+  color: "var(--text)",
+  textAlign: "center",
+  fontVariantNumeric: "tabular-nums",
 };
 
 function Slider({
@@ -110,17 +164,20 @@ function Slider({
       value={value}
       aria-label={ariaLabel}
       onChange={(e) => onChange(Number(e.target.value))}
-      style={{ width: w, accentColor: "var(--accent)", minHeight: 32 }}
+      /* minWidth 40: o slider encolhe junto com a navbar em ≤1024; margin 0
+         mata a margem de 2px do UA (sem ela o cluster do master fica 4px
+         mais alto que os outros — alturas precisam ser IDENTICAS) */
+      style={{ width: w, minWidth: 40, margin: 0, boxSizing: "border-box", accentColor: "var(--accent)", minHeight: 32 }}
     />
   );
 }
 
 export function TopBar({
-  connected,
   mock,
+  info,
+  conectado,
   booting,
   onBoot,
-  presetLabel,
   masterVol,
   drum,
   drumOpen,
@@ -129,10 +186,8 @@ export function TopBar({
   onMasterVol,
   onDrum,
   onDrumOpenChange,
-  onPrevPatch,
-  onNextPatch,
 }: Props) {
-  // botões de ação global usam a classe glass (34px + blur) quando há mock;
+  // botões de ação global usam a classe glass (32px + blur) quando há mock;
   // sem mock, ficam só com a base (visual idêntico ao resto da casca)
   const glassCls = mock ? "btn-glass" : undefined;
 
@@ -187,83 +242,91 @@ export function TopBar({
         <strong style={{ fontSize: "var(--text-md)", letterSpacing: 0.5, color: "var(--text)" }}>{MSG.brand}</strong>
       </div>
 
-      {/* CONT roles à direita */}
-      <div style={{ display: "flex", alignItems: "center", gap: "var(--space-8)", flexWrap: "wrap", justifyContent: "flex-end" }}>
+      {/* CONT roles à direita — `.nb-controls` (nowrap + min-width 0): os
+          clusters ENCOLHEM com ellipsis em vez de quebrar o banner */}
+      <div className="nb-controls">
 
-      {/* conexão + boot: status, badge de backend e botão de boot num
-          cluster só (a seção de conexão da página foi removida — duplicava
-          esta navbar) */}
-      <div style={cluster} role="status" aria-label={MSG.connClusterAria}>
-        <span className={connected ? "live-dot" : "idle-dot"} aria-hidden="true" />
-        <span style={label}>{connected ? MSG.connShortOn : MSG.connShortOff}</span>
-        {mock && <span className="mock-badge" style={badge}>{MSG.mockBadge}</span>}
+      {/* conexão + boot: o DeviceBadge (miniatura do aparelho + LED pulsante +
+          info honesta de backend/presets/escrita) e o botão de re-escanear num
+          cluster só; separador + ⟳ acento dão o ar de painel */}
+      <div className="gp-surface gp-surface--flat gp-specular nb-cluster" role="status" aria-label={MSG.connClusterAria}>
+        <DeviceBadge info={info} conectado={conectado} />
+        <span className="nb-div" style={divider} aria-hidden="true" />
         <button
-          style={{
-            ...btnBase,
-            padding: "4px 9px",
-            fontFamily: "var(--font-mono)",
-            fontSize: "var(--text-md)",
-            ...(booting ? { opacity: 0.7, cursor: "progress" } : {}),
-          }}
+          className="gp-btn nb-icon-btn"
+          style={{ ...nbBtn, fontFamily: "var(--font-mono)", fontSize: "var(--text-md)" }}
           onClick={onBoot}
           disabled={booting}
           aria-busy={booting}
           aria-label={MSG.rescanAria}
           title={MSG.rescanTitle}
         >
-          ⟳
+          <span className="nb-spin" aria-hidden="true">
+            ⟳
+          </span>
         </button>
       </div>
 
-      {/* patch corrente (navbar) — Q2: também há display LED no board;
-          ◀ ▶ reproduzem a coluna do patch do app oficial */}
-      <div style={cluster}>
-        <span className="nb-cap" style={label}>{MSG.patchLabel}</span>
-        <button style={{ ...btnBase, padding: "4px 10px" }} onClick={onPrevPatch} aria-label={MSG.patchPrevAria} title={MSG.patchPrevTitle}>
-          ◀
-        </button>
-        <strong style={{ fontFamily: "var(--font-mono)", color: "var(--text)", minWidth: 108, textAlign: "center" }}>{presetLabel}</strong>
-        <button style={{ ...btnBase, padding: "4px 10px" }} onClick={onNextPatch} aria-label={MSG.patchNextAria} title={MSG.patchNextTitle}>
-          ▶
-        </button>
-      </div>
-
-      {/* DRUM — chip abre o painel de RITMOS (87 do firmware); info
-          EMPILHADA (BPM sobre compasso) para a navbar caber em 1 linha */}
-      <div style={cluster}>
+      {/* DRUM — play/stop e BPM DIRETO na navbar (UX da issue #10: não
+          exige o painel aberto); chip = identidade, abre o modal de gestão */}
+      <div className="gp-surface gp-surface--flat gp-specular nb-cluster">
         <button
-          style={drum.on ? btnActive : btnBase}
+          className={btn(drum.on)}
+          style={{ ...nbBtn, ...(drum.on ? tone.okOn : tone.ok), padding: "4px 10px" }}
+          onClick={() => onDrum({ ...drum, on: !drum.on })}
+          aria-pressed={drum.on}
+          aria-label={MSG.drumToggleAria}
+        >
+          {drum.on ? "⏹" : "⏵"}
+        </button>
+        <button
+          className={btn(drumOpen)}
+          style={{ ...nbBtn, flex: "1 1 auto", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", minWidth: 0, padding: "4px 10px" }}
           onClick={() => onDrumOpenChange(!drumOpen)}
           aria-expanded={drumOpen}
           aria-haspopup="dialog"
           aria-label={MSG.drumChipAria(drum.style, drum.bpm, drum.beat)}
         >
-          {drum.on ? MSG.drumChipOn(drum.style) : MSG.drumChipOff(drum.style)}
+          <span className="nb-chip-pre">{MSG.drumChipPre}</span>
+          {drum.style}
         </button>
-        <span
-          style={{
-            ...label,
-            whiteSpace: "pre-line",
-            lineHeight: 1.15,
-            textAlign: "center",
-          }}
-        >
-          {MSG.drumInfo(drum.bpm, drum.beat)}
+        <span style={stepper}>
+          <button
+            className={`${btn()} nb-step`}
+            style={nbBtn}
+            aria-label={MSG.drumBpmDownAria}
+            onClick={() => onDrum({ ...drum, bpm: Math.max(40, drum.bpm - 1) })}
+          >
+            −
+          </button>
+          <span className="nb-bpm" style={bpmVal}>
+            {drum.bpm}
+          </span>
+          <button
+            className={`${btn()} nb-step`}
+            style={nbBtn}
+            aria-label={MSG.drumBpmUpAria}
+            onClick={() => onDrum({ ...drum, bpm: Math.min(240, drum.bpm + 1) })}
+          >
+            +
+          </button>
         </span>
         <DrumPanel open={drumOpen} drum={drum} onChange={onDrum} onClose={() => onDrumOpenChange(false)} />
       </div>
 
-      {/* Master VOL (prévia local) + kill (mute junto do volume, como no
-          painel do hardware) + ⚙ (global, sempre alcançável) */}
-      <div style={cluster}>
+      {/* Master VOL (prévia local) + separador + kill (mute junto do
+          volume, como no painel do hardware) + ⚙ (global, sempre
+          alcançável) */}
+      <div className="gp-surface gp-surface--flat gp-specular nb-cluster">
         <span className="nb-cap" style={label}>{MSG.masterLabel}</span>
         <Slider value={masterVol} onChange={onMasterVol} ariaLabel={MSG.masterAria} w={68} />
         <span style={val}>{masterVol}</span>
+        <span className="nb-div nb-push" style={divider} aria-hidden="true" />
         <button
-          className={glassCls}
+          className={[btn(killed), glassCls].filter(Boolean).join(" ")}
           style={{
-            ...(killed ? btnActive : btnBase),
-            minWidth: 72,
+            ...nbBtn,
+            ...(killed ? tone.dangerOn : tone.danger),
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
@@ -277,8 +340,8 @@ export function TopBar({
           {killed ? MSG.killLabelOn : MSG.killLabel}
         </button>
         <button
-          className={glassCls}
-          style={settingsOpen ? btnActive : btnBase}
+          className={[btn(settingsOpen), glassCls].filter(Boolean).join(" ")}
+          style={{ ...nbBtn, ...(settingsOpen ? tone.accentOn : {}) }}
           onClick={onOpenSettings}
           aria-label={MSG.openSettingsAria}
           aria-haspopup="dialog"

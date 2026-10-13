@@ -1,0 +1,24 @@
+[package]
+name = "gp100-library"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Biblioteca persistente do GP-100 NextGen Editor: SQLite com migrações versionadas, busca e import/export (ADR-9)"
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+# `bundled` compila o SQLite a partir do fonte: o MESMO motor em toda máquina
+# (dev, CI, campo). Sem isso o comportamento das migrações passa a depender da
+# libsqlite3 do sistema — ver ADR-9.
+rusqlite = { version = "0.32", features = ["bundled"] }
+# Só para o seed de fábrica: o formato `.prst` tem UM parser no projeto e ele é
+# o gp100-core. Aqui não há segunda implementação (ADR-9, decisão 4).
+gp100-core = { path = "../core" }
+
+[dev-dependencies]
+# Os testes de integração só enxergam a API pública do crate, não as dependências
+# dele. O `rusqlite` aparece aqui para montar à mão o banco "de uma versão
+# antiga" — que é o estado que migração de verdade precisa provar.
+rusqlite = { version = "0.32", features = ["bundled"] }

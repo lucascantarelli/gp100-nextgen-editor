@@ -1,6 +1,6 @@
 # 📜 DECISIONS — Decisões de design pré-assinadas (ADR-lite)
 
-> **Banner:** ✅ atual · **Última revisão:** 2026-09-29 · **Origem:** ROADMAP P5 (ADR-1..5) + pré-desenho M0.6 (ADR-6)
+> **Banner:** ✅ atual · **Última revisão:** 2026-10-11 · **Origem:** ROADMAP P5 (ADR-1..5) + pré-desenho M0.6 (ADR-6) · **Campo:** ADR-12/13 vindos do gate H4 (#177) · **Era HW:** ADR-14 (casa canônica, #163)
 >
 > Registra as decisões estruturais do `gp100-core` **antes** de cada bloco de
 > implementação (ADR-1..5 pré-assinados antes do M0; ADR-6 sancionado antes do
@@ -100,9 +100,13 @@ pub trait DeviceTransport {
 **Consequências.**
 - A trait trafega **bytes crus**: framing do SysEx (header/F7/trim), nibble e
   semântica moram no codec (M0.4), nunca no transporte.
-- Implementadores previstos: `MockDevice` (M0.5, default — responde conforme o
-  golden) e `RealDevice` (midir/WinMM/ALSA) **atrás da feature `real-device`**,
-  desabilitada por default (política de hardware, VISION §7).
+- Implementadores: `MockDevice` (M0.5 — transporte de TESTE: core, CLI e
+  harness, responde conforme o golden) e `RealDevice` (midir/WinMM/ALSA)
+  **atrás da feature `real-device`**. No **core/CLI** ela segue default OFF
+  (política de hardware, VISION §7). No **app** (`gp100-ui`) é **default ON
+  desde 09/10/2026 (#165, Era Hardware)**: `tauri dev`/`tauri build` abrem o
+  aparelho sem flag; `--no-default-features` gera o app sem transporte algum
+  (backend `Desligado`).
 - `Session` (M0.6) é genérica sobre `DeviceTransport` — replay das fixtures não
   conhece hardware.
 
@@ -110,32 +114,83 @@ pub trait DeviceTransport {
 
 ## ADR-5 — Feature-flag `WRITE_VERIFIED` (mock sempre permite)
 
-**Status:** Accepted · **Pré-assinada:** 28/09 (owner) · **Afeta:** M0.5, Gate H (H2)
+**Status:** Accepted · **Pré-assinada:** 28/09 (owner) · **rev. 04/10** (feature
+`write-verified` + `WireKind` declarado pela `Session`) · **rev. 06/10** (keepalive
+do boot omitido com a trava fechada; select = `Read`) · **rev. 09/10/2026**
+(#165: o default do APP vira o aparelho — a trava de escrita NÃO muda:
+`write-verified` continua feature separada, default OFF; o CLI segue mock por
+default, com `--mock-device` explícito de teste) · **Afeta:** M0.5, Gate H (H2)
 
-**Decisão.** Escrita no device **real** é guardada por flag `WRITE_VERIFIED`
-(constante/config do transporte real). Enquanto `WRITE_VERIFIED == false`, o
-transporte real **recusa writes com erro explícito**. O `MockDevice` **sempre
-permite** writes — caso contrário os replays das fixtures (knob/save/IR) não
-existiriam.
+**Decisão.** Escrita no device **real** é guardada por `WRITE_VERIFIED` — que
+virou, na revisão de 04/10 (H2), uma **feature de compilação** `write-verified`
+(default OFF), não uma constante de config: a trava é da **build**, então não
+existe flag, variável de ambiente ou argumento que a abra num binário que não a
+tem. Enquanto `WRITE_VERIFIED == false`, o transporte real **recusa writes com
+erro tipado** (`TransportError::WriteBlocked { op }`, com o endereço do frame
+recusado). O `MockDevice` **sempre permite** writes — caso contrário os replays
+das fixtures (knob/save/IR) não existiriam.
+
+**Como a escrita é classificada (rev. 04/10).** `DeviceTransport::send_raw`
+passa a receber um `WireKind` (`Read` | `Write`) **obrigatório, sem default** — a
+classificação é **declarada pela `Session`**, que é quem conhece a semântica, e
+**não deduzida do byte FUNC**. Deduzir por FUNC estaria errado: `0x12` é usado
+tanto para escrita quanto para a leitura de página do §13.10, e um gate por FUNC
+recusaria o próprio caminho de leitura. Parâmetro obrigatório (em vez de
+`Option`/`default`) porque o compilador é a trava secundária: esquecer de
+classificar é erro de build, não erro de campo.
 
 **Estado atual:** os 3 fluxos capturados (set §13.11, save §13.12, IR §13.7) já
 foram verificados em campo na S4 (persistência confirmada no display —
-BLOCKERS item 11 fechado), mas a flag **começa false** e só vira `true` com o
-DoD do H2 executado **pelo gp100-core no device** (3 fluxos, um por vez, com
-read-back/verificação no display).
+BLOCKERS item 11 fechado), mas a feature **nasce OFF** e só é ligada no binário
+de campo com o DoD do H2 executado **pelo gp100-core no device** (3 fluxos, um
+por vez, com read-back/verificação no display). O PR do H2 **não a liga por
+padrão** — entrega o mecanismo e deixa a decisão com o owner e a pedaleira.
+
+**Consequência registrada pelo PR (não óbvia), RESOLVIDA em 06/10:** o keepalive
+de boot (`12/00020001`, §13.12) é um frame OUT que não pede resposta — logo é `Write`
+pelo critério acima, e o **boot completo (B5 do H1) passava a exigir a feature do
+H2**.
+
+**Decisão do owner, 06/10: pular o keepalive com a trava fechada.** O
+`Session::boot` pergunta ao TRANSPORTE — `DeviceTransport::permite_escrita()`,
+que existe desde 06/10 com default `true` (`RealDevice` devolve `WRITE_VERIFIED`,
+o `MockDevice` devolve `true`, e os embrulhos `Box`/`&mut`/`LoggingTransport`
+deletram) — e **omite** o ping ×2 quando a resposta é `false`, em vez de mandar
+e ser barrado no último frame (um build de LEITURA ficaria sem leitura, que era
+justamente o que a alternativa do B5/H1 pedia). Perguntar ao `cfg!(feature)` no
+core pularia o keepalive também no mock e mudaria o boot de 2297 para 2295 sem
+ninguém ter pedido — por isso a pergunta vai a quem vai enviar o byte. A omissão
+é **contábil**: o relatório sai com 2295 transações, que é o que de fato saiu no
+fio (`tests/write_gate.rs` prova os dois lados: trava fechada → boot completo sem
+ping; aberta → 2297 com ping ×2).
+
+**Decisão do owner, 06/10 — o select NÃO é escrita.** `Session::select_preset`
+envia `WireKind::Read` (é o mesmo select com que o `boot()` varre os 199 presets
+para LER), e a DoD da #126 listava `select` entre os botões de escrita. Medido no
+código, o owner optou por manter a troca de preset **liberada** no build de
+leitura e travar só o que escreve: knob, IR, SnapTone e `save_preset`.
+
+**A tela tem UM leitor do campo.** `escritaLiberada(info)` (em
+`src/ipc/device.ts`) lê `writeVerified` e é o que o `FieldDiagPanel`, o
+`PedalModal`, o `IrLabPanel` e o `SnapTonePanel` usam — botão desabilitado COM O
+MOTIVO (`MSG.writeLockedHint`), nunca recusa depois do clique. Coberto por unit
+(`tests/writeLock.ui.test.tsx`) e e2e (`e2e/writeLock.spec.ts`, pelo gancho
+`gp100.debug.writeVerified`, que simula o build de leitura sem compilar nada).
 
 **Consequências.**
 - Divergência de fio descoberta no H1/H2 = fluxo R3 (captura → golden → validate),
   nunca "ajuste" ad-hoc no codec.
 - Fluxo de escrita novo (fora os 3 capturados) = proibido até captura própria +
-  baseline nova + esta flag reavaliada por ADR.
+  baseline nova + esta trava reavaliada por ADR.
+- Trava **atômica por operação** (ADR-6, consequência 6): `save_preset` é barrado
+  ANTES do 1º write do `meta_block`, então nunca sai frame parcial de save.
 
 ---
 
 ## ADR-6 — `Session` (M0.6): assinaturas da FSM e dispatch do IN ambíguo
 
 **Status:** **Accepted — sancionado pelo owner em 29/09** (rev.3, após revisão
-crítica + re-derivação do save do log cru, `analysis/derive_save_ops.py` — D3
+crítica + re-derivação do save do log cru, `docs/arquivo/analysis/derive_save_ops.py` — D3
 definitivo) · **Afeta:** M0.5, M0.6, M0.7 · **Vincula:** ADR-2 (erros), ADR-3
 (timeout), ADR-4 (trait), ADR-5 (escrita real)
 
@@ -432,3 +487,435 @@ host que a CI já contorna com `RUSTUP_TOOLCHAIN` por perna.
 | M1.0/A-4 (gp100-ui, spike) | 7 |
 | Dependabot (src-tauri + npm + actions) | 7, 8 |
 | H1–H3 (gate de hardware) | 3, 5 |
+| M2 (#24/#25/#26) | 9 |
+
+---
+
+## ADR-9 — A persistência do app mora num crate próprio do workspace gnu, não no crate do Tauri
+
+> **Status:** ✅ aceito (M2/#26) · **Vincula:** #26 (biblioteca), #24 (IR lab),
+> #25 (SnapTone) · **Herdou:** ADR-7 (a divisão gnu/MSVC)
+
+**Contexto.** A #26 pede a biblioteca (fábrica + usuário) em SQLite, com
+migrações versionadas, busca e import/export. A pergunta que precede o código é
+**onde esse banco vive**, porque #24 (laboratório de IRs) e #25 (gestor
+SnapTone/NAM) precisam exatamente do mesmo armazenamento — se a #26 escolher um
+substrate, as três herdam.
+
+Duas respostas eram possíveis: `rusqlite` dentro do crate do Tauri
+(`packages/app/api`, que já é dono do `AppState`) ou um crate novo. A escolha não
+é estética; o ADR-7 já tinha produzido a evidência que decide.
+
+**A evidência que decide.** O `gp100-ui` está FORA do workspace gnu de propósito
+(ADR-7: o Tauri 2 exige MSVC no Windows) e por isso os testes dele rodam num
+único job, `Testes · Rust (cargo test · ui-rust)`, preso ao runner Windows. E,
+medido nesta máquina: o crate do Tauri **não compila local** — o Git Bash do
+Windows expõe `/usr/bin/link.exe` (o `link` do coreutils), que sombreia o
+`link.exe` do MSVC e mata o link de qualquer crate de build script. A
+consequência é direta: **persistência escrita dentro do crate MSVC é
+persistência que não se consegue verificar na máquina de desenvolvimento** — só
+na CI, e só em uma plataforma.
+
+Isso importa mais do que parece. A #26 pede migrações e import/export: exatamente
+as partes que quebram de forma dependente da plataforma. O `sqlite3_libversion()` diverge
+entre o SQLite embutido e o do sistema, e um `ALTER TABLE` aceito numa versão
+pode ser recusado noutra.
+
+**Decisão.**
+1. A persistência é um crate novo, `packages/library` (`gp100-library`),
+   **membro do workspace raiz** (gnu). Sem dependência de Tauri: ele não sabe
+   que existe uma janela.
+2. Ele usa `rusqlite` com a feature `bundled` (SQLite embutido, sem dependência
+   de biblioteca do sistema) — o mesmo SQLite em toda máquina, o que torna o
+   comportamento das migrações reproduzível.
+3. O `gp100-ui` vira **só a casca**: commands `library_*` finos que delegam ao
+   crate. Nenhuma regra de armazenamento mora no shell.
+4. Os 99 presets de fábrica entram no banco na **primeira execução** (seed do
+   `all.prst`), e o seed reutiliza o parser do `gp100-core` — não há segunda
+   implementação do formato `.prst` no projeto.
+5. A versão do esquema vive em `PRAGMA user_version`. O número é lido do
+   próprio arquivo, nunca de uma constante no código.
+
+**Alternativas rejeitadas.**
+- *SQLite no front (sql.js/WASM).* Teria footprint de WASM, banco inteiro em
+  memória e a busca passaria a rodar na UI. Descartado.
+- *Manter `localStorage` versionado.* Trocar de esquema viraria código, não
+  migração — que é justamente o que a issue pede.
+
+**Consequências.**
+- (+) As migrações, a busca e o import/export são testados no job `Testes · Rust`
+  do workspace, **nas três plataformas** da matriz — localmente também.
+- (+) #24 e #25 passam a ter um armazenamento com migração de verdade, sem
+  repetir a decisão de substrate.
+- (−) `packages/app/api` passa a depender de um crate que vive em OUTRO
+  workspace. Cargo resolve por path, mas isso precisa de CI para provar.
+- (−) O escopo do job `rust` no `ci_plan.py` precisa de `packages/library/` na
+  expressão — o mesmo debt de escopo que a #82 §4 apontou.
+- (−) `rusqlite` com `bundled` compila o SQLite a partir do fonte: primeiro
+  build mais lento e exige um compilador C (minGW no Windows-gnu, cc nos
+  containers Linux).
+
+---
+
+## ADR-10 — Trava de conteúdo no `set-param`: faixa do valor antes do fio (#110)
+
+**Status:** Accepted · **Pré-assinada:** 05/10/2026 (owner) · **Afeta:** `gp100-core` (codec + `param_range`), CLI de campo, `DeviceActor` do app
+
+**Contexto.** Em 05/10/2026, no gate H2, o runbook de campo mandava
+`set-param 3 0x0700006e 0 99.5`. O `99.5` era um número inventado. O
+firmware V2.1 tem, em `Drivers/audio/audio.c:1828`, o assert
+
+```text
+CODE:para <= GetParaMaxVal(
+```
+
+e ao assertar **para de responder a toda transação**, inclusive às leituras
+puras. O device continua enumerado e `OK` no Windows, o que elimina cabo,
+driver e porta como causa; a única recuperação é um **power-cycle físico**.
+O detalhe cruel é que o `set-param` é fire-and-forget (§13.11, D4): o fio
+não devolve **nenhum** aviso, e o operador descobre que quebrou o pedal
+quando a leitura seguinte toma timeout.
+
+**Decisão.** O `set_param_payload` valida o **conteúdo** do valor antes de
+montar o frame, e uma variante nova de `ProtocolError`
+(`ValueOutOfRange { addr, param, got, allowed }`) sobe até a borda. A regra
+vem do dicionário (`packages/core/data/parameters.json`, derivado do `algorithm.xml`
+oficial da Suite V1.5.1):
+
+| par `(slot, code, ctrl)` | regra | ação |
+|---|---|---|
+| `knob` | `min <= v <= max` (normalizado por `Control::range`) | **recusa** fora da faixa |
+| `switch`/`combox` | `v ∈ option_ids` (id exato) | **recusa** id desconhecido |
+| **sem regra** no dicionário | — | **aceita** |
+| `NaN` / `±inf` | — | **recusa sempre** |
+
+A chave carrega o **slot**, não só o `code`: o `nibble` do `effectCode` não
+é o módulo (`0x05` = C-Wah no PRE, `0x03` = Green OD no DST), e sem o slot
+`Boost` e `14 Boost` — mesmo `effectCode`, PRE e DST — colidiriam.
+
+**Por que o dicionário, e não só as amostras.** A armadilha conhecida da
+captura é que `knobs.jsonl` é **uma sessão só**: uma faixa derivada dela é
+piso, não verdade. Mas o dicionário é a fonte declarada da própria Suite, e
+a Suite é quem fala com o firmware. A corroboração está medida e é gate
+(`scripts/param_ranges.py --check`): das 92 amostras reais, **13 dos 14
+pares observados caem inteiros dentro da faixa declarada, zero
+contradições**. Duas fontes independentes — o que a Suite declara e o que
+ela de fato manda — concordam, e a Suite nunca escreve fora do que o
+aparelho aceita. Cobertura: 639 regras para 639 controles (575 knob +
+64 discretos).
+
+**Por que "sem regra" aceita.** O 14º par é `0x0a00002c` (U-ban 4x12, CAB)
+com `ctrl = 1`: o aparelho **varreu esse knob de 0 a 99** em 8 amostras
+reais, mas o dicionário só descreve o `ctrl = 0` desse cab. É um buraco do
+dicionário, não um valor perigoso — recusá-lo quebraria um knob que
+comprovadamente funciona. O gate nomeia o par (`observed_without_rule`)
+para que o buraco fique visível em vez de sumir. `NaN`/`inf` são recusados
+mesmo sem regra: o bit-pattern de `f32` para eles é lixo que nenhum
+firmware aceitaria.
+
+**Alternativas rejeitadas.**
+- *Só os 14 pares com amostra real.* 625 pares sem medição ficariam sem
+  trava justamente onde não sabemos nada. Menos atrito, bem menos proteção.
+- *Recusar também o que está sem regra.* Mais seguro contra dicionário
+  incompleto, ao custo de travar o knob do CAB que o aparelho aceita.
+- *Escape hatch (`--force-param`) em campo.* Deixado para uma necessidade
+  real de campo; não entra agora porque a evidência diz que a tabela não
+  bloqueia nada que a Suite mande.
+
+**Consequências.**
+- (+) A trava é de **conteúdo**, não de política: vale igual no mock e no
+  aparelho real, então o H1 (read-only) fica seguro por construção e o
+  mock continua exercitando escrita (ADR-5).
+- (+) Ela mora no `set_param_payload`, o **único** ponto por onde todo
+  `set-param` passa (CLI, `DeviceActor`, replay das fixtures), e **antes**
+  de existirem bytes — provado por mutação em
+  `packages/core/tests/value_gate.rs` (transporte que pune qualquer byte)
+  e no CLI (`set_param_fora_da_faixa_falha_sem_mandar_nada`).
+- (−) Se o dicionário declarar uma faixa **mais larga** que o
+  `GetParaMaxVal` do firmware para algum controle, a trava deixa passar um
+  valor que o aparelho rejeita. É o risco residual: nenhum dos 13 pares
+  corroborados mostra isso, e nenhum caminho de escrita novo depende de
+  faixa inventada.
+- (−) `--dry-run` do CLI passou a recusar valor fora da faixa. É
+  intencional: um frame que o firmware rejeitaria não é inspecionável.
+
+---
+
+## ADR-11 — O `gp100-cli` fica congelado para capacidades novas (decisão do owner, 05/10)
+
+**Status:** aceito · owner, 05/10/2026 · pergunta respondida por
+`docs/REAL_DEVICE_GAP.md` §6
+
+**Contexto.** O `gp100-core` tem 12 capacidades. O `gp100-cli` e o app expuseram
+subconjuntos **diferentes** desse mesmo core: o CLI tinha `save`,
+`dump-preset` e o log de fio, e o app não; o app tinha SnapTone e o CLI não.
+Por muito tempo o motivo técnico para o CLI existir foi concreto — ele era a
+única cobertura de CoreMIDI do transporte USB-MIDI, porque o crate do Tauri do
+app só era compilado no Windows.
+
+**O que resolveu o impasse.** Três commits, nesta ordem:
+1. `save`/`dump-preset` e o logger/dry-run foram para o **core** e para o
+   `app/api` (passos 4 e 4b do gap);
+2. ganharam **tela** — painel de diagnóstico de campo, no app (passo 4c);
+3. o `ui-rust` entrou na **matriz macOS** da CI, e o caminho do aparelho real
+   do app passou a ser compilado para CoreMIDI (passo 6b).
+
+Depois disso o app é um **superset estrito** do CLI: expõe as 9 capacidades do
+CLI **mais** o SnapTone. E as duas capacidades que continuam vermelhas para o
+app (`0x47` e `set_inventory`) são falta de protocolo e falta de decisão de
+campo — nenhuma se resolve trazendo o CLI para dentro do app.
+
+**Decisão.** *Manter, mas congelar.* Capacidade nova **não entra** no
+`gp100-cli`; vai para o `app/api` (command + porta em `ui/src/ipc/`) ou não
+existe. Correção de bug entra, divergência permanente não.
+
+**Alternativas rejeitadas.**
+- *Arquivar o crate agora.* Tira a ferramenta de quem prefere um executável
+  sem abrir a UI — e a sessão de campo ainda não aconteceu para medir se
+  alguém precisa dela. Arquivar antes da medição é decidir com o número que
+  a decisão promete esperar.
+- *Deixar sem registro e decidir depois.* Um crate sem política escrita recebe
+  capacidade nova por omissão: a próxima feature "cabe aqui" e ninguém
+  contesta o rato. A regra precisa estar no arquivo de quem vai mexer, não numa issue.
+- *Cortar o job `Distribuição · CLI de campo`.* Continua: ele é o artefato que
+  os gates H1–H3 exercitam, e congelar não é aposentar.
+
+**Consequências.**
+- (+) O produto tem um dono só. "Onde essa capacidade entra?" deixa de ter
+  duas respostas válidas.
+- (+) O CLI continua sendo o **executável dos gates**: `--log` no schema P4 e
+  `--dry-run` são o insumo do juiz de campo, e ele roda em 3 SOs.
+- (−) Uma capability que só faça sentido fora da UI (script de campo
+  headless, CI) vai exigir uma conversa de novo. Aceito: são raros e o custo
+  de manter dois produtos não é.
+- (−) A regra é social. Ela é escrita no cabeçalho de
+  `packages/cli/src/main.rs` e no `packages/cli/README.md` — os dois lugares
+  que quem for mexer nele primeiro vai ler.
+
+**Revisão.** Quando a sessão de campo (#17) sair assinada pelo aparelho, a
+pergunta "o CLI ainda serve a alguém que não o app?" ganha resposta **medida** —
+e essa resposta, e não este ADR, decide o futuro do crate.
+
+> **Atualização 06/10 (#132/ADR-12):** das duas capacidades vermelhas do
+> contexto, `set_inventory` saiu da lista — o aparelho já nasce com o
+> inventário da captura por default. Continua vermelho só o `0x47` (falta
+> de protocolo).
+
+> **Atualização 09/10/2026 (#165, Era Hardware):** exceção registrada — o CLI
+> ganha `--mock-device`, um **selo explícito do transporte mock** para
+> harness/teste (e antídoto contra `--real` acidental num script). Não é
+> capacidade nova: o default do CLI segue mock, a flag conflita com `--real` e
+> nada muda o comportamento do mock. O app inverteu o default (aparelho ligado
+> por padrão); o CLI **não** inverteu — congelamento preservado.
+
+---
+
+## ADR-12 — Um espaço único de `pp`: inventário do aparelho, trava antes do fio, abertura pelo `current_pp` (#132)
+
+**Status:** Accepted · 06/10/2026 (critérios de aceite assinados na issue
+#132) · **Afeta:** `gp100-core` (`session`, `preset`, `pedalboard`,
+`transport`), `gp100-library` (seed), `DeviceActor`, `useStage`
+
+**Contexto.** Em 06/10/2026 o display do GP-100 mostrou uma assertiva NOVA —
+
+```text
+CODE:PresetNum <TOTAL_PA
+LINE: 912
+file: ..\..\Drivers\audio\audio.c
+```
+
+— e o pedal parou de responder até power-cycle físico (a mesma classe do
+assert do ADR-10, mas falando de **número de preset**, não de valor de
+parâmetro). A investigação (relatório `reports/assert-audio-912.md`, sem
+tráfego novo no aparelho) achou **quatro numerações de `pp` convivendo**:
+
+| onde | base | evidência |
+|---|---|---|
+| `files/patches/all.prst` | strings `"0".."98"` | o próprio arquivo |
+| `gp100-core` (board/documento) | o MESMO texto lido como **hex** → `0x00..0x98` espaçado | `preset.rs` (`from_str_radix(…, 16)`); `gain_staging.rs` ("0x0a não existe") |
+| `gp100-library` + artefato do front | **decimal** → `0..98` contíguo | `seed.rs`; `dump_preset_list.py` (ASSERTA `0..98`) |
+| **aparelho** | `0x0000..0x0062` + `0x0100..0x0162` (198 pps) | captura S1 (`boot.jsonl`) **e** sonda de campo `dump-preset 0x0100` |
+
+E **ninguém validava o `pp`**: o `select_preset` só checava shape, o app
+abria com `openPreset(0)` fixo, e o boot do aparelho usava o default
+`0..198` — que manda 99 selects fora do aparelho (`0x0063..0x00c5`) e nunca
+alcança o banco `0x01xx`, onde o pedal liga. `PresetNum < TOTAL_PA` é
+literalmente sobre isto.
+
+**Decisão — quatro camadas, uma por superfície.**
+
+1. **O espaço do fio é o da captura.** [`session::inventario_do_aparelho`]
+   devolve os 198 pps da S1 **na ordem da S1** (`0x0100..=0x0162` depois
+   `0x0000..=0x0062`). É o DEFAULT do `boot()` **quando o transporte é o
+   aparelho** (`DeviceTransport::e_aparelho`, a mesma pergunta por objeto do
+   `permite_escrita`); `set_inventory` continua prevalecendo — quem varre
+   define a faixa (é o caminho do R3 do `H1_CHECKLIST`, sem número de
+   parede: se o aparelho descobrir pps novos, quem varre descobre).
+   No mock, o default continua `0..198` e o comportamento é o de sempre.
+2. **A recusa é ANTES do frame.** `Session::select_preset` no aparelho
+   devolve `ProtocolError::ValueOutOfRange { addr: "11/13010000",
+   param: "pp", got, allowed }` — a **irmã da ADR-10**: mesma variante,
+   mesma semântica (conteúdo antes de existir byte), e a mensagem traz a
+   faixa legível (`0x0000..0x0062, 0x0100..0x0162`) porque o runbook de
+   campo precisa saber até onde o pedal vai. No mock não há trava.
+3. **`ppID` é DECIMAL numa base só.** `preset_list`, `board_view_for`,
+   `apenas_preset` e o `MockState` passaram a ler pelo helper
+   `preset::pp_id_decimal`, o MESMO que a semente da biblioteca usa. O hex
+   era um bug independente do aparelho: `board(24)` casava o bloco
+   `ppID="18"`, e a partir de 10 todo clique da lista (decimal) abria outro
+   bloco. Um pp do fio com byte de banco vira índice do documento pelo
+   `preset::indice_do_documento` (`0x01XX → XX`; byte alto fora de
+   `0x00`/`0x01` fica INTACTO, para o lookup falhar em vez de adivinhar).
+4. **A abertura automática não adivinha.** `useStage` abre o
+   `current_pp` que o backend reporta (`device_preset_library().currentPp`)
+   em vez do `0` fixo — no aparelho, o valor vem do que o boot varreu e a
+   trava do item 2 garante que só um pp provado sai daqui.
+
+**Alternativas rejeitadas.**
+- *Manter `0..198` como faixa do aparelho.* É o frame do assert: 99 selects
+  fora do banco e o banco real fora do scan. O `0..198` era um chute de
+  contagem ("199 presets"), não uma medição.
+- *Travar também o mock.* O espaço do mock é o do documento e os testes
+  varrem pps arbitrários (`0xffff`, replay com inventário próprio). A
+  trava é de APARELHO — igual à política de escrita, a identidade mora no
+  transporte (`e_aparelho`), não no `cfg!(feature)`.
+- *Unificar em HEX (a semente passar a ler hex).* A lista hex não existe no
+  aparelho: `"70".."98"` viraria `0x70..0x98`, fora dos dois bancos
+  provados, e deixaria de ser contígua — o `dump_preset_list.py` já
+  ASSERTA `0..98`. Decimal é a base que o aparelho usa.
+- *Ler o push `12/12000000` (primeiro IN da captura) como "corrente".* O
+  próprio golden o descreve como "status 2B no boot (§13.3)"; transformá-lo
+  em `current_pp` é outra medição, não esta correção.
+
+**Consequências.**
+- (+) O boot do aparelho reproduz a sequência do Suite: mesmo inventário =
+  mesma contagem (2299, provada contra a captura por `tests/pp_gate.rs`).
+  Mock e docs seguem 2297/2295 — nada muda para quem não tem aparelho.
+- (+) A trava cobre CLI e app no mesmo ponto (`Session::select_preset`),
+  antes do golden e do frame.
+- (−) Se uma unidade tiver pps fora da captura, a trava recusa até
+  `set_inventory` ser ligado ao que o boot descobrir (R3 do H1_CHECKLIST).
+  Aceito: recusar é o lado seguro — o outro lado é o power-cycle.
+- (−) `e_aparelho` precisa ser declarado com verdade por quem emula o
+  aparelho (`RealDevice` → `true`, `LoggingTransport` repassa, o
+  `AparelhoFake` dos testes declara). É o mesmo contrato de
+  `permite_escrita`.
+
+**Medição pendente (critério 5 da issue).** O teste de campo — UM `select`
+no pp que o scan devolveu, conferindo o display — continua sendo a porta
+para a retomada da sessão A/B (#116). Este ADR não fecha campo; fecha o
+que o código pode provar sozinho.
+
+## ADR-13 — Fonte dinâmica vs. snapshot de análise: validar conteúdo contra o schema, nunca contra bytes capturados (#177)
+
+> **Status:** ✅ pré-assinado (10/10, retroativo ao fix `4fe9a5f`) · **Origem:**
+> achado de campo do H4 (issue #177) · **Afeta:** `gp100-core`
+> (`golden::Pattern::matches_shape`, `session::wait_for`, `preset_pages::nome`)
+> · **Vincula:** ADR-12 (inventário do aparelho), ADR R2/R3 (golden = baseline
+> congelada das capturas 1–4)
+
+**Contexto.** O boot do H4 morreu em 6/6 no MESMO ponto, sem timeout (gap máx.
+14 ms). Duas causas, a mesma doença: comparar **dado vivo do hardware** contra
+**snapshot de análise**. (1) A sonda T6 (`12|13020003`) tem resposta `mixed` com
+um segmento `const` de 144B que congela o **nome** do preset; o owner renomeou o
+pp e `match_response` rejeitou a resposta VERDADEIRA do aparelho. (2) A regra de
+pad do nome punia o device por não zerar o rabo ao renomear (medido: `H2 TESTE\0`
++ `'0'` 0x30 stale de "It's GP100") — suposição de fábrica tratada como lei,
+derrubaria o gate em 197/198.
+
+**Decisão.**
+- **Schema vs. snapshot.** O `golden` (`protocol_golden.json`, baseline R2/R3)
+  é a especificação das **formas**: endereço, comprimento, `by-len`, nº de vars,
+  `var_count`. NÃO é autoridade sobre **conteúdo** — os segmentos `const` são o
+  estado de fábrica do aparelho ANALISADO, e cada dono editou o seu.
+- **`wait_for` valida só a forma** (`match_shape`: endereço + comprimento/by-len).
+  O conteúdo cai no DECODE dos objetos (`preset_pages`, `codec`), que conhecem o
+  schema dos dados (nome ASCII, faixa de knob, nibble). Despacho 4B/75B por
+  comprimento (D1) é forma e permanece.
+- **Nome = objeto que termina no primeiro NUL.** Byte após o NUL pertence ao nome
+  antigo que o device não zerou; é ignorado, não rejeitado. Não-imprimível ANTES
+  do NUL continua recusando (é corrupção de objeto, não stale de device).
+- **Fonte dinâmica é o hardware.** Presets, palco, User IRs saem do scan/cache
+  (`Session::pages`), nunca do `all.prst`. O `all.prst` e o golden são insumo de
+  ANÁLISE e de teste — nunca validam resposta em runtime.
+
+**Consequências.**
+- (+) Um aparelho com pp renomeado / slot editado / lista de IR própria monta a
+  casca. O app passa a refletir o hardware do dono, não o aparelho da captura.
+- (+) O gate de boot deixa de morrer por conteúdo legítimo; falha só por forma
+  (timeout / comprimento errado / device gone) — que é o que o erro tipado
+  (ADR-2) já distingue.
+- (−) Perdemos a detecção de "conteúdo fora do esperado" no `wait_for`. Aceito:
+  essa detecção nunca foi confiável (snapshot ≠ hardware) e o decode por schema
+  é o juiz honesto. Quem quer provar conteúdo usa o `match_response` COMPLETO em
+  teste, não em runtime.
+
+**Consulte o aparelho, sempre.** O device real está ligado nesta máquina e é
+consultável a qualquer sessão (CLI de campo `--real`, leitura pura). Antes de
+deduzir comportamento do mock ou perguntar ao owner, MEÇA no aparelho. Toda
+regra de "padrão" tem de nascer de byte observado, nunca de suposição de fábrica
+— foi exatamente isso que o H4 cobrou caro.
+
+---
+
+## ADR-14 — Casa canônica: dado em `packages/core/data/`, ferramenta em `scripts/`, história em `docs/arquivo/analysis/` (#163)
+
+> **Criado em:** 11/10/2026 · **Status:** aceito · **Vincula:** #163 (HW-3),
+> #178 (migração dos dados), ADR-13 (fonte dinâmica), ADR R2/R3 (baseline),
+> #168 (HW-8, dono de `scripts/`), #166 (HW-6, dono da suíte)
+
+**Contexto.** O runtime nasceu embutindo artefatos de engenharia reversa:
+`include_str!` de `analysis/parameters.json` e de `analysis/state_pages_offsets.json`,
+fixtures de captura como espinha dos testes, geradores de RE alimentando artefatos
+do front e o job de pytest validando baseline de análise. O #178 já tinha levado os
+dados para `packages/core/data/` e posto o guard; faltava **dissolver a pasta** e
+declarar, para cada coisa que sobrou, quem é dona e por quê.
+
+**Decisão — três casas e um critério.** O critério não é "de onde veio", é
+**quem consome hoje**:
+
+| Casa | Entra quem | Exemplo |
+|---|---|---|
+| `packages/core/data/` | dado consumido por **runtime ou teste de contrato**, com origem declarada no próprio JSON | `parameters.json`, `state_pages_offsets.json`, `fx_map.json`, `fixtures/` + `manifest.json` |
+| `scripts/` | ferramenta que **roda hoje** (CI, `gates.py`, pytest ou fluxo R2/R3) e cujos insumos estão **versionados** no repo | `build_golden.py`, `validate_golden.py`, `baseline.py`, `wirelog.py`, `param_ranges.py`, `dump_fx_map.py`, `tests/` (suíte Spec) |
+| `docs/arquivo/analysis/` | todo o resto da Era de RE: o que exige insumo **local não versionado** (`fw_strings.txt`, manual, Ghidra, `suite_local/`), o que nunca mais roda e a **evidência dos gates** | `build_parameters.py` + `algorithm.xml`, `decode_*.py`, `disasm_*.py`, `build_proxy.py`, `captures/`, `h1_reference/`, `h2/`, `h4/` |
+
+- **A estrutura foi preservada dentro do arquivo** (um `mv analysis/
+  docs/arquivo/analysis/`), para que os caminhos citados nos relatórios H1–H4,
+  no `PROTOCOL.md` §13 e no golden continuem encontráveis com uma troca de
+  prefixo — e para que o `.gitattributes` de bytes congelados troque de caminho
+  sem trocar de política (as 5 capturas CRLF provaram na hora por que aquilo é
+  regra e não estilo).
+- **Guard (DoD #1).** `packages/core/tests/guard_dados_canonicos.rs` falha se a
+  sequência `analysis/` reaparecer em `packages/**` — código, comentário,
+  include ou manifesto. Como o caminho novo contém a mesma sequência, o guard
+  cobre o arquivo também. `git grep "analysis/" packages/` = **0**.
+- **`files/patches/all.prst` fica como insumo de BUILD, nunca como arquivo lido
+  em produção.** Ele entra por `include_bytes!` (`lib.rs::seed_de_fabrica`) e
+  `include_str!` (`transport/mock.rs`): compilado, empacotado, zero I/O em
+  runtime. É insumo do round-trip R4 e da seed do mock/inventário. Quando o
+  modelo tipado `FactoryPatch`/`UserPatch` existir (HW-2/#162) e o inventário
+  vier do aparelho (HW-4/#164), a seed deixa de ser necessária — mas em
+  NENHUM momento o app passa a depender de arquivo local no disco do usuário.
+- **`docs/protocol_golden.json` permanece documento de especificação** (R1:
+  insumo, não produto). Mudou só o campo `_meta.generated_by` (apontador do
+  gerador) e, como a baseline é sobre o CONTEÚDO do arquivo de spec, a mudança
+  entrou pelo ritual R2/R3: `baseline.py bump --motivo --issue #163` → v1.2,
+  com o mesmo registro no `PROTOCOL.md` §13.14. Zero byte de template mudou.
+- **Dono de `scripts/` é HW-8 (#168).** As ferramentas de spec/dados movidas
+  para cá são declaradas como dependência na issue — quem dissolver a pasta
+  decide a casa final delas junto com os demais scripts.
+
+**Consequências.**
+- (+) Nenhum binário, teste ou artefato do front nasce de árvore de RE: a
+  proveniência é documental, e o guard a mantém assim.
+- (+) Uma captura nova de campo entra no fluxo R2/R3 sem tocar em "análise":
+  `wirelog.py` → `build_golden.py` → `validate_golden.py` → `baseline.py bump`.
+- (−) Ferramenta histórica com insumo local (`build_parameters.py`) não roda em
+  checkout limpo — **nunca rodou**: é proveniência do dicionário, e o dicionário
+  versionado é `packages/core/data/parameters.json`. Regenerar exige o payload
+  da Suite e a tabela de strings da firmware, ambas declaradas no arquivo.
+- (−) Evidência de campo vive sob `docs/` (cápsula), não numa pasta de dados.
+  Aceito: o issue manda e os relatórios H apontam para cá. Se um dia a evidência
+  virar volume (H5), ela sai para um lugar próprio — com o apontador atualizado,
+  nunca com o doc apontando para nada.

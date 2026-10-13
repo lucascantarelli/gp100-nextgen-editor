@@ -47,6 +47,43 @@ fn shape(expected: impl Into<String>, got: impl Into<String>) -> ProtocolError {
     }
 }
 
+/// O `pp` de um atributo `ppID` — **DECIMAL**: a base ÚNICA do espaço de
+/// `pp` (#132/ADR-12).
+///
+/// **Por que decimal, e não hex.** Os 99 `ppID` do `all.prst` são as
+/// strings `"0".."98"`, e o aparelho numera exatamente assim: a captura S1
+/// varre `0x0000..=0x0062` (99 valores contíguos = `0..98` em hex no fio) —
+/// hex no `ppID` daria uma lista ESPARSA (`0x0a` não existe, `"98"` →
+/// `0x98` = 152, fora de qualquer banco do aparelho). Quem mais lê este
+/// atributo em decimal é a semente da biblioteca (`gp100_library::seed`)
+/// e o gerador do artefato do front (gerador da era RE; dissolução na
+/// #168, que
+/// ASSERTA `0..98`): esta função é onde core, biblioteca e front passam a
+/// concordar (#132, critério de aceite).
+pub fn pp_id_decimal(pp_id: &str) -> Option<u16> {
+    pp_id.trim().parse().ok()
+}
+
+/// Converte um `pp` do **fio** no índice do **documento**.
+///
+/// O fio carrega o banco no byte alto: a captura S1 varre `0x0000..=0x0062`
+/// E `0x0100..=0x0162` — os mesmos 99 slots nos dois bancos, com o conteúdo
+/// idêntico índice a índice (97/99 iguais byte a byte na captura; os 2
+/// diferentes são slots editados). O `all.prst` não tem banco, então o
+/// índice é o byte baixo: `0x0100` → `0`.
+///
+/// `pp` com byte alto fora de `0x00`/`0x01` passa intacto — é um número
+/// que nenhum aparelho prova ter, e o lookup tem de FALHAR em vez de
+/// resolver outro preset por engano (um `pp & 0xFF` cego faria `0x0200`
+/// abrir o preset 0).
+pub fn indice_do_documento(pp: u16) -> u16 {
+    if pp > 0x01FF {
+        pp
+    } else {
+        pp & 0xFF
+    }
+}
+
 /// Atributo: nome + valor BRUTO (na forma escapada do arquivo — o writer
 /// reimprime sem re-escapar; `escape_value` existe para valores novos).
 #[derive(Debug, Clone)]
@@ -421,6 +458,259 @@ impl<'a> EffectView<'a> {
             return None;
         }
         self.el.attr(&format!("params_{n}"))
+    }
+}
+
+// ------------------------------------------------------- instantâneo (layout)
+//
+// **Por que existe este seam.** O layout do `.prst` é DADO, não algoritmo (ver
+// o topo do módulo): o Suite quebra linha em colunas que **não** seguem um
+// limite de largura — medido nos 3 arquivos reais, há linhas de 82 a 91
+// colunas que quebram e linhas da mesma faixa que não quebram. Derivar a
+// quebra seria CHUTAR, e chute viola o R1.
+//
+// Consequência para a exportação em JSON (#114): um JSON puramente semântico
+// (cadeia de 9 slots + knobs) **não** consegue reproduzir os bytes de volta,
+// porque não carrega a quebra. O instantâneo abaixo é o que dá ao JSON o
+// direito de prometer round-trip byte-idêntico sem adivinhar nada: ele expõe o
+// layout como dado explícito, mantendo os campos de [`Element`] privados (o
+// instantâneo é a ÚNICA porta, e construir por ele não pode violar invariante).
+
+/// Uma quebra de linha registrada: o atributo de índice `at_attr` começa uma
+/// linha nova indentada com `cont_indent` espaços.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Quebra {
+    /// Índice do atributo que inicia a linha (>= 1; o 1º fica na linha do `<`).
+    pub at_attr: usize,
+    /// Espaços de indentação da linha de continuação.
+    pub cont_indent: usize,
+}
+
+/// Instantâneo COMPLETO de um elemento, **layout incluído**.
+///
+/// Espelha [`Element`] campo a campo e é a representação que a exportação
+/// serializa. Não é um "modelo paralelo": é uma projeção fiel, e reconstruir
+/// por ele devolve os mesmos bytes (provado nos 3 arquivos de fábrica).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ElementSnapshot {
+    /// Nome da tag (`GP-100`, `presets`, `Effect`, `ppIRInfo0`…).
+    pub name: String,
+    /// Whitespace bruto antes do `<` (inclui `\r\n` e o indent).
+    pub pre_ws: String,
+    /// Atributos na ORDEM do arquivo — a ordem é layout, não conveniência.
+    pub attrs: Vec<(String, String)>,
+    /// Quebras de linha registradas, em ordem crescente de `at_attr`.
+    pub quebras: Vec<Quebra>,
+    /// Elemento fechado na própria tag (`<x .../>`).
+    pub self_closing: bool,
+    /// Whitespace antes de `</nome>`; vazio quando `self_closing`.
+    pub close_pre_ws: String,
+    /// Filhos diretos, em ordem.
+    pub children: Vec<ElementSnapshot>,
+}
+
+/// Instantâneo do documento inteiro: declaração, raiz e whitespace final.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DocumentSnapshot {
+    /// Bytes crus de `<?xml …?>`.
+    pub decl: String,
+    /// Raiz `<GP-100>` (o `pre_ws` dela inclui a linha em branco pós-declaração).
+    pub root: ElementSnapshot,
+    /// Whitespace após `</GP-100>`.
+    pub trailing: String,
+}
+
+impl Element {
+    /// Instantâneo fiel deste elemento, layout incluído (recursivo).
+    pub fn snapshot(&self) -> ElementSnapshot {
+        ElementSnapshot {
+            name: self.name.clone(),
+            pre_ws: String::from_utf8_lossy(&self.pre_ws).into_owned(),
+            attrs: self
+                .attrs
+                .iter()
+                .map(|a| (a.name.clone(), a.value.clone()))
+                .collect(),
+            quebras: self
+                .breaks
+                .iter()
+                .map(|b| Quebra {
+                    at_attr: b.at_attr,
+                    cont_indent: b.cont_indent,
+                })
+                .collect(),
+            self_closing: self.self_closing,
+            close_pre_ws: String::from_utf8_lossy(&self.close_pre_ws).into_owned(),
+            children: self.children.iter().map(Self::snapshot).collect(),
+        }
+    }
+}
+
+impl Document {
+    /// Instantâneo fiel deste documento (declaração + árvore + trailing).
+    pub fn snapshot(&self) -> DocumentSnapshot {
+        DocumentSnapshot {
+            decl: String::from_utf8_lossy(&self.decl).into_owned(),
+            root: self.root.snapshot(),
+            trailing: String::from_utf8_lossy(&self.trailing).into_owned(),
+        }
+    }
+
+    /// Reconstrói um documento a partir de um instantâneo.
+    ///
+    /// **Só existe UM writer, e é o [`Element::write`].** A reconstrução monta
+    /// as structs privadas e serializa por [`Document::to_bytes`] — escrever os
+    /// bytes direto do instantâneo seria um SEGUNDO writer para o mesmo
+    /// formato, e dois writers divergem: o `to_bytes` é o que o teste do R4
+    /// fiscaliza, então um caminho paralelo poderia ficar errado em silêncio.
+    ///
+    /// **A validação é a prova, não uma checagem de forma.** Os bytes
+    /// reconstruídos são REPARSEADOS com [`Document::parse`] — o mesmo parser
+    /// strict que lê os arquivos do Suite. Assim o que é aceito aqui é, por
+    /// construção, algo que este módulo sabe reler; um instantâneo com quebra
+    /// no primeiro atributo, indent com tab ou `pre_ws` inventado vira erro em
+    /// vez de um `.prst` malformado em disco.
+    ///
+    /// # Erros
+    /// [`ProtocolError::InvalidShape`] quando o instantâneo descreve um
+    /// documento fora do dialecto (o `got` traz a reclamação do parser).
+    pub fn from_snapshot(snap: &DocumentSnapshot) -> Result<Self, ProtocolError> {
+        let doc = Document {
+            decl: snap.decl.as_bytes().to_vec(),
+            root: element_from(&snap.root),
+            trailing: snap.trailing.as_bytes().to_vec(),
+        };
+        // Reparsear é o gate: o dialecto tem regras (indent só com espaços,
+        // quebra do 1º atributo proibida, raiz `<GP-100>`) que uma checagem
+        // campo a campo reimplementaria pior — e pior, sem provar que o
+        // documento resultante é relível.
+        Document::parse(&doc.to_bytes()).map_err(|e| {
+            shape(
+                "instantâneo que descreve um .prst válido",
+                format!("o parser recusou os bytes reconstruídos: {e}"),
+            )
+        })
+    }
+}
+
+impl Document {
+    /// Um documento com o `<presets>` escolhido e mais nada de preset.
+    ///
+    /// **Por que existe.** O app embute o `all.prst` inteiro (99 presets) e
+    /// exporta UM. Sem esta função, exportar um preset de fábrica só seria
+    /// possível exportando os 99 — e o arquivo que o dono leva deixaria de ser
+    /// "o preset que ele escolheu".
+    ///
+    /// **A forma imita a dos arquivos reais de um preset só.** O `.prst` de
+    /// fábrica de um preset tem `preset_info` + `presets`, e **não** tem
+    /// `<ppIRInfo>` — essa tabela é do arquivo de biblioteca inteira. Manter a
+    /// tabela (ou o `count` do arquivo de origem) descreveria um documento
+    /// diferente do que o arquivo é, então ela sai e o `count` passa a ser o
+    /// número de presets AQUI (1).
+    ///
+    /// `pp` casa com o `ppID` do bloco do mesmo jeito que
+    /// [`crate::pedalboard::board_view_for`] casa — mesma expressão, para o
+    /// "preset 25" da tela e o "preset 25" da exportação nunca divergirem.
+    ///
+    /// # Erros
+    /// [`ProtocolError::InvalidShape`] quando o documento não tem preset ou o
+    /// `pp` pedido não existe.
+    pub fn apenas_preset(&self, pp: Option<u16>) -> Result<Self, ProtocolError> {
+        // O `pp` pedido pode vir do fio com byte de banco (0x0100 = índice 0
+        // — #132); o documento só tem o índice. A mensagem de erro continua
+        // nomeando o pp PEDIDO (com banco), que é o que o chamador digitou.
+        let alvo = pp.map(crate::preset::indice_do_documento);
+        let alvo_index = self
+            .root
+            .children()
+            .iter()
+            .position(|c| {
+                c.name == "presets"
+                    && match alvo {
+                        None => true,
+                        Some(t) => c.attr("ppID").and_then(crate::preset::pp_id_decimal) == Some(t),
+                    }
+            })
+            .ok_or_else(|| {
+                shape(
+                    match pp {
+                        None => "documento com pelo menos um <presets>".to_string(),
+                        // As DUAS notações de propósito: o índice do arquivo
+                        // é DECIMAL (`"0".."98"`, #156) e o espaço do fio é
+                        // hex (banco/slot, §13.4) — a mensagem não pode deixar
+                        // dúvida sobre qual número não foi achado.
+                        Some(t) => format!("<presets> com ppID {t:#06x} ({t})"),
+                    },
+                    "nenhum bloco corresponde",
+                )
+            })?;
+
+        // A raiz fica com a mesma identidade (decl/indent) e recebe só os
+        // metadados + o bloco escolhido. `pre_ws` de cada filho já carrega a
+        // indentação dele, e o aninhamento não muda — então o layout continua
+        // válido sem nenhum ajuste.
+        let mut nova = self.root.clone();
+        nova.children = Vec::new();
+        for (i, c) in self.root.children().iter().enumerate() {
+            match c.name.as_str() {
+                // os OUTROS blocos de preset
+                "presets" if i != alvo_index => continue,
+                // a tabela de IRs é do arquivo de biblioteca, não do preset
+                "ppIRInfo" => continue,
+                _ => {}
+            }
+            if c.name == "preset_info" {
+                let mut info = c.clone();
+                // `count` só existe no preset_info; se faltar, o arquivo já
+                // mentia antes de nós e não é nosso trabalho inventar.
+                let _ = info.set_attr("count", "1");
+                nova.children.push(info);
+            } else {
+                nova.children.push(c.clone());
+            }
+        }
+
+        let doc = Document {
+            decl: self.decl.clone(),
+            root: nova,
+            trailing: self.trailing.clone(),
+        };
+        // Mesmo gate do `from_snapshot`: o que sai daqui tem de ser relível
+        // pelo parser strict, senão o dono recebe um arquivo que não abre.
+        Document::parse(&doc.to_bytes()).map_err(|e| {
+            shape(
+                "recorte de um preset que continua válido",
+                format!("o parser recusou o recorte: {e}"),
+            )
+        })
+    }
+}
+
+/// Constrói um [`Element`] a partir do instantâneo (o inverso de
+/// [`Element::snapshot`]).
+fn element_from(s: &ElementSnapshot) -> Element {
+    Element {
+        name: s.name.clone(),
+        pre_ws: s.pre_ws.as_bytes().to_vec(),
+        attrs: s
+            .attrs
+            .iter()
+            .map(|(name, value)| Attr {
+                name: name.clone(),
+                value: value.clone(),
+            })
+            .collect(),
+        breaks: s
+            .quebras
+            .iter()
+            .map(|q| LineBreak {
+                at_attr: q.at_attr,
+                cont_indent: q.cont_indent,
+            })
+            .collect(),
+        self_closing: s.self_closing,
+        children: s.children.iter().map(element_from).collect(),
+        close_pre_ws: s.close_pre_ws.as_bytes().to_vec(),
     }
 }
 

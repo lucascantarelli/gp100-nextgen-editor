@@ -1,6 +1,6 @@
 # GP-100 NextGen Editor
 
-[![pipeline](https://github.com/lucascantarelli/gp100-nextgen-editor/actions/workflows/pipeline.yml/badge.svg)](https://github.com/lucascantarelli/gp100-nextgen-editor/actions/workflows/pipeline.yml)
+[![ci](https://github.com/lucascantarelli/gp100-nextgen-editor/actions/workflows/ci.yml/badge.svg)](https://github.com/lucascantarelli/gp100-nextgen-editor/actions/workflows/ci.yml)
 
 > 📇 **Mapa da documentação:** `docs/INDEX.md` — rotas por objetivo, fonte de
 > verdade por assunto e inventário anotado. Comece por lá se está lost.
@@ -9,15 +9,14 @@ Aplicativo multiplataforma (Windows/Linux/macOS) para a pedaleira **Valeton GP-1
 construído por engenharia reversa para substituir o "Valeton Suite" oficial
 (Windows-only, shell CEF). **Núcleo em Rust (`gp100-core`) + UI em Tauri 2/React.**
 
-**Status atual (29/09):** a engenharia reversa está **concluída e validada em campo**
-(protocolo comprovado byte-a-byte contra 4 sessões de captura) e a **Fase M0
-está 100% concluída (8/8)**: model (M0.1), preset round-trip (M0.2), golden
-consumer (M0.3), codec de fio (M0.4), transporte + MockDevice (M0.5), FSM de
-sessão com **replay byte-a-byte das 4 fixtures** (M0.6), **gp100-cli com
-`--log` no schema P4** (M0.7) e documentação do core com exemplos que rodam
-(M0.8) — tudo no remoto com CI verde (78 testes Rust + pytest 10/10).
-Próximos: **M1** (UI, `docs/UI_PLAN.md`) e/ou o **gate H** de hardware
-(`docs/H1_CHECKLIST.md`). Planejamento issue-a-issue: `docs/ROADMAP.md`.
+**Status atual:** o panorama do que está entregue, **os números medidos** e o que está
+aberto vivem em **[`docs/INDEX.md`](docs/INDEX.md) §6** — a fonte única deste repo,
+que não repete contador (regra #81). Em resumo: a engenharia reversa está
+**concluída e validada em campo** (protocolo comprovado byte-a-byte contra as 4
+sessões de captura), **M0 (core), M1 (editor), o conteúdo de M2 e os entregues de M3
+estão prontos**, e o **gate H de hardware fechou em campo** (H1 leitura · H2 escrita ·
+H3 baseline congelada). Trabalho aberto vive nas **issues do GitHub** (milestone
+`v1.0.0`).
 
 > 🔒 **Política de segurança de hardware:** nenhum fluxo de escrita sai sem captura
 > validada (`WRITE_VERIFIED`), e **update de firmware está fora de escopo** (V2+, e só
@@ -29,11 +28,11 @@ Próximos: **M1** (UI, `docs/UI_PLAN.md`) e/ou o **gate H** de hardware
 
 | Camada | Resultado | Onde |
 |---|---|---|
-| **Modelo de dados** | 185 algoritmos / 639 controles com nomes, ranges e defaults, validado em 3 vias (XML oficial do Suite + 909 slots de patches reais + strings da firmware) | `analysis/parameters.json` |
+| **Modelo de dados** | 185 algoritmos / 639 controles com nomes, ranges e defaults, validado em 3 vias (XML oficial do Suite + 909 slots de patches reais + strings da firmware) | `packages/core/data/parameters.json` |
 | **Formato de preset** | `.prst` = XML puro; `effectCode = (nibble<<24) \| index`; cadeia de 9 slots fixos (`x=0..8`); `params_N` 0..14 (incl. controles ocultos como o Mic do CAB) | `docs/PROTOCOL.md` §13.9 |
 | **Protocolo de fio** | SysEx `F0 21 25 7F 47 50 2D 64 \| FUNC \| ADDR(4B) \| DATA \| F7`; ler estado (páginas `13xx`), setar parâmetro (envelope semântico `10xx0002` com float32), save (metadados `11xx` + ops `00020000`), upload de IR com ACK por chunk | `docs/PROTOCOL.md` §13.1–13.12 |
 | **Especificação executável** | 40 templates request→resposta extraídos das capturas, com padrões de payload (const/var) e semântica por endereço | `docs/protocol_golden.json` |
-| **Validação** | Accounting IN 100% / OUT 99,6% (resto = truncamentos do ring buffer); regeneração byte-a-byte: knobs 92/92, boot/scan 2299/2299 | `analysis/validate_golden.py` |
+| **Validação** | Accounting IN 100% / OUT 99,6% (resto = truncamentos do ring buffer); regeneração byte-a-byte: knobs 92/92, boot/scan 2299/2299 | `scripts/validate_golden.py` |
 | **Persistência comprovada** | O save da UI persiste o **estado ao vivo** (confirmado no display da pedaleira após a sessão 4) | `docs/PROTOCOL.md` §13.12 |
 
 **Como chegamos lá:** um proxy `winmm.dll` (129 exports) instrumenta o Suite oficial
@@ -50,10 +49,12 @@ boot/scan de presets (S1), upload de IRs mono+estéreo (S2), edição de knobs p
 ├── packages/                  # monorepo de código (root limpo = só configs)
 │   ├── core/                  # gp100-core (lib Rust): model, preset, golden,
 │   │   │                      #   codec, transport (mock/real), session
+│   │   ├── data/              # dado CANÔNICO (parameters, offsets, fx_map, fixtures)
 │   │   ├── README.md          # arquitetura do core + exemplos que rodam
 │   │   └── tests/             # contratos caixa-preta (fixtures P4, replay)
-│   ├── cli/                   # gp100-cli (bin Rust): info/list-user-irs/… via
-│   │                          #   mock + --log no schema P4 (insumo do gate H1)
+│   ├── cli/                   # gp100-cli (bin Rust) — CONGELADO (05/10):
+│   │                          #   capability nova vai para app/api; continua no
+│   │                          #   gate como insumo dos gates H1–H3 (--log P4)
 │   └── app/                   # aplicativo desktop (Tauri 2 + React)
 │       ├── ui/                # front React/TS: vite, vitest, tokens, ipc/
 │       ├── api/               # backend do shell (crate gp100-ui): commands,
@@ -66,38 +67,116 @@ boot/scan de presets (S1), upload de IRs mono+estéreo (S2), edição de knobs p
 │   ├── UI_PLAN.md             # planejamento issue-a-issue da UI (M1)
 │   ├── PROTOCOL.md            # referência do protocolo (§1–12 arquivo, §13 fio)
 │   ├── protocol_golden.json   # especificação executável (40 templates, baseline)
-│   ├── DECISIONS.md           # ADR-lite: 6 decisões estruturais do gp100-core
+│   ├── DECISIONS.md           # ADR-lite: 14 decisões estruturais (ADR-1..14)
+│   ├── CONTRIBUTING.md        # fluxo de contribuição: GitFlow, commits, gates por área
+│   ├── PACKAGING.md           # empacotamento: bundle, ícones, .deb, Arch (#27/#28/#29)
+│   ├── UI_DESIGN.md           # design system (tokens, rácios WCAG medidos)
+│   ├── UI_REFERENCE.md        # referência da casca do front (§8 = texto de usuário)
+│   ├── UI_TEST_PLAN.md        # fonte dos roteiros e2e
 │   ├── BLOCKERS.md            # matriz de riscos/bloqueios (11/12 resolvidos)
 │   └── CAPTURE_PLAN.md        # plano das capturas (histórico)
-├── analysis/                  # laboratório de RE
-│   ├── parameters.json        # dicionário canônico (185 algs / 639 controles)
-│   ├── knob_map.json          # mapa de 89 edições knob→fio (sessão 3)
+├── docs/arquivo/analysis/     # Era de RE, arquivada na #163 (proveniência)
+│   ├── captures/              # session1–4.jsonl + ir_slot*.bin (append-only)
+│   ├── algorithm.xml          # origem do dicionário (payload oficial da Suite)
 │   ├── capture_gaps.md        # gaps de captura G1–G6 (G1/G2 fechados)
-│   ├── captures/              # session1–4.jsonl + ir_slot*.bin (brutos)
-│   ├── build_proxy.py         # gera/compila/valida o proxy winmm (zig)
+│   ├── build_proxy.py         # gera/compila/valida o proxy winmm (zig) — histórico
 │   ├── midi_proxy.c …         # fontes do proxy
 │   ├── suite_local/           # Suite instrumentado (GP-100.exe + winmm.dll)
-│   ├── build_golden.py        # extrai os templates → docs/protocol_golden.json
-│   ├── validate_golden.py     # 5 provas de validação (accounting + geração A–E)
-│   ├── validate_knob_map.py   # valida o envelope do knob vs dicionário/.prst
-│   ├── make_fixtures.py       # fatia as capturas → fixtures/ (replay do M0)
-│   ├── fixtures/              # boot/knobs/save/ir + manifest (paridade vs golden)
 │   ├── decode_wire.py …       # decoders de captura
 │   ├── FINDINGS_*.md          # achados da RE estática do exe (capstone)
-│   ├── nsis_app/              # extração do instalador (read-only, não indexar)
-│   └── captures/              # session1–4.jsonl + ir_slot*.bin (append-only)
+│   └── nsis_app/              # extração do instalador (read-only, não indexar)
 ├── files/                     # artefatos oficiais de entrada (firmware, instaladores,
 │   └── patches/*.prst         #   patches: all.prst = 99 presets)
-├── scripts/
-│   └── add_cargo_path.ps1     # fix do PATH do cargo no sistema (HKLM, idempotente)
+├── packaging/arch/            # receita do pacote Arch (PKGBUILD + .desktop) — #29
+├── scripts/                   # gates executáveis + ferramentas de spec/dados
+│   ├── ci_plan.py             # regra branch → escopo → matriz/estágios
+│   ├── validate_workflows.py  # sintaxe + contratos do pipeline
+│   ├── check_bundle.py        # schema Tauri, ícones, .deb/PKGBUILD
+│   ├── check_base_images.py   # tags de imagem base antes do build
+│   ├── tests/                 # suíte Spec (pytest)
+│   └── … (o mapa completo está no INDEX.md §3)
 ├── .venv/                     # Python do projeto (uv, VENV ÚNICO na raiz)
+├── .github/workflows/ci.yml   # ÚNICO workflow, jobs por TIPO (#68; nº em INDEX §6)
 ├── knowledge.md               # memória operacional do agente (estado vivo, armadilhas)
-└── .agents/skills/            # workflows sob demanda (proxy-build, capture-analyze…)
+└── .agents/                   # harness do agente: skills/ (9, Era HW), prompts/ (6), README
 ```
 
 ---
 
-## 3. Ambiente
+## 3. Instalação
+
+Binários na aba **Releases**. O `Distribuição · instalador` do CI gera os três no
+mesmo tag, a partir do mesmo `cargo build --release` — então `.deb`, `.dmg` e o
+PKGBUILD são o **mesmo** binário, não três builds parecidos.
+
+| Plataforma | Artefato | Como instalar |
+|---|---|---|
+| **Windows** | `.msi` e instalador `.exe` (NSIS) | baixar o `.msi` e dar duplo clique; o `.exe` é a alternativa por máquina, sem admin |
+| **macOS** | `.dmg` | arrastar o app para *Aplicativos*; na primeira abertura pode pedir "app de origem desconhecida" (o Gatekeeper bloqueia binário sem assinatura — botão direito → Abrir contorna) |
+| **Ubuntu/Debian** | `.deb` | `sudo apt install ./gp100-nextgen-editor_<versão>_amd64.deb` |
+| **Arch** | PKGBUILD (receita) | `makepkg -si` no `packaging/arch/`, ou via AUR quando publicado |
+
+<details>
+<summary><b>Debian/Ubuntu em detalhe</b></summary>
+
+```bash
+sudo apt install ./gp100-nextgen-editor_0.1.0_amd64.deb
+```
+
+O `.deb` declara `libwebkit2gtk-4.1-0` e `libgtk-3-0` — o shell é WebKitGTK.
+`apt install ./` (e não `dpkg -i`) resolve as dependências; com `dpkg -i` puro
+o pacote instala e o app não abre, que é o sintoma clássico de dependência
+faltando.
+</details>
+
+<details>
+<summary><b>Arch em detalhe</b></summary>
+
+```bash
+git clone https://github.com/lucascantarelli/gp100-nextgen-editor
+cd gp100-nextgen-editor/packaging/arch
+makepkg -si
+```
+
+O PKGBUILD compila do tarball da **release** (`gp100-nextgen-editor-<versão>.tar.gz`),
+não do branch clonado — é o que garante que o Arch sirva o mesmo binário do
+`.deb`. Antes de publicar no AUR, fixe o digest real em `sha256sums` (hoje está
+`SKIP`, e o AUR exige valor válido — `updpkgsums` resolve).
+
+Dependências de build: `cargo`, `nodejs`, `npm`. Em tempo de execução:
+`webkit2gtk-4.1`, `gtk3`.
+</details>
+
+<details>
+<summary><b>macOS em detalhe</b></summary>
+
+O `.dmg` não é assinado nem notarizado (custa Apple Developer Program). O
+Gatekeeper então bloqueia o primeiro open com "o aplicativo foi danificado".
+Saída: ** botão direito → Abrir**, ou
+
+```bash
+xattr -dr com.apple.quarantine /Applications/GP-100\ NextGen\ Editor.app
+```
+
+Isso é esperado em qualquer build open-source de desktop fora da loja, não é
+defeito do pacote.
+</details>
+
+<details>
+<summary><b>Windows em detalhe</b></summary>
+
+O `.msi` (WiX) traz as versões pt-BR e en-US. O `.exe` (NSIS) instala por
+máquina e é o caminho para quem não quer admin.
+</details>
+
+> **Compilando do fonte:** `cd packages/app/api && tauri build`. Exige Rust
+> stable, Node 22 e, no Linux, `libwebkit2gtk-4.1-dev libgtk-3-dev`. Os ícones
+> são derivados de `scripts/make_icon.py` (1024×1024, paleta do tema) via
+> `tauri icon` — mexer num implica rodar o outro.
+
+---
+
+## 4. Ambiente
 
 Windows + Git Bash (desenvolvido em `D:\GP-100 app`). Requisitos:
 
@@ -109,62 +188,76 @@ Windows + Git Bash (desenvolvido em `D:\GP-100 app`). Requisitos:
   `scripts/add_cargo_path.ps1` (uma vez, como admin). Gates de código Rust:
   `.agents/skills/rust-practices/SKILL.md`
 - **CI (GitHub Actions):** os mesmos gates (`uv run pytest` + `cargo fmt/clippy/test`)
-  rodam a cada push e PR (pipeline único: `.github/workflows/pipeline.yml` —
-  matrix 3-OS, security noturno, versionamento semver automático e release
-  por tag; passos reutilizáveis em `.github/actions/*`)
-- Agente/IA: ver `knowledge.md` (armadilhas) e `.agents/skills/` (workflows:
-  proxy-build, capture-analyze, new-session, spec-baseline, protocol-validate,
-  core-dev, docs-sync, rust-practices)
+  rodam num **único** workflow, o [`ci.yml`](.github/workflows/ci.yml), com jobs de
+  responsabilidade única agrupados em 11 tipos (`Validação` · `Lint` ·
+  `Compilação` · `Testes` · `Cobertura` · `Segurança` · `Relatório` · `Infra` ·
+  `Release` · `Distribuição` · `Fechamento`) — a **contagem de jobs** vive em
+  `docs/INDEX.md` §6 (regra #81). Os jobs de teste/cobertura/segurança
+  são filtrados por caminho E por função de branch; a distribuição roda só na tag.
+  Passos reutilizáveis em `.github/actions/*`; o fluxo completo está em
+  `docs/CONTRIBUTING.md`.
+- Agente/IA: começar por [`.agents/README.md`](.agents/README.md) (mapa do harness) —
+  `knowledge.md` (premissa e armadilhas) e `.agents/skills/` (workflows sob demanda:
+  github-flow, core-dev, rust-practices, ui-ux-practices, testing, hardware-dev,
+  device-reference, release, docs-sync). Os templates de prompt para colar estão em
+  `.agents/prompts/`. As skills da era de engenharia reversa estão arquivadas em
+  `docs/arquivo/skills-era-RE/`.
 
 Armadilhas conhecidas (cp1252, `%TEMP%` real vs `/tmp`, log append-only, F7 embutido
 em mensagens paginadas) estão catalogadas no `knowledge.md`.
 
 ---
 
-## 4. Workflows de regeneração
+## 5. Workflows de regeneração
 
-### 4.1 Proxy winmm (instrumentação do Suite)
+### 5.1 Proxy winmm (instrumentação do Suite) 📜 histórico
+
+> A captura de hoje sai do `--log` do `gp100-cli`; o proxy é o como a Era de RE
+> gravava (arquivado na #163 em `docs/arquivo/analysis/`).
 ```bash
-uv run python analysis/build_proxy.py
-cp analysis/winmm.dll analysis/suite_local/     # obrigatório após o build
+uv run python docs/arquivo/analysis/build_proxy.py
+cp docs/arquivo/analysis/winmm.dll docs/arquivo/analysis/suite_local/     # obrigatório após o build
 ```
 O `build_proxy.py` gera o C de forwarding, cruza exports (129) com a winmm real,
 compila com zig e valida o resultado.
 
-### 4.2 Nova sessão de captura (requer a pedaleira)
+### 5.2 Nova sessão de captura (requer a pedaleira) 📜 histórico
+
+> Mesmo veredito do 5.1: processo da Era RE (arquivado na #163). Mantido como
+> proveniência das 4 sessões que sustentam o golden.
 1. **Feche TODAS as instâncias do Suite** (instância única mata a nossa silenciosamente)
-2. Rode `analysis/suite_local/GP-100.exe` — o proxy loga em `%TEMP%\midi_trace.jsonl`
-3. Execute o roteiro da sessão (ver `analysis/capture_gaps.md` para os gaps abertos
+2. Rode `docs/arquivo/analysis/suite_local/GP-100.exe` — o proxy loga em `%TEMP%\midi_trace.jsonl`
+3. Execute o roteiro da sessão (ver `docs/arquivo/analysis/capture_gaps.md` para os gaps abertos
    G3–G6); pausas de ~5s entre ações separam as fases na timeline
 4. Feche o Suite e copie o log:
    ```bash
-   cp "$LOCALAPPDATA/Temp/midi_trace.jsonl" analysis/captures/sessionN.jsonl
+   cp "$LOCALAPPDATA/Temp/midi_trace.jsonl" docs/arquivo/analysis/captures/sessionN.jsonl
    ```
 5. Analise:
    ```bash
-   uv run python analysis/decode_wire.py analysis/captures/sessionN.jsonl
+   uv run python docs/arquivo/analysis/decode_wire.py docs/arquivo/analysis/captures/sessionN.jsonl
    ```
    ⚠️ O log é **append-only** (sessões novas contêm as antigas — segmente por gaps >30s)
    e mensagens sem `F7` são truncamentos do ring buffer (ignore).
 
-### 4.3 Golden-file do protocolo
+### 5.3 Golden-file do protocolo
 ```bash
-uv run python analysis/build_golden.py      # gera docs/protocol_golden.json
-uv run python analysis/validate_golden.py   # 5 provas (deve dar 100%)
+uv run python scripts/build_golden.py      # gera docs/protocol_golden.json
+uv run python scripts/validate_golden.py   # 5 provas (deve dar 100%)
 uv run pytest                               # suíte de regressão (após P3)
 ```
 O golden cobre as 4 sessões. Regras de largura de campo confirmadas:
 select/open de preset = pp **u16 BE**; página = `pp u16BE + PG u16BE + 01` (5B);
 chaves da tabela de nomes = `[banco u8][índice u8]`.
 
-### 4.4 Dicionário e mapa de knobs
+### 5.4 Dicionário e mapa de knobs
 ```bash
-uv run python analysis/validate_knob_map.py # revalida knob_map.json
+uv run python scripts/validate_knob_map.py # revalida knob_map.json
 ```
 
 ---
 
-## 5. Roadmap
+## 6. Roadmap
 
 - **M0 — gp100-core (Rust) — ✅ 100% (8/8, 29/09):** model (M0.1), preset
   round-trip byte-idêntico (M0.2), golden consumer (M0.3), codec de fio
@@ -184,7 +277,9 @@ uv run python analysis/validate_knob_map.py # revalida knob_map.json
   funcional), gestor de NAM, i18n (pt-BR/en/es/zh — strings da firmware reutilizáveis),
   MSI/AppImage/dmg.
 - **M3 — Diferenciais:** biblioteca versionada git-like, live mode, cloud opt-in,
-  tone match IA, A/B blind test (lista completa em `docs/VISION.md` §9).Dívidas de baixa prioridade (não bloqueiam nada): layout byte-a-byte da
+  tone match IA, A/B blind test (lista completa em `docs/VISION.md` §9).
+
+Dívidas de baixa prioridade (não bloqueiam nada): layout byte-a-byte da
 página de estado 13xx, campo 0x00BC/0x00B4 do blob de IR, semântica de
 ppEXP1/ppCtrl, capturas G3–G6 (globals/BPM, knob físico, footswitch).
 (A tabela de TIPOS da `12001002` e o schema do `11000007` foram FECHADOS
@@ -192,7 +287,7 @@ em §13.12 — não são dívidas.)
 
 ---
 
-## 6. Roteiro para novos contribuidores
+## 7. Roteiro para novos contribuidores
 
 **Onboarding (leia nesta ordem):**
 1. `docs/INDEX.md` — o mapa da documentação (rotas por objetivo, fontes de verdade)
@@ -207,10 +302,15 @@ em §13.12 — não são dívidas.)
 **Primeiro hands-on (10 min):**
 ```bash
 cargo build --workspace
-cargo run -p gp100-cli -- info
+cargo run -p gp100-cli -- info          # bin CONGELADO (ver packages/cli/README.md)
 cargo run -p gp100-cli -- dump-preset 0x0007
 cargo test --workspace
 ```
+
+> Os comandos acima são o caminho mais curto para ver o core respondendo, e
+> por isso continuam aqui — mas o `gp100-cli` está **congelado** desde 05/10: o
+> produto é o app, e nenhuma capacidade nova entra no CLI. O utilitário segue
+> compilando e no gate porque é ele que os gates H1–H3 exercitam.
 
 **Regras da casa:**
 - **Preserve o round-trip**: qualquer preset aberto→salvo sem mudanças deve gerar
@@ -220,20 +320,24 @@ cargo test --workspace
   IR §13.7); fluxo novo = captura própria primeiro, feature-flag depois
 - **Nunca toque em rotinas de firmware update** (política V2+)
 - Descobertas de protocolo vão para o `PROTOCOL.md` com evidência — nunca só conversa
-- Não commite sem pedido; `analysis/nsis_app/` e `files/` são material de origem
+- Não commite sem pedido; `docs/arquivo/analysis/nsis_app/` e `files/` são material de origem
 
-**Boas primeiras tarefas (estado 29/09 — M0 concluída):**
-- M1.0: spike Tauri (UI falando com o mock — ver `docs/UI_PLAN.md`)
-- M1.1–M1.6: conexão/boot, biblioteca, editor, fluxos de escrita (UI_PLAN)
-- Gate H1 em campo: `gp100-cli --real` com o roteiro do `docs/H1_CHECKLIST.md`
-  (requer a pedaleira + owner)
+**Estado atual e boas primeiras tarefas:** o panorama completo — o que foi entregue,
+os números medidos e o que está aberto — está em
+**[`docs/INDEX.md`](docs/INDEX.md) §6**, a fonte única dos números (este README não
+repete contador). Trabalho aberto vive nas **issues do GitHub** (milestone `v1.0.0`);
+as dívidas de documentação/limpeza desta rodada estão na auditoria de 07/10,
+[`docs/audit_2026-10-07.md`](docs/audit_2026-10-07.md).
 
 ---
 
-## 7. Nota legal
+## 8. Nota legal
 
 Projeto de **interoperabilidade**, desenvolvido por análise de artefatos obtidos
 legalmente (instaladores públicos, firmware do próprio dispositivo, documentação
 oficial). Não distribua firmware, instaladores ou material proprietário da Valeton
 por este repositório. Use por sua conta e risco — a política de segurança de
 hardware existe para que a sua pedaleira sobreviva ao desenvolvimento.
+
+**Licença:** [MIT](LICENSE) — declarada no `Cargo.toml` (metadata do workspace)
+e no `packaging/arch/PKGBUILD` (`license=('MIT')`).

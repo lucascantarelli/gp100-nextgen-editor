@@ -1,10 +1,13 @@
 # 🎨 UI_DESIGN — Design tokens e sistema visual (FONTE ÚNICA de valores)
 
-> **Status:** ✅ atual (M1.0) · **Última revisão:** 2026-09-29 · **Complementos:** [docs/UI_PLAN.md](UI_PLAN.md) (arquitetura/issues) · [.agents/skills/ui-ux-practices/SKILL.md](../.agents/skills/ui-ux-practices/SKILL.md) (gates/estilo)
+> **Status:** ✅ atual (M1.0 · #9 — luz/profundidade 02/10) · **Última revisão:** 2026-10-02 · **Complementos:** [docs/UI_PLAN.md](UI_PLAN.md) (arquitetura/issues) · [.agents/skills/ui-ux-practices/SKILL.md](../.agents/skills/ui-ux-practices/SKILL.md) (gates/estilo)
 >
 > Este documento fixa os VALORES (escala, cores, rácios de contraste medidos,
 > tipografia, motion). Os valores vivem em `ui/src/design/tokens.ts` +
 > `ui/src/design/design.css` — este doc explica o PORQUÊ e as regras de uso.
+> `ui/src/design/looper.css` — a folha do looper (issue #12), separada porque
+> a máquina tem um sistema próprio: ver “a máquina é escura nos dois temas” em
+> UI_REFERENCE §7.2.
 > Mudou um valor aqui → muda o token → muda o teste de token (os 3 juntos).
 
 ## 1. Escala de espaçamento — Fibonacci sobre base 4
@@ -24,8 +27,53 @@ mantém alinhamento com metades do 8pt grid (badges/ícones pequenos).
 | `--space-84` | 84 | F11 | herói/empty states |
 
 Regras: (1) só estes valores em `padding/margin/gap` (lint bloqueia px cru);
-(2) raio de borda usa a mesma escala (4/8/12); (3) espessura de linha (1/2px)
-e tamanho de ícone ficam FORA da escala (são métricas, não espaços).
+(2) raio de borda usa a mesma escala (4/8/12) + 16 como passo de destaque
+(modais/flutuantes, `RADIUS.xl`); (3) espessura de linha (1/2px) e tamanho
+de ícone ficam FORA da escala (são métricas, não espaços).
+
+### 1.1 Raios (`RADIUS` → `--radius-*`)
+
+| Token | px | Uso |
+|---|---|---|
+| `--radius-s` | 4 | badges, controles pequenos |
+| `--radius-m` | 8 | botões, itens de lista |
+| `--radius-l` | 12 | painéis/módulos (`gp-surface`) |
+| `--radius-xl` | 16 | modais e superfícies flutuantes |
+
+## 1.5 Luz e profundidade (#9) — contrato de iluminação
+
+**Direção ÚNICA em toda a app: luz em CIMA/ESQUERDA, sombra em
+BAIXO/DIREITA.** Os valores moram em `tokens.ts` (`LIGHT`) e viram custom
+properties no `design.css` (o teste de token em `tests/design.test.ts`
+espalha os dois — mudou num, tem que mudar no outro e no doc).
+
+| Token | alfa (dark) | Papel |
+|---|---|---|
+| `--light-top` | 0.16 | fio de luz na aresta superior (inset) |
+| `--light-sheen` | 0.06 | brilho suave do topo do gradiente |
+| `--light-specular` | 0.6 | brilho especular (ponto refletido em metal/vidro) |
+| `--light-rim` | 0.1 | luz de recorte nas arestas opostas |
+| `--shade-soft` | 0.35 | sombra difusa projetada |
+| `--shade-deep` | 0.6 | sombra de contato (oclusão) |
+
+No tema claro a luz se inverte (alfa próprio no `@media prefers-color-scheme`);
+a semântica (cima = luz, baixo = sombra) não muda nunca.
+
+**Primitivas que aplicam o contrato (superfícies nascem daqui):**
+
+| Classe | Papel |
+|---|---|
+| `.gp-surface` (+ `--flat`/`--floating`) | módulo elevado: gradiente topo→base, fio de luz, sombra difusa + contato; `flat` para clusters, `floating` para modais |
+| `.gp-sunken` | superfície ESCAVADA (displays/LED): sombra interna + rim por baixo |
+| `.gp-specular` | risco de luz diagonal (mix-blend screen) em superfícies metálicas |
+| `.gp-btn` (+ `--on`) | botão de hardware: face iluminada, base sombreada, recuo no `:active`; estado ligado por `aria-pressed`/`--on` (nunca só a cor) |
+| `.gp-engraved` | texto gravado (emboss) de legendas de placa |
+| `.gp-tabular` | números tabulares (display não treme ao mudar valor) |
+
+**Regras:** (1) componente novo NÃO desenha painel à mão — usa `gp-surface`
+ou a revisão de UI rejeita; (2) specular só em pontos estratégicos (vidro do
+knob, face do pedal, displays) — glow com parcimônia (§6.6); (3) alvos
+continuam ≥32×32 (`.gp-btn` já nasce com `min-height: 32px`).
 
 ## 2. Cores e contraste (WCAG 2.2 AA medido) — paleta VALETON/PALCO
 
@@ -65,8 +113,10 @@ clicável mínimo **32×32 px**.
 
 | Token | Valor | Uso |
 |---|---|---|
-| `--font-ui` | "Segoe UI", Inter, system-ui | UI geral (nativa do SO) |
-| `--font-mono` | Cascadia Code, Consolas, monospace | hex/valores de fio (dump) |
+| `--font-ui` | "Segoe UI Variable Text", Segoe UI, Inter, system-ui | UI geral |
+| `--font-display` | "Segoe UI Variable Display", … (stack display) | títulos/pesos largos |
+| `--font-mono` | Cascadia Mono/Code, Consolas, monospace | hex/valores de fio |
+| `--text-2xs` | 10px/… | micro-rótulos de hardware (mm:ss, contadores) |
 | `--text-xs` | 11px/1.45 | badges, atalhos |
 | `--text-sm` | 13px/1.5 | UI padrão (knobs, listas) |
 | `--text-md` | 15px/1.55 | corpo de texto corrido |
@@ -75,7 +125,14 @@ clicável mínimo **32×32 px**.
 
 Escala modular 1.125–1.25 a partir de 13px (legibilidade desktop). Texto
 corrido ≥ `--text-md`; números monoespaçados SEMPRE em `--font-mono`
-(valores alinham sem tremer).
+(valores alinham sem tremer — `.gp-tabular`/`tabular-nums` nos displays).
+
+**Pesos, entrelinha e tracking** (`WEIGHT`/`LEADING`/`TRACKING`):
+pesos 400/500/600/700/800 (`--weight-medium`/`--weight-semibold` no CSS —
+variáveis de verdade só com fontes de eixo variável, o SO aproxima nos
+fallbacks); entrelinha 1.2 (tight) / 1.45 (normal) no CSS; tracking
+`0.02em` (wide) / `0.08em` (caps) — negativo só em títulos grandes.
+Os stacks espelham `FONT_STACKS` de `tokens.ts` (o teste de token cobre).
 
 ## 4. Motion
 
@@ -135,5 +192,5 @@ dialogar com um driver. Princípios vinculantes para todas as telas da M1+:
 - [ ] Foco de teclado visível em TODOS os interativos (tab passou por tudo?)
 - [ ] Estado nunca só pela cor; erro sempre com ação; empty sempre com hint
 - [ ] Alvos clicáveis ≥32×32; janela 800×600 e ultrawide sobrevivem
-- [ ] Strings via `t()` (i18n); datas/números via helper (locale)
+- [x] Strings via `t()` (i18n) — **FEITO na #30**: `MSG` é Proxy sobre 4 dicionários (UI_REFERENCE §8.1); datas/números ainda via helper (locale)
 - [ ] `prefers-reduced-motion` respeitado; `--font-mono` em valores de fio

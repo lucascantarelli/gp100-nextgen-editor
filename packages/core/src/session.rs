@@ -5,8 +5,10 @@
 //!
 //! Regras de dispatch — resumo (FONTE ÚNICA = ADR-6, não reabrir aqui):
 //! - **D1** a transação é dona do endpoint: quem pediu interpreta a PRÓXIMA
-//!   msg do `(func, addr)` via `GoldenFile::match_response` (by-len resolve
-//!   `12001002`: ACK 4B × tabela 75B);
+//!   msg do `(func, addr)` via `GoldenFile::match_shape` (by-len resolve
+//!   `12001002`: ACK 4B × tabela 75B). **FORMA só** (#177): o conteúdo da
+//!   resposta é do hardware e passa pelo decode dos objetos — nunca é
+//!   comparado com os bytes `const` do golden (snapshot de análise);
 //! - **D2** push é classificado pelo CONTEXTO da operação, não pela msg
 //!   (`13010001` push×req têm os MESMOS 6 bytes — ordem do arquivo só
 //!   desempata FORMA);
@@ -24,15 +26,16 @@
 //!   do backlog via [`Session::pending_pushes`], nunca listener concorrente).
 
 use crate::golden::GoldenFile;
-use crate::transport::{DeviceTransport, TransportError};
+use crate::transport::{DeviceTransport, TransportError, WireKind};
 use crate::ProtocolError;
+use std::collections::BTreeMap;
 use std::time::Duration;
 
 /// Janela da transação (ADR-3): 3000 ms por request→resposta.
 const TX_TIMEOUT_MS: u64 = 3000;
 
 /// Ordem REAL do script de boot (prova C do replay):
-/// Tables → Scan → Probe → Setlist → Names → Keepalive.
+/// Tables → Scan → Probe → State5 → Names → Keepalive.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BootStage {
     /// T1 — tabelas de User IRs `11/12001002` (20 páginas ×2 leituras).
@@ -42,8 +45,12 @@ pub enum BootStage {
     Scan,
     /// T6 — sonda do banco 02 (select const + open + 9 páginas).
     Probe,
-    /// T2 — setlist `11/12001012` (5 leituras).
-    Setlist,
+    /// T2 — 5 leituras de `11/12001012` (44B cada). O repo a chama(va) de
+    /// "setlist", mas a GP-100 **não tem função setlist** no manual
+    /// (`docs/GP100_DEVICE.md` §5#1). Renomeado para `State5` (5 entradas de
+    /// estado) até a semântica fina ser decifrada em campo — não expor como
+    /// produto.
+    State5,
     /// T3 — nomes `11/11000008` (fire-and-forget, D4; 61 leituras).
     Names,
     /// T4 — keepalives `12/00020001` ×2 (D4).
@@ -72,17 +79,31 @@ pub struct BootProgress {
 pub type BootProgressFn<'a> = dyn FnMut(BootProgress) + 'a;
 
 /// Relatório do boot+scan (§13.10): nasce MÍNIMO (deriva das vars que os
-/// templates extraem) e cresce só quando a UI pedir (ADR-6, YAGNI).
+/// templates extraem) e cresce só quando a UI pedir (ADR-6, YAGNI) — a
+/// #161 (gate de boot) pediu o inventário, para o front montar a casca
+/// só com o aparelho LIDO.
 #[derive(Debug, Clone)]
 pub struct BootReport {
     /// Nº de transações de boot+scan executadas com sucesso (replay da
     /// sequência capturada: 2299 OUT na S1).
     pub transactions: usize,
+    /// Pps com cache de páginas após o scan — o inventário lido (198 no
+    /// catálogo atual: 99 de fábrica + 99 de usuário).
+    pub presets: usize,
+    /// Pps do cache cuja pg0 decodifica com nome válido (#155) — o "198/198"
+    /// que o gate da #161 valida: nomes menos que presets = leitura pela
+    /// metade.
+    pub names: usize,
 }
 
-/// Página de estado do pp corrente (família 13xx). **Opaca de propósito**:
-/// o layout byte-a-byte da 13xx não foi decifrado; carrega os
-/// bytes crus + as vars extraídas pelos templates do golden.
+/// Página de estado (família 13xx): o payload cru como veio no fio, mais
+/// as vars dos templates do golden.
+///
+/// O corpo **nibble-exp** é decifrado por [`crate::preset_pages::decode`]
+/// (2026-10-08): 4B de header `[pp u16BE][00][PG]` + 192B de nibbles →
+/// 96B por página. Aqui o `raw` segue cru de propósito — é o contrato do
+/// fio (R1: o formato da 13xx não vaza pra UI) e o golden valida esse
+/// shape.
 #[derive(Debug, Clone)]
 pub struct StatePage {
     /// Payload cru da página (nibble-exp, como veio no fio).
@@ -90,7 +111,7 @@ pub struct StatePage {
 }
 
 /// Resultado de `list_user_irs`: a TABELA dos 20 User IRs (§13.12), já
-/// distinguida do ACK 4B pelo by-len de `match_response` (D1).
+/// distinguida do ACK 4B pelo by-len de `match_shape` (D1).
 #[derive(Debug, Clone)]
 pub struct UserIrTable {
     /// Slots decodificáveis: (slot u8, nome ASCII até 32B). CRC de slot
@@ -98,8 +119,30 @@ pub struct UserIrTable {
     pub slots: Vec<(u8, String)>,
 }
 
+/// Bytes de payload por chunk no upload de IR (§13.7).
+///
+/// 30 nibbles na SysEx = **15 bytes reais** por chunk. O valor é público e
+/// único porque a biblioteca recusa na importação o `.ir` que não é múltiplo
+/// dele (strict, rev.2 do ADR-6) — um arquivo guardado que não pode ser
+/// enviado só adia o erro para o momento do upload, com o dono já no
+/// aparelho. Duas constantes numéricas em crates diferentes são um `mod 15`
+/// que aceita um e outro.
+pub const IR_CHUNK_BYTES: usize = 15;
+
+/// Quantidade de slots de User IR (`<ppIRInfo0..19>`, §13.12).
+///
+/// Quem define o slot é a POSIÇÃO da tag no `.prst` — e o slot **0 é
+/// válido**, ao contrário do SnapTone que começa em 1. A biblioteca valida
+/// contra este mesmo número.
+pub const IR_SLOTS: u8 = 20;
+
 /// Relatório do upload de IR (§13.7).
-#[derive(Debug, Clone)]
+///
+/// `Serialize` pelo mesmo motivo do [`SnapToneUploadReport`]: este relatório é
+/// o que volta pela ponte IPC e o crate do Tauri não compila no host — o
+/// contrato verificado aqui é verificado nas três plataformas da matriz.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct IrUploadReport {
     /// Slot de destino (0..=19).
     pub slot: u8,
@@ -108,6 +151,65 @@ pub struct IrUploadReport {
     /// ACKs validados por chunk (D1; marcador de fim = duplicação do
     /// último chunk idx 0x226 — payload é a cauda REAL do blob, §13.7).
     pub acks: usize,
+    /// Bytes do `.ir` que foram para o fio — o que a tela mostra ao lado do
+    /// número de chunks, porque "296 chunks" sozinho não diz se entrou um
+    /// arquivo de 4 KB ou de 400 KB.
+    pub bytes: usize,
+}
+
+/// Settle mínimo entre duas operações de SnapTone, em ms (PROTOCOL §4,
+/// regra 1 adotada da comunidade: *"settle ≥ 0,25 s entre operações — 0,15 s
+/// corrompe; loop tight **trava a pedaleira**"*).
+///
+/// O valor não é afinação: é o piso que a comunidade mediu. Subir é seguro
+/// (o upload só fica mais lento); descer é o que corrompe o stream.
+pub const SNAP_TONE_SETTLE_MS: u64 = 250;
+
+/// Um registrador global lido do aparelho: `(endereço, payload CRU)`.
+/// Alias público porque [`Session::read_globals`] devolve a lista desses
+/// pares — o decode (nibble-par) é do chamador (ADR-13).
+pub type GlobalBruto = ([u8; 4], Vec<u8>);
+
+/// Tabela MEDIDA de registradores globais (PROTOCOL §13.13.1 + nomes da RE
+/// do Suite §13.13.7): `(endereço, comprimentos de payload aceitos)`.
+///
+/// FORA do golden — aquele arquivo é o mundo do preset; a forma destas
+/// respostas é a medida na sessão G3–G6 (4B para os contadores nibble-par,
+/// 8B para o enable do Global EQ; o §13.13.1 aceita "4B ou 8B" na faixa
+/// 03..0b, então os registros SYSTEM aceitam os dois).
+pub const REGS_GLOBAIS: &[([u8; 4], &[usize])] = &[
+    ([0x00, 0x02, 0x00, 0x03], &[4, 8]), // gVolume — volume master
+    ([0x00, 0x02, 0x00, 0x04], &[4, 8]), // gInput — Input Level (medido no diff)
+    ([0x00, 0x02, 0x00, 0x05], &[4, 8]), // gUsbGain
+    ([0x00, 0x02, 0x00, 0x06], &[4, 8]), // gUsbMonitorVol
+    ([0x00, 0x02, 0x00, 0x07], &[4, 8]), // gUsbAudioLeft
+    ([0x00, 0x02, 0x00, 0x08], &[4, 8]), // gUsbAudioRight
+    ([0x00, 0x02, 0x00, 0x09], &[4, 8]), // gTapTempoSetting
+    ([0x00, 0x02, 0x00, 0x0a], &[4, 8]), // gNoCabLeft
+    ([0x00, 0x02, 0x00, 0x0b], &[4, 8]), // gNoCabRight
+    ([0x00, 0x02, 0x00, 0x11], &[8]),    // Global EQ — enable (8B medido)
+    ([0x00, 0x01, 0x02, 0x01], &[4]),    // drumPlayStyle
+    ([0x00, 0x01, 0x02, 0x03], &[4]),    // drumBpm (medido no diff)
+    ([0x00, 0x01, 0x02, 0x04], &[4]),    // drumVolume
+    ([0x00, 0x01, 0x02, 0x05], &[4]),    // drumState
+];
+
+/// Relatório do upload de SnapTone (§5).
+///
+/// `Serialize` porque este relatório é o que volta pela ponte IPC: o command
+/// do Tauri devolve o valor como está e o TS lê `blocks`/`acks`. Derivando o
+/// serde aqui, no crate que compila nas três plataformas da matriz, o contrato
+/// do fio é testado no CI comum em vez de depender de uma compilação Windows.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct SnapToneUploadReport {
+    /// Slot de destino (1..=5 — `SnapTone1..5`).
+    pub slot: u8,
+    /// Blocos enviados (= `ceil(len / 19)`).
+    pub blocks: usize,
+    /// ACKs de 16B validados — um por bloco (§5).
+    pub acks: usize,
+    /// Bytes do modelo convertido que foram para o fio.
+    pub bytes: usize,
 }
 
 /// FSM de sessão — genérica sobre o transporte (ADR-4/ADR-6).
@@ -115,11 +217,168 @@ pub struct Session<T: DeviceTransport> {
     transport: T,
     /// pp corrente (select do boot/scan; default 0x0100 = "01 00", §13.4).
     current_pp: u16,
-    /// Inventário de presets na ordem de scan (default 0..198). O replay da
-    /// S1 prova a ordem da captura; o device real tem o próprio.
+    /// Inventário de presets na ordem de scan. Default = o inventário do
+    /// transporte: [`inventario_do_aparelho`] no aparelho (MEDIDO, captura
+    /// S1 — #132) e `0..198` no mock (comportamento histórico). O replay
+    /// da S1 prova a ordem da captura.
     pps: Option<Vec<u16>>,
     /// Backlog de IN não solicitado (D7), na ordem de chegada (hex cru).
     backlog: Vec<Vec<u8>>,
+    /// As 9 páginas de cada pp escaneado, tal como saíram do fio
+    /// (`13010003` nas pg 0..7 e `13010005` na pg 8). O scan (T5) já lia
+    /// todas — guardá-las só faz o retorno deixar de ser descartado: o fio
+    /// é idêntico (D1–D8 intocados, prova C intacta). Vazio antes do boot.
+    pages: BTreeMap<u16, [StatePage; 9]>,
+}
+
+/// O espaço de presets no fio é BANCO/SLOT (§13.4): 198 pps em dois bancos
+/// de 99 — NÃO é um intervalo linear. As capturas (S1–S4, 796 selects)
+/// contêm exatamente `0000..=0062` e `0100..=0162`; os pps `0x0063..0x00C5`
+/// NÃO existem, e o firmware V2.1 morre no assert `PresetNum < TOTAL_PA`
+/// (`audio.c:912`) ao recebê-los — o scan do boot os mandava por suposição
+/// linear nunca conferida em campo (issue #148, campo 07/10).
+pub fn pp_e_valido(pp: u16) -> bool {
+    let banco = pp >> 8;
+    let slot = pp & 0x00FF;
+    slot <= 0x0062 && (banco == 0x00 || banco == 0x01)
+}
+
+/// Os 198 `pp` que o **aparelho** tem, na ordem em que o Suite varre na
+/// captura S1 (`packages/core/data/fixtures/boot.jsonl` — os mesmos 2299 OUTs que
+/// `tests/replay_fixtures.rs::replay_boot_byte_a_byte` reproduz).
+///
+/// **De onde o número vem (issue #132 — nada aqui é inventado).** A captura
+/// do próprio Suite escaneando o pedal manda, em `11/13010000`:
+///
+/// ```text
+/// 0100 0101 … 0162  0000 0001 … 0062
+/// ```
+///
+/// → **99 pps no banco `0x01xx` + 99 no banco `0x00xx`**, os 99 slots de
+/// `all.prst` (ppID `"0".."98"`) nos DOIS bancos, com o byte alto do banco
+/// no byte mais significativo. A sonda de campo de 06/10 corroborou o
+/// espaço (`dump-preset 0x0100` respondeu) e o `H1` já tinha lido
+/// `0x0000`/`0x0031`/`0x0062` no aparelho.
+///
+/// **Por que este é o default do APARELHO e não o `0..198` de sempre.**
+/// `0..197` manda 99 selects que o aparelho NÃO tem (`0x0063..0x00c5` — o
+/// `PresetNum < TOTAL_PA` do assert de `audio.c:912` é literalmente sobre
+/// isto) e NUNCA alcança o banco `0x01xx`, onde o pedal liga. O mock fica
+/// com o `0..198` de sempre (o espaço dele é o do documento, e os testes
+/// varrem pps arbitrários).
+///
+/// A ordem é a da captura (banco 1 primeiro) porque a ordem TAMBÉM é
+/// evidência: com este inventário o `boot()` de um aparelho recém-ligado
+/// reproduz a sequência do Suite.
+///
+/// **É a ÚNICA fonte do espaço do aparelho.** O CONJUNTO (99 no banco
+/// `0x01xx` + 99 no `0x00xx`) e a ORDEM vivem aqui — não existe uma segunda
+/// lista do mesmo espaço, com outra ordem, para divergir desta. A ordem
+/// canônica do banco/slot (`0x00xx` primeiro) não tem consumidor: quem
+/// varre é a captura. `pp_e_valido` declara o MESMO espaço como predicado
+/// estático, e `pp_gate.rs` prende as duas no fixture da S1.
+pub fn inventario_do_aparelho() -> Vec<u16> {
+    let mut pps: Vec<u16> = (0x0100u16..=0x0162).collect();
+    pps.extend(0x0000u16..=0x0062);
+    pps
+}
+
+/// O inventário escrito como faixas legíveis para o runbook de campo
+/// (`0x0000..0x0062, 0x0100..0x0162`) — a mensagem da recusa precisa dizer
+/// não só O QUE foi recusado, mas até onde o aparelho vai.
+fn faixa_legivel(pps: &[u16]) -> String {
+    let mut ordenados = pps.to_vec();
+    ordenados.sort_unstable();
+    ordenados.dedup();
+    let mut faixas: Vec<String> = Vec::new();
+    let mut inicio = match ordenados.first() {
+        Some(&p) => p,
+        None => return "(inventário vazio)".into(),
+    };
+    let mut anterior = inicio;
+    for &p in ordenados.iter().skip(1) {
+        if p == anterior + 1 {
+            anterior = p;
+            continue;
+        }
+        faixas.push(descreve_faixa(inicio, anterior));
+        inicio = p;
+        anterior = p;
+    }
+    faixas.push(descreve_faixa(inicio, anterior));
+    faixas.join(", ")
+}
+
+fn descreve_faixa(inicio: u16, fim: u16) -> String {
+    if inicio == fim {
+        format!("{inicio:#06x}")
+    } else {
+        format!("{inicio:#06x}..{fim:#06x}")
+    }
+}
+
+/// Um frame de escrita do `save` (§13.12) com o seu endereco — a forma que
+/// o `--dry-run` do CLI e o `device_preview` do app mostram ao operador.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SaveFrame {
+    /// Endereço 4B do frame (o mesmo que vai no `ADDR` do envelope).
+    pub addr: [u8; 4],
+    /// O SysEx completo, como sairia pelo `send_raw`.
+    pub sysex: Vec<u8>,
+}
+
+/// Os 9 frames do `save` (§13.12), **sem enviar nada**.
+///
+/// **POR QUE ISTO EXISTE SEPARADO DE [`Session::save_preset`].** O dry-run do
+/// CLI e o `device_preview` do app precisam exatamente dos mesmos bytes que
+/// seriam enviados — e a tentacao é reimplementar a montagem no consumidor,
+/// que é como um dry-run passa a mentir (mostra um frame e o aparelho recebe
+/// outro). Aqui a montagem tem **uma fonte só** e o `save_preset` consome
+/// esta mesma função, então preview e envio não podem divergir por construção.
+///
+/// Ordem (D3, ciclo de ops da S4): 5 writes do meta (§13.12) e então
+/// op0, op0, op1, op1 — o fim dos writes é o commit, e **ZERO IN** é
+/// esperado.
+///
+/// # Erros
+/// [`ProtocolError::InvalidShape`] se o nome não for ASCII imprimível.
+pub fn save_frames(pp: u16, pp_type: u16, name: &str) -> Result<Vec<SaveFrame>, ProtocolError> {
+    // write_frame = ponto ÚNICO de montagem de envelope de write (§13.1);
+    // 5 writes do meta (§13.12) + ciclo de ops da S4 (D3): op0 com o
+    // meta, op0 de novo, op1 ×2 — fim dos writes = commit, ZERO IN esperado
+    let mut out: Vec<SaveFrame> = Vec::with_capacity(9);
+    for (addr, payload) in crate::codec::meta_block(pp, pp_type, name)? {
+        out.push(SaveFrame {
+            addr,
+            sysex: crate::codec::write_frame(&addr, &payload),
+        });
+    }
+    for op in [0u8, 0, 1, 1] {
+        let addr = [0x00, 0x02, 0x00, 0x00];
+        out.push(SaveFrame {
+            addr,
+            sysex: crate::codec::write_frame(&addr, &crate::codec::op_payload(op)),
+        });
+    }
+    Ok(out)
+}
+
+/// Alimenta o array de páginas de um pp com a resposta de uma transação.
+///
+/// O índice da página vem do **próprio payload** (`raw[3]`, 0..=8) — não da
+/// posição do pedido: o `open` `13010002` entrega a página 0, os reqs
+/// `13010004` PG 0..7 entregam as páginas 1..8, e o req PG 8 devolve um
+/// ACK de 4B em `13010005` que NÃO é página. Só o comprimento certifica:
+/// 196B (4B header + 192B) ou 32B (4B + 28B) é corpo de página.
+///
+/// Sem efeito no fio — só o VALOR, que já era esperado por `wait_for`.
+fn guarda_pagina(paginas: &mut [StatePage; 9], raw: Vec<u8>) {
+    if !matches!(raw.len(), 196 | 32) {
+        return; // ACK de 4B, push ou meta6 — não é corpo de página
+    }
+    if let Some(idx) = raw.get(3).copied().filter(|&i| i < 9) {
+        paginas[idx as usize] = StatePage { raw };
+    }
 }
 
 impl<T: DeviceTransport> Session<T> {
@@ -133,18 +392,29 @@ impl<T: DeviceTransport> Session<T> {
             current_pp: 0x0100,
             pps: None,
             backlog: Vec::new(),
+            pages: BTreeMap::new(),
         }
     }
 
     /// Define o inventário de pps do scan (ordem = ordem de seleção do
-    /// boot; default 0..198). A ordem da S1 é provada pelo replay.
+    /// boot; default = [`inventario_do_aparelho`] no aparelho e `0..198` no
+    /// mock). A ordem da S1 é provada pelo replay.
     pub fn set_inventory(&mut self, pps: Vec<u16>) {
         self.pps = Some(pps);
     }
 
-    /// Referência ao inventário em uso (default 0..198).
+    /// O inventário em uso: o que [`Session::set_inventory`](Self::set_inventory)
+    /// fixou, ou o default do TRANSPORTE — [`inventario_do_aparelho`]
+    /// quando ele é o aparelho (é este conjunto que o `boot` varre E que a
+    /// trava de `select_preset` confere, #132), `0..198` no mock.
     fn inventory(&self) -> Vec<u16> {
-        self.pps.clone().unwrap_or_else(|| (0u16..198).collect())
+        self.pps.clone().unwrap_or_else(|| {
+            if self.transport.e_aparelho() {
+                inventario_do_aparelho()
+            } else {
+                (0u16..198).collect()
+            }
+        })
     }
 
     /// Boot + scan (§13.10) SEM progresso — a forma canônica do ADR-6
@@ -185,7 +455,7 @@ impl<T: DeviceTransport> Session<T> {
     ///
     /// INTERLEAVE (D2): cada transação espera a PRÓPRIA resposta (D1) e
     /// pushes de boot não solicitados (dump 13000000, meta6 13010001,
-    /// páginas 13010003, setlist 12001012, nomes 11000008) vão para o
+    /// páginas 13010003, estado 12001012, nomes 11000008) vão para o
     /// BACKLOG (D7), não confundem as transações. `progress` é
     /// observacional: um `beat!` por transação, nada no fio.
     fn boot_inner(
@@ -195,7 +465,7 @@ impl<T: DeviceTransport> Session<T> {
         let golden = GoldenFile::embedded()?;
         let mut tx = 0usize;
         // Total esperado: T1(40) + scan(11/pp +2 se pp corrente duplicado)
-        // + sonda(11) + setlist(5) + nomes(61) + keepalive(2). O replay da
+        // + sonda(11) + estado5(5) + nomes(61) + keepalive(2). O replay da
         // captura (198 pps, 0x0100 duplicado) fecha em 2299 = prova C.
         let pps = self.inventory();
         let doubled = pps.iter().filter(|&&p| p == 0x0100).count();
@@ -215,7 +485,7 @@ impl<T: DeviceTransport> Session<T> {
         }
 
         // ORDEM REAL do boot S1 (prova C / replay): T1 → scan (T5) →
-        // sonda 1302 (T6) → setlist (T2) → nomes (T3) → keepalives ×2.
+        // sonda 1302 (T6) → estado5 (T2) → nomes (T3) → keepalives ×2.
         // T1: 20 páginas ×2 (regra da prova C)
         for p in 0u8..0x14 {
             for _ in 0..2 {
@@ -240,6 +510,7 @@ impl<T: DeviceTransport> Session<T> {
                     &[0x13, 0x01, 0x00, 0x00],
                     &pp_be,
                     &[0x13, 0x01, 0x00, 0x01],
+                    WireKind::Read,
                 )?;
                 tx += 1;
                 beat!();
@@ -250,55 +521,66 @@ impl<T: DeviceTransport> Session<T> {
                 &[0x13, 0x01, 0x00, 0x00],
                 &pp_be,
                 &[0x13, 0x01, 0x00, 0x01],
+                WireKind::Read,
             )?;
             tx += 1;
             beat!();
-            self.tx_req_in(
+            // O `open` entrega a página 0 (`raw[3] == 0`) — as 9 páginas
+            // do pp, capturadas sem mudar o fio: o scan já esperava cada
+            // resposta em `wait_for`; só o VALOR era descartado com `?`.
+            let mut paginas: [StatePage; 9] =
+                std::array::from_fn(|_| StatePage { raw: Vec::new() });
+            let abertura = self.tx_req_in(
                 golden,
                 0x12,
                 &[0x13, 0x01, 0x00, 0x02],
                 &pp_be,
                 &[0x13, 0x01, 0x00, 0x03],
+                WireKind::Read,
             )?;
+            guarda_pagina(&mut paginas, abertura);
             tx += 1;
             beat!();
             if doubled {
                 // ...e open duplicado: a página 0 chega DE NOVO em
                 // `13010003` (captura S1 rows 89–93: open open → pág0 pág0;
                 // NÃO é meta6 — era este o desalinhamento do replay)
-                self.tx_req_in(
+                let abertura2 = self.tx_req_in(
                     golden,
                     0x12,
                     &[0x13, 0x01, 0x00, 0x02],
                     &pp_be,
                     &[0x13, 0x01, 0x00, 0x03],
+                    WireKind::Read,
                 )?;
+                guarda_pagina(&mut paginas, abertura2);
                 tx += 1;
                 beat!();
             }
             for pg in 0u16..9u16 {
                 // t8: var2 (pp) + const 00 + var1 (PG baixo) + const 01
                 let vars = [pp_be[0], pp_be[1], pg as u8];
-                if pg < 8 {
-                    self.tx_req_in(
-                        golden,
-                        0x12,
-                        &[0x13, 0x01, 0x00, 0x04],
-                        &vars,
-                        &[0x13, 0x01, 0x00, 0x03],
-                    )?;
+                let in_addr: &[u8; 4] = if pg < 8 {
+                    &[0x13, 0x01, 0x00, 0x03]
                 } else {
-                    self.tx_req_in(
-                        golden,
-                        0x12,
-                        &[0x13, 0x01, 0x00, 0x04],
-                        &vars,
-                        &[0x13, 0x01, 0x00, 0x05],
-                    )?;
-                }
+                    &[0x13, 0x01, 0x00, 0x05]
+                };
+                // PG 0..7 respondem em `13010003` com a página SEGUINTE
+                // (`raw[3] == pg+1`); PG 8 responde em `13010005` com um
+                // ACK de 4B — `guarda_pagina` distingue pelo comprimento.
+                let resposta = self.tx_req_in(
+                    golden,
+                    0x12,
+                    &[0x13, 0x01, 0x00, 0x04],
+                    &vars,
+                    in_addr,
+                    WireKind::Read,
+                )?;
+                guarda_pagina(&mut paginas, resposta);
                 tx += 1;
                 beat!();
             }
+            self.pages.insert(pp, paginas);
             self.current_pp = pp;
         }
         stage = BootStage::Probe;
@@ -311,6 +593,7 @@ impl<T: DeviceTransport> Session<T> {
             &[0x13, 0x02, 0x00, 0x00],
             &[],
             &[0x13, 0x02, 0x00, 0x01],
+            WireKind::Read,
         )?;
         tx += 1;
         beat!();
@@ -320,6 +603,7 @@ impl<T: DeviceTransport> Session<T> {
             &[0x13, 0x02, 0x00, 0x02],
             &[],
             &[0x13, 0x02, 0x00, 0x03],
+            WireKind::Read,
         )?;
         tx += 1;
         beat!();
@@ -333,6 +617,7 @@ impl<T: DeviceTransport> Session<T> {
                     &[0x13, 0x02, 0x00, 0x04],
                     &vars,
                     &[0x13, 0x02, 0x00, 0x03],
+                    WireKind::Read,
                 )?;
             } else {
                 self.tx_req_in(
@@ -341,13 +626,14 @@ impl<T: DeviceTransport> Session<T> {
                     &[0x13, 0x02, 0x00, 0x04],
                     &vars,
                     &[0x13, 0x02, 0x00, 0x05],
+                    WireKind::Read,
                 )?;
             }
             tx += 1;
             beat!();
         }
-        stage = BootStage::Setlist;
-        // T2: setlist 5 entradas
+        stage = BootStage::State5;
+        // T2: 5 entradas de `12001012` (estado; não é setlist — GP100_DEVICE §5#1)
         for i in 0u8..5 {
             self.tx_req(golden, 0x11, &[0x12, 0x00, 0x10, 0x12], &[i])?;
             tx += 1;
@@ -361,24 +647,70 @@ impl<T: DeviceTransport> Session<T> {
         // o template é mixed 2 vars + const 0000 (o golden completa a cauda).
         for bank in 0u8..3 {
             for idx in 0u8..16 {
-                self.send_build(golden, 0x11, &[0x11, 0x00, 0x00, 0x08], &[bank, idx])?;
+                self.send_build(
+                    golden,
+                    0x11,
+                    &[0x11, 0x00, 0x00, 0x08],
+                    &[bank, idx],
+                    WireKind::Read,
+                )?;
                 tx += 1;
                 beat!();
             }
         }
         for idx in 0u8..13 {
-            self.send_build(golden, 0x11, &[0x11, 0x00, 0x00, 0x08], &[3, idx])?;
+            self.send_build(
+                golden,
+                0x11,
+                &[0x11, 0x00, 0x00, 0x08],
+                &[3, idx],
+                WireKind::Read,
+            )?;
             tx += 1;
             beat!();
         }
         stage = BootStage::Keepalive;
         // T4: keepalive ×2 (D4) — contam como transação para o progresso.
-        for _ in 0..2 {
-            self.send_build(golden, 0x12, &[0x00, 0x02, 0x00, 0x01], &[])?;
-            tx += 1;
-            beat!();
+        //
+        // Um transporte que NÃO deixa escrever (ADR-5 com a trava fechada)
+        // recusaria este frame, e o boot inteiro cairia no ÚLTIMO passo —
+        // um build de leitura ficaria sem leitura. Por isso ele é OMITIDO,
+        // não mandado e ignorado: a contagem do relatório é do que de fato
+        // saiu no fio. Decisão do owner (06/10, face (A) da #126); a
+        // alternativa registrada em `tests/write_gate.rs` era exigir
+        // `write-verified` no passo B5 do H1 — a leitura não podia existir
+        // antes disso.
+        if self.transport.permite_escrita() {
+            for _ in 0..2 {
+                self.send_build(
+                    golden,
+                    0x12,
+                    &[0x00, 0x02, 0x00, 0x01],
+                    &[],
+                    WireKind::Write,
+                )?;
+                tx += 1;
+                beat!();
+            }
         }
-        Ok(BootReport { transactions: tx })
+        // #161 — medição honesta do que saiu do fio: o inventário que o
+        // scan deixou no cache e quantos nomes a pg0 deles decodifica.
+        // Só conta; quem interpreta ("198/198 do catálogo") é o gate do
+        // front — aqui o relatório não mente nem inventa.
+        let presets = self.pages.len();
+        let mut names = 0usize;
+        for pags in self.pages.values() {
+            if let Ok(pg) = crate::preset_pages::decode(pags) {
+                if pg.nome().is_ok() {
+                    names += 1;
+                }
+            }
+        }
+        Ok(BootReport {
+            transactions: tx,
+            presets,
+            names,
+        })
     }
 
     /// O pp corrente (atualizado por [`Session::select_preset`] e pelo
@@ -391,7 +723,32 @@ impl<T: DeviceTransport> Session<T> {
     /// esperando o meta6 push `12/13010001` (D1; o MESMO endpoint tem o
     /// push espontâneo do boot — D2 resolve pelo contexto do pedido, como
     /// no ciclo do scan provado pelo replay). Atualiza o pp corrente.
+    ///
+    /// **Trava de faixa no aparelho (#132/ADR-12 — a irmã da ADR-10).**
+    /// Quando o transporte É o aparelho, um `pp` fora do inventário é
+    /// recusado com [`ProtocolError::ValueOutOfRange`] **antes** de existirem
+    /// bytes: o espaço do pedal é o que a captura prova
+    /// ([`inventario_do_aparelho`]) e um `select` fora dele é o frame do
+    /// assert `PresetNum < TOTAL_PA` (`audio.c:912`) — que derruba o
+    /// firmware até o power-cycle. No mock nada muda: ele continua aceitando
+    /// qualquer `pp` (o espaço dele é o do documento, e os testes varrem pps
+    /// arbitrários).
+    ///
+    /// # Erros
+    /// [`ProtocolError::ValueOutOfRange`] (pp fora do inventário, no
+    /// aparelho) e os erros do fio de antes (timeout D6, shape D5, ack).
     pub fn select_preset(&mut self, pp: u16) -> Result<(), ProtocolError> {
+        if self.transport.e_aparelho() {
+            let inventario = self.inventory();
+            if !inventario.contains(&pp) {
+                return Err(ProtocolError::ValueOutOfRange {
+                    addr: "11/13010000".into(),
+                    param: "pp".into(),
+                    got: format!("{pp:#06x}"),
+                    allowed: faixa_legivel(&inventario),
+                });
+            }
+        }
         let golden = GoldenFile::embedded()?;
         let pp_be = pp.to_be_bytes();
         self.tx_req_in(
@@ -400,6 +757,7 @@ impl<T: DeviceTransport> Session<T> {
             &[0x13, 0x01, 0x00, 0x00],
             &pp_be,
             &[0x13, 0x01, 0x00, 0x01],
+            WireKind::Read,
         )?;
         self.current_pp = pp;
         Ok(())
@@ -424,7 +782,14 @@ impl<T: DeviceTransport> Session<T> {
         } else {
             &[0x13, 0x01, 0x00, 0x05]
         };
-        let payload = self.tx_req_in(golden, 0x12, &[0x13, 0x01, 0x00, 0x04], &vars, in_addr)?;
+        let payload = self.tx_req_in(
+            golden,
+            0x12,
+            &[0x13, 0x01, 0x00, 0x04],
+            &vars,
+            in_addr,
+            WireKind::Read,
+        )?;
         Ok(StatePage { raw: payload })
     }
 
@@ -432,6 +797,21 @@ impl<T: DeviceTransport> Session<T> {
     /// [`Session::state_page`]`(0)` — mantida para os contratos existentes).
     pub fn scan_state(&mut self) -> Result<StatePage, ProtocolError> {
         self.state_page(0)
+    }
+
+    /// As 9 páginas brutas de um pp, guardadas pelo scan (T5).
+    ///
+    /// `None` antes do boot (ou para pp fora do inventário escaneado) — é
+    /// a matéria-prima de [`crate::preset_pages::decode`]: o MESMO payload
+    /// que [`Session::state_page`] mandaria buscar agora, só que sem tocar
+    /// no fio (o boot já leu tudo).
+    pub fn preset_state(&self, pp: u16) -> Option<&[StatePage; 9]> {
+        self.pages.get(&pp)
+    }
+
+    /// Pps com cache de páginas, em ordem crescente (o escaneado no boot).
+    pub fn cached_pps(&self) -> Vec<u16> {
+        self.pages.keys().copied().collect()
     }
 
     /// Knob da UI (§13.11): `codec::set_param` fire-and-forget, SEM
@@ -446,7 +826,9 @@ impl<T: DeviceTransport> Session<T> {
         value: f32,
     ) -> Result<(), ProtocolError> {
         let sysex = crate::codec::set_param(chain_slot, code, ctrl, value)?;
-        self.transport.send_raw(&sysex).map_err(tx_err)
+        self.transport
+            .send_raw(&sysex, WireKind::Write)
+            .map_err(tx_err)
     }
 
     /// Save (§13.12 RE-DERIVADO — D3): envia `codec::meta_block(pp, pp_type,
@@ -456,21 +838,10 @@ impl<T: DeviceTransport> Session<T> {
     /// BLOCKERS 11); "salvou?" em H2 = display/`list_user_irs`, NUNCA
     /// interpretar burst 11xx tardio como confirmação.
     pub fn save_preset(&mut self, pp: u16, pp_type: u16, name: &str) -> Result<(), ProtocolError> {
-        // write_frame = ponto ÚNICO de montagem de envelope de write (§13.1);
-        // 5 writes do meta (§13.12) + ciclo de ops da S4 (D3): op0 com o
-        // meta, op0 de novo, op1 ×2 — fim dos writes = commit, ZERO IN esperado
-        let mut sysexes: Vec<Vec<u8>> = Vec::new();
-        for (addr, payload) in crate::codec::meta_block(pp, pp_type, name)? {
-            sysexes.push(crate::codec::write_frame(&addr, &payload));
-        }
-        for op in [0u8, 0, 1, 1] {
-            sysexes.push(crate::codec::write_frame(
-                &[0x00, 0x02, 0x00, 0x00],
-                &crate::codec::op_payload(op),
-            ));
-        }
-        for s in &sysexes {
-            self.transport.send_raw(s).map_err(tx_err)?;
+        for s in save_frames(pp, pp_type, name)? {
+            self.transport
+                .send_raw(&s.sysex, WireKind::Write)
+                .map_err(tx_err)?;
         }
         Ok(())
     }
@@ -481,29 +852,43 @@ impl<T: DeviceTransport> Session<T> {
     /// codec. `ir_slot` = 0..=19; `blob` tem de ser múltiplo de 15B (strict,
     /// rev.2: pedaço final é REJEITADO, não padado).
     pub fn upload_ir(&mut self, ir_slot: u8, blob: &[u8]) -> Result<IrUploadReport, ProtocolError> {
-        if ir_slot >= 20 {
+        if ir_slot >= IR_SLOTS {
             return Err(ProtocolError::InvalidShape {
                 expected: "ir_slot 0..=19".into(),
                 got: format!("{ir_slot}"),
             });
         }
-        if !blob.len().is_multiple_of(15) {
+        // O blob vazio é um `.ir` de 0 bytes escolhido pelo dono. `0` é
+        // múltiplo de 15 (passaria na checagem de baixo), mas deixa a lista
+        // de chunks VAZIA — e o marcador de fim indexa `chunks[len - 1]`,
+        // que com lista vazia dá panic por underflow, não erro. O panic
+        // morre do lado do Tauri sem mensagem: a tela precisa de um erro que
+        // ela saiba traduzir.
+        if blob.is_empty() {
+            return Err(ProtocolError::InvalidShape {
+                expected: "blob com ao menos 1 chunk (15B)".into(),
+                got: "0 bytes".into(),
+            });
+        }
+        if !blob.len().is_multiple_of(IR_CHUNK_BYTES) {
             return Err(ProtocolError::InvalidShape {
                 expected: "blob múltiplo de 15B (strict, rev.2)".into(),
                 got: format!("{} bytes", blob.len()),
             });
         }
         self.transport
-            .send_raw(&crate::codec::ir_begin(ir_slot)?)
+            .send_raw(&crate::codec::ir_begin(ir_slot)?, WireKind::Write)
             .map_err(tx_err)?;
-        let chunks = blob.as_chunks::<15>().0;
+        let chunks = blob.as_chunks::<IR_CHUNK_BYTES>().0;
         let mut acks = 0usize;
         for (i, chunk) in chunks.iter().enumerate() {
             // idx em PÁGINAS de 128 (§13.7): base = página×256 — F7 nunca
             // aparece no índice (razão provável dos gaps)
             let idx = ((i / 128) as u16) * 256 + (i % 128) as u16;
             let sysex = crate::codec::ir_chunk(ir_slot, idx, chunk)?;
-            self.transport.send_raw(&sysex).map_err(tx_err)?;
+            self.transport
+                .send_raw(&sysex, WireKind::Write)
+                .map_err(tx_err)?;
             // D1: ACK [slot][idx BE][01] no endpoint 12/12001002, com
             // filtro D7 (pushes de outros endpoints vão para o backlog)
             let payload = self.wait_for(0x12, &[0x12, 0x00, 0x10, 0x02])?;
@@ -526,7 +911,9 @@ impl<T: DeviceTransport> Session<T> {
         let last: &[u8] = &chunks[chunks.len() - 1];
         let last_idx = ((chunks.len() - 1) / 128) as u16 * 256 + ((chunks.len() - 1) % 128) as u16;
         let sysex = crate::codec::ir_chunk(ir_slot, last_idx, last)?;
-        self.transport.send_raw(&sysex).map_err(tx_err)?;
+        self.transport
+            .send_raw(&sysex, WireKind::Write)
+            .map_err(tx_err)?;
         let payload = self.wait_for(0x12, &[0x12, 0x00, 0x10, 0x02])?;
         let expect = crate::codec::ir_chunk_ack_payload(ir_slot, last_idx);
         if payload.as_slice() != expect {
@@ -544,12 +931,129 @@ impl<T: DeviceTransport> Session<T> {
             slot: ir_slot,
             chunks: chunks.len(),
             acks,
+            bytes: blob.len(),
         })
     }
 
+    /// SnapTone/NAM (§5): stream de blocos `cmd=0x92` com o **ACK de 16B de
+    /// cada bloco** esperado antes do próximo (§2/§5), e settle de
+    /// [`SNAP_TONE_SETTLE_MS`] entre operações (§4, regra 1 — loop tight
+    /// trava a pedaleira).
+    ///
+    /// `model` são os bytes do arquivo **já convertido** (`.clo`), nunca um
+    /// `.nam`: a conversão acontece no desktop (strings do Suite em
+    /// `exe_strings.txt`) e o crate transporta bytes, não fabrica modelo.
+    ///
+    /// `slot` é 1..=5 (`SnapTone1..5`, §5) e é validado aqui — mas ele **não
+    /// vai no fio**: o layout de bloco evidenciado (`[crc, 0x92, index,
+    /// length, payload]`, §2) não tem campo de slot, e inventar um comando de
+    /// seleção seria inventar campo sem captura (R1). O relatório carrega o
+    /// slot para a UI mostrar o que ela pediu; quando uma captura de campo
+    /// mostrar como o slot é escolhido, é um comando novo ao lado deste
+    /// método, e nada aqui precisa mudar.
+    ///
+    /// # Erros
+    /// [`ProtocolError::InvalidShape`] (slot fora de 1..=5, modelo vazio),
+    /// [`ProtocolError::Timeout`] (D6 — ACK que não veio na janela ADR-3) e
+    /// [`ProtocolError::DeviceGone`] (transporte).
+    pub fn upload_snap_tone(
+        &mut self,
+        slot: u8,
+        model: &[u8],
+    ) -> Result<SnapToneUploadReport, ProtocolError> {
+        self.upload_snap_tone_settled(slot, model, Duration::from_millis(SNAP_TONE_SETTLE_MS))
+    }
+
+    /// O upload de [`Session::upload_snap_tone`] com o **settle injetado**.
+    ///
+    /// Existe separado porque o settle é caro de propósito: um modelo de
+    /// ~2,7 KB são 143 blocos, e 143 × 250 ms dão ~36 s por upload. Um teste
+    /// que pagasse esse relógio provaria que o tempo passa, não que a FSM
+    /// envia a ordem certa — e o contrato que importa aqui é a ORDEM dos
+    /// blocos e o ACK de cada um. O piso de §4 tem prova própria
+    /// (`tests/snap_tone_upload.rs::o_settle_entre_blocos_e_real`), que mede
+    /// o tempo de verdade com um settle pequeno mas não nulo.
+    pub fn upload_snap_tone_settled(
+        &mut self,
+        slot: u8,
+        model: &[u8],
+        settle: Duration,
+    ) -> Result<SnapToneUploadReport, ProtocolError> {
+        if slot == 0 || slot > crate::snap_tone::SLOTS {
+            return Err(ProtocolError::InvalidShape {
+                expected: format!(
+                    "slot 1..={} (§5: SnapTone1..{})",
+                    crate::snap_tone::SLOTS,
+                    crate::snap_tone::SLOTS
+                ),
+                got: format!("{slot}"),
+            });
+        }
+        let blocos = crate::snap_tone::blocks(model)?;
+        let mut acks = 0usize;
+        for (i, (index, payload)) in blocos.iter().enumerate() {
+            let wire = crate::snap_tone::wire_block(*index, payload)?;
+            self.transport
+                .send_raw(&wire, WireKind::Write)
+                .map_err(tx_err)?;
+            // D1: o ACK de 16B é DA OPERAÇÃO — antes do próximo bloco, senão
+            // a fila do device acumula o stream inteiro e o settle vira a
+            // única proteção contra o buffer do driver estourar.
+            let ack = self.wait_snap_ack()?;
+            crate::snap_tone::check_ack(&ack)?;
+            acks += 1;
+            // Settle depois do ACK, e só entre operações: depois do ÚLTIMO
+            // bloco não há operação seguinte, e esperar ali seria 250 ms de
+            // delay devolvidos ao dono sem nenhum ganho.
+            if i + 1 < blocos.len() {
+                std::thread::sleep(settle);
+            }
+        }
+        Ok(SnapToneUploadReport {
+            slot,
+            blocks: blocos.len(),
+            acks,
+            bytes: model.len(),
+        })
+    }
+
+    /// Espera o ACK de 16B de um bloco de SnapTone (§5).
+    ///
+    /// **O filtro D7 aqui é o framing, não o endpoint.** A família responde no
+    /// framing dela (`F0` + nibbles + `F7`) e o envelope do GP-100 começa com
+    /// `F0 21 …` — `decode_envelope` exige o cabeçalho de 8B, que a família
+    /// não carrega, então os dois formatos se separam sem ambiguidade (ver
+    /// [`crate::snap_tone::eh_familia`]). Tudo que decodifica como envelope
+    /// GP-100 é push de endpoint e vai para o backlog como sempre (D7); o que
+    /// sobra é o ACK da operação corrente.
+    fn wait_snap_ack(&mut self) -> Result<Vec<u8>, ProtocolError> {
+        loop {
+            let msg = self
+                .transport
+                .recv_raw(Duration::from_millis(TX_TIMEOUT_MS))
+                .map_err(|e| match e {
+                    TransportError::RecvTimeout { timeout_ms } => ProtocolError::Timeout {
+                        timeout_ms,
+                        addr: "snapTone/ack".into(),
+                    },
+                    TransportError::DeviceGone { why } => ProtocolError::DeviceGone { why },
+                    other => ProtocolError::InvalidShape {
+                        expected: "transporte saudável".into(),
+                        got: other.to_string(),
+                    },
+                })?;
+            if crate::golden::decode_envelope(&msg).is_ok() {
+                self.backlog.push(msg); // D7: push da família GP-100, não é o ACK
+                continue;
+            }
+            return crate::snap_tone::ack_body(&msg);
+        }
+    }
+
     /// Tabela dos 20 User IRs: req em `12001002`; o by-len de
-    /// `match_response` garante que a resposta lida é a TABELA (75B
-    /// nibble-exp), não um ACK (4B) — D1.
+    /// `match_shape` garante que a resposta lida é a TABELA (75B
+    /// nibble-exp), não um ACK (4B) — D1. Os nomes vêm do hardware
+    /// (nibble-collapse do payload), sem comparação com golden.
     pub fn list_user_irs(&mut self) -> Result<UserIrTable, ProtocolError> {
         let mut slots = Vec::new();
         for page in 0u8..0x14 {
@@ -575,6 +1079,70 @@ impl<T: DeviceTransport> Session<T> {
         Ok(UserIrTable { slots })
     }
 
+    /// As 5 leituras de `11/12001012` do boot (T2), devolvidas CRUAS.
+    ///
+    /// É a etapa que o repo chamava de "setlist" e agora se chama
+    /// [`BootStage::State5`]: a GP-100 **não tem função setlist** no manual
+    /// (`docs/GP100_DEVICE.md` §5#1). O payload é 44B nibble-exp com cara de
+    /// `12 10 2c 00 [i] 00 01 …` (PROTOCOL §13.3) — a semântica fina ainda NÃO
+    /// está decifrada; este método existe justamente para medir em campo
+    /// (CLI `read-state5 --log`) sem inventar decode.
+    ///
+    /// Leitura pura: não seleciona preset, não muda estado (o mesmo req T2 do
+    /// boot, provado pelo replay).
+    pub fn read_state5(&mut self) -> Result<Vec<Vec<u8>>, ProtocolError> {
+        let golden = GoldenFile::embedded()?;
+        let mut entradas = Vec::with_capacity(5);
+        for i in 0u8..5 {
+            entradas.push(self.tx_req(golden, 0x11, &[0x12, 0x00, 0x10, 0x12], &[i])?);
+        }
+        Ok(entradas)
+    }
+
+    // ─── Registradores globais (§13.13 — sessão G3–G6/G7 de 11/10) ────
+
+    /// Lê UM registrador global (§13.13.1): READ `11/<addr>` SEM vars →
+    /// IN `12/<addr>` payload. A forma validada é o COMPRIMENTO medido
+    /// ([`REGS_GLOBAIS`]); o payload volta CRU — nenhum decode aqui
+    /// (ADR-13: semântica não inventada; o decode medido é do chamador,
+    /// [`crate::codec::nibble_pair_value`]).
+    ///
+    /// # Erros
+    /// [`ProtocolError::Timeout`] se o registrador não responde na janela
+    /// ADR-3, [`ProtocolError::InvalidShape`] para comprimento fora do
+    /// medido.
+    pub fn read_register(
+        &mut self,
+        addr: [u8; 4],
+        formas: &'static [usize],
+    ) -> Result<Vec<u8>, ProtocolError> {
+        self.transport
+            .send_raw(&crate::codec::read_frame(&addr), WireKind::Read)
+            .map_err(tx_err)?;
+        self.wait_for_com(0x12, &addr, Forma::Medido(formas))
+    }
+
+    /// Escreve num registrador global (§13.13.1: WRITE `12/<addr>`) pelo
+    /// envelope canônico [`crate::codec::write_frame`]. A trava ADR-5 é do
+    /// TRANSPORTE: `WireKind::Write` sem write-verified é recusado antes do
+    /// driver — o byte nem sai da máquina (mesma trava do knob, #126).
+    pub fn write_register(&mut self, addr: [u8; 4], payload: &[u8]) -> Result<(), ProtocolError> {
+        self.transport
+            .send_raw(&crate::codec::write_frame(&addr, payload), WireKind::Write)
+            .map_err(tx_err)
+    }
+
+    /// Lê o bloco medido de registradores globais (§13.13) na ordem da
+    /// tabela [`REGS_GLOBAIS`], devolvendo `(addr, payload cru)`. Tudo-ou-
+    /// nada: a primeira falha aborta (o front vira banner com retry, #20).
+    pub fn read_globals(&mut self) -> Result<Vec<GlobalBruto>, ProtocolError> {
+        let mut out = Vec::with_capacity(REGS_GLOBAIS.len());
+        for &(addr, formas) in REGS_GLOBAIS {
+            out.push((addr, self.read_register(addr, formas)?));
+        }
+        Ok(out)
+    }
+
     /// Pushes de IN não solicitado acumulados no backlog (D7), para
     /// observação (D8: poll, nunca listener concorrente). A drenagem do
     /// backlog é da operação seguinte compatível.
@@ -591,7 +1159,7 @@ impl<T: DeviceTransport> Session<T> {
         addr: &[u8; 4],
         vars: &[u8],
     ) -> Result<Vec<u8>, ProtocolError> {
-        self.tx_req_in(golden, func_out, addr, vars, addr)
+        self.tx_req_in(golden, func_out, addr, vars, addr, WireKind::Read)
     }
 
     /// Igual a [`Session::tx_req`], com endpoint de RESPOSTA explícito —
@@ -607,9 +1175,10 @@ impl<T: DeviceTransport> Session<T> {
         addr: &[u8; 4],
         vars: &[u8],
         in_addr: &[u8; 4],
+        kind: WireKind,
     ) -> Result<Vec<u8>, ProtocolError> {
         let req = golden.build_request(func_out, addr, vars)?;
-        self.transport.send_raw(&req).map_err(tx_err)?;
+        self.transport.send_raw(&req, kind).map_err(tx_err)?;
         self.wait_for(0x12, in_addr)
     }
 
@@ -620,9 +1189,10 @@ impl<T: DeviceTransport> Session<T> {
         func: u8,
         addr: &[u8; 4],
         vars: &[u8],
+        kind: WireKind,
     ) -> Result<(), ProtocolError> {
         let req = golden.build_request(func, addr, vars)?;
-        self.transport.send_raw(&req).map_err(tx_err)
+        self.transport.send_raw(&req, kind).map_err(tx_err)
     }
 
     /// Espera uma mensagem no endpoint `(func, addr)` e devolve o PAYLOAD
@@ -630,6 +1200,20 @@ impl<T: DeviceTransport> Session<T> {
     /// certo, sem match no golden = InvalidShape (D5); nada na janela ADR-3
     /// = Timeout (D6).
     fn wait_for(&mut self, func: u8, addr: &[u8; 4]) -> Result<Vec<u8>, ProtocolError> {
+        let golden = GoldenFile::embedded()?;
+        self.wait_for_com(func, addr, Forma::Golden(golden))
+    }
+
+    /// [`wait_for`] com a validação de forma PLUGÁVEL. Por que existe: os
+    /// registradores globais da §13.13 não estão no golden (aquele arquivo
+    /// é o mundo do preset) — a resposta `12/000200xx` é validada pelos
+    /// COMPRIMENTOS medidos em G3–G6 (§13.13.1), não por template.
+    fn wait_for_com(
+        &mut self,
+        func: u8,
+        addr: &[u8; 4],
+        forma: Forma<'_>,
+    ) -> Result<Vec<u8>, ProtocolError> {
         loop {
             let msg = self
                 .transport
@@ -639,6 +1223,9 @@ impl<T: DeviceTransport> Session<T> {
                         timeout_ms,
                         addr: format!("{func:02x}/{}", addr_hex(addr)),
                     },
+                    // DeviceGone tem TIPO próprio (o front decide diferente:
+                    // LED off + retry explícito, sem retry automático).
+                    TransportError::DeviceGone { why } => ProtocolError::DeviceGone { why },
                     other => ProtocolError::InvalidShape {
                         expected: "transporte saudável".into(),
                         got: other.to_string(),
@@ -654,12 +1241,13 @@ impl<T: DeviceTransport> Session<T> {
                 );
             }
             if f == func && a == *addr {
-                GoldenFile::embedded()?
-                    .match_response(f, &a, payload)
-                    .ok_or_else(|| ProtocolError::InvalidShape {
-                        expected: format!("resposta do golden em {f:02x}/{}", addr_hex(&a)),
-                        got: hex_short(payload),
-                    })?;
+                // FORMA só (#177): endereço + comprimento (by-len) são
+                // schema; os bytes `const` do golden são o estado de fábrica
+                // do aparelho ANALISADO, e o dono editou o dele (renomear um
+                // pp muda pg0 — medido no boot do H4). O conteúdo é validado
+                // pelo decode dos objetos (`preset_pages`, `codec`), que
+                // conhecem o schema dos dados.
+                forma.valida(func, addr, payload)?;
                 return Ok(payload.to_vec());
             }
             self.backlog.push(msg); // D7
@@ -674,12 +1262,61 @@ impl<T: DeviceTransport> Session<T> {
 }
 
 /// Mapeia erro de transporte para erro de transação (D6/D5).
+///
+/// `DeviceGone` NÃO é achatado em `InvalidShape`: o device ausente é uma
+/// falha com tipo próprio (a UI para de tentar e mostra recuperação; o H1
+/// trata como divergência de campo).
+/// Forma da resposta esperada por `Session::wait_for_com`.
+enum Forma<'a> {
+    /// Golden by-len (#177) — o caminho de sempre (mundo do preset).
+    Golden(&'a GoldenFile),
+    /// Comprimentos MEDIDOS (§13.13.1) — a família `000102xx`/`000200xx`
+    /// não está no golden; a forma é a da sessão G3–G6.
+    Medido(&'a [usize]),
+}
+
+impl Forma<'_> {
+    fn valida(&self, func: u8, addr: &[u8; 4], payload: &[u8]) -> Result<(), ProtocolError> {
+        match self {
+            Forma::Golden(g) => {
+                g.match_shape(func, addr, payload)
+                    .ok_or_else(|| ProtocolError::InvalidShape {
+                        expected: format!(
+                            "forma de resposta do golden em {func:02x}/{}",
+                            addr_hex(addr)
+                        ),
+                        got: hex_short(payload),
+                    })?;
+                Ok(())
+            }
+            Forma::Medido(lens) => {
+                if lens.contains(&payload.len()) {
+                    return Ok(());
+                }
+                let esperado = lens
+                    .iter()
+                    .map(|n| format!("{n}B"))
+                    .collect::<Vec<_>>()
+                    .join(" ou ");
+                Err(ProtocolError::InvalidShape {
+                    expected: format!(
+                        "payload {esperado} medido (§13.13.1) em {func:02x}/{}",
+                        addr_hex(addr)
+                    ),
+                    got: hex_short(payload),
+                })
+            }
+        }
+    }
+}
+
 fn tx_err(e: TransportError) -> ProtocolError {
     match e {
         TransportError::SendFailed { why } => ProtocolError::InvalidShape {
             expected: "frame aceito pelo device".into(),
             got: why,
         },
+        TransportError::DeviceGone { why } => ProtocolError::DeviceGone { why },
         other => ProtocolError::InvalidShape {
             expected: "transporte saudável".into(),
             got: other.to_string(),

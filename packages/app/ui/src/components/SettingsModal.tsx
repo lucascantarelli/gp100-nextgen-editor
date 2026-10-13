@@ -7,13 +7,15 @@
  */
 import { useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
-import { MSG } from "../i18n/messages";
+import { MSG, LANGS, LANG_NAMES } from "../i18n/messages";
 
 export interface GeneralSettings {
   inputLevel: number;
   usbAudio: boolean;
   normalLevel: number;
   hintMode: "left" | "right";
+  /** Tooltip dos knobs com addr/code/ctrl do SET (U-3 — checklist §3.2). */
+  engineerMode: boolean;
   tapTempo: { pre: boolean; mod: boolean; dly: boolean };
   language: "pt-BR" | "en" | "es" | "zh";
 }
@@ -23,11 +25,12 @@ const DEFAULTS: GeneralSettings = {
   usbAudio: false,
   normalLevel: 100,
   hintMode: "left",
+  engineerMode: false,
   tapTempo: { pre: true, mod: false, dly: false },
   language: "pt-BR",
 };
 
-const KEY = "gp100.settings.general.v1";
+export const KEY = "gp100.settings.general.v1";
 
 export function loadGeneral(): GeneralSettings {
   try {
@@ -57,16 +60,14 @@ const overlay: CSSProperties = {
   placeItems: "center",
   zIndex: 50,
 };
+/* modal = superfície FLUTUANTE do sistema (gp-surface--floating): a luz e a
+   sombra vêm dos tokens; aqui só geometria/estrutura */
 const dialog: CSSProperties = {
   width: "min(640px, 92vw)",
   maxHeight: "86vh",
   overflow: "hidden",
   display: "grid",
   gridTemplateRows: "auto auto 1fr",
-  background: "var(--bg-raised)",
-  border: "1px solid color-mix(in srgb, var(--text-muted) 30%, transparent)",
-  borderRadius: 14,
-  boxShadow: "0 24px 60px rgba(0,0,0,.6)",
 };
 const tabRow: CSSProperties = { display: "flex", gap: "var(--space-4)", padding: "var(--space-12) var(--space-12) 0", flexWrap: "wrap" };
 const tabStyle = (on: boolean): CSSProperties => ({
@@ -181,6 +182,7 @@ export function SettingsModal({ open, general, onChangeGeneral, onClose }: Props
         aria-modal="true"
         aria-label={MSG.settingsDialogAria}
         tabIndex={-1}
+        className="gp-surface gp-surface--floating"
         style={dialog}
         onKeyDown={(e) => e.key === "Escape" && onClose()}
       >
@@ -229,6 +231,21 @@ export function SettingsModal({ open, general, onChangeGeneral, onClose }: Props
                 </select>
               </div>
               <div style={line}>
+                <span style={lbl}>
+                  {MSG.engineerModeLabel}
+                  <span
+                    style={{ display: "block", fontSize: "var(--text-xs)", color: "var(--text-muted)" }}
+                  >
+                    {MSG.engineerModeSub}
+                  </span>
+                </span>
+                <Toggle
+                  on={general.engineerMode}
+                  onChange={(v) => set({ engineerMode: v })}
+                  label={MSG.engineerModeAria}
+                />
+              </div>
+              <div style={line}>
                 <span style={lbl}>{MSG.tapTempoLabel}</span>
                 <span style={{ display: "flex", gap: "var(--space-12)" }}>
                   {(["pre", "mod", "dly"] as const).map((k) => (
@@ -252,12 +269,20 @@ export function SettingsModal({ open, general, onChangeGeneral, onClose }: Props
               </div>
               <div style={line}>
                 <span style={lbl}>{MSG.languageLabel}</span>
+                {/* O ÚNICO select sem canal USB que funciona: é software
+                    local puro. Trocar aqui chama `set()` → o App aplica via
+                    `setLanguage` e toda a casca redesenha. */}
                 <select
                   aria-label={MSG.languageAria}
-                  disabled
-                  style={{ ...input, opacity: 0.55 }}
+                  value={general.language}
+                  onChange={(e) => set({ language: e.target.value as GeneralSettings["language"] })}
+                  style={input}
                 >
-                  <option>{MSG.footswitchSoon}</option>
+                  {LANGS.map((l) => (
+                    <option key={l} value={l}>
+                      {LANG_NAMES[l]}
+                    </option>
+                  ))}
                 </select>
               </div>
             </>

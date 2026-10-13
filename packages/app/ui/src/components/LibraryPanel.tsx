@@ -1,30 +1,104 @@
 /**
- * LibraryPanel — biblioteca de presets (fábrica real: presetData.ts, gerado
- * do all.prst). Busca por nome/número/tipo, lista navegável por teclado e
- * abrir = deviceSelectPreset (select real; fallback dev local). Layout segue
- * o oficial: Factory Patch | User Patch (user ainda vazio).
+ * LibraryPanel — a biblioteca de patches (issue #26).
+ *
+ * **A lista é do BANCO, não do artefato.** Antes a aba de fábrica filtrava
+ * `FACTORY_PRESETS` na memória; agora o texto e o filtro de estilo vão para o
+ * SQLite (`library_search`) e o que volta são linhas. A diferença aparece
+ * quando a lista deixar de caber na memória: filtrar no front seria mentir
+ * sobre o custo. Fora do webview do Tauri a porta tem um fallback em memória
+ * com o mesmo shape, então esta UI é a mesma nos dois lugares.
+ *
+ * Os patches de usuário também moram no banco agora (o `localStorage` foi
+ * migrado no boot por `useLibrary`), então as duas abas saem do mesmo lugar —
+ * e é por isso que existe o botão de apagar em cada linha da aba do dono.
+ *
+ * Largura: 248px (era 300px na #11) — o pedalboard precisa do espaço; as
+ * linhas encolhem por ellipsis e a lista rola por dentro.
+ *
+ * **O botão do SnapTone mora AQUI, e não na navbar.** O primeiro lugar testado
+ * foi a navbar, ao lado do ⚙ — e o e2e de responsivoOeItava: a navbar tem
+ * ~11px de folga em 1280, então QUALQUER botão novo a estoura. O rodapé já é a
+ * casa das ações de arquivo (exportar/importar a biblioteca), e um `.clo` é
+ * exatamente isso: conteúdo que o dono importa para o arquivo.
+ *
+ * **UM botão para DUAS telas (#25 e #24).** O rodapé tem 248px e três botões
+ * (este + exportar + importar); um quarto estouraria a linha, o rodapé viraria
+ * duas fileiras, a coluna cresceria por `stretch` e o pedalboard desceria junto
+ * — foi o que a #25 custou em 18 baselines visuais. O botão abre o
+ * [`ContentMenu`](./ContentMenu), que leva ao gestor de tons OU ao laboratório
+ * de IRs: as duas telas guardam conteúdo do dono no arquivo dele.
  */
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
-import { FACTORY_PRESETS } from "../artifacts/presetData";
 import { MSG } from "../i18n/messages";
+import { rotuloPp } from "../ipc/types";
+import type { PresetLibrary } from "../ipc/types";
+import type { Banco, Library } from "../hooks/useLibrary";
+import { useHistory } from "../hooks/useHistory";
+import { HistoryPanel } from "./HistoryPanel";
 
-interface Props {
-  currentPp: number;
-  onSelect: (pp: number) => void;
+/**
+ * Os dois bancos do APARELHO (manual V1.8, "two patch banks"): USER P01–P99
+ * e FACTORY F01–F99.
+ *
+ * **Qual endereço é qual banco foi MEDIDO EM CAMPO (12/10, unidade do dono)**
+ * — era o item pendente do audit de 07/10 ("medir o mapeamento banco↔P/F
+ * antes de trocar o label"): o banco do DONO é o BAIXO (`0x0000..=0x0062`,
+ * onde estão os patches que ele reconhece) e o de FÁBRICA é o ALTO
+ * (`0x0100..=0x0162`), cujos nomes batem com a lista do manual ("It's GP100",
+ * "Blink OD"…). As DUAS faixas são as da captura S1 (ADR-12); a semântica é
+ * a que a bancada confirmou. Com o rótulo de ENDEREÇO crúdo o banco do dono
+ * saía como "P257..P355" e o dono li "300+ patches" onde o aparelho tem 198.
+ */
+const BANCO_USER_INICIO = 0x0100;
+
+/** O slot pertence ao banco DO DONO (baixo) — o resto é o de fábrica (alto). */
+function ehDoDono(pp: number): boolean {
+  return pp < BANCO_USER_INICIO;
 }
 
+/** Rótulo do MANUAL por banco: P01–P99 no do dono, F01–F99 no de fábrica. */
+function rotuloManual(pp: number): string {
+  return ehDoDono(pp) ? MSG.libPp(pp) : MSG.libFabPp(pp - BANCO_USER_INICIO);
+}
+
+interface Props {
+  /** preset de fábrica corrente (o chip/navbar navegam por aqui) */
+  currentPp: number;
+  /** banco ABERTO no palco — a aba o segue (abrir patch troca os dois) */
+  bankDoPalco: "factory" | "user";
+  /** id do patch de usuário ABERTO no palco (null = nenhum) */
+  currentUserId: string | null;
+  /** estado da biblioteca (busca no banco, números, erros, migração) */
+  lib: Library;
+  /**
+   * Biblioteca do APARELHO (#150): as entradas que o device reportou no
+   * load (app → device → app). `null` = sem aparelho — a aba "Patches"
+   * mostra o aviso de conexão, nunca uma lista de fábrica embutida.
+   */
+  deviceLib: PresetLibrary | null;
+  /** abre um preset do aparelho pelo pp (o palco select → device → app) */
+  onOpenFactory: (pp: number) => void;
+  /** abre um patch de usuário pelo id + posição na lista */
+  onOpenUser: (id: string, index: number) => void;
+  /** salva o patch CORRENTE (qualquer banco) como patch de usuário */
+  onSave: (name: string) => void;
+  /** apaga um patch de usuário pelo id */
+  onDelete: (id: string) => void;
+  /** abre a porta do conteúdo do dono: tons SnapTone (#25) ou IRs (#24) */
+  onOpenContent: () => void;
+}
+
+/* módulo elevado do sistema (`gp-surface`): luz e sombra pelos tokens */
 const panel: CSSProperties = {
-  background: "var(--bg-raised)",
-  border: "1px solid color-mix(in srgb, var(--accent) 25%, var(--border))",
-  borderRadius: 12,
   padding: "var(--space-12)",
   display: "grid",
-  gridTemplateRows: "auto auto 1fr",
+  gridTemplateRows: "auto auto auto 1fr auto",
   gap: "var(--space-8)",
-  /* mesmo bloco do shell (300px ↔ pedalboard, align stretch): a altura
+  /* mesmo bloco do shell (248px ↔ pedalboard, align stretch): a altura
      acompanha o pedalboard SEM lacuna — a lista rola por dentro */
   minHeight: 0,
+  minWidth: 0,
 };
 const tab: CSSProperties = {
   background: "transparent",
@@ -47,21 +121,44 @@ const input: CSSProperties = {
   fontFamily: "var(--font-mono)",
   fontSize: "var(--text-sm)",
   minHeight: 32,
+  minWidth: 0,
 };
-const list: CSSProperties = { overflowY: "auto", display: "grid", alignContent: "start", gap: 2 };
+/* linha de busca: a caixa cresce e o ✕ fica de tamanho fixo (alvo ≥32px) */
+const searchRow: CSSProperties = { display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto", gap: "var(--space-4)", alignItems: "center" };
+const list: CSSProperties = { overflowY: "auto", display: "grid", alignContent: "start", gap: 2, minWidth: 0 };
+/* patches de usuário: a lista é um `list` (cada linha tem AÇÃO própria — abrir e
+   excluir), não um listbox — o option embaixo do botão excluir ficaria órfão
+   para o leitor de tela (filhos de option são presentacionais) */
+const userList: CSSProperties = { display: "grid", alignContent: "start", gap: 2, minWidth: 0 };
+const userRow: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "minmax(0, 1fr) auto auto",
+  gap: "var(--space-4)",
+  alignItems: "center",
+  minWidth: 0,
+};
 const rowBtn = (on: boolean): CSSProperties => ({
   display: "grid",
-  gridTemplateColumns: "44px 1fr auto",
-  gap: "var(--space-8)",
+  gridTemplateColumns: "40px minmax(0, 1fr) auto",
+  gap: "var(--space-4)",
   alignItems: "center",
   textAlign: "left",
-  padding: "6px 8px",
+  padding: "5px 8px",
   borderRadius: 8,
   cursor: "pointer",
   minHeight: 32,
+  minWidth: 0,
   background: on ? "color-mix(in srgb, var(--accent) 18%, transparent)" : "transparent",
   border: on ? "1px solid var(--accent)" : "1px solid transparent",
 });
+/* nome do patch: encolhe com reticências (coluna estreita, nome longo) */
+const rowName: CSSProperties = {
+  fontSize: "var(--text-sm)",
+  minWidth: 0,
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+};
 const ppCell: CSSProperties = { fontFamily: "var(--font-mono)", fontSize: "var(--text-xs)", color: "var(--text-muted)" };
 const styleBadge: CSSProperties = {
   fontFamily: "var(--font-mono)",
@@ -70,73 +167,430 @@ const styleBadge: CSSProperties = {
   border: "1px solid color-mix(in srgb, var(--text-muted) 30%, transparent)",
   borderRadius: 6,
   padding: "1px 6px",
+  whiteSpace: "nowrap",
+};
+/* ✕ de apagar patch do usuário: alvo ≥32px, perigo só no hover */
+const delBtn: CSSProperties = {
+  background: "transparent",
+  border: "1px solid transparent",
+  color: "var(--text-muted)",
+  borderRadius: 8,
+  cursor: "pointer",
+  minHeight: 32,
+  minWidth: 32,
+  fontSize: "var(--text-sm)",
+};
+const saveRow: CSSProperties = { display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto", gap: "var(--space-4)", alignItems: "center" };
+const saveBtn: CSSProperties = {
+  ...tab,
+  padding: "6px 10px",
+  minHeight: 32,
+  border: "1px solid color-mix(in srgb, var(--accent) 45%, transparent)",
+  color: "var(--accent-text)",
+  fontWeight: 700,
+  whiteSpace: "nowrap",
+};
+/* botões de arquivo (export/import): mesma família do salvar, sem o destaque */
+const ioBtn: CSSProperties = { ...tab, padding: "4px 8px", minHeight: 32, border: "1px solid transparent", whiteSpace: "nowrap" };
+/* rodapé: números à esquerda, botões de arquivo à direita. `flexWrap` é uma
+   rede de segurança, não o caminho normal: sem ele, um quarto botão faria o
+   rodapé invadir o pedalboard e o "Salvar" ficar embaixo dele (o e2e R2b pegou
+   isso no clique). O botão do SnapTone é ícone justamente para não precisar
+   dessa linha extra. */
+const ioRow: CSSProperties = { display: "flex", flexWrap: "wrap", gap: "var(--space-4)", justifyContent: "space-between", alignItems: "center" };
+const ioGroup: CSSProperties = { display: "flex", flexWrap: "wrap", gap: "var(--space-4)", justifyContent: "flex-end" };
+const note: CSSProperties = { fontSize: "var(--text-xs)", color: "var(--text-muted)", margin: 0, padding: "var(--space-4)" };
+const empty: CSSProperties = { color: "var(--text-muted)", fontSize: "var(--text-sm)", padding: "var(--space-8)" };
+/* banner de erro do ARQUIVO: a barra do App é a do device, esta é do banco —
+   mesma forma (mensagem + ação) do #20, tokens diferentes */
+const banner: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "minmax(0, 1fr) auto",
+  gap: "var(--space-4)",
+  alignItems: "center",
+  fontSize: "var(--text-xs)",
+  color: "var(--danger)",
+  border: "1px solid color-mix(in srgb, var(--danger) 45%, transparent)",
+  borderRadius: 8,
+  padding: "var(--space-4)",
+};
+const infoBanner: CSSProperties = {
+  ...banner,
+  color: "var(--text-muted)",
+  borderColor: "color-mix(in srgb, var(--text-muted) 30%, transparent)",
 };
 
-export function LibraryPanel({ currentPp, onSelect }: Props) {
-  const [tabKind, setTabKind] = useState<"factory" | "user">("factory");
-  const [q, setQ] = useState("");
+/**
+ * Os estilos vinham do artefato de fábrica (#150: REMOVIDO). O ppType de um
+ * slot do aparelho vive na família 13xx, ainda indecifrada (#152) — um
+ * filtro por estilo hoje seria um filtro sobre dado inventado. Volta quando
+ * o decode entregar os tipos reais.
+ */
 
-  const filtered = useMemo(() => {
-    const needle = q.trim().toLowerCase();
-    if (!needle) return FACTORY_PRESETS;
-    return FACTORY_PRESETS.filter(
-      (p) =>
-        p.name.toLowerCase().includes(needle) ||
-        p.ppTypeName.toLowerCase().includes(needle) ||
-        String(p.pp) === needle ||
-        String(p.pp + 1).padStart(2, "0") === needle, // display é 1-based (P01..P99)
+/** Grava o arquivo que o dono pediu (o input de arquivo é invisível por isso). */
+function baixa(nome: string, texto: string): void {
+  const url = URL.createObjectURL(new Blob([texto], { type: "application/json" }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = nome;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+export function LibraryPanel({
+  currentPp,
+  bankDoPalco,
+  currentUserId,
+  lib,
+  deviceLib,
+  onOpenFactory,
+  onOpenUser,
+  onSave,
+  onDelete,
+  onOpenContent,
+}: Props) {
+  const [draft, setDraft] = useState("");
+  /**
+   * Qual banco do APARELHO a aba "Patches" mostra — os patches do DONO
+   * primeiro (pedido do dono 12/10): o aparelho tem dois bancos (198 slots)
+   * e o de fábrica fica na aba própria, separado.
+   */
+  const [vistaDevice, setVistaDevice] = useState<"user" | "fab">("user");
+  /** Relato do import: contabilidade ou recusa. `null` = nada aconteceu. */
+  const [relato, setRelato] = useState<string | null>(null);
+  const arquivoRef = useRef<HTMLInputElement>(null);
+
+  /**
+   * Qual patch o histórico está olhando.
+   *
+   * O `onMudou` do `useHistory` não recebe o patch — ele é "algo mudou, reflita"
+   * — e quem sabe QUAL patch é o painel (é quem abriu). Por isso o alvo fica
+   * num ref no instante da abertura, e não num estado: a restauração só o usa.
+   */
+  const alvoHist = useRef<{ id: string; index: number; nome: string } | null>(null);
+  const hist = useHistory(() => {
+    const alvo = alvoHist.current;
+    if (!alvo) return;
+    // O palco precisa refletir a cadeia nova (a restauração mudou o patch) e
+    // a lista precisa de outra ordem: `user_presets` ordena por instante.
+    onOpenUser(alvo.id, alvo.index);
+    void lib.recarrega();
+  });
+  const abreHist = (id: string, index: number, nome: string) => {
+    alvoHist.current = { id, index, nome };
+    hist.abre(id);
+  };
+
+  /**
+   * A aba VIVE no hook (`lib.banco`), e é ela que diz de onde vem a lista.
+   *
+   * Quando a aba morava no painel, a busca continuava sendo a do banco do
+   * PALCO: clicar na aba do dono buscava entre os 99 de fábrica e a lista
+   * aparecia vazia — sem mensagem, sem nada quebrado, só "nada encontrado".
+   * Um estado só para a aba e um para a consulta é como isso acontece.
+   *
+   * E o texto da busca é do BANCO QUE ESTÁ NA TELA, não um texto solto: buscar
+   * "06" na fábrica e clicar na aba do dono procuraria 06 entre patches que são
+   * nomeados, não numerados — e o dono leria isso como "o meu patch sumiu".
+   */
+  const { banco: tabKind, setBanco, setTexto } = lib;
+  const vaiPara = useCallback(
+    (b: Banco) => {
+      setBanco(b);
+      setTexto("");
+    },
+    [setBanco, setTexto],
+  );
+
+  // A aba segue o BANCO ABERTO no palco: abrir um patch de USUÁRIO leva a
+  // lista para "Meus patches" (e voltar ao aparelho, para as abas do device).
+  // Clicar numa aba é só navegação de VISÃO — não muda o palco.
+  //
+  // O `ref` é o que separa os dois sentidos. Sem ele, este efeito volta atrás
+  // do clique do dono sempre que a aba estiver diferente do banco do palco — e
+  // a aba de User Patch saltaria de volta para Factory assim que o dono
+  // clicasse nela, já que abrir patch no palco não muda o banco visível.
+  //
+  // **A sub-aba do device NÃO é guiada pelo palco (diretriz do dono 12/10:
+  // "Patches deve ser a selecionada por default"):** ela nasce em "Patches"
+  // (banco do dono) e só o CLIQUE do dono a move. O efeito que a seguia pelo
+  // pp corrente tirava a lista do default em dois caminhos reais: o boot
+  // frio abrindo um pp do banco alto (0x0100+) e o re-escanear (⟳) com um
+  // patch de usuário aberto — o dono pedia Patches e a tela respondia
+  // Fábrica.
+  const bancoVisto = useRef(bankDoPalco);
+  useEffect(() => {
+    if (bancoVisto.current !== bankDoPalco) {
+      bancoVisto.current = bankDoPalco;
+      vaiPara(bankDoPalco);
+    }
+  }, [bankDoPalco, vaiPara]);
+
+  // Importar é uma ação do DONO e uma ação de arquivo: o clique precisa dizer
+  // se gravou, quanto gravou, ou se o arquivo não era uma biblioteca. Sem este
+  // texto o botão seria um tiro no escuro com botão de retry.
+  const escolheArquivo = async (f: File | undefined): Promise<void> => {
+    if (!f) return;
+    const rel = await lib.importar(await f.text(), false);
+    setRelato(rel != null ? MSG.libImportDone(rel.inserted, rel.replaced, rel.skipped) : MSG.libImportRejected);
+  };
+
+  // a lista JÁ vem do banco visivel (`lib.banco`): aqui não há filtro por
+  // banco, porque um filtro em memória de um conjunto que o banco já filtrou
+  // é a forma de a tela e o arquivo discordarem sem nenhum sinal
+  const lista = lib.rows;
+
+  // **(#150) a aba "Patches" é o que o APARELHO tem:** as entradas que o
+  // load trouxe do device (`device_preset_library`), SEPARADAS POR BANCO —
+  // o do dono na aba Patches, o de fábrica na Fábrica (manual V1.8). O texto
+  // da caixa filtra o banco visível por nome e pelo rótulo do manual.
+  const textoBusca = lib.texto.trim().toLowerCase();
+  const doBancoVisivel = (deviceLib?.entries ?? []).filter((p) =>
+    vistaDevice === "user" ? ehDoDono(p.pp) : !ehDoDono(p.pp),
+  );
+  const patches = doBancoVisivel.filter((p) => {
+    if (!textoBusca) return true;
+    return (
+      p.name.toLowerCase().includes(textoBusca) ||
+      rotuloManual(p.pp).toLowerCase().includes(textoBusca) ||
+      rotuloPp(p.pp).toLowerCase().includes(textoBusca) ||
+      String(p.pp).includes(textoBusca)
     );
-  }, [q]);
+  });
 
   return (
-    <aside style={panel} aria-label={MSG.libAria}>
-      <div role="tablist" aria-label={MSG.libTabsAria} style={{ display: "flex", gap: "var(--space-4)" }}>
-        <button role="tab" aria-selected={tabKind === "factory"} style={tabKind === "factory" ? tabOn : tab} onClick={() => setTabKind("factory")}>
+    <aside className="gp-surface" style={panel} aria-label={MSG.libAria}>
+      <div role="tablist" aria-label={MSG.libTabsAria} style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-4)" }}>
+        <button
+          role="tab"
+          aria-selected={tabKind === "factory" && vistaDevice === "user"}
+          style={tabKind === "factory" && vistaDevice === "user" ? tabOn : tab}
+          onClick={() => {
+            setVistaDevice("user");
+            vaiPara("factory");
+          }}
+        >
           {MSG.libTabFactory}
         </button>
-        <button role="tab" aria-selected={tabKind === "user"} style={tabKind === "user" ? tabOn : tab} onClick={() => setTabKind("user")} disabled>
-          {MSG.libTabUser}
+        <button
+          role="tab"
+          aria-selected={tabKind === "factory" && vistaDevice === "fab"}
+          style={tabKind === "factory" && vistaDevice === "fab" ? tabOn : tab}
+          onClick={() => {
+            setVistaDevice("fab");
+            vaiPara("factory");
+          }}
+        >
+          {MSG.libTabFab}
+        </button>
+        <button role="tab" aria-selected={tabKind === "user"} style={tabKind === "user" ? tabOn : tab} onClick={() => vaiPara("user")}>
+          {`${MSG.libTabUser}${(lib.stats?.user ?? 0) > 0 ? ` (${lib.stats?.user})` : ""}`}
         </button>
       </div>
 
-      <input
-        style={input}
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-        placeholder={MSG.searchPlaceholder}
-        aria-label={MSG.searchAria}
-      />
+      {/* busca: o texto vai para o BANCO (debounce no hook), não para um .filter */}
+      <div style={searchRow}>
+        <input
+          style={input}
+          value={lib.texto}
+          onChange={(e) => lib.setTexto(e.target.value)}
+          placeholder={MSG.libSearchPlaceholder}
+          aria-label={MSG.libSearchAria}
+        />
+        {lib.texto.length > 0 && (
+          <button style={delBtn} onClick={() => lib.setTexto("")} aria-label={MSG.libSearchClear} title={MSG.libSearchClear}>
+            ✕
+          </button>
+        )}
+      </div>
 
       {tabKind === "factory" ? (
-        <div style={list} role="listbox" aria-label={`${MSG.libListAria} (${FACTORY_PRESETS.length})`}>
-          {filtered.length === 0 && (
-            <p style={{ color: "var(--text-muted)", fontSize: "var(--text-sm)", padding: "var(--space-8)" }}>
-              {MSG.searchEmpty(q)}
+        /* **(#150) sem filtro de estilo:** o ppType do slot vive na família
+           13xx, ainda indecifrada (#152) — o status diz de onde vem a lista. */
+        <p style={note} role="status">
+          {deviceLib != null
+            ? `${MSG.libListAria}: ${deviceLib.entries.length}`
+            : MSG.libEmptyDevice}
+        </p>
+      ) : (
+        /* salvar o patch CORRENTE: o retrato é a cadeia que está no palco
+           agora (o que o dono ajusta é o que volta ao abrir) */
+        <div style={saveRow}>
+          <input
+            style={input}
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder={MSG.userPatchNewPlaceholder}
+            aria-label={MSG.userPatchNameAria}
+          />
+          <button style={saveBtn} onClick={() => { onSave(draft); setDraft(""); }}>
+            {MSG.userPatchSave}
+          </button>
+        </div>
+      )}
+
+      {lib.err != null && (
+        <div role="alert" style={banner}>
+          <span>{lib.err.message}</span>
+          <button style={ioBtn} onClick={lib.err.retry}>
+            {MSG.errRetry}
+          </button>
+        </div>
+      )}
+
+      {tabKind === "factory" ? (
+        <div style={list} role="listbox" aria-label={`${MSG.libListAria} (${patches.length})`}>
+          {patches.length === 0 && (
+            <p style={empty}>
+              {deviceLib == null
+                ? MSG.libEmptyDevice
+                : lib.texto.trim()
+                  ? MSG.libEmptySearch(lib.texto.trim())
+                  : MSG.libEmpty}
             </p>
           )}
-          {filtered.map((p) => {
-            const on = p.pp === currentPp;
+          {patches.map((p) => {
+            const on = bankDoPalco === "factory" && p.pp === currentPp;
             return (
               <button
                 key={p.pp}
                 role="option"
                 aria-selected={on}
                 style={rowBtn(on)}
-                onClick={() => onSelect(p.pp)}
-                title={MSG.libRowTitle(p.name, p.ppTypeName)}
+                onClick={() => onOpenFactory(p.pp)}
+                title={p.name || rotuloManual(p.pp)}
               >
-                {/* oficial exibe 1-based (P25 Mist = ppID 24 do all.prst) */}
-                <span style={ppCell}>{MSG.libPp(p.pp)}</span>
-                <span style={{ fontSize: "var(--text-sm)", fontWeight: on ? 700 : 400 }}>{p.name}</span>
+                {/* rótulo do MANUAL pelo banco (P01–P99 / F01–F99): o endereço
+                    crúdo (`0x0100`) era lido como "355 patches" — o dono tem
+                    99, e o LED do aparelho mostra o rótulo do manual */}
+                <span style={ppCell}>{rotuloManual(p.pp)}</span>
+                <span style={{ ...rowName, fontWeight: on ? 700 : 400 }}>{p.name || "—"}</span>
                 <span style={styleBadge}>{p.ppTypeName}</span>
               </button>
             );
           })}
         </div>
       ) : (
-        <p style={{ color: "var(--text-muted)", fontSize: "var(--text-sm)", padding: "var(--space-8)" }}>
-          {MSG.userPatchEmpty}
+        <div style={list}>
+          {lista.length === 0 ? (
+            <p style={empty}>{lib.texto.trim() ? MSG.libEmptySearch(lib.texto.trim()) : MSG.userPatchEmpty}</p>
+          ) : (
+            <div role="list" aria-label={MSG.userPatchListAria} style={userList}>
+              {lista.map((p, i) => {
+                const on = bankDoPalco === "user" && p.id === currentUserId;
+                return (
+                  <div key={p.id} role="listitem" style={userRow}>
+                    <button
+                      aria-current={on}
+                      style={rowBtn(on)}
+                      onClick={() => onOpenUser(p.id, i)}
+                      title={MSG.libRowTitle(p.name, p.ppTypeName)}
+                    >
+                      <span style={ppCell}>{MSG.libUserPp(i)}</span>
+                      <span style={{ ...rowName, fontWeight: on ? 700 : 400 }}>{p.name}</span>
+                      <span style={styleBadge}>{p.ppTypeName}</span>
+                    </button>
+                    <button
+                      style={delBtn}
+                      onClick={() => abreHist(p.id, i, p.name)}
+                      aria-label={MSG.histOpenAria(p.name)}
+                      title={MSG.histOpenAria(p.name)}
+                    >
+                      ↺
+                    </button>
+                    <button
+                      style={delBtn}
+                      onClick={() => onDelete(p.id)}
+                      aria-label={MSG.userPatchDeleteAria(p.name)}
+                      title={MSG.userPatchDeleteAria(p.name)}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          {/* onde o dado mora: depois da #26 o patch do dono está num ARQUIVO,
+              e não no navegador — dizer o contrário é o tipo de texto que o
+              dono acredita e perde o dado quando limpa o storage do navegador */}
+          <p style={note}>{MSG.userPatchNote}</p>
+        </div>
+      )}
+
+      {/* rodapé: os números do arquivo + o backup em arquivo. O export é a rede
+          de segurança do banco — sem ele, um arquivo corrompido é um banco
+          corrompido. */}
+      <div style={ioRow}>
+        <p style={note} role="status">
+          {lib.stats != null ? MSG.libStats(lib.stats.total, lib.stats.user, lib.stats.schema) : ""}
         </p>
+        <div style={ioGroup}>
+          {/* ÍCONE, não texto: a coluna tem 248px e o texto "SnapTone" empurrava
+              os botões para uma segunda linha — o rodapé crescia, a coluna
+              esticava por `stretch` e o pedalboard (que divide a fileira com a
+              biblioteca) descia alguns pixels. O nome fica no
+              `aria-label`/`title`, como o ⚙ da navbar. */}
+          <button
+            style={{ ...ioBtn, minWidth: 32, padding: "4px 6px" }}
+            aria-label={MSG.irBtnAria}
+            title={MSG.irBtnAria}
+            onClick={onOpenContent}
+          >
+            ∿
+          </button>
+          <button
+            style={ioBtn}
+            aria-label={MSG.libExportAria}
+            title={MSG.libExportAria}
+            onClick={() => void lib.exportar().then((json) => { if (json != null) baixa("gp100.library.json", json); })}
+          >
+            {MSG.libExport}
+          </button>
+          <button style={ioBtn} aria-label={MSG.libImportAria} title={MSG.libImportAria} onClick={() => arquivoRef.current?.click()}>
+            {MSG.libImport}
+          </button>
+        </div>
+      </div>
+
+      {/* o input de arquivo fica fora da tela: o botão é o alvo visível e o
+          input continua alcançável por teclado/leitor de tela */}
+      <input
+        ref={arquivoRef}
+        type="file"
+        accept="application/json,.json"
+        style={{ display: "none" }}
+        aria-label={MSG.libImportAria}
+        onChange={(e) => void escolheArquivo(e.target.files?.[0])}
+      />
+
+      {relato != null && (
+        <div role="status" style={infoBanner}>
+          <span>{relato}</span>
+          <button style={ioBtn} onClick={() => setRelato(null)} aria-label={MSG.libSearchClear}>
+            ✕
+          </button>
+        </div>
+      )}
+      {lib.migrouLegado && relato == null && (
+        <div role="status" style={infoBanner}>
+          <span>{MSG.libMigrated(lib.stats?.user ?? 0)}</span>
+        </div>
+      )}
+
+      {/* o histórico é uma TELA, e mora aqui porque é o patch de USUÁRIO que
+          tem histórico — preset de fábrica vem do `all.prst` e é imutável por
+          construção. Renderizar aqui (e não no App) também é o que mantém o
+          `App.tsx` no teto de 300 linhas. */}
+      {hist.patchId != null && (
+        <HistoryPanel
+          hist={hist}
+          nome={alvoHist.current?.nome ?? ""}
+          onClose={() => {
+            hist.fecha();
+            alvoHist.current = null;
+          }}
+        />
       )}
     </aside>
   );

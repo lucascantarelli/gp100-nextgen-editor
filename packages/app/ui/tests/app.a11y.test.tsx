@@ -1,8 +1,8 @@
 /**
  * Teste de A11Y/estados do App — casca: biblioteca de fábrica (99 presets
- * reais do all.prst), board vazio com os 9 lugares marcados, trava ⇄ mover
- * no header e modal Settings. Pedais/knobs ganham testes próprios por
- * pedal quando entrarem no board.
+ * reais do all.prst), palco com os 9 lugares marcados e o pedal REAL das
+ * famílias já validadas (Fase 2: COMP no PRE), trava ⇄ mover no header e
+ * modal Settings. Cada pedal novo ganha testes próprios na sua rodada.
  */
 import { describe, expect, it, beforeAll } from "vitest";
 import { act } from "react";
@@ -30,15 +30,29 @@ async function settle() {
     await Promise.resolve();
     await Promise.resolve();
   });
+  // #161: o boot simulado corre em lotes via setTimeout(0) — microtasks
+  // não bastam; espera o gate resolver (casca pronta OU alerta de erro)
+  // para só então afirmar algo sobre a tela.
+  const inicio = Date.now();
+  while (
+    document.querySelector(".shell-content") === null &&
+    document.querySelector('[role="alert"]') === null &&
+    Date.now() - inicio < 8_000
+  ) {
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 50));
+    });
+  }
 }
 
 describe("App — casca (a11y e estados)", () => {
-  it("renderiza topbar, biblioteca de fábrica e board vazio com 9 lugares", async () => {
+  it("renderiza topbar, o inventário do aparelho (#150) e os 9 lugares (COMP no PRE)", async () => {
     const { root, host } = mount(<App />);
     await settle();
 
-    // patch corrente no display LED e na navbar
-    expect(host.textContent).toContain("It's GP100");
+    // patch corrente no display LED e na navbar (nome = fixture rotulada do
+    // fallback de teste — o fallback de teste não serve nome de fábrica)
+    expect(host.textContent).toContain("Fixture de teste (não é aparelho)");
 
     // 9 lugares da cadeia com os nomes das famílias
     const slots = Array.from(host.querySelectorAll('[aria-label^="Slot "]'));
@@ -48,14 +62,22 @@ describe("App — casca (a11y e estados)", () => {
     expect(fams).toContain("Slot 5: CAB");
     expect(fams).toContain("Slot 9: RVB");
 
-    // biblioteca: os 99 de fábrica aparecem (lista com role listbox)
+    // o PRE é pedal real (a cadeia inteira está no palco — U-3): SVG no slot 1
+    expect(
+      host.querySelector('[aria-label="Slot 1: PRE"] svg[role="group"]'),
+      "PRE/C-Wah renderizado",
+    ).toBeTruthy();
+
+    // biblioteca: os BANCOS do aparelho (#150) — a aba padrão é a do dono
+    // (P01–P99, manual V1.8); a de fábrica (F01–F99) é a aba ao lado
     const listbox = host.querySelector('[role="listbox"]');
     expect(listbox, "lista de presets acessível").not.toBeNull();
     const options = Array.from(listbox!.querySelectorAll('[role="option"]'));
     expect(options.length).toBe(99);
-    // nomes reais do all.prst na lista
-    expect(host.textContent).toContain("Dirty Funk");
-    expect(host.textContent).toContain("Dreamy Aco");
+    // rótulos do MANUAL por banco — nunca o endereço crúdo do fio (0x0100
+    // saía como "P257" e o dono lia 300+ patches onde o aparelho tem 198)
+    expect(host.textContent).toContain("P01");
+    expect(host.textContent).toContain("P99");
 
     // ações globais com nome acessível
     const buttons = Array.from(host.querySelectorAll("button"));
@@ -165,24 +187,29 @@ describe("App — casca (a11y e estados)", () => {
     host.remove();
   });
 
-  it("seleciona preset na biblioteca (fallback local determinístico)", async () => {
+  it("seleciona patch na biblioteca pelo endereço (#150, fallback determinístico)", async () => {
     const { root, host } = mount(<App />);
     await settle();
 
-    const mist = Array.from(host.querySelectorAll('[role="option"]')).find((o) => o.textContent?.includes("Mist"));
-    expect(mist, "preset P25 Mist visível").toBeTruthy();
+    // a aba padrão é a do DONO (banco baixo medido em campo 12/10): 0x0018 =
+    // 24 → P25, rotulado pelo manual (nunca pelo endereço crúdo)
+    const slot24 = Array.from(host.querySelectorAll('[role="option"]')).find((o) => o.textContent?.includes("P25"));
+    expect(slot24, "slot P25 (0x0018) visível").toBeTruthy();
     act(() => {
-      mist!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      slot24!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
     await settle();
 
-    // NOME do preset CLICADO aparece no LED e na navbar (o fallback do board
-    // já ignorou o pp e congelou o nome em "It's GP100" — agora nome/tipo vêm
-    // do mesmo artefato da biblioteca)
-    const navbar = Array.from(host.querySelectorAll("strong")).find((s) => /^P\d{2}/.test(s.textContent ?? ""));
-    expect(navbar?.textContent).toBe("P25 Mist");
+    // O pp SELECIONADO aparece no display LED do palco (pp 24 do banco baixo →
+    // rótulo 1-based P25, como o app oficial exibe; o nome é a fixture). A
+    // navbar perdeu o nome do patch (dono 12/10), então o LED é a fonte.
     const board = host.querySelector('[aria-label^="Pedalboard"]');
-    expect(board?.querySelector('[role="status"]')?.textContent).toContain("Mist");
+    const led = board?.querySelector('[role="status"]');
+    const spans = led ? Array.from(led.querySelectorAll("span")) : [];
+    expect(`${spans[0]?.textContent ?? ""} ${spans[1]?.textContent ?? ""}`.trim()).toBe(
+      "P25 Fixture de teste (não é aparelho)",
+    );
+    expect(led?.textContent).toContain("P25");
 
     act(() => root.unmount());
     host.remove();

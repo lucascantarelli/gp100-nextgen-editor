@@ -10,7 +10,7 @@ app/
 └── api/        BACKEND Rust do shell (crate gp100-ui, Tauri 2): commands de
                 device, DeviceActor (dono único da Session) e eventos
                 (`device://progress`, `device://push`). Toda regra de protocolo
-                vive no [gp100-core](../../core) — aqui só orquestra.
+                vive no [gp100-core](../core) — aqui só orquestra.
 ```
 
 **Contrato de fio:** os DTOs Rust (serde camelCase) espelham manualmente

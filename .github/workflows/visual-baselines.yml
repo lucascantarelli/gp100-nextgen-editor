@@ -1,0 +1,103 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# BASELINES VISUAIS — regenerar as baselines `-linux` SEM tocar em release.
+#
+# POR QUE EXISTE UM SEGUNDO WORKFLOW (e por que isso NÃO é a regressão da #68):
+# a #68 consoliou seis workflows em UM porque seis arquivos faziam a mesma regra
+# morar em seis lugares. Isto é o caso oposto: a regeneração de baseline é uma
+# OPERAÇÃO DE TESTE que vivia DENTRO do ci.yml, dividindo o `workflow_dispatch`
+# com os jobs de release — e o input `action` do ci.yml tem `default: release`.
+#
+# O INCIDENTE QUE ISSO CORRIGE (dispatch run 38070949933): para regenerar as
+# baselines, o dispatch foi feito com `update-snapshots=true` e `action` vazio.
+# O GitHub APLICA O DEFAULT quando o input vem vazio da CLI — o job `Release ·
+# RC` executou junto e criou branch `release/0.2.0` + tag `v0.2.0-rc.5` que não
+# existiam. As duas foram apagadas, mas o perigo é estrutural: enquanto uma
+# operação de teste e uma de release compartilham o mesmo dispatch, qualquer
+# descuido de input corta uma tag.
+#
+# AQUI o caminho de release NÃO EXISTE:
+#   - gatilho único é `workflow_dispatch` — sem push, sem schedule, sem tag;
+#   - NENHUM input (a branch se escolhe no dropdown do GitHub ou no `--ref`
+#     do `gh workflow run`) — não há o que esquecer de preencher;
+#   - `contents: read` no topo: este workflow é incapaz de commitar, tagar ou
+#     empurrar qualquer coisa, mesmo que um job dele seja adulterado;
+#   - a ÚNICA escrita é o `--update-snapshots=all`, que mora no workspace do
+#     runner, e a saída é o artefato `visual-snapshots` — o commit de volta na
+#     branch é decisão humana, com os diffs na mão (mesmo fluxo de antes).
+#
+# COMO USAR:
+#   gh workflow run visual-baselines.yml --ref <branch>
+#   gh run download <id> -n visual-snapshots -D /tmp/vs
+#   # confira os -linux em /tmp/vs, copie para packages/app/ui/e2e/__screenshots__
+#   # e commite. `--update-snapshots=all` reescreve TAMBÉM o que já batia
+#   # (re-encode pode mudar bytes): o `git diff --stat` é a conferência.
+#
+# O `Testes · E2E visual` do ci.yml continua sendo o COMPARADOR do PR — este
+# workflow não o substitui nem é substituído por ele: um prova que nada mudou,
+# o outro atualiza a referência quando a mudança é a intenção.
+# ═══════════════════════════════════════════════════════════════════════════
+
+name: Baselines visuais
+
+on:
+  # Só dispatch. Sem inputs: a ref alvo é a que o dispatch já carrega.
+  workflow_dispatch:
+
+# Mínimo absoluto. `contents: read` é a trava de fábrica: este workflow não
+# tem como escrever no repositório — nem commit, nem tag, nem push.
+permissions:
+  contents: read
+
+# Dispatch na mesma ref cancela a regeneração anterior — a mais nova é a que
+# interessa, e o artefato dela é o que vai ser baixado.
+concurrency:
+  group: baselines-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  regen:
+    name: Baselines · regenera as visuais (linux)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-node-pnpm
+      - uses: ./.github/actions/playwright-setup
+      - name: regenerar (--update-snapshots=all)
+        working-directory: packages/app/ui
+        # O MESMO runner (ubuntu-24.04) e o MESMO caminho do job visual do
+        # ci.yml: as baselines `-linux` nascem da mesma combinação SO + fonte
+        # + WebKit, que é o que o screenshot registra.
+        #
+        # `--update-snapshots=all` é o único modo aqui: este workflow existe
+        # PARA escrever. O default do playwright (comparar e falhar) continua
+        # sendo a regra no ci.yml, que não tem este flag.
+        run: pnpm exec playwright test visual.spec.ts --update-snapshots=all
+      - name: baselines regeneradas como artefato
+        # `if: always()`: uma regeneração PARCIAL (a metade que o playwright
+        # reescreveu antes de uma falha) também é insumo de diagnóstico.
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: visual-snapshots
+          path: packages/app/ui/e2e/__screenshots__/
+          retention-days: 14
+          # `error` (e não o `ignore` do comparador): aqui o artefato é o
+          # PRODUTO do workflow. Verde sem nada gerado é a mentira mais cara
+          # que este job poderia contar.
+          if-no-files-found: error
+      - name: resumo (o runbook do commit)
+        if: always()
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          {
+            echo "### 🖼️ Baselines \`-linux\` regeneradas"
+            echo ""
+            echo "1. \`gh run download ${{ github.run_id }} -n visual-snapshots -D /tmp/vs\`"
+            echo "2. confira os PNGs em \`/tmp/vs\` e copie para \`packages/app/ui/e2e/__screenshots__/\`"
+            echo "3. \`git diff --stat\` — o \`--update-snapshots=all\` reescreve até o que já batia (re-encode); só os que DIFFEREM são diff real"
+            echo "4. commite na branch de origem deste dispatch ([run]($RUN_URL))"
+            echo ""
+            echo "> Este workflow tem \`contents: read\`: ele não commita nada de propósito — o commit é humano, com o diff na mão."
+          } >> "$GITHUB_STEP_SUMMARY"

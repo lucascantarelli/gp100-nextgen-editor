@@ -1,6 +1,6 @@
 /**
  * Roteiros de teste manual (docs/UI_TEST_PLAN.md) executados no Chromium.
- * Cada teste referencia o ID do roteiro (R1–R6 + drum/looper). O resultado
+ * Cada teste referencia o ID do roteiro (R1–R7 + drum/looper). O resultado
  * desta suíte é registrado na tabela de execução do próprio UI_TEST_PLAN.
  *
  * Refactor POM (V-7): seletores encapsulados em e2e/pages/_pages.ts —
@@ -8,6 +8,13 @@
  */
 import { expect, test } from "@playwright/test";
 import { ShellPage } from "./pages/_pages";
+
+/**
+ * Nome do fallback de TESTE da porta (`ipc/fallbackData.ts`, #150): é uma
+ * fixture ROTULADA — não é nome de preset de fábrica embutido no app. O
+ * e2e roda fora do webview, então este é o nome que o palco mostra.
+ */
+const FIXTURE = "Fixture de teste (não é aparelho)";
 
 let shell: ShellPage;
 
@@ -17,13 +24,14 @@ test.beforeEach(async ({ page }) => {
 });
 
 /* ── R1. Topbar e identidade ── */
-test("R1 topbar: logo, conexão, patch na navbar e foco de teclado", async ({ page }) => {
+test("R1 topbar: logo, conexão, patch no display do palco e foco de teclado", async ({ page }) => {
   const brand = shell.brand;
   await expect(brand.logo()).toBeVisible();
   await expect(brand.tagline()).toBeVisible();
-  // status de conexão no cluster da navbar (texto; o cluster abriga boot/badge)
-  // patch corrente no formato Pnn Nome (1-based, como o app oficial)
-  await expect(shell.patchLabel()).toBeVisible();
+  // status de conexão no cluster da navbar (dot + linha de status + ⟳; o
+  // cluster de patch SAIU da navbar — diretriz do dono 12/10)
+  // patch corrente no display LED do palco, no formato Pnn Nome (1-based)
+  await expect(shell.board.display()).toContainText("P01");
 
   // tab alcança os controles globais com foco visível (outline definido no CSS)
   await page.keyboard.press("Tab");
@@ -35,81 +43,254 @@ test("R1 topbar: logo, conexão, patch na navbar e foco de teclado", async ({ pa
   });
   expect(focused).not.toBeNull();
 
-  // ◀ ▶ navegam presets em ciclo (coluna do patch do app oficial) —
-  // navbar, display LED do board e biblioteca acompanhando juntos
-  const listbox = shell.library.listbox();
-  // O NOME precisa acompanhar o número nos 3 lugares (o fallback do board
-  // já ignorou o pp e congelou o nome — cenário permanente no e2e)
-  await shell.prevPatch();
-  await expect(shell.patchLabel()).toHaveText("P99 Dreamy Aco");
-  await expect(listbox.getByRole("option").last()).toHaveAttribute("aria-selected", "true");
-  await expect(listbox.getByRole("option").last()).toHaveAccessibleName(/Dreamy Aco/);
-  await expect(shell.board.display()).toContainText("Dreamy Aco");
-  await shell.nextPatch();
-  await expect(shell.patchLabel()).toHaveText("P01 It's GP100");
-  await expect(listbox.getByRole("option").first()).toHaveAttribute("aria-selected", "true");
-  await expect(shell.board.display()).toContainText("It's GP100");
+  // a troca de patch vive na LISTA (#150: dois bancos, ADR-12) — clicar na
+  // linha move o palco e a lista marca a seleção. A aba Patches é a DEFAULT
+  // e NÃO salta sozinha (diretriz do dono 12/10: "patches deve ser a
+  // selecionada por default"): abrimos a Fábrica, o slot 0x0162 é a F99
+  // (manual V1.8) — o nome é a fixture do fallback, nunca um preset que o
+  // app não leu do fio
+  await shell.library.fabTab().click();
+  await shell.library.searchFor("0x0162");
+  const alto = shell.library.options().first();
+  await alto.click();
+  await expect(alto).toHaveAttribute("aria-selected", "true");
+  await expect(shell.board.display()).toContainText("0x0162");
+  await expect(shell.board.display()).toContainText(FIXTURE);
+  // de volta ao primeiro slot do banco do DONO (0x0000 → P01, na aba
+  // Patches — por CLIQUE: a lista fica onde o dono a deixou)
+  await shell.library.factoryTab().click();
+  await shell.library.searchFor("0x0000");
+  const baixo = shell.library.options().first();
+  await baixo.click();
+  await expect(baixo).toHaveAttribute("aria-selected", "true");
+  await expect(shell.board.display()).toContainText("P01");
+  await expect(shell.board.display()).toContainText(FIXTURE);
 });
 
-/* ── R2. Biblioteca de fábrica (99) ── */
-test("R2 biblioteca: 99 presets reais, busca, seleção e empty state", async ({ page }) => {
+/* ── R2. Patches do aparelho (dois bancos, rótulo do manual V1.8) ── */
+test("R2 biblioteca: dois bancos do aparelho (P01–P99 e F01–F99), busca e empty state", async ({ page }) => {
   const lib = shell.library;
   await expect(lib.listbox()).toBeVisible();
+  // o status diz de onde a lista veio (#150): o APARELHO reportou 198 slots
+  await expect(page.getByText("Patches do aparelho: 198")).toBeVisible();
+  // a aba padrão é a do DONO: 99 slots rotulados P01..P99 (dono primeiro)
   await expect(lib.options()).toHaveCount(99);
-  await expect(lib.optionAt(0)).toContainText("It's GP100");
-  await expect(lib.options().last()).toContainText("Dreamy Aco");
+  await expect(lib.optionAt(0)).toContainText("P01"); // banco do dono vem primeiro
+  await expect(lib.options().last()).toContainText("P99");
 
-  await lib.searchFor("mist");
+  // busca filtra localmente pelo rótulo do manual
+  await lib.searchFor("P12");
   await expect(lib.options()).toHaveCount(1);
-  await expect(lib.optionAt(0)).toHaveAccessibleName(/P25 Mist Rock/);
+  await expect(lib.optionAt(0)).toContainText("P12");
 
-  // busca por estilo e vazio com dica
-  await lib.searchFor("acoustic");
-  const n = await lib.options().count();
-  expect(n).toBeGreaterThan(10);
   await lib.searchFor("zzzz");
   await expect(lib.options()).toHaveCount(0);
-  await expect(page.getByText(/Nenhum preset para/)).toBeVisible();
+  await expect(page.getByText(/Nada encontrado para/)).toBeVisible();
 
-  // abrir preset (select real no shell; fallback dev troca o corrente)
-  await lib.searchFor("mist");
-  const mistOption = lib.optionAt(0);
-  await mistOption.click();
-  // seleção: accessible name é "P25 Mist Rock" (os spans não têm espaços no textContent)
-  await expect(mistOption).toHaveAccessibleName(/P25 Mist Rock/);
-  await expect(mistOption).toHaveAttribute("aria-selected", "true");
-  // nome COMPLETO na navbar e no LED (não só o nº — o fallback já congelou)
-  await expect(shell.patchLabel()).toHaveText("P25 Mist");
-  await expect(shell.board.display()).toContainText("Mist");
+  // a aba Fábrica é o banco ALTO (0x0100..=0x0162 → F01..F99, medido em
+  // campo 12/10) — e a busca aceita o endereço
+  await lib.fabTab().click();
+  await expect(lib.options()).toHaveCount(99);
+  await expect(lib.optionAt(0)).toContainText("F01");
+  await expect(lib.options().last()).toContainText("F99");
+  await lib.searchFor("0x0162");
+  await expect(lib.options()).toHaveCount(1);
+  await expect(lib.optionAt(0)).toContainText("F99");
 
-  // User Patch bloqueada com explicação
-  await expect(lib.userTab()).toBeDisabled();
+  // abrir slot do banco do DONO (0x0062 = 98 → P99): a aba Patches é a
+  // inicial e o LED mostra o rótulo 1-based do fallback
+  await lib.factoryTab().click();
+  await lib.searchFor("0x0062");
+  await expect(lib.options()).toHaveCount(1);
+  const alvo = lib.optionAt(0);
+  await expect(alvo).toContainText("P99");
+  await alvo.click();
+  await expect(alvo).toHaveAttribute("aria-selected", "true");
+  await expect(shell.board.display()).toContainText("P99");
+  await expect(shell.board.display()).toContainText("Fixture de teste");
 });
 
-/* ── R3. Board vazio (9 lugares) + trava ⇄ mover ── */
+/* ── R2b. User Patch: snapshot do palco, volta ao palco e exclusão (#11) ── */
+test("R2b user patch: salvar a cadeia corrente, abrir de volta (U01) e excluir", async ({ page }) => {
+  const lib = shell.library;
+  const board = shell.board;
+
+  // a aba NÃO é mais decorativa: mostra o estado vazio e o caminho para salvar
+  await lib.userTab().click();
+  await expect(page.getByText(/Nenhum patch salvo ainda/)).toBeVisible();
+  await expect(page.getByText(/SQLite/)).toBeVisible();
+  await expect(lib.userRows()).toHaveCount(0);
+
+  // salvar o patch CORRENTE (o app abre em P01) como patch de usuário
+  await lib.saveAs("Meu clean");
+  await expect(lib.userRows()).toHaveCount(1);
+  await expect(lib.userRowAt(0)).toContainText("U01");
+  await expect(lib.userRowAt(0)).toContainText("Meu clean");
+
+  // abrir o patch salvo: o rótulo U01 assume no display do palco (patch local
+  // não tem cursor de fábrica — pp = −1)
+  await lib.userRowAt(0).getByRole("button").first().click();
+  await expect(board.display()).toContainText("U01");
+  await expect(board.display()).toContainText("Meu clean");
+
+  // excluir: volta ao preset de fábrica confirmado pelo device (nunca um patch
+  // apagado continuaria no palco — a UI não mente sobre o que existe)
+  await lib.deleteUserPatch("Meu clean").click();
+  await expect(lib.userRows()).toHaveCount(0);
+  await expect(board.display()).toContainText("P01");
+  await expect(board.display()).toContainText("Fixture de teste");
+});
+
+/* ── R3. Board (9 pedais reais — cadeia inteira numa fileira) + trava ⇄ mover ── */
 test("R3 board: 9 slots na ordem do sinal e trava do drag", async () => {
   const board = shell.board;
   const fams = ["PRE", "DST", "AMP", "NR", "CAB", "EQ", "MOD", "DLY", "RVB"];
   for (let i = 0; i < fams.length; i += 1) {
     await board.expectSlotVisible(i + 1, fams[i]);
   }
-  await expect(board.root.getByText("vazio").first()).toBeVisible();
+  // a cadeia inteira desenha pedal: 9 no palco, nenhum lugar vazio
+  await expect(board.root.locator('svg[role="group"]')).toHaveCount(9);
+  await expect(board.root.getByText("vazio")).toHaveCount(0);
 
   // display LED: nº (2 dígitos) + nome + tipo
   await expect(board.display()).toContainText("01");
 
+  // TODOS os slots são pedais REAIS: o arrasto sai de qualquer um; com a
+  // trava ⇄ destravada a dica mora no RODAPÉ do palco (os antigos lugares
+  // vazios eram quem carregava o hint "arraste ⇄")
   await board.expectMoverPressed(false);
   const slot = board.slot(1, "PRE");
   await expect(slot).not.toHaveAttribute("draggable", "true");
+  await expect(board.slot(2, "DST").locator('svg[role="group"]')).toBeVisible();
 
   await board.toggleMover();
   await board.expectMoverPressed(true);
   await expect(slot).toHaveAttribute("draggable", "true");
-  await expect(slot).toContainText("arraste ⇄");
+  await expect(
+    board.root.getByText("arraste ⇄ para trocar dois pedais de posição"),
+  ).toBeVisible();
 
   // kill/drum/master não soltam erro
   await shell.killSwitch().click();
   await expect(shell.alerts).toHaveCount(0);
+});
+
+/* ── R7. Pedal real no palco (Fase 2/U-3 — o PRE real do P01 é C-Wah) ── */
+test("R7 C-Wah: valor em texto no palco (só leitura), edição no modal, LED/footswitch e trava", async ({ page }) => {
+  const board = shell.board;
+  const pedalSlot = board.slot(1, "PRE");
+  const pedal = pedalSlot.locator('svg[role="group"]');
+  await expect(pedal).toBeVisible();
+  // o PRE do P01 no all.prst é C-Wah (o mock antigo congelava COMP)
+  await expect(pedal).toHaveAttribute("aria-label", /C-Wah/);
+  // a cadeia inteira está no palco (9 pedais reais)
+  await expect(board.root.locator('svg[role="group"]')).toHaveCount(9);
+  await expect(board.slot(2, "DST").locator('svg[role="group"]')).toBeVisible();
+
+  // knobs REAIS do dicionário (fxData: C-Wah = Range/Q/VOL): no palco o
+  // pedal é COMPACTO e mostra o VALOR de cada knob em texto, só leitura
+  await expect(pedalSlot.locator("[data-value]")).toHaveCount(3);
+  await expect(pedalSlot.locator('[data-value="50"]').first()).toBeVisible();
+  await expect(pedalSlot.locator('svg[role="slider"]')).toHaveCount(0);
+
+  // o estado vem do .prst (`effectState`): o C-Wah do P01 nasce DESLIGADO e o
+  // footswitch alterna LOCAL (sem comando de toggle no protocolo capturado)
+  const led = pedalSlot.locator("[data-led]");
+  await expect(led).toHaveAttribute("data-led", "off");
+  await pedalSlot.locator('[role="button"][aria-label^="Ligar efeito"]').click();
+  await expect(led).toHaveAttribute("data-led", "on");
+
+  // trava ⇄ mover: ligada libera o arrasto de qualquer pedal da cadeia
+  await expect(pedalSlot).not.toHaveAttribute("draggable", "true");
+  await board.toggleMover();
+  await expect(pedalSlot).toHaveAttribute("draggable", "true");
+
+  // modo engenheiro (Settings → General): o tooltip do knob passa a mostrar
+  // addr/code/ctrl do comando SET — sem a referência interna à doc (§13.11)
+  const settings = await shell.openSettings();
+  const eng = settings.role("switch", "Modo engenheiro");
+  await expect(eng).toHaveAttribute("aria-checked", "false");
+  await eng.click();
+  await expect(eng).toHaveAttribute("aria-checked", "true");
+  await settings.pressEscape();
+  await settings.expectHidden();
+  const tip = pedalSlot.locator('svg[role="img"] title').first();
+  await expect(tip).toContainText("addr 10 01 00 02");
+  await expect(tip).toContainText("ctrl 0");
+  await expect(tip).toContainText("05000008"); // effectCode do C-Wah no .prst
+  await expect(tip).not.toContainText("§13.11");
+
+  // edição: a trava precisa voltar ao repouso antes — com ela ativa o clique
+  // pertence ao drag, não à ampliação. O clique em QUALQUER ponto do pedal
+  // (inclusive sobre o knob, que é display) abre o modal
+  await board.toggleMover();
+  await expect(board.mover()).toHaveAttribute("aria-pressed", "false");
+  await pedal.locator('svg[role="img"]').first().click();
+  const dlg = page.getByRole("dialog", { name: /Edição do pedal/ });
+  await expect(dlg).toBeVisible();
+  await expect(dlg.locator('svg[role="slider"]')).toHaveCount(3);
+  await expect(dlg.locator('input[aria-label="Valor (Enter para editar)"]').first()).toHaveValue(
+    "50",
+  );
+
+  // o knob AMPLIADO ajusta o MESMO estado: ArrowUp 50 → 51 no modal e no palco
+  await dlg.locator('svg[role="slider"]').first().press("ArrowUp");
+  const modeBox = dlg.locator('input[aria-label="Valor (Enter para editar)"]').first();
+  await expect(modeBox).toHaveValue("51");
+  await expect(pedalSlot.locator('[data-value="51"]').first()).toBeVisible();
+
+  // valor EDITÁVEL no modal: digitar 42 → Enter (virou device_set_param) e o
+  // palco reflete o novo valor ao fechar
+  await modeBox.click();
+  const editing = dlg.locator('input[aria-label^="Valor do knob"]');
+  await editing.fill("42");
+  await editing.press("Enter");
+  await expect(modeBox).toHaveValue("42");
+  await page.keyboard.press("Escape");
+  await expect(dlg).toHaveCount(0);
+  await expect(pedalSlot.locator('[data-value="42"]')).toBeVisible();
+});
+
+/* ── R7b. Effects List: a lista de efeitos do módulo (#19, U-3) ── */
+test("R7b effects list: troca o efeito do pedal e o palco acompanha", async ({ page }) => {
+  const board = shell.board;
+  const pedalSlot = board.slot(1, "PRE");
+
+  // abre a edição pelo pedal do palco (como no R7)
+  await pedalSlot.locator('svg[role="img"]').first().click();
+  const dlg = page.getByRole("dialog", { name: /Edição do pedal/ });
+  await expect(dlg).toBeVisible();
+
+  // a lista é do MÓDULO: só PRE, e o efeito atual vem marcado com ✓
+  const list = dlg.getByRole("listbox", { name: "Lista de efeitos do módulo PRE" });
+  await expect(list).toBeVisible();
+  await expect(list.getByRole("option", { selected: true })).toHaveText(/C-Wah/);
+  await expect(list.getByRole("option")).toHaveCount(16); // os 16 PREs do dicionário
+  // AMP não vaza para a lista de PRE
+  await expect(list.getByText("Bog RedM")).toHaveCount(0);
+
+  // troca C-Wah → COMP: o palco troca na hora, com os knobs do COMP
+  // (o nome acessível da opção é o NOME do efeito; o title carrega a ação)
+  await list.getByRole("option", { name: "COMP", exact: true }).click();
+  await expect(pedalSlot.locator('svg[role="group"]')).toHaveAttribute("aria-label", /COMP/);
+  await expect(pedalSlot.locator("[data-value]")).toHaveCount(2);
+  await expect(pedalSlot.locator('[data-value="20.0"]')).toBeVisible();
+  // o modal acompanha (estado único) e o título já é o novo efeito
+  await expect(dlg).toHaveAttribute("aria-label", /COMP/);
+  await expect(list.getByRole("option", { selected: true })).toHaveText(/COMP/);
+
+  // a busca filtra a lista do módulo
+  const search = dlg.getByRole("textbox", { name: "Buscar efeito do módulo por nome" });
+  await search.fill("wah");
+  await expect(list.getByRole("option")).toHaveCount(4); // C-Wah, V-Wah, T-Wah, A-WAH
+  await search.fill("zzz-nada");
+  await expect(list.getByRole("option")).toHaveCount(0);
+  await expect(dlg.getByText(/Nenhum efeito para/)).toBeVisible();
+
+  // fechar devolve o palco com o COMP (o estado é do App, não do modal)
+  await page.keyboard.press("Escape");
+  await expect(dlg).toHaveCount(0);
+  await expect(pedalSlot.locator('svg[role="group"]')).toHaveAttribute("aria-label", /COMP/);
 });
 
 /* ── R4. Modal Settings (⚙) ── */
@@ -160,6 +341,11 @@ test("R5 boot: roda sem erro, status segue conectado e pushes abre", async () =>
 
 /* ── R6. Acessibilidade (gate manual) ── */
 test("R6 a11y: alvos ≥32px, estado não só por cor, reduced-motion", async ({ page }) => {
+  // o gate de boot (#161) monta a casca só APÓS o boot validado: espera
+  // ela existir — os checks cobrem a casca inteira (e o live-dot da LED
+  // só nasce com `connected`, que exige o boot pronto).
+  await expect(shell.library.listbox()).toBeVisible();
+
   // alvos clicáveis ≥32px (altura) nos controles da casca
   const small = await page.evaluate(() => {
     const bad: string[] = [];

@@ -7,7 +7,7 @@
 //! ```text
 //! model → preset → golden → codec
 //!      → transport (trait DeviceTransport + MockDevice)
-//!      → session  (FSM com replay de analysis/fixtures/)
+//!      → session  (FSM com replay das fixtures do fio)
 //! ```
 //!
 //! **Fontes de verdade** — regra de ouro R1: NUNCA adivinhar protocolo.
@@ -18,7 +18,8 @@
 //! - [docs/DECISIONS.md](../../docs/DECISIONS.md) — ADR-1..5 pré-assinados
 //!   (endian/nibble, `ProtocolError`, timeout 3s, trait `DeviceTransport`,
 //!   `WRITE_VERIFIED`);
-//! - [analysis/fixtures/](../../analysis/fixtures) — replay por fase
+//! - [fixtures do fio](../data/fixtures) (packages/core/data/fixtures,
+//!   casa canônica HW-3/#163) — replay por fase
 //!   (boot/knobs/save/ir), paridade travada no pytest.
 //!
 //! **Qualidade** (skill [.agents/skills/rust-practices](../../.agents/skills/rust-practices/SKILL.md)):
@@ -92,6 +93,19 @@ pub enum ProtocolError {
         addr: String,
     },
 
+    /// O device SUMIU no meio da sessão (USB removido/cabo puxado): o
+    /// transporte reportou [`TransportError::DeviceGone`] e a transação foi
+    /// abortada. **Distinto de [`InvalidShape`](Self::InvalidShape) de
+    /// propósito:** a UI trata diferente (LED off + retry explícito, sem
+    /// retry automático) e o H1 registra como divergência de campo — a
+    /// decisão está documentada em `transport::TransportError::DeviceGone`.
+    #[error("device sumiu no meio da sessão: {why}")]
+    DeviceGone {
+        /// Detalhe humano do motivo (do transporte: SO/driver ou plano de
+        /// falha do mock).
+        why: String,
+    },
+
     /// Resposta/ACK chegou com conteúdo fora do esperado pela FSM:
     /// ecos errados, status incoerente, ACK de chunk inválido (§13.7).
     #[error("ack inesperado na transação {addr}: {got}")]
@@ -101,6 +115,27 @@ pub enum ProtocolError {
         /// O que de fato chegou (hex curto).
         got: String,
     },
+
+    /// Valor de parâmetro fora da faixa que o firmware aceita (#110, ADR-10).
+    ///
+    /// Variante nova por ADR (regra do ADR-2): o caso é de **conteúdo**, não
+    /// de shape — o frame teria bytes perfeitamente bem formados e ainda
+    /// assim derrubaria o aparelho num assert do firmware
+    /// (`audio.c:1828`, `para <= GetParaMaxVal`), exigindo power-cycle
+    /// físico. Recusar aqui é o que transforma uma perda de tempo em um erro
+    /// visível. `addr` + `param` + `allowed` estão no payload porque o
+    /// runbook de campo precisa dizer qual knob e até onde.
+    #[error("valor fora da faixa em {addr} ({param}): {got}; permitido {allowed}")]
+    ValueOutOfRange {
+        /// Endereço da transação recusada (`10 [slot] 00 02` do §13.11).
+        addr: String,
+        /// Par identificado como `effectCode/ctrl` (hex/decimal).
+        param: String,
+        /// O valor que foi pedido (valor não-finito vem assim).
+        got: String,
+        /// O que o dicionário permite (faixa numérica ou lista de ids).
+        allowed: String,
+    },
 }
 
 /// model — dicionário de algoritmos/controles.
@@ -109,11 +144,28 @@ pub mod model;
 /// preset — arquivo `.prst` com round-trip byte-idêntico (regra R4).
 pub mod preset;
 
+/// preset_json — o `.prst` em JSON versionado, de ida e volta (issue #114).
+pub mod preset_json;
+
+/// tone_sheet — a folha de timbre em PDF, sem dependencia nativa (issue #114).
+pub mod tone_sheet;
+
 /// golden — consumidor da especificação executável.
 pub mod golden;
 
 /// codec — codificação do fio: nibble + helpers semânticos.
 pub mod codec;
+
+/// Faixas de valor por knob/chave, e a recusa antes do fio (#110, ADR-10).
+pub mod param_range;
+
+/// Log de fio no schema P4, como decorador de transporte (`--log` do CLI
+/// e a sessao do app).
+pub mod wire_log;
+
+/// snap_tone — framing do upload de SnapTone (GP-50 de família: CRC-8/0x07 +
+/// bloco de 19B, §2/§3/§5 do PROTOCOL.md).
+pub mod snap_tone;
 
 /// transport — fronteira de I/O com o device: trait `DeviceTransport`
 /// (ADR-4; implementadores: `MockDevice`/`RealDevice`).
@@ -126,6 +178,14 @@ pub mod session;
 /// pedalboard — projeção de preset → view de board (dados puros p/ a UI
 /// do app: arquétipos por família, knobs do dicionário, biblioteca).
 pub mod pedalboard;
+
+/// preset_pages — decode das páginas 13xx: nome real e palco vivo (#155).
+/// Puro (sem fio), testado contra o dataset inteiro da captura.
+pub mod preset_pages;
+
+/// gain — assistente de gain staging (#115): headroom e clipagem ESTIMADA por
+/// módulo, como função PURA sobre o board (sem device, sem byte).
+pub mod gain;
 
 // Os testes dos herdados do P2 (header/envelope §13.1) usam SÓ API pública,
 // então vivem como contratos caixa-preta em `tests/wire_envelope.rs` (regra

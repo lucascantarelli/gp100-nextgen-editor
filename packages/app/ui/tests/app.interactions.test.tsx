@@ -1,6 +1,8 @@
 /**
  * Interações do App — os handlers que a casca não exercita:
- *   - navegação ◀/▶ (ciclo P01→P99) e persistência do master;
+ *   - troca de patch pela BIBLIOTECA (a navbar perdeu o cluster ◀ ▶ —
+ *     diretriz do dono 12/10; o rótulo vive no display LED do palco) e
+ *     persistência do master;
  *   - faixa de progresso do boot (aparece durante, some no fim), faixa de
  *     ERRO do boot (failDevice=boot) com recuperação pelo ⟳ e erro amigável
  *     do openPreset (failDevice=board);
@@ -15,7 +17,9 @@ import { createRoot } from "react-dom/client";
 import type { Root } from "react-dom/client";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../src/App";
-import { onDevicePush, deviceBoard, deviceInfo, deviceSelectPreset, deviceSetParam, onBootProgress, onDevicePush as onPush } from "../src/ipc/device";
+import { onDevicePush, deviceBoard, deviceGlobals, deviceInfo, deviceSelectPreset, deviceSetGlobal, deviceSetParam, onBootProgress, onDevicePush as onPush } from "../src/ipc/device";
+import { resetaFallback } from "../src/ipc/library";
+import { resetaGlobais } from "../src/ipc/fallbackData";
 import { Knob } from "../src/components/Knob";
 import type { BoardKnob } from "../src/ipc/types";
 
@@ -32,24 +36,36 @@ vi.mock("@tauri-apps/api/event", () => ({
     };
   }),
 }));
-import { FACTORY_PRESETS } from "../src/artifacts/presetData";
+import { MSG } from "../src/i18n/messages";
+import { PRESET_CHAINS } from "../src/artifacts/presetChains";
+
+/** **(#150)** O fallback de teste não serve nome de fábrica: o nome é a
+ * fixture rotulada (ver ipc/device.ts) — os asserts de nome usam ela. */
+const FIXTURE = "Fixture de teste (não é aparelho)";
 
 // Mock PARCIAL: onDevicePush continua registrando no Set real do device.ts
 // (o App funciona normalmente), mas o vi.fn captura o callback que o App
-// passou — permite INJETAR pushes direto no consumidor da UI.
+// passou — permite INJETAR pushes direto no consumidor da UI. deviceSetParam
+// idem: o vi.fn captura os argumentos REAIS que o palco manda ao device.
 vi.mock("../src/ipc/device", async (importOriginal) => {
   const mod = await importOriginal<typeof import("../src/ipc/device")>();
-  return { ...mod, onDevicePush: vi.fn(mod.onDevicePush) };
+  return { ...mod, onDevicePush: vi.fn(mod.onDevicePush), deviceSetParam: vi.fn(mod.deviceSetParam) };
 });
 
 beforeAll(() => {
   (globalThis as Record<string, unknown>).IS_REACT_ACT_ENVIRONMENT = true;
-});
-
-beforeEach(() => {
-  localStorage.clear();
-  vi.mocked(onDevicePush).mockClear();
-});
+});  beforeEach(() => {
+    localStorage.clear();
+    // a biblioteca fora do webview e um Map de MODULO: sem isto, o patch que um
+    // teste salvou aparece no seguinte (antes os patches viviam no localStorage,
+    // que o clear acima apagava — a fonte mudou, o reset tem que acompanhar)
+    resetaFallback();
+    // idem os registradores globais do fallback (o slider de master de um
+    // teste escrevia gVolume e o seed do seguinte lia o valor sujo)
+    resetaGlobais();
+    vi.mocked(onDevicePush).mockClear();
+    vi.mocked(deviceSetParam).mockClear();
+  });
 
 function mount(): { root: Root; host: HTMLElement } {
   const host = document.createElement("div");
@@ -68,7 +84,7 @@ async function settle() {
 
 /** Espera MACROTASKS reais: o boot simulado corre em lotes via
  * setTimeout(0) — microtasks (settle) não bastam para o terminar. */
-async function waitFor(predicate: () => boolean, what: string, timeoutMs = 15_000) {
+async function waitFor(predicate: () => boolean, what: string, timeoutMs = 8_000) {
   const start = Date.now();
   while (!predicate() && Date.now() - start < timeoutMs) {
     await act(async () => {
@@ -76,6 +92,22 @@ async function waitFor(predicate: () => boolean, what: string, timeoutMs = 15_00
     });
   }
   expect(predicate(), `esperado: ${what}`).toBe(true);
+}
+
+/** #161 — a casca só monta depois do boot validado: espera o gate abrir
+ *  (shell) ou virar erro (alert). O boot simulado corre em lotes via
+ *  setTimeout(0), então microtasks (settle) não bastam. */
+async function esperaCasca(host: HTMLElement, timeoutMs = 8_000) {
+  const inicio = Date.now();
+  while (
+    host.querySelector(".shell-content") === null &&
+    host.querySelector('[role="alert"]') === null &&
+    Date.now() - inicio < timeoutMs
+  ) {
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 50));
+    });
+  }
 }
 
 /** Limpa e re-render: cada teste monta o App do zero. */
@@ -90,8 +122,13 @@ function setInput(el: HTMLInputElement, value: string) {
     "value",
   )!.set!;
   setter.call(el, value);
-  el.dispatchEvent(new Event("input", { bubbles: true }));
-  el.dispatchEvent(new Event("change", { bubbles: true }));
+  // DENTRO de act: o dispatch roda o handler do React, e o update de estado
+  // que vem dele fora do act vira o aviso "not wrapped in act" — o mesmo
+  // motivo pelo qual os cliques deste arquivo ja sao envolvidos (issue #142).
+  act(() => {
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+    el.dispatchEvent(new Event("change", { bubbles: true }));
+  });
 }
 
 const byAria = (host: HTMLElement, aria: string) =>
@@ -99,32 +136,72 @@ const byAria = (host: HTMLElement, aria: string) =>
     (b) => b.getAttribute("aria-label") === aria,
   );
 
-describe("Navegação de patch e master", () => {
-  it("▶ avança P01→P02 e ◀ volta com ciclo P01→P99 (manual do device)", async () => {
+/**
+ * Rótulo do patch no DISPLAY DO PALCO — a navbar perdeu o cluster ◀ ▶ e o
+ * nome do patch (dono 12/10), então o LED do palco é a fonte: `${ppLabel} ${name}`
+ * lidos dos dois primeiros spans do `role="status"` do board.
+ */
+const rotuloNoPalco = (host: HTMLElement): string => {
+  const st = host.querySelector('[aria-label^="Pedalboard"] [role="status"]');
+  const spans = st ? Array.from(st.querySelectorAll("span")) : [];
+  return `${spans[0]?.textContent ?? ""} ${spans[1]?.textContent ?? ""}`.trim();
+};
+
+/** clica numa linha da biblioteca pelo rótulo (ex.: "P02") — o caminho do dono */
+const clicaOpcao = async (host: HTMLElement, rotulo: string) => {
+  await waitFor(
+    () =>
+      Array.from(host.querySelectorAll('[role="option"]')).some((o) =>
+        o.textContent?.includes(rotulo),
+      ),
+    `a linha ${rotulo} na biblioteca`,
+  );
+  const alvo = Array.from(host.querySelectorAll('[role="option"]')).find((o) =>
+    o.textContent?.includes(rotulo),
+  )!;
+  act(() => alvo.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+};
+
+describe("Troca de patch (biblioteca) e master", () => {
+  it("a troca de patch vive na LISTA (navbar sem ◀ ▶ — diretriz do dono 12/10)", async () => {
     const { root, host } = mount();
     await settle();
+    await esperaCasca(host);
 
-    const label = () =>
-      Array.from(host.querySelectorAll("strong")).find((s) => /^P\d{2}/.test(s.textContent ?? ""))
-        ?.textContent ?? "";
+    // a navbar NÃO tem mais os botões de patch nem o nome — o rótulo do
+    // patch corrente vive no display LED do palco
+    expect(byAria(host, "Próximo patch"), "sem ◀ ▶ na navbar").toBeUndefined();
+    expect(byAria(host, "Patch anterior"), "sem ◀ ▶ na navbar").toBeUndefined();
+    expect(rotuloNoPalco(host)).toBe(`P01 ${FIXTURE}`);
 
-    expect(label()).toBe(`P01 ${FACTORY_PRESETS[0].name}`);
-    act(() => byAria(host, "Próximo patch")!.dispatchEvent(new MouseEvent("click", { bubbles: true })));
-    await settle();
-    // nome VEM DO ARTEFATO (all.prst) — o fallback do board nunca inventa nome
-    expect(label()).toBe(`P02 ${FACTORY_PRESETS[1].name}`);
+    // abrir P02 pela lista (o caminho do dono) atualiza o palco na hora
+    await clicaOpcao(host, "P02");
+    await waitFor(() => rotuloNoPalco(host) === `P02 ${FIXTURE}`, "P02 no display do palco");
+    teardown(root, host);
+  });
 
-    act(() => byAria(host, "Patch anterior")!.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+  it("a aba Patches é a selecionada por DEFAULT no boot (diretriz do dono 12/10)", async () => {
+    // "patches deve ser a selecionada por default": logo após o boot, com o
+    // palco abrindo o pp corrente do aparelho, a biblioteca abre na aba
+    // Patches (banco do dono) — sem ninguém ter clicado em aba nenhuma. O
+    // reboot com pp do banco ALTO está coberto no panels.test (o caminho que
+    // o efeito antigo virava Fábrica sozinho).
+    const { root, host } = mount();
     await settle();
-    act(() => byAria(host, "Patch anterior")!.dispatchEvent(new MouseEvent("click", { bubbles: true })));
-    await settle();
-    expect(label()).toBe(`P99 ${FACTORY_PRESETS[98].name}`); // ciclo: P01 - 1 = P99
+    await esperaCasca(host);
+    const selecionadas = Array.from(host.querySelectorAll('[role="tab"]')).filter(
+      (t) => t.getAttribute("aria-selected") === "true",
+    );
+    expect(selecionadas.map((t) => t.textContent), "só a aba Patches vem selecionada").toEqual([
+      expect.stringContaining(MSG.libTabFactory),
+    ]);
     teardown(root, host);
   });
 
   it("slider do master aplica o valor (handler do estado + persistência)", async () => {
     const { root, host } = mount();
     await settle();
+    await esperaCasca(host);
 
     // 1º range do DOM = master VOL (TopBar vem primeiro)
     const slider = host.querySelector<HTMLInputElement>('input[type="range"]');
@@ -133,6 +210,46 @@ describe("Navegação de patch e master", () => {
     await settle();
     expect(slider!.value).toBe("33"); // handler ligado: estado re-renderizou
     teardown(root, host);
+  });
+});
+
+describe("Herança dos registradores globais (§13.13)", () => {
+  it("o device VENCE o localStorage: o master vem do gVolume no boot validado", async () => {
+    // o dono tinha 55 guardado local — o aparelho diz 99 (default do mock):
+    // "as demais informações devem ser herdadas do device" (dono 12/10)
+    localStorage.setItem("gp100.master.v1", "55");
+    const { root, host } = mount();
+    await settle();
+    await esperaCasca(host);
+
+    const slider = host.querySelector<HTMLInputElement>('input[type="range"]');
+    expect(slider).toBeTruthy();
+    await waitFor(() => slider!.value === "99", "slider no valor do gVolume do device");
+    teardown(root, host);
+  });
+
+  it("mexer no master escreve gVolume (roundtrip deviceSetGlobal → deviceGlobals)", async () => {
+    const { root, host } = mount();
+    await settle();
+    await esperaCasca(host);
+
+    const slider = host.querySelector<HTMLInputElement>('input[type="range"]');
+    setInput(slider!, "42");
+    await settle();
+
+    const g = await deviceGlobals();
+    expect(g.volume, "gVolume reflete o valor escrito pelo slider").toBe(42);
+    teardown(root, host);
+  });
+
+  it("drumBpm/drumVolume roundtrippam pelo allowlist (escrita medida §13.13.4)", async () => {
+    await deviceSetGlobal("drumBpm", 96);
+    await deviceSetGlobal("drumVolume", 77);
+    const g = await deviceGlobals();
+    expect(g.drumBpm).toBe(96);
+    expect(g.drumVolume).toBe(77);
+    // o allowlist do backend recusa chave fora do escopo
+    await expect(deviceSetGlobal("gNoCabLeft", 1)).rejects.toThrow();
   });
 });
 
@@ -159,6 +276,7 @@ describe("Faixas de boot e erro", () => {
     localStorage.setItem("gp100.debug.failDevice", "boot");
     const { root, host } = mount();
     await settle();
+    await esperaCasca(host);
 
     const alert = host.querySelector('[role="alert"]');
     expect(alert, "faixa de erro do boot").toBeTruthy();
@@ -175,17 +293,61 @@ describe("Faixas de boot e erro", () => {
 
   it("falha do board ao abrir preset: erro amigável (detalhe técnico só no console)", async () => {
     const { root, host } = mount();
-    await settle();
+    // as linhas do painel vêm do APARELHO (#150: inventário no load); o
+    // fallback de teste as entrega na primeira microtask, mas o painel tem
+    // render próprio — waitFor é o helper que espera de verdade. 0x0018 é do
+    // banco do DONO (baixo, medido em campo 12/10): a aba padrão Patches,
+    // rotulada pelo manual (0x0018 = 24 → P25).
+    await esperaCasca(host);
+    await waitFor(
+      () =>
+        Array.from(host.querySelectorAll('[role="option"]')).some((o) =>
+          o.textContent?.includes("P25"),
+        ),
+      "linhas da biblioteca (slot P25 = 0x0018)",
+    );
 
     localStorage.setItem("gp100.debug.failDevice", "board");
-    const mist = Array.from(host.querySelectorAll('[role="option"]')).find((o) =>
-      o.textContent?.includes("Mist"),
+    const alvo = Array.from(host.querySelectorAll('[role="option"]')).find((o) =>
+      o.textContent?.includes("P25"),
     );
-    act(() => mist!.dispatchEvent(new MouseEvent("click", { bubbles: true })));
-    await settle();
+    act(() => alvo!.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    // o command falha 3× com backoff real (~360 ms) antes de virar banner
+    await waitFor(() => host.querySelector('[role="alert"]') !== null, "banner do board");
 
     const alert = host.querySelector('[role="alert"]');
-    expect(alert?.textContent).toBe("Não foi possível abrir o preset — tente novamente.");
+    expect(alert?.textContent).toContain("Não foi possível abrir o preset");
+    // recuperação VISÍVEL: o banner carrega a ação (issue #20)
+    expect(byAria(host, "Tentar novamente a operação que falhou")).toBeTruthy();
+    teardown(root, host);
+  });
+
+  it("falha de SELECT: a UI fica no preset REAL e o retry do banner aplica a intenção", async () => {
+    const { root, host } = mount();
+    await settle();
+    await esperaCasca(host);
+    const label = () => rotuloNoPalco(host);
+    expect(label()).toBe(`P01 ${FIXTURE}`);
+
+    localStorage.setItem("gp100.debug.failDevice", "select");
+    await clicaOpcao(host, "P02");
+    // retry/backoff real (~360 ms até desistir): espera o banner
+    await waitFor(() => host.querySelector('[role="alert"]') !== null, "banner da falha de select");
+    expect(host.querySelector('[role="alert"]')!.textContent).toContain(
+      "O device não aceitou a troca de preset",
+    );
+    // a UI NÃO mente: segue no preset confirmado pelo device (P01), sem P02 fantasma
+    expect(label()).toBe(`P01 ${FIXTURE}`);
+
+    // recuperação: gancho fora + ação do banner → a INTENÇÃO original (P02) aplica
+    localStorage.removeItem("gp100.debug.failDevice");
+    act(() =>
+      byAria(host, "Tentar novamente a operação que falhou")!.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      ),
+    );
+    await waitFor(() => label() === `P02 ${FIXTURE}`, "P02 após o retry");
+    expect(host.querySelector('[role="alert"]')).toBeNull();
     teardown(root, host);
   });
 });
@@ -194,6 +356,7 @@ describe("Looper — FSM completa por cliques", () => {
   it("REC grava → PLAY toca → DUB sobrepõe → STOP para (estados e fita)", async () => {
     const { root, host } = mount();
     await settle();
+    await esperaCasca(host);
 
     const rec = () => byAria(host, "Gravar loop (REC)") ?? byAria(host, "Sobrepor (overdub)") ?? byAria(host, "Parar gravação e tocar");
     const play = () => byAria(host, "Tocar loop (PLAY)");
@@ -227,6 +390,7 @@ describe("Looper — FSM completa por cliques", () => {
   it("REW zera o tempo e CLEAR pede confirmação antes de apagar a fita", async () => {
     const { root, host } = mount();
     await settle();
+    await esperaCasca(host);
 
     const status = () =>
       host.querySelector('[aria-label="Looper (máquina de fita)"] [role="status"]');
@@ -239,8 +403,11 @@ describe("Looper — FSM completa por cliques", () => {
     const timer = host.querySelector('[role="timer"]');
     expect(timer?.textContent).toMatch(/^\d{2}:\d{2}$/);
 
+    // A leitura do REW é SINCRÔNICA de propósito. O transporte toca em
+    // relógio de parede, então um `settle` aqui abre uma janela em que mais
+    // um segundo passa e o timer marca 00:01 — era exatamente a flakiness da
+    // #79. O `act` já devolve o DOM atualizado, então não há o que esperar.
     act(() => byAria(host, "Retroceder ao início do loop (REW)")!.dispatchEvent(new MouseEvent("click", { bubbles: true })));
-    await settle();
     expect(host.querySelector('[role="timer"]')?.textContent).toBe("00:00");
 
     const clear = () =>
@@ -260,38 +427,222 @@ describe("Looper — FSM completa por cliques", () => {
 });
 
 describe("Biblioteca — busca", () => {
-  it("filtra por nome, número display (1-based) e mostra estado vazio", async () => {
+  it("filtra pelo ENDEREÇO do slot (#150) e mostra estado vazio", async () => {
     const { root, host } = mount();
     await settle();
+    await esperaCasca(host);
 
     const search = host.querySelector<HTMLInputElement>("aside input");
     expect(search).toBeTruthy();
     const options = () => host.querySelectorAll('[role="option"]').length;
 
-    setInput(search!, "mist");
-    await settle();
-    expect(options()).toBe(1); // P25 Mist
+    // **(#150) os slots vêm SEM nome decodificado (issue #152):** a busca
+    // aceita o ENDEREÇO mesmo — e a linha se rotula pelo MANUAL (0x0018 =
+    // 24 → P25; 0x0062 = 98 → P99, o último do banco do dono).
+    setInput(search!, "0x0018");
+    await esperaBiblioteca(() => options() === 1, "so o slot 0x0018");
+    expect(host.textContent).toContain("P25");
 
-    setInput(search!, "99");
-    await settle();
-    expect(options()).toBe(1); // display 1-based: P99
-    expect(host.textContent).toContain("Dreamy Aco");
+    setInput(search!, "0x0062");
+    await esperaBiblioteca(() => options() === 1, "so o slot 0x0062");
+    expect(host.textContent).toContain("P99");
 
     setInput(search!, "zzz-nada");
-    await settle();
-    expect(options()).toBe(0);
+    await esperaBiblioteca(() => options() === 0, "nada encontrado");
 
     setInput(search!, "");
+    await esperaBiblioteca(() => options() === 99, "o banco do dono inteiro");
+    teardown(root, host);
+  }, 40_000);
+});
+
+/* ── #11: a biblioteca COMANDA o pedalboard ── */
+/* ── #11/#19: passos que atravessam biblioteca ↔ palco (compartilhados) ── */
+/**
+ * A biblioteca tem debounce (180ms) e a leitura vai ao banco — `settle()`
+ * (só microtasks) não basta. Espera o tempo real e um predicate, que é o que
+ * os testes de biblioteca precisam para não depender de timing.
+ */
+async function esperaBiblioteca(pred: () => boolean, what: string) {
+  await act(async () => {
+    await new Promise((r) => setTimeout(r, 260));
+  });
+  await waitFor(pred, what);
+}
+
+const clickTab = async (host: HTMLElement, nome: string) => {
+  act(() =>
+    Array.from(host.querySelectorAll('[role="tab"]'))
+      .find((t) => t.textContent?.includes(nome))!
+      .dispatchEvent(new MouseEvent("click", { bubbles: true })),
+  );
+  await settle();
+};
+const userTab = (host: HTMLElement) => clickTab(host, MSG.libTabUser);
+
+/** clica no 1º patch de usuário da lista (U01) */
+const openUserPatch = async (host: HTMLElement) => {
+  await userTab(host);
+  await esperaBiblioteca(
+    () => host.querySelectorAll('[role="listitem"]').length > 0,
+    "a lista de patches do dono",
+  );
+  act(() =>
+    host.querySelectorAll('[role="listitem"]')[0].querySelector("button")!
+      .dispatchEvent(new MouseEvent("click", { bubbles: true })),
+  );
+  await settle();
+  // abrir lê a cadeia no banco (library_get): esperar o palco repintar
+  await waitFor(
+    () => host.querySelector('[aria-label^="Pedalboard"] [role="status"]')?.textContent?.includes("U01") === true,
+    "o palco mostra o patch de usuario",
+  );
+};
+
+/** nomeia e salva o patch CORRENTE como patch de usuário */
+const saveAsUserPatch = async (host: HTMLElement, name: string) => {
+  await userTab(host);
+  setInput(
+    host.querySelector<HTMLInputElement>('input[aria-label="Nome do patch de usuário a salvar"]')!,
+    name,
+  );
+  act(() =>
+    Array.from(host.querySelectorAll("button"))
+      .find((b) => b.textContent === "Salvar")!
+      .dispatchEvent(new MouseEvent("click", { bubbles: true })),
+  );
+  // gravar é I/O no arquivo da biblioteca: a linha só existe depois do banco
+  await esperaBiblioteca(
+    () => host.querySelectorAll('[role="listitem"]').length > 0,
+    `o patch "${name}" gravado`,
+  );
+};
+
+/** abre um preset pelo ENDEREÇO exibido (0x0005 = pp 5 do banco do dono) */
+const openPatch = async (host: HTMLElement, endereco: string) => {
+  // a aba do APARELHO certa: o banco ALTO (0x01xx) é a Fábrica (medido em
+  // campo 12/10); o baixo (0x00xx) é o banco do DONO — a aba Patches
+  const fab = endereco.startsWith("0x01");
+  act(() =>
+    Array.from(host.querySelectorAll('[role="tab"]'))
+      .find((t) => t.textContent?.includes(fab ? MSG.libTabFab : MSG.libTabFactory))!
+      .dispatchEvent(new MouseEvent("click", { bubbles: true })),
+  );
+  await settle();
+  const search = host.querySelector<HTMLInputElement>(`[aria-label="${MSG.libSearchAria}"]`)!;
+  setInput(search, endereco);
+  await esperaBiblioteca(
+    () => host.querySelectorAll('[role="option"]').length > 0,
+    `o slot ${endereco} na lista`,
+  );
+  act(() =>
+    host.querySelectorAll('[role="option"]')[0].dispatchEvent(new MouseEvent("click", { bubbles: true })),
+  );
+  await settle();
+};
+
+describe("Biblioteca — o patch aberto é o que o pedalboard mostra", () => {
+  /** nomes dos 9 pedais desenhados, na ordem do palco */
+  const chainOnStage = (host: HTMLElement) =>
+    Array.from(host.querySelectorAll('svg[role="group"]')).map((g) => g.getAttribute("aria-label") ?? "");
+
+  it("trocar de patch troca a CADEIA dos 9 pedais (inclusive a de ordem trocada)", async () => {
+    const { root, host } = mount();
     await settle();
-    expect(options()).toBe(99);
+    await esperaCasca(host);
+
+    // P01: PRE/C-Wah, cadeia canônica
+    const p01 = [...PRESET_CHAINS[0].slots].sort((a, b) => a.slot - b.slot);
+    expect(chainOnStage(host)[0]).toContain(p01[0].name);
+    expect(host.querySelector('[aria-label="Slot 1: PRE"]')).toBeTruthy();
+
+    // pp 5 (0x0005): no documento a cadeia é TROCA — DST antes do PRE
+    const p06 = [...PRESET_CHAINS[5].slots].sort((a, b) => a.slot - b.slot);
+    expect(p06[0].family).toBe("DST");
+    await openPatch(host, "0x0005");
+
+    // o palco mostra a CADEIA, não só o nome: o slot 1 virou DST
+    expect(chainOnStage(host)[0]).toContain(p06[0].name);
+    expect(host.querySelector('[aria-label="Slot 1: DST"]')).toBeTruthy();
+    expect(host.querySelector('[aria-label="Slot 2: PRE"]')).toBeTruthy();
+    expect(rotuloNoPalco(host)).toBe(`P06 ${FIXTURE}`);
     teardown(root, host);
   });
+
+  it("User Patch: snapshot da cadeia salva volta ao palco e excluir devolve a fábrica", async () => {
+    const { root, host } = mount();
+    await settle();
+    await esperaCasca(host);
+
+    // 1. abre o pp 5 (cadeia trocada: DST na frente) e salva essa cadeia
+    await openPatch(host, "0x0005");
+    await userTab(host);
+    expect(host.textContent).toContain("Nenhum patch salvo ainda");
+    await saveAsUserPatch(host, "DST na frente");
+    expect(host.textContent).toContain("DST na frente");
+
+    // 2. volta para o P01 (cadeia canônica) e ABRE o patch salvo: quem manda
+    //    no palco agora é o snapshot (U01), não o preset de fábrica
+    await openPatch(host, "0x0000");
+    expect(host.querySelector('[aria-label="Slot 1: PRE"]')).toBeTruthy();
+    await openUserPatch(host);
+    const p06 = [...PRESET_CHAINS[5].slots].sort((a, b) => a.slot - b.slot);
+    expect(host.querySelector('[aria-label="Slot 1: DST"]'), "a cadeia SALVA voltou").toBeTruthy();
+    expect(chainOnStage(host)[0]).toContain(p06[0].name);
+    // rótulo de usuário (U01) no display do palco — a UI diz de onde vem
+    expect(rotuloNoPalco(host)).toBe("U01 DST na frente");
+
+    // 3. excluir o patch aberto devolve o palco ao preset de fábrica real
+    act(() =>
+      host.querySelector('[aria-label^="Excluir o patch"]')!.dispatchEvent(new MouseEvent("click", { bubbles: true })),
+    );
+    await settle();
+    expect(host.textContent).not.toContain("DST na frente");
+    expect(host.querySelector('[aria-label="Slot 1: PRE"]')).toBeTruthy();
+    expect(rotuloNoPalco(host)).toBe(`P01 ${FIXTURE}`);
+    teardown(root, host);
+  }, 40_000);
+
+  it("o patch salvo é um RETRATO: mexer no pedal depois não altera o guardado", async () => {
+    const { root, host } = mount();
+    await settle();
+    await esperaCasca(host);
+
+    const stageValue = () =>
+      host.querySelector('[aria-label="Slot 1: PRE"] [data-value]')!.getAttribute("data-value");
+
+    // 1. salva a cadeia como está (PRE/C-Wah Range = 50)
+    const saved = stageValue();
+    await saveAsUserPatch(host, "Retrato");
+
+    // 2. mexe no pedal DEPOIS de salvar
+    act(() =>
+      host.querySelector('[aria-label="Slot 1: PRE"] svg[role="group"]')!
+        .dispatchEvent(new MouseEvent("click", { bubbles: true })),
+    );
+    await settle();
+    act(() =>
+      host.querySelector('[role="dialog"] svg[role="slider"][aria-label="Range"]')!
+        .dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true })),
+    );
+    await settle();
+    act(() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" })));
+    await settle();
+    expect(stageValue(), "o palco aceitou o ajuste").not.toBe(saved);
+
+    // 3. outro preset e volta ao patch salvo: o retrato devolve o valor antigo
+    await openPatch(host, "06");
+    await openUserPatch(host);
+    expect(stageValue(), "o retrato devolve o valor do momento do save").toBe(saved);
+    teardown(root, host);
+  }, 40_000);
 });
 
 describe("Settings — as 6 abas", () => {
   it("General: persiste local (input level e language aplicam pelo handler)", async () => {
     const { root, host } = mount();
     await settle();
+    await esperaCasca(host);
 
     act(() => byAria(host, "Abrir configurações")!.dispatchEvent(new MouseEvent("click", { bubbles: true })));
     await settle();
@@ -304,15 +655,50 @@ describe("Settings — as 6 abas", () => {
     expect(range.value).toBe("70");
     expect(JSON.parse(localStorage.getItem("gp100.settings.general.v1")!)).toMatchObject({ inputLevel: 70 });
 
-    // selects ainda sem canal no device vêm desabilitados (Footswitch, Idioma)
+    // Footswitch ainda sem canal no device vem desabilitado; Idioma NÃO
+    // (#30) — é software local puro, funcional e coberto em tests/i18n.
     const disabled = Array.from(dialog.querySelectorAll("select")).filter((s) => s.disabled);
     expect(disabled.length).toBeGreaterThanOrEqual(1);
+    teardown(root, host);
+  });
+
+  it("modo engenheiro: switch na aba General liga o tooltip addr/code/ctrl e persiste", async () => {
+    const { root, host } = mount();
+    await settle();
+    await esperaCasca(host);
+
+    act(() => byAria(host, "Abrir configurações")!.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    await settle();
+    const sw = host.querySelector<HTMLElement>(
+      '[role="switch"][aria-label^="Modo engenheiro"]',
+    );
+    expect(sw, "switch do modo engenheiro na aba General").toBeTruthy();
+    expect(sw!.getAttribute("aria-checked"), "default desligado").toBe("false");
+
+    act(() => sw!.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    await settle();
+    expect(sw!.getAttribute("aria-checked")).toBe("true");
+    expect(JSON.parse(localStorage.getItem("gp100.settings.general.v1")!)).toMatchObject({
+      engineerMode: true,
+    });
+
+    // fecha o modal: o tooltip do knob do COMP passa a mostrar o endereço do SET
+    act(() =>
+      host
+        .querySelector("[role='dialog']")!
+        .dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })),
+    );
+    await settle();
+    const title = host.querySelector('[aria-label="Slot 1: PRE"] svg[role="img"] title');
+    expect(title?.textContent).toContain("addr 10 01 00 02");
+    expect(title?.textContent).toContain("ctrl 0");
     teardown(root, host);
   });
 
   it("cada aba ativa e renderiza seu conteúdo (tabela onde aplicável)", async () => {
     const { root, host } = mount();
     await settle();
+    await esperaCasca(host);
 
     act(() => byAria(host, "Abrir configurações")!.dispatchEvent(new MouseEvent("click", { bubbles: true })));
     await settle();
@@ -335,6 +721,7 @@ describe("Push log — pushes do device", () => {
   it("push injetado aparece no summary, cap segura em 100 e clear limpa", async () => {
     const { root, host } = mount();
     await settle();
+    await esperaCasca(host);
 
     // callback registrado pelo App no mount (mock captura)
     const appCalls = vi.mocked(onDevicePush).mock.calls;
@@ -344,9 +731,11 @@ describe("Push log — pushes do device", () => {
     const summary = host.querySelector("details summary")!;
     expect(summary.textContent).toContain("(0)");
 
-    // 120 pushes → cap de MAX_ENTRIES segura o log em 100
+    // 120 pushes VÁLIDOS e distintos → cap de PUSH_LOG_MAX segura o log em 100
     await act(async () => {
-      for (let i = 0; i < 120; i += 1) appPush(`12|1200100${i % 10}`);
+      for (let i = 0; i < 120; i += 1) {
+        appPush(`F021257F47502D6412001000${i.toString(16).padStart(2, "0")}F7`);
+      }
     });
     await settle();
 
@@ -363,14 +752,57 @@ describe("Push log — pushes do device", () => {
     expect(summary.textContent).toContain("(0)");
     teardown(root, host);
   });
+
+  it("push INVÁLIDO é ignorado e repetição consecutiva vira contador (×N)", async () => {
+    const { root, host } = mount();
+    await settle();
+    await esperaCasca(host);
+
+    const appPush = vi.mocked(onDevicePush).mock.calls[0][0];
+    const summary = host.querySelector("details summary")!;
+    const items = () => host.querySelectorAll('[aria-label="Log de pushes"] li');
+
+    // lixo do fio (não-SysEx, ímpar, char não-hex, vazio) NÃO entra no log
+    await act(async () => {
+      appPush("12|12001008");
+      appPush("F02125");
+      appPush("F021257F47502D64 00F7");
+      appPush("");
+      appPush(undefined as unknown as string);
+    });
+    await settle();
+    expect(summary.textContent).toContain("(0)");
+    expect(items().length).toBe(0);
+
+    // o boot REPETE a mesma resposta: 3× o mesmo hex = 1 linha com ×3
+    const repetido = "F021257F47502D6412001000F7";
+    await act(async () => {
+      appPush(repetido);
+      appPush(repetido);
+      appPush(repetido);
+    });
+    await settle();
+    expect(summary.textContent).toContain("(1)");
+    expect(items().length).toBe(1);
+    expect(items()[0].textContent).toContain("×3");
+
+    // hex DIFERENTE depois da repetição abre linha nova (dedupe é CONSECUTIVO)
+    await act(async () => {
+      appPush("F021257F47502D6412001001F7");
+    });
+    await settle();
+    expect(summary.textContent).toContain("(2)");
+    teardown(root, host);
+  });
 });
 
 describe("Sliders do shell — drum (persistência local)", () => {
   it("volume e speed do drum aplicam pelo handler do estado", async () => {
     const { root, host } = mount();
     await settle();
+    await esperaCasca(host);
 
-    // abre o drawer do drum (chip na navbar)
+    // abre o modal de gestão do drum (chip na navbar)
     const chip = Array.from(host.querySelectorAll("button")).find((b) =>
       (b.getAttribute("aria-label") ?? "").includes("abrir gestão de ritmos"),
     );
@@ -389,27 +821,32 @@ describe("Sliders do shell — drum (persistência local)", () => {
     teardown(root, host);
   });
 
-  it("on/off e compasso do drum aplicam pelo handler (estado do chip)", async () => {
+  it("on/off e compasso do drum aplicam pelo handler (toggle da navbar)", async () => {
     const { root, host } = mount();
     await settle();
+    await esperaCasca(host);
 
+    // play/stop vive na navbar (sem abrir o modal — UX da issue #10)
+    const onOff = () =>
+      host.querySelector<HTMLButtonElement>(
+        'button[aria-label="Tocar ou parar o ritmo da bateria"]',
+      )!;
+    expect(onOff().getAttribute("aria-pressed")).toBe("false");
+    act(() => onOff().dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    await settle();
+    expect(onOff().getAttribute("aria-pressed")).toBe("true"); // handler ligou o drum
+    expect(onOff().textContent).toContain("⏹");
+    act(() => onOff().dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    await settle();
+    expect(onOff().getAttribute("aria-pressed")).toBe("false"); // e desligou
+    expect(onOff().textContent).toContain("⏵");
+
+    // o modal de gestão continua abrindo pelo chip (compassos reais)
     const chip = Array.from(host.querySelectorAll("button")).find((b) =>
       (b.getAttribute("aria-label") ?? "").includes("abrir gestão de ritmos"),
     );
     act(() => chip!.dispatchEvent(new MouseEvent("click", { bubbles: true })));
     await settle();
-
-    const onOff = () =>
-      Array.from(host.querySelectorAll("button")).find(
-        (b) => b.textContent === "⏵ tocar" || b.textContent === "⏹ parar",
-      )!;
-    expect(onOff().textContent).toBe("⏵ tocar");
-    act(() => onOff().dispatchEvent(new MouseEvent("click", { bubbles: true })));
-    await settle();
-    expect(onOff().textContent).toBe("⏹ parar"); // handler ligou o drum
-    act(() => onOff().dispatchEvent(new MouseEvent("click", { bubbles: true })));
-    await settle();
-    expect(onOff().textContent).toBe("⏵ tocar"); // e desligou
 
     // compasso: opções reais do firmware, mudança aplicada
     const beat = host.querySelector<HTMLSelectElement>("#drum-beat")!;
@@ -427,10 +864,11 @@ describe("Sliders do shell — drum (persistência local)", () => {
   });
 });
 
-describe("Palco — afinador e drag-and-drop dos slots (EmptyBoard)", () => {
+describe("Palco — afinador e drag-and-drop dos slots (Stage)", () => {
   it("afinador no cabeçalho está sempre visível e o drag de slots só com a trava destrancada", async () => {
     const { root, host } = mount();
     await settle();
+    await esperaCasca(host);
 
     // o afinador ocupa o lugar do antigo VU: display sempre visível,
     // nota em repouso, botões de monitor e demo alcançáveis
@@ -449,16 +887,218 @@ describe("Palco — afinador e drag-and-drop dos slots (EmptyBoard)", () => {
     expect(toggle.getAttribute("aria-pressed")).toBe("true");
 
     const slot = (n: number, fam: string) =>
-      host.querySelector(`[aria-label="Slot ${n}: ${fam}"]`)!;
+      host.querySelector(`[aria-label="Slot ${n}: ${fam}"]`);
+    // o PRE agora é o pedal REAL (COMP): o arrasto sai DELE
+    const pedal = slot(1, "PRE")!;
+    expect(pedal).toBeTruthy();
+    expect(pedal.querySelector('svg[role="group"]'), "COMP no slot 1").toBeTruthy();
     act(() => {
-      slot(1, "PRE").dispatchEvent(new Event("dragstart", { bubbles: true }));
-      slot(2, "DST").dispatchEvent(new Event("dragover", { bubbles: true }));
+      pedal.dispatchEvent(new Event("dragstart", { bubbles: true }));
+      slot(2, "DST")!.dispatchEvent(new Event("dragover", { bubbles: true }));
     });
     await settle();
-    act(() => slot(2, "DST").dispatchEvent(new Event("drop", { bubbles: true })));
+    act(() => slot(2, "DST")!.dispatchEvent(new Event("drop", { bubbles: true })));
     await settle();
-    // onReorder do App é stub (pedais reais chegam na Fase 2): o palco segue íntegro
-    expect(slot(1, "PRE")).toBeTruthy();
+    // prévia LOCAL: o pedal vai para a posição 2 e o lugar 1 volta a ser o DST
+    expect(slot(2, "PRE")!.querySelector('svg[role="group"]')).toBeTruthy();
+    expect(slot(1, "DST")).toBeTruthy();
+    expect(host.querySelectorAll('[aria-label^="Slot "]').length).toBe(9);
+    teardown(root, host);
+  });
+});
+
+describe("Palco — o pedal REAL do PRE (U-3: pedais reais na cadeia inteira)", () => {
+  /* O PRE do P01 no all.prst é C-Wah (o mock antigo mentia com COMP). Os
+     asserts de nome/code saem do artefato GERADO — se a cadeia mudar, o
+     teste avisa em vez de acompanhar a mentira. */
+  const P01_PRE = PRESET_CHAINS[0].slots.find((s) => s.slot === 0)!;
+
+  it("palco: knobs travados com o valor em texto; o knob do MODAL manda device_set_param (slot do fio 1..9)", async () => {
+    const { root, host } = mount();
+    await settle();
+    await esperaCasca(host);
+
+    // o board do mock traz o PRE REAL do P01: C-Wah, Range/Q/VOL = 50/50/50
+    const pedal = host.querySelector('[aria-label="Slot 1: PRE"] svg[role="group"]');
+    expect(pedal, `${P01_PRE.name} no slot PRE`).toBeTruthy();
+    expect(pedal!.getAttribute("aria-label")).toContain(P01_PRE.name);
+    // a cadeia inteira desenha pedal real (visor completo das 9 posições)
+    expect(host.querySelectorAll('[aria-label^="Slot "]').length).toBe(9);
+    expect(host.querySelectorAll('svg[role="group"]').length).toBe(9);
+
+    // palco: valor REAL do dicionário em texto e nenhum knob ajustável
+    const stageValues = () =>
+      Array.from(
+        host.querySelectorAll('[aria-label="Slot 1: PRE"] [data-value]'),
+      ).map((t) => t.getAttribute("data-value"));
+    expect(stageValues(), "params reais do P01 no palco").toEqual(["50", "50", "50"]);
+    expect(
+      host.querySelector('[aria-label="Slot 1: PRE"] svg[role="slider"]'),
+      "knob do palco não é ajustável",
+    ).toBeNull();
+
+    // clique no pedal abre a edição; o knob ampliado faz 50 → 51 com SET no
+    // device (code do C-Wah = effectCode do .prst, ctrl = pos 0, slot = 1)
+    act(() => pedal!.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    await settle();
+    const dlg = host.querySelector('[role="dialog"]')!;
+    const range = dlg.querySelector('svg[role="slider"][aria-label="Range"]')!;
+    act(() => range.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true })));
+    await settle();
+    expect(vi.mocked(deviceSetParam)).toHaveBeenLastCalledWith(1, P01_PRE.code, 0, 51);
+    expect(stageValues()[0], "estado único: o palco já mostra 51").toBe("51");
+
+    // ValueBox do modal: digitar 42 + Enter aplica ao device e volta ao palco
+    const box = dlg.querySelector<HTMLInputElement>('input[aria-label="Valor (Enter para editar)"]')!;
+    act(() => box.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    const editing = host.querySelector<HTMLInputElement>('input[aria-label^="Valor do knob"]')!;
+    act(() => {
+      const setter = Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype,
+        "value",
+      )!.set!;
+      setter.call(editing, "42");
+      editing.dispatchEvent(new Event("input", { bubbles: true }));
+      editing.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    });
+    await settle();
+    expect(vi.mocked(deviceSetParam)).toHaveBeenLastCalledWith(1, P01_PRE.code, 0, 42);
+    expect(stageValues()[0], "o palco reflete o valor ajustado no modal").toBe("42");
+    teardown(root, host);
+  });
+
+  it("clique no PRE abre a edição ampliada; knob de lá ajusta o MESMO estado e Esc fecha", async () => {
+    const { root, host } = mount();
+    await settle();
+    await esperaCasca(host);
+
+    const pedal = host.querySelector('[aria-label="Slot 1: PRE"] svg[role="group"]')!;
+    act(() => pedal.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    await settle();
+    const dlg = host.querySelector('[role="dialog"]')!;
+    expect(dlg, "modal de edição aberto").toBeTruthy();
+    expect(dlg.getAttribute("aria-label")).toContain(P01_PRE.name);
+
+    // knob AMPLIADO: mesmo handler → SET no device e valor volta ao palco
+    const knob = dlg.querySelector('svg[role="slider"][aria-label="Range"]')!;
+    expect(knob.getAttribute("aria-valuenow")).toBe("50");
+    act(() => knob.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true })));
+    await settle();
+    expect(vi.mocked(deviceSetParam)).toHaveBeenLastCalledWith(1, P01_PRE.code, 0, 51);
+    const stageValue = host.querySelector('[aria-label="Slot 1: PRE"] [data-value]');
+    expect(stageValue!.getAttribute("data-value"), "estado único: o palco já mostra 51").toBe(
+      "51",
+    );
+
+    // Esc (global do App, precedência do painel do topo) fecha
+    act(() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" })));
+    await settle();
+    expect(host.querySelector('[role="dialog"]')).toBeNull();
+    teardown(root, host);
+  });
+
+  it("Effects List (#19): trocar o efeito no modal troca o pedal NO PALCO", async () => {
+    const { root, host } = mount();
+    await settle();
+    await esperaCasca(host);
+
+    // abre o modal pelo pedal do palco (o PRE do P01 = C-Wah)
+    const pedal = host.querySelector('[aria-label="Slot 1: PRE"] svg[role="group"]')!;
+    act(() => pedal.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    await settle();
+    const dlg = host.querySelector('[role="dialog"]')!;
+
+    // a lista é do MÓDULO: só PRE, com o efeito atual marcado
+    const list = dlg.querySelector('[role="listbox"]')!;
+    expect(list.getAttribute("aria-label")).toBe("Lista de efeitos do módulo PRE");
+    const opts = Array.from(list.querySelectorAll('[role="option"]'));
+    const marked = opts.filter((o) => o.getAttribute("aria-selected") === "true");
+    expect(marked.map((o) => o.textContent), "só o efeito atual vem marcado").toEqual(["✓C-Wah"]);
+    expect(opts.map((o) => o.textContent)).toContain("COMP");
+    // nada de AMP na lista de PRE
+    expect(opts.map((o) => o.textContent)).not.toContain("Bog RedM");
+
+    // troca: C-Wah → COMP. O palco tem que mostrar o novo efeito E os knobs
+    // novos, já nos defaults do COMP (não herda o 50 do C-Wah)
+    const comp = opts.find((o) => o.textContent === "COMP")!;
+    act(() => comp.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    await settle();
+    const stage = host.querySelector('[aria-label="Slot 1: PRE"] svg[role="group"]')!;
+    expect(stage.getAttribute("aria-label"), "o palco trocou de efeito").toContain("COMP");
+    expect(
+      Array.from(host.querySelectorAll('[aria-label="Slot 1: PRE"] [data-value]')).map((t) =>
+        t.getAttribute("data-value"),
+      ),
+    ).toEqual(["20.0", "50.0"]);
+    // e o modal já reflete a troca (estado único): o título e a marca seguem
+    expect(host.querySelector('[role="dialog"]')!.getAttribute("aria-label")).toContain("COMP");
+
+    // a busca filtra a lista do módulo
+    const search = dlg.querySelector<HTMLInputElement>('input[aria-label="Buscar efeito do módulo por nome"]')!;
+    setInput(search, "wah");
+    await settle();
+    const filtered = Array.from(
+      dlg.querySelectorAll('[role="listbox"] [role="option"]'),
+    ).map((o) => o.textContent);
+    expect(filtered.length).toBeGreaterThan(0);
+    expect(filtered.every((t) => t?.toLowerCase().includes("wah"))).toBe(true);
+    setInput(search, "zzz-nada");
+    await settle();
+    expect(dlg.querySelectorAll('[role="listbox"] [role="option"]').length).toBe(0);
+    expect(dlg.textContent).toContain("Nenhum efeito para");
+
+    act(() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" })));
+    await settle();
+    teardown(root, host);
+  });
+
+  it("o efeito trocado entra no patch de usuário (o retrato do palco, não do preset)", async () => {
+    const { root, host } = mount();
+    await settle();
+    await esperaCasca(host);
+
+    // troca o PRE para COMP e SALVA como patch de usuário
+    act(() =>
+      host.querySelector('[aria-label="Slot 1: PRE"] svg[role="group"]')!
+        .dispatchEvent(new MouseEvent("click", { bubbles: true })),
+    );
+    await settle();
+    const dlg = host.querySelector('[role="dialog"]')!;
+    act(() =>
+      Array.from(dlg.querySelectorAll('[role="option"]'))
+        .find((o) => o.textContent === "COMP")!
+        .dispatchEvent(new MouseEvent("click", { bubbles: true })),
+    );
+    await settle();
+    act(() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" })));
+    await settle();
+    await saveAsUserPatch(host, "Meu COMP");
+
+    // volta para a fábrica (o P01 é C-Wah) e abre o patch salvo: o COMP foi
+    // junto, porque o patch é o retrato do PALCO no momento do save
+    await openPatch(host, "02");
+    await openUserPatch(host);
+    expect(host.querySelector('[aria-label="Slot 1: PRE"] svg[role="group"]')!.getAttribute("aria-label")).toContain(
+      "COMP",
+    );
+    teardown(root, host);
+  }, 40_000);
+
+  it("footswitch alterna LOCAL (LED verde → vermelho), sem comando de toggle no protocolo", async () => {
+    const { root, host } = mount();
+    await settle();
+    await esperaCasca(host);
+
+    // o PRE do P01 vem DESLIGADO no all.prst (`state` do .prst, não palpite)
+    const slot = host.querySelector('[aria-label="Slot 1: PRE"]')!;
+    expect(slot.querySelector('[data-led="off"]'), "PRE desligado de fábrica").toBeTruthy();
+    const foot = Array.from(slot.querySelectorAll('[role="button"]')).find((b) =>
+      (b.getAttribute("aria-label") ?? "").startsWith("Ligar efeito"),
+    );
+    expect(foot, "footswitch presente").toBeTruthy();
+    act(() => foot!.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+    await settle();
+    expect(slot.querySelector('[data-led="on"]'), "LED verde após o clique").toBeTruthy();
     teardown(root, host);
   });
 });
@@ -467,6 +1107,7 @@ describe("Looper — rota PRE/POST e ▶", () => {
   it("alterna PRE⇄POST e ▶ para o transporte", async () => {
     const { root, host } = mount();
     await settle();
+    await esperaCasca(host);
 
     const rec = () =>
       byAria(host, "Gravar loop (REC)") ?? byAria(host, "Parar gravação e tocar");
