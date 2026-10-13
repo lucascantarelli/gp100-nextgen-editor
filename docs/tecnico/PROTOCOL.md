@@ -3,7 +3,7 @@
 **Como ler:** §13 = protocolo de FIO (confirmado em campo, capturas 1–4) — é o que o
 gp100-core fala; §1–12 = formato de ARQUIVO (TLV/CRC-8/objetos). A especificação
 executável byte-a-byte é `docs/referencias/protocol_golden.json` (validada por
-`scripts/validate_golden.py`). Mapa geral da documentação: `docs/INDEX.md`.
+`tools/validate_golden.py`). Mapa geral da documentação: `docs/INDEX.md`.
 **Histórico:** framing do GP-50/GP-5 validado por terceiros (§7); GP-100 confirmado
 DIFERENTE no wire-format por disassembly (§9) — mesma CRC-8/0x07, framing TLV de bits.
 
@@ -305,7 +305,7 @@ o contador da página — coerente com §12).
 ### 13.4 Padrões de transação
 
 > **Referência executável:** `docs/referencias/protocol_golden.json` (gerado por
-> `scripts/build_golden.py` a partir das sessões 1–4) contém os 40 templates
+> `tools/build_golden.py` a partir das sessões 1–4) contém os 40 templates
 > request→resposta com padrões de payload (const/var) e semântica por
 > endereço. Este §13 é a narrativa; o golden é a referência byte-a-byte
 > para implementação e fixtures de teste.
@@ -315,7 +315,7 @@ o contador da página — coerente com §12).
 > Qualquer mudança nesses arquivos exige: nova captura → build_golden → validate 100% →
 > novo hash + justificativa aqui.
 >
-> **Validado por** `scripts/validate_golden.py` — 5 provas:
+> **Validado por** `tools/validate_golden.py` — 5 provas:
 > accounting IN 100% / OUT 99,57% (sobras = fragmentos truncados do ring
 > buffer do proxy); regeneração byte-a-byte: knobs 89/89 + 3/3 (§13.11),
 > boot/scan 2.299/2.299 (§13.10), save 77/77 (§13.12, metadados gerados do
@@ -484,7 +484,7 @@ OUT 13 01 00 04 <- [pp u16BE] [PG u16BE] 01   avanca pagina (5B, ambos u16BE)
 
 **Larguras exatas confirmadas pela validação do golden-file** (sessão 1,
 198 presets × 9 páginas = 1.782 requests de página regenerados byte-a-byte
-por `scripts/validate_golden.py`): quirk de boot = o preset atual (pp 0x0100
+por `tools/validate_golden.py`): quirk de boot = o preset atual (pp 0x0100
 no exemplo) recebe select+open DUPLICADOS (re-leitura): 2 selects respondem
 meta6 cada (e 1 resposta de tabela T1 chega TARDIA entre elas — backlog),
 depois 2 opens respondem PÁGINA 0 duas vezes em `13010003` (não é um 3º
@@ -535,7 +535,7 @@ Os params são 135 f32 LE (9 slots × 15) em bloco contíguo atravessando as
 páginas: pg0[68..96] + pg1..pg5 inteiros + pg6[0..32]. `effectState` mora
 em pg6 @32 (9 × u16 LE).
 
-**Provas** (gate `state_pages` — `scripts/validate_state_pages.py`,
+**Provas** (gate `state_pages` — `tools/validate_state_pages.py`,
 artefato `packages/core/data/state_pages_offsets.json`, embutido no binário):
 
 | o quê | medido |
@@ -584,7 +584,7 @@ existe no hardware e no .prst (`params_1=80`) mas NÃO virou `controls[]`
 no algorithm.xml do Suite — controle oculto do dicionário. Corolário: ao
 serializar presets, PRESERVAR todos `params_N` 0..14 mesmo sem nome.
 
-Mapa completo (89 edits com timeline): `scripts/knob_map.json`.
+Mapa completo (89 edits com timeline): `tools/knob_map.json`.
 
 **Corolário para o gp100-core:** para SETAR um parâmetro basta 1 SysEx
 `F0 21 25 7F 47 50 2D 64 | 12 | 10 <slot> 00 02 | <20B nibble-expandido> |
@@ -756,12 +756,12 @@ acima é o caminho real de commit. Item 11 do BLOCKERS: FECHADO.
 ### 13.14 Baseline v1.1 — o que o golden NÃO sabe (e por que)
 
 > Escrito em 04/10 (#23, gate H3). A baseline é `docs/referencias/protocol_golden.json`;
-> a versão, o hash, o motivo e o histórico vivem em **`scripts/baseline.json`**
-> (`uv run python scripts/baseline.py show`). Até a v1.0 o hash era um literal
+> a versão, o hash, o motivo e o histórico vivem em **`tools/baseline.json`**
+> (`uv run python tools/baseline.py show`). Até a v1.0 o hash era um literal
 > dentro de um teste, sem versão e sem motivo: colar o hash novo passava.
 >
 > **v1.2 (11/10, #163)** — bump só de proveniência: a dissolução de `analysis/`
-> moveu o gerador para `scripts/` e `_meta.generated_by` no golden apontava o
+> moveu o gerador para `scripts/` (hoje `tools/`, pasta dissolvida na #168) e `_meta.generated_by` no golden apontava o
 > caminho antigo. **Nenhum byte de template mudou**: 39 templates intactos,
 > `validate_golden` 100% (provas A–E) e as fixtures regeneradas batem byte a
 > byte com as versionadas.
@@ -773,7 +773,7 @@ acima é o caminho real de commit. Item 11 do BLOCKERS: FECHADO.
 > de template mudou**: 39 templates intactos, `validate_golden` 100% (provas
 > A–E) e as fixtures regeneradas batem byte a byte com as versionadas. O que
 > segue é a narrativa da v1.1 e continua valendo; o registro completo está em
-> `scripts/baseline.json` (`v1.3`).
+> `tools/baseline.json` (`v1.3`).
 
 **O achado.** O `build_golden.py` cortava cada frame no **primeiro** par de
 nibbles `f7` (`hx.find("f7")`) em vez do `F7` **final** do SysEx. Nomes de preset
@@ -817,8 +817,8 @@ byte-a-byte e continua provado. O lado **IN** (resync `11000008`, resync
    bytes inventados.
 3. **Regeneração da baseline a partir do gp100-core** — o DoD literal do H3, que
    antes era impossível: o `build_golden` carregava **0 eventos** de um log do
-   core (só aceitava `out_long`/`in_long` + `hex`). `scripts/wirelog.py`
-   normaliza os dois formatos, e `scripts/validate_core_capture.py` julga a
+   core (só aceitava `out_long`/`in_long` + `hex`). `tools/wirelog.py`
+   normaliza os dois formatos, e `tools/validate_core_capture.py` julga a
    sessão frame a frame.
 
 ### 13.13 Bloco de registros `0000xxxx/0001xxxx/0002xxxx` + CCs curtos (G3–G5, sessão 11/10)

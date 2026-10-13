@@ -123,7 +123,7 @@ Comandos canônicos (executar em `develop` salvo indicação da issue):
 
 **F4**
 - [ ] `docs/INDEX.md` responde "onde mora X" para todo assunto; zero link quebrado; zero citação a `docs/arquivo/analysis/`.
-- [ ] `scripts/` inexistente; `gates.py` (ou sucessor) roda pelo comando documentado.
+- [x] `scripts/` inexistente; `gates.py` roda por `uv run python .github/scripts/gates.py` (13 gates; #168, 13/10).
 
 **F5**
 - [ ] Run real de PR: ordem do grafo correta; Relatório por último resumindo a run inteira.

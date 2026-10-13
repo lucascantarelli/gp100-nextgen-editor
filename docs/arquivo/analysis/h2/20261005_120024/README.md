@@ -25,7 +25,7 @@ Evidência do gate H2 de escrita real. O veredito está em
 ## Pastas
 
 - **`verde/`** — os três fluxos que **passaram**, com os nomes canônicos que o
-  juiz (`scripts/h2_compare.py`) consome. É esta pasta que dá `CONFORME` nos
+  juiz (`docs/arquivo/scripts-era-RE/h2_compare.py`) consome. É esta pasta que dá `CONFORME` nos
   três fluxos.
 - **`e99/`** — os mesmos três fluxos com o valor `99.5`, preservados porque são
   a evidência do travamento. **Não** é a sessão verde; é o relatório do bug.
@@ -42,7 +42,7 @@ Evidência do gate H2 de escrita real. O veredito está em
 ```bash
 python analysis/h2/20261005_120024/decode_knobs.py
 python analysis/h2/20261005_120024/decode_dump_diff.py
-python scripts/h2_compare.py analysis/h2/20261005_120024/verde --markdown
+python docs/arquivo/scripts-era-RE/h2_compare.py analysis/h2/20261005_120024/verde --markdown
 ```
 
 ## Duas armadilhas desta sessão

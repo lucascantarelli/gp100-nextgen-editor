@@ -17,16 +17,16 @@
 | **Contribuir (issue → branch → PR → merge)** | `docs/CONTRIBUTING.md` (GitFlow, conventional commits, gates por área, fechamento automático da issue) |
 | **Saber o que a suíte de testes cobre / adicionar um teste / o que NÃO entra / proteções que não caem** | **`docs/tecnico/TESTING.md`** (contrato da suíte: rodar, critérios de admissão de teste novo, regras de exclusão, DoD #5) | **Executar o plano de desenvolvimento** | **Issues do GitHub** — milestone **v1.1.0**: épico [#171](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/171) + filhas **#161–#170** (cada uma com prompt de agente pronto) — e o **`docs/planejamento/ROADMAP.md`** (Era Hardware) como documento-mestre; o histórico entregue (v1.0.0) está em `docs/arquivo/ROADMAP_era-RE_2026-09.md` |
 | **Planejar o lançamento (release multiplataforma)** | `docs/planejamento/RELEASE_PLAN.md` (épicos EPIC-01..05 + issues REL-*: binários para download direto na GitHub Release, smoke em ambiente limpo, assinatura, auto-update — sem stores por decisão do owner) |
-| **Levar o gp100-core à pedaleira (gate H1)** | `docs/arquivo/H1_CHECKLIST.md` (checklist) + `docs/arquivo/H1_REPORT.md` (relatório/plano de backup) + `scripts/h1_field.sh` (runbook: rehearsal/field/refresh-reference) + `scripts/h1_compare.py` (juiz da Fase C: classifica a sessão nos 3 níveis e imprime a tabela do §5) |
+| **Levar o gp100-core à pedaleira (gate H1)** | `docs/arquivo/H1_CHECKLIST.md` (checklist) + `docs/arquivo/H1_REPORT.md` (relatório/plano de backup) + `docs/arquivo/scripts-era-RE/h1_field.sh` (runbook: rehearsal/field/refresh-reference) + `docs/arquivo/scripts-era-RE/h1_compare.py` (juiz da Fase C: classifica a sessão nos 3 níveis e imprime a tabela do §5) |
 | **Escrever no device real (gate H2)** | `docs/arquivo/H2_CHECKLIST.md` (3 fluxos, um por vez) + `docs/arquivo/H2_REPORT.md` (relatório) — build com `--features real-device,write-verified` |
-| **Congelar a especificação depois do hardware (gate H3)** | `docs/arquivo/H3_CHECKLIST.md` (4 sessões) + `docs/arquivo/H3_REPORT.md` + [`PROTOCOL.md` §13.14](tecnico/PROTOCOL.md) (a conta da baseline v1.1) + `scripts/baseline.py show` |
-| **Medir as páginas 13xx em campo (gate H4)** | `docs/arquivo/H4_CHECKLIST.md` (é leitura — nada escreve no aparelho pelo app: as edições do roteiro são feitas no pedal) + `docs/arquivo/H4_REPORT.md` (relatório) + `scripts/validate_state_pages.py` (gate do artefato de offsets) |
+| **Congelar a especificação depois do hardware (gate H3)** | `docs/arquivo/H3_CHECKLIST.md` (4 sessões) + `docs/arquivo/H3_REPORT.md` + [`PROTOCOL.md` §13.14](tecnico/PROTOCOL.md) (a conta da baseline v1.1) + `tools/baseline.py show` |
+| **Medir as páginas 13xx em campo (gate H4)** | `docs/arquivo/H4_CHECKLIST.md` (é leitura — nada escreve no aparelho pelo app: as edições do roteiro são feitas no pedal) + `docs/arquivo/H4_REPORT.md` (relatório) + `tools/validate_state_pages.py` (gate do artefato de offsets) |
 | **Implementar o protocolo (gp100-core)** | `docs/referencias/protocol_golden.json` (especificação executável) + `docs/tecnico/PROTOCOL.md` §13 (narrativa) |
 | **Decidir arquitetura/estrutura no core (M0)** | `docs/dev/DECISIONS.md` (ADR-1..14 aceitos) |
 | **Saber onde o código novo do front vai morar** | `docs/dev/ARCHITECTURE.md` (mapa de módulos + o que **não** entra em cada camada + orçamento de tamanho) |
 | **Saber onde a persistencia do app mora (M2)** | `docs/dev/DECISIONS.md` ADR-9 (crate `gp100-library` no workspace gnu, nao no crate MSVC do Tauri) |
 | **Escrever/revisar código Rust (M0)** | `.agents/skills/rust-practices/SKILL.md` (gates fmt/clippy/test + estilo de docs) |
-| **Modificar o protocolo / analisar nova captura** | `scripts/wirelog.py` (normaliza o log) → `scripts/build_golden.py` → `scripts/validate_golden.py` → `scripts/baseline.py bump` (fluxo R2/R3; processo detalado no histórico `docs/arquivo/skills-era-RE/capture-analyze.md`) |
+| **Modificar o protocolo / analisar nova captura** | `tools/wirelog.py` (normaliza o log) → `tools/build_golden.py` → `tools/validate_golden.py` → `tools/baseline.py bump` (fluxo R2/R3; processo detalado no histórico `docs/arquivo/skills-era-RE/capture-analyze.md`) |
 | **Compilar o proxy / nova captura em campo** | 📜 histórico: `docs/arquivo/skills-era-RE/{proxy-build,new-session}.md` + `docs/arquivo/analysis/build_proxy.py` — a captura de hoje sai do `--log` do `gp100-cli` |
 | **Consumir dados de preset/efeitos** | `packages/core/data/parameters.json` (dicionário) + `docs/tecnico/PROTOCOL.md` §13.9 |
 | **Saber o que falta / riscos** | `docs/planejamento/BLOCKERS.md` + `docs/arquivo/analysis/capture_gaps.md` |
@@ -47,7 +47,7 @@
 | Números (testes, cobertura, datas dos marcos) | `docs/INDEX.md` §6 | repetir o número em README/ROADMAP/knowledge (#81) |
 | Contrato da suíte de testes (o que testa, como rodar, o que NÃO entra, proteções) | `docs/tecnico/TESTING.md` | repetir gates por área (é do `CONTRIBUTING` §4) nem roteiros e2e (é do `UI_TEST_PLAN`) |
 | Estrutura do pipeline (jobs, tipos, ordem) | `.github/workflows/ci.yml` + `docs/CONTRIBUTING.md` §5 | workflow pré-#68 (`_validate.yml`/`release.yml`/`container.yml`) — **consolidados no #68; não existem mais** |
-| Mapa knob→fio | `scripts/knob_map.json` (regenerável) | — |
+| Mapa knob→fio | `tools/knob_map.json` (regenerável) | — |
 | Decisões de implementação do core | `docs/dev/DECISIONS.md` (ADR-1..14) | reabrir debate ad-hoc |
 | Armadilhas Windows/ambiente | `knowledge.md` | — |
 
@@ -108,7 +108,7 @@ automática do GitHub.
 ### `docs/referencias/` — referências de dado e contexto
 | Documento | Papel | Status |
 |---|---|---|
-| `protocol_golden.json` | 39 templates request→resposta das capturas 1–4; **spec executável consumida pelo gp100-core** (`include_str!` em `golden.rs`); baseline v1.3 (`scripts/baseline.json`) | ✅ atual · **v1.3** (§13.14) |
+| `protocol_golden.json` | 39 templates request→resposta das capturas 1–4; **spec executável consumida pelo gp100-core** (`include_str!` em `golden.rs`); baseline v1.3 (`tools/baseline.json`) | ✅ atual · **v1.3** (§13.14) |
 | `MANUAL_COVERAGE.md` | Matriz de cobertura do manual oficial V1.8 → requisitos implementados (X1..Xn), com o gate que prova cada um | ✅ atual |
 | `GP100_DEVICE.md` | **Contexto canônico da pedaleira real**: funcionalidades, comportamentos, vocabulário (User Patch × User IR × Setlist-inexistente), menu GLOBAL, lacunas de leitura do hardware e divergências expostas pela pesquisa de 10/10. Skill `device-reference` aponta pra cá | ✅ atual (10/10) |
 | `REAL_DEVICE_GAP.md` | **O que o app fala com o aparelho, e o que ainda é mock** (#17/#16): o inventário core·CLI·app·aparelho real capacidade por capacidade, os pontos onde o comportamento muda com o aparelho ligado e o caminho até a release real | ✅ atual (vivo — atualizado a cada marco HW) |
@@ -132,22 +132,22 @@ automática do GitHub.
 |---|---|---|
 | `INDEX.md` | Este índice | ✅ manter atualizado |
 | `CONTRIBUTING.md` | Fluxo de contribuição: GitFlow (develop como integração), conventional commits, gates locais por área (coverage 85% incluso), template de PR e fechamento automático de issue no merge em develop (workflow próprio `issues-fechamento.yml` desde a #169; a `main` só recebe o SHA de uma tag `v*`) | ✅ atual |
-| `scripts/wirelog.py` · `scripts/baseline.py` · `scripts/validate_core_capture.py` | O trilho do H3: normalizador dos dois schemas de log de fio · baseline versionada (versão + hash + motivo + histórico) · juiz frame a frame de uma captura do gp100-core contra a spec | ✅ (`scripts/baseline.py show`) |
+| `tools/wirelog.py` · `tools/baseline.py` · `tools/validate_core_capture.py` | O trilho do H3: normalizador dos dois schemas de log de fio · baseline versionada (versão + hash + motivo + histórico) · juiz frame a frame de uma captura do gp100-core contra a spec | ✅ (`tools/baseline.py show`) |
 
 
 ### `docs/arquivo/analysis/` — cápsula da Era de RE (histórico, não processo)
 
 O laboratório inteiro foi dissolvido na #163. O que ainda **roda** saiu daqui —
-ferramentas de spec/dados para `scripts/`, dado canônico do runtime para
+ferramentas de spec/dados para `tools/`, dado canônico do runtime para
 `packages/core/data/` — e o resto ficou como **proveniência**: de onde veio cada
 número, para sempre. Nada aqui é insumo do runtime: o `guard_dados_canonicos.rs`
 reprova qualquer `analysis/` dentro de `packages/`.
 
 | Grupo | Onde (sob `docs/arquivo/analysis/`) | Papel |
 |---|---|---|
-| **Capturas** (proveniência do golden) | `captures/session1–4.jsonl`, `sessionMap.jsonl`, `sessionG3-G6.jsonl`, `captures/sessionH1/`, `field/` | matéria-prima bruta das provas A–E (append-only) — insumo de `scripts/build_golden.py` e `scripts/make_fixtures.py` |
+| **Capturas** (proveniência do golden) | `captures/session1–4.jsonl`, `sessionMap.jsonl`, `sessionG3-G6.jsonl`, `captures/sessionH1/`, `field/` | matéria-prima bruta das provas A–E (append-only) — insumo de `tools/build_golden.py` e `tools/make_fixtures.py` |
 | **Origem do dicionário** | `algorithm.xml` (payload oficial da Suite V1.5.1), `effect_catalog.csv`, `algorithm_dict.*`, `build_parameters.py` | de onde saíram os 185 algs / 639 controles de `packages/core/data/parameters.json`; o gerador é histórico (exige `fw_strings.txt` local, que não versiona) |
-| **Evidência dos gates H** | `h1_reference/`, `h2/`, `h2_reference/`, `h4/` (sessão 10/10, não rastreada) | o que `docs/arquivo/H1_REPORT.md`/`H2_REPORT.md`/`H4_*` citam; os juízes `scripts/h{1,2}_compare.py` leem daqui |
+| **Evidência dos gates H** | `h1_reference/`, `h2/`, `h2_reference/`, `h4/` (sessão 10/10, não rastreada) | o que `docs/arquivo/H1_REPORT.md`/`H2_REPORT.md`/`H4_*` citam; os juízes **arquivados** `docs/arquivo/scripts-era-RE/h{1,2}_compare.py` leem daqui |
 | **Decoders e RE estática** | `decode_*.py`, `disasm_*.py`, `rtti_disasm.py`, `xrefs_opcodes.py`, `opcode_extract.py`, `FINDINGS_{PROTOCOL,FSM,OBJECTS,COMMANDMAP}.md`, `README_GHIDRA.md` | análise dirigida do binário do Suite; achados que corroboram o §13 |
 | **Proxy de captura** | `build_proxy.py`, `midi_proxy.c`, `forwarders.def`, `winmm.*`, `suite_local/` (não rastreado) | como o Suite oficial era instrumentado para gravar sessão |
 | **Catálogo, strings e manual** | `effect_catalog.csv`, `build_catalog.py`, `extract_strings.py`, `manual_v18.*`, `manual_*.py`, `manual_streams.txt`, `notes/`, `release_note.txt`, `screens.html` | matéria-prima textual (manual V1.8 extraído para o afinador) |
@@ -166,7 +166,7 @@ reprova qualquer `analysis/` dentro de `packages/`.
 | `images/` | local | **proveniência do design**: capturas do Suite oficial citadas por `docs/referencias/UI_REFERENCE.md` + shots `responsivo-*.png` regeneráveis (`docs/arquivo/analysis/responsivo_shots.js`) |
 | ~~`app/` (instalador 77 MB) · `DebugView/` · `logs/`~~ | **saiu do disco (13/10, #167)** | não são fonte: o aparelho é a fonte; logs são evidência temporária |
 
-### `scripts/` — gates executáveis (o que roda onde está em `docs/CONTRIBUTING.md` §4)
+### `.github/scripts/` — gates executáveis (o que roda onde está em `docs/CONTRIBUTING.md` §4; era `scripts/`, dissolvida na #168)
 | Script | Papel | Roda em |
 |---|---|---|
 | `ci_plan.py` | Fonte de verdade da regra branch → escopos → matriz/stágios | `Validação · plano e escopo` |
@@ -176,15 +176,15 @@ reprova qualquer `analysis/` dentro de `packages/`.
 | `simulate_release.py` | Executa os blocos rc/promote do PRÓPRIO ci.yml num sandbox git | `Lint · contratos do pipeline` |
 | `check_commits.py` | Conventional commits (`--no-merges`) | `Lint · mensagens de commit` |
 | `ci_report.py` / `security_report.py` / `ci_timings.py` | Step summary, achado de segurança como issue, medição de tempos | `Relatório · resumo` / `Segurança · auditorias` |
-| `make_icon.py` | Gera a fonte 1024² do ícone a partir dos tokens do tema | local (`tauri icon` deriva o set) |
-| `gates.py` | **Roda todos os gates de script de uma vez**, na ordem do CI (`--list` mostra a lista) | local (`python3 scripts/gates.py`) |
-| `make_sdist.py` | Tarball de fonte com o `ui/dist` embutido — insumo do PKGBUILD | `Distribuição · tarball de fonte` |
+| `packaging/make_icon.py` | Gera a fonte 1024² do ícone a partir dos tokens do tema | local (`tauri icon` deriva o set) |
+| `gates.py` | **Roda todos os gates de script de uma vez**, na ordem do CI (`--list` mostra a lista) | local (`python3 .github/scripts/gates.py`) |
+| `packaging/make_sdist.py` | Tarball de fonte com o `ui/dist` embutido — insumo do PKGBUILD | `Distribuição · tarball de fonte` |
 | `sync_version.py` | Os 5 manifests de versão em sincronia (`--check` é o gate) | `Lint · contratos do pipeline` |
 | `check_deadcode.py` | Todo `export` de `src/` tem consumidor fora do arquivo — cobertura 100% não prova que o contrato é consumível (#78) | `Lint · UI` |
 | `check_module_size.py` | Orçamento de tamanho do front (`App.tsx` < 300 linhas; teto do §4 do `docs/dev/ARCHITECTURE.md`) | gate local (`gates.py`) · `Lint · UI` |
-| `add_cargo_path.ps1` / `h1_field.sh` / `h1_compare.py` | Fix do PATH do cargo (HKLM) · runbook do gate H1 · juiz da Fase C do H1 (níveis 1/2/3 + tabela do §5; `--self-check` é gate na CI) | local / campo |
-| `h2_field.sh` / `h2_compare.py` | Runbook do gate H2 (escrita) · juiz da transcrição do H2 contra a referência de escrita (#22; é gate em `gates.py`) | local / campo |
-| `wirelog_compare.py` | **Núcleo comum dos juízes H1/H2** (#141): o `Frame` do schema P4, o parser e os helpers de tabela — uma implementação só para os dois juízes não divergirem em silêncio | importado pelos juízes + pytest |
+| ~~`add_cargo_path.ps1` / `h1_field.sh` / `h1_compare.py`~~ (**arquivados** na #168 em `docs/arquivo/scripts-era-RE/`) | Fix do PATH do cargo (HKLM) · runbook do gate H1 · juiz da Fase C do H1 (níveis 1/2/3 + tabela do §5) | histórico / campo |
+| ~~`h2_field.sh` / `h2_compare.py`~~ (**arquivados** na #168 em `docs/arquivo/scripts-era-RE/`) | Runbook do gate H2 (escrita) · juiz da transcrição do H2 contra a referência de escrita (#22) | histórico / campo |
+| ~~`wirelog_compare.py`~~ (**arquivado** na #168 em `docs/arquivo/scripts-era-RE/`) | **Núcleo comum dos juízes H1/H2** (#141): o `Frame` do schema P4, o parser e os helpers de tabela | histórico |
 
 
 #### Ferramentas de dados e da especificação (casa desde #163)
@@ -211,7 +211,7 @@ R2/R3). Tabela de proveniência completa no PR da #163.
 `SECURITY.md` (política de segurança/secrets/material proprietário),
 `.github/ISSUE_TEMPLATE/` (epic, feature, bug, refactor, protocolo — contrato
 com seções obrigatórias + 🤖 prompt do agente, validado pelo gate
-`scripts/check_issue_templates.py`) +
+`.github/scripts/check_issue_templates.py`) +
 `.github/PULL_REQUEST_TEMPLATE.md` (checklist do gate + R1–R4),
 `.gitignore`/`.gitattributes` (o que nunca entra — README §7).
 
@@ -249,7 +249,7 @@ O Tauri não gera pacote Arch: a unidade de distribuição **é** a receita vers
 5. Nomenclatura (**casa desde #167**, continuação da #163): docs categorizados
    em `docs/{dev,tecnico,planejamento,analises,referencias}/`; **dado canônico
    do runtime** em `packages/core/data/`; **ferramentas que rodam** (spec,
-   dados, gates) em `scripts/`; histórico da Era de RE e gates H fechados em
+   dados, gates) em `.github/scripts/` (CI e gates) e `tools/` (spec/dados); histórico da Era de RE e gates H fechados em
    `docs/arquivo/`; material de origem (`files/`) fora de tudo. Docs movidos
    mantêm o nome; docs novos em kebab-case minúsculo.
 
@@ -307,7 +307,7 @@ O Tauri não gera pacote Arch: a unidade de distribuição **é** a receita vers
 | E2E (Playwright) | `pnpm exec playwright test --list` | **90** testes em **12** arquivos · **96** baselines · *08/10* |
 | Rust (core + cli + library) | `cargo test --workspace` | **309** testes em **36** suítes (34 binários de teste + 2 suites de doc-test) |
 | Spec (pytest) | `.venv/Scripts/python.exe -m pytest` | **92** |
-| Gates locais | `python scripts/gates.py` | **13** |
+| Gates locais | `python .github/scripts/gates.py` | **13** |
 
 > ✅ **Tempo da suíte do front (medido 08/10 na mesma base `develop`):**
 > `pnpm exec vitest run` caiu de **84,7s → 52,3s** com `pool: 'vmThreads'` (#145, F-10):

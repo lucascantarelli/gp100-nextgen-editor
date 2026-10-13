@@ -127,7 +127,7 @@ para o device (somente leitura das mensagens); reversível removendo a DLL.
 ## Depois da captura
 
 1. Congelar os bytes em `packages/core/data/fixtures/` + um caso no golden
-   (`scripts/build_golden.py` → `docs/referencias/protocol_golden.json`), como nas sessões
+   (`tools/build_golden.py` → `docs/referencias/protocol_golden.json`), como nas sessões
    3 e 4.
 2. Promover o item 10 da matriz do `docs/planejamento/BLOCKERS.md` (opcodes lógicos) de
    "parcial" para "RESOLVIDO EM CAMPO" **só** para o `change-effect`.

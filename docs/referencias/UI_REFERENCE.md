@@ -192,7 +192,7 @@ completamente funcional"):** importar/gerar a lista REAL dos 99 presets de fábr
 - ⚠️ Fallback dev exige nomes EXATOS do `fxData.ts` (era "4x12 Green", correto é
   "UK-GN 4x12").
 - ⚠️ `fxData.ts` é GERADO (não editar mão) — fonte é `parameters.json` via
-  `scripts/dump_fx_map.py`.
+  `tools/dump_fx_map.py`.
 - ⚠️ `control_count` no fxData quebrou o tsc (removido).
 - ⚠️ Crate `gp100-ui` NÃO compila no host (MSVC ausente — ADR-7); CI é a prova.
 - ⚠️ **Coluna estreita + `flex` sem `flexWrap` = o RÓTULO encolhe, não o botão.**
@@ -290,7 +290,7 @@ FASE 3 — CONTO E POLIMENTO
 
 ### 7.1 Bateria (drum) — 87 ritmos REAIS do firmware V2.1
 - **Fonte:** tabela de estilos no `GP-100 Firmware V2.1.bin` (entre as divisões
-  de nota `1/8T` e os compassos) — gerador `scripts/dump_drum_kit.py` →
+  de nota `1/8T` e os compassos) — gerador `tools/dump_drum_kit.py` →
   `packages/app/ui/src/artifacts/drumData.ts` (GERADO).
 - **Estilos (87) em 5 grupos** na ordem do firmware: Electronic (Metro, Electro1,
   Electro2, Techno, TripHop, H-Hop1-4, D&B, Break, E-Pop) · Rock (Surfin, Hard 1-3,
@@ -440,7 +440,7 @@ violeta, com três colunas soltas e muito espaço morto):**
 
 | Peça | Onde | O que faz |
 |---|---|---|
-| Cadeia real dos 99 | `src/artifacts/presetChains.ts` (**GERADO** por `scripts/dump_preset_chains.py` do `all.prst`) | 99 × 9 slots com `family`, `name`, `state`, `code`, `params` crus |
+| Cadeia real dos 99 | `src/artifacts/presetChains.ts` (**GERADO** por `tools/dump_preset_chains.py` do `all.prst`) | 99 × 9 slots com `family`, `name`, `state`, `code`, `params` crus |
 | Leitura no mock | `src/ipc/device.ts::localMockBoard` | `algFor` pelo `effectCode`; knob = `params[pos]` se plausível (dentro do range, nunca o sentinel `0xFFFF`); algoritmo fora do dicionário → pedal SEM knobs (regra do core) |
 | Ordem do palco | `Stage.tsx::baseOrder` | ordena pelo `slot` REAL, não pela família: **20 dos 99 presets têm a cadeia trocada** (ex.: P06 = DST antes de PRE) |
 | Banco + rótulo | `BoardView.bank` / `BoardView.ppLabel` | `"factory"`/`"user"` + `"P25"` (1-based) ou `"U01"` — o LED e a navbar leem o rótulo do board |

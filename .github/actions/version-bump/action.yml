@@ -83,5 +83,5 @@ runs:
         # -- sem ela o instalador sai com a versao velha, #73) e o `package.json`
         # do front. O `--check` no fim prova que os 5 ficaram iguais: um
         # instalador com versao errada e exatamente o sintoma que isso evita.
-        python3 scripts/sync_version.py --set "$NEXT"
-        python3 scripts/sync_version.py --check
+        python3 .github/scripts/sync_version.py --set "$NEXT"
+        python3 .github/scripts/sync_version.py --check

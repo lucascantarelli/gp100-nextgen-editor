@@ -41,6 +41,6 @@ head -20 docs/arquivo/analysis/algorithm.xml
 ```
 
 O que **roda** está em `scripts/` (mapa no `docs/INDEX.md` §3) e o fluxo de
-captura nova é `--log` do `gp100-cli` → `scripts/wirelog.py` →
-`scripts/build_golden.py` → `scripts/validate_golden.py` →
-`scripts/baseline.py bump` (R2/R3).
+captura nova é `--log` do `gp100-cli` → `tools/wirelog.py` →
+`tools/build_golden.py` → `tools/validate_golden.py` →
+`tools/baseline.py bump` (R2/R3).

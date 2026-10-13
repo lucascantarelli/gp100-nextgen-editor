@@ -14,7 +14,7 @@ pré-assinados de `docs/dev/DECISIONS.md` — em conflito, valem R1–R4 e os AD
 ## Gates de qualidade (toda mudança passa pelos 4)
 
 ```bash
-# Se o terminal novo não achar cargo: fix permanente = scripts/add_cargo_path.ps1
+# Se o terminal novo não achar cargo: fix permanente = docs/arquivo/scripts-era-RE/add_cargo_path.ps1 (arquivado na #168)
 # (feito em 29/09 — vale para QUALQUER terminal novo); workaround de sessão =
 # export abaixo, só para sessões abertas antes do fix.
 export PATH="/c/Users/Canta/.cargo/bin:$PATH"
@@ -48,7 +48,7 @@ propósito: compilar o shell Tauri lá não pegava classe de bug própria.
 **Quando roda:** `push` em `develop`/`main` e em tags `v*`; branch de trabalho
 **não** dispara push — entra só por `pull_request` (a #68 restringiu `on.push`
 a integration porque `feature/**` + `pull_request` davam duas runs por push).
-O filtro é de *caminho* (`scripts/ci_plan.py`): PR que só mexe em `docs/` não
+O filtro é de *caminho* (`.github/scripts/ci_plan.py`): PR que só mexe em `docs/` não
 sobe Rust nem front.
 
 Armadilhas mordidas — não reabrir:
@@ -196,6 +196,6 @@ packages/core/            # crate gp100-core
 - Toolchain PINADA `stable-x86_64-pc-windows-gnu` em `rust-toolchain.toml` — o
   host NÃO tem MSVC Build Tools e o `link` do PATH é o GNU coreutils; não
   trocar de alvo nem apagar o arquivo.
-- PATH do cargo: resolvido no sistema em 29/09 (`scripts/add_cargo_path.ps1`);
+- PATH do cargo: resolvido no sistema em 29/09 (`docs/arquivo/scripts-era-RE/add_cargo_path.ps1 (arquivado na #168)`);
   workaround de sessão só para terminais abertos antes do fix:
   `export PATH="/c/Users/Canta/.cargo/bin:$PATH"`.

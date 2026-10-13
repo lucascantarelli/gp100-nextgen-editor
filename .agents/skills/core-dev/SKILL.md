@@ -88,7 +88,7 @@ rust-toolchain.toml  # stable pinado (P2)
   (a sequência do boot; #164/ADR-15, `PROTOCOL.md` §13.15).
 - Log de captura é append-only e tem truncamentos SEM-HDR (ring buffer) — fixtures
   já tratam isso (P4); não "corrigir" no codec.
-- Terminal novo sem cargo no PATH: fix permanente `scripts/add_cargo_path.ps1`
+- Terminal novo sem cargo no PATH: fix permanente `docs/arquivo/scripts-era-RE/add_cargo_path.ps1 (arquivado na #168)`
   (1x, admin) ou `export PATH="/c/Users/Canta/.cargo/bin:$PATH"` na sessão.
 - Movimentação/organização de testes: regra explícita na skill `rust-practices`
   (unitário `#[cfg(test)]` = só internals; contratos em `tests/`).

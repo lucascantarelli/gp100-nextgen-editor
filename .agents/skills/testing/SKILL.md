@@ -58,7 +58,7 @@ crate externo e não enxerga internals (detalhe na skill `rust-practices`).
 
 ## Pytest de spec (`uv run pytest`)
 
-A suíte de `scripts/tests/` (casa desde #163) valida a especificação
+A suíte de `tools/tests/` (casa desde #163) valida a especificação
 reconstruída (golden, baseline, knob_map, faixas ADR-10, paridade de fixtures)
 e os juízes de campo H1/H2 — o que ela cobre está em `docs/tecnico/TESTING.md` §1.
 **Não acrescente teste novo lá sem decisão registrada**: o que prova só o

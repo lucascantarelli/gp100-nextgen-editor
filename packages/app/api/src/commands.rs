@@ -446,7 +446,7 @@ pub fn device_dump_preset(
 /// `device_log_session` — **liga o log de fio da sessao** (schema P4).
 ///
 /// E o MESMO formato que o `--log` do `gp100-cli` grava e que
-/// `scripts/h1_compare.py` / `scripts/h2_compare.py` leem. Liga e desliga
+/// `docs/arquivo/scripts-era-RE/h1_compare.py` / `docs/arquivo/scripts-era-RE/h2_compare.py` leem. Liga e desliga
 /// **sem reiniciar o device**: o `LoggingTransport` é um decorador
 /// transparente que fica no caminho desde o inicio da sessao.
 ///

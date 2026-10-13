@@ -45,7 +45,7 @@
 #   Fechamento   issues do PR mergeado — SAIU DESTE WORKFLOW (#169): virou
 #                `.github/workflows/issues-fechamento.yml`, com gatilho próprio
 #
-# OS DA MATRIZ (scripts/ci_plan.py): windows-latest · macos-15-intel ·
+# OS DA MATRIZ (.github/scripts/ci_plan.py): windows-latest · macos-15-intel ·
 # ubuntu-24.04 · archlinux. O Arch não tem label hosted no GitHub — ele roda
 # como CONTAINER `archlinux:base-devel` no runner ubuntu (as jobs de matriz
 # aceitam `matrix.host`/`matrix.container`; vazio = runner hospedado normal).
@@ -170,7 +170,7 @@ env:
   # Imagens de CI (publicadas pelo job `Infra · imagens de container`).
   # ⚠️ `container.image` NÃO aceita o contexto `env` (a tabela do GitHub só
   # permite github/needs/strategy/matrix/vars/inputs ali) — por isso os jobs
-  # de container repetem a ref literal, e `scripts/validate_workflows.py`
+  # de container repetem a ref literal, e `.github/scripts/validate_workflows.py`
   # trava que as duas sempre coincidem.
   CI_IMAGE_BASE: ghcr.io/${{ github.repository }}/ci-base:1
   CI_IMAGE_TAURI: ghcr.io/${{ github.repository }}/ci-linux:1
@@ -235,7 +235,7 @@ jobs:
           BASE_REF: ${{ github.event.pull_request.base.ref }}
           EVENT: ${{ github.event_name }}
           ACTION: ${{ inputs.action }}
-        run: python3 scripts/ci_plan.py >> "$GITHUB_OUTPUT"
+        run: python3 .github/scripts/ci_plan.py >> "$GITHUB_OUTPUT"
 
   # ═══════════════════════════════════════════════════════════════════════
   # LINT — estático; sempre; toda branch
@@ -292,27 +292,19 @@ jobs:
           # `docs/tecnico/PACKAGING.md` afirmava que ele rodava aqui e nao rodava em
           # lugar nenhum. Sem ele, mainBinaryName, .desktop, .deb e PKGBUILD
           # podiam divergir em silencio.
-          python3 scripts/check_bundle.py
-          python3 scripts/sync_version.py --check
-          python3 scripts/validate_workflows.py
+          python3 .github/scripts/check_bundle.py
+          python3 .github/scripts/sync_version.py --check
+          python3 .github/scripts/validate_workflows.py
           # O contrato dos templates de issue (#170): secoes obrigatorias e o
           # prompt auto-suficiente. Sem gate, "enxugar template" remove a secao
           # e o contrato morre em silencio — mesma classe do check_bundle (#71).
-          python3 scripts/check_issue_templates.py
+          python3 .github/scripts/check_issue_templates.py
           # O juiz da Fase C do gate H1 (#21) contra o §13. E o gate que impede
-          # o conjunto de referencia do H1 — que e a SAÍDA do MockDevice — de
-          # sair de sincronia com as formas que o §13 manda, sem ninguem
-          # notar. Sem ele, o primeiro sinal de drift seria uma sessão de
-          # hardware com a pedaleira na mão.
-          python3 scripts/h1_compare.py --self-check
-          # O mesmo para o gate H2 (#22): a transcricao dos INVARIANTES de
-          # escrita (contagens, ordem, ACK por chunk) e conferida contra a
-          # referencia que o MockDevice emite. Ela ja errou uma vez — o ACK
-          # do chunk foi escrito com o tamanho da resposta da LISTA, que e
-          # a mesma mensagem com outro conteudo — e nada pegou. E o gate que
-          # impede a proxima.
-          python3 scripts/h2_compare.py --self-check
-          python3 scripts/simulate_release.py
+          # Os self-checks dos juízes H1/H2 saíram com a dissolução de
+          # `scripts/` (#168): os juízes de campo viraram histórico em
+          # `docs/arquivo/scripts-era-RE/` (a evidência dos gates vive nos
+          # relatórios H; os gates fecharam em campo — INDEX §6).
+          python3 .github/scripts/simulate_release.py
 
   lint-commits:
     name: Lint · mensagens de commit
@@ -326,7 +318,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: conventional commits
-        run: python3 scripts/check_commits.py
+        run: python3 .github/scripts/check_commits.py
 
   lint-rust-fmt:
     name: Lint · Rust (fmt)
@@ -420,7 +412,7 @@ jobs:
         #
         # `real-device` liga o `midir`, e ele e um backend DIFERENTE por SO:
         # WinMM no Windows, ALSA no Linux (passo acima), CoreMIDI no macOS.
-        # Por isso a matriz do `ui-rust` tem os TRES OS (`scripts/ci_plan.py`:
+        # Por isso a matriz do `ui-rust` tem os TRES OS (`.github/scripts/ci_plan.py`:
         # a entrada do macOS voltou em 05/10) — compilar em um so nao prova o
         # outro, e o CoreMIDI sem cobertura era o unico motivo tecnico que
         # sobrava para o `gp100-cli` existir.
@@ -442,11 +434,11 @@ jobs:
       - name: export orfao (todo export de src/ tem consumidor)
         # Cobre 100% nao prova que o contrato e consumivel: um arquivo 100%
         # coberto cujos exports ninguem chama e o pior dos dois (#78).
-        run: python3 scripts/check_deadcode.py
+        run: python3 .github/scripts/check_deadcode.py
       - name: orcamento de tamanho do front
         # A #82 cortou o App.tsx de 514 para 274 linhas e escreveu um numero.
         # Numero sem gate se cumpre no dia do PR e se esquece depois.
-        run: python3 scripts/check_module_size.py
+        run: python3 .github/scripts/check_module_size.py
 
 # ═══════════════════════════════════════════════════════════════════════
   # COMPILAÇÃO — verificação; sempre (build ≠ distribuição)
@@ -525,7 +517,7 @@ jobs:
         # Mesmo motivo do passo de clippy: e o unico lugar ( alem do container
         # Linux) onde o backend do app e compilado COM o `RealDevice`. A
         # matriz do `ui-rust` cobre os TRES OS, entao o CoreMIDI do macOS
-        # entrou com o resto (`scripts/ci_plan.py::matrices`, 05/10).
+        # entrou com o resto (`.github/scripts/ci_plan.py::matrices`, 05/10).
         if: matrix.project == 'ui-rust'
         run: cargo check -p gp100-ui --features real-device,write-verified --all-targets
 
@@ -586,7 +578,7 @@ jobs:
       # found`) nao diz que a tag foi montada por concatenacao de ARG. Aqui
       # custa um HEAD por imagem, antes do build.
       - name: as imagens base existem no registro?
-        run: python3 scripts/check_base_images.py
+        run: python3 .github/scripts/check_base_images.py
       - name: a definição da imagem mudou nesta run?
         id: dirty
         run: |
@@ -797,7 +789,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        run: python3 scripts/security_report.py
+        run: python3 .github/scripts/security_report.py
 
   # ═══════════════════════════════════════════════════════════════════════
   # TESTES — unit · integração · e2e shell · e2e visual · e2e webview
@@ -938,16 +930,16 @@ jobs:
       # `test_golden_baseline_hash_unchanged` chama o gate), mas rodar o
       # comando aqui deixa o número da baseline VISÍVEL no log do job. Sem
       # isso, quem quiser saber de qual versão o golden está tem que abrir
-      # o scripts/baseline.json e recontar o sha.
+      # o tools/baseline.json e recontar o sha.
       - name: baseline do golden (versão + hash + motivo)
-        run: uv run python scripts/baseline.py show
+        run: uv run python tools/baseline.py show
       # Prova de que o juiz do H3 roda — e o que garante que o caminho de
       # entrada da captura do gp100-core existe de fato (antes da #23 o
       # build_golden carregava 0 eventos de um log do core).
       - name: juiz da captura do core (self-check do normalizador)
         run: |
-          uv run python scripts/wirelog.py packages/core/data/fixtures/knobs.jsonl > /dev/null
-          uv run python scripts/validate_core_capture.py packages/core/data/fixtures/knobs.jsonl
+          uv run python tools/wirelog.py packages/core/data/fixtures/knobs.jsonl > /dev/null
+          uv run python tools/validate_core_capture.py packages/core/data/fixtures/knobs.jsonl
 
   test-e2e:
     name: Testes · E2E shell (Chromium)
@@ -1227,7 +1219,7 @@ jobs:
         run: |
           set -euo pipefail
           VER="${GITHUB_REF_NAME#v}"
-          python3 scripts/make_sdist.py --version "$VER" --out dist-pkg
+          python3 packaging/make_sdist.py --version "$VER" --out dist-pkg
           SRC="dist-pkg/gp100-nextgen-editor-$VER.tar.gz"
           test -s "$SRC" || { echo "::error::tarball vazio"; exit 1; }
           rm -rf /tmp/sdist-check && mkdir -p /tmp/sdist-check
@@ -1292,10 +1284,10 @@ jobs:
           STAGE="gp100-cli-$TAG"
           mkdir -p "$STAGE"
           cp target/release/gp100-cli.exe "$STAGE/"
-          cp docs/arquivo/H1_CHECKLIST.md docs/arquivo/H1_REPORT.md scripts/h1_field.sh scripts/h1_compare.py "$STAGE/"
-          cp docs/arquivo/H2_CHECKLIST.md docs/arquivo/H2_REPORT.md scripts/h2_field.sh scripts/h2_compare.py "$STAGE/"
+          cp docs/arquivo/H1_CHECKLIST.md docs/arquivo/H1_REPORT.md docs/arquivo/scripts-era-RE/h1_field.sh docs/arquivo/scripts-era-RE/h1_compare.py "$STAGE/"
+          cp docs/arquivo/H2_CHECKLIST.md docs/arquivo/H2_REPORT.md docs/arquivo/scripts-era-RE/h2_field.sh docs/arquivo/scripts-era-RE/h2_compare.py "$STAGE/"
           cp docs/arquivo/H3_CHECKLIST.md docs/arquivo/H3_REPORT.md "$STAGE/"
-          cp scripts/wirelog.py scripts/validate_core_capture.py scripts/baseline.py scripts/baseline.json "$STAGE/"
+          cp tools/wirelog.py tools/validate_core_capture.py tools/baseline.py tools/baseline.json "$STAGE/"
           cat > "$STAGE/LEIA-ME.txt" <<MD
           GP-100 NextGen Editor — CLI de campo ${TAG}
 
@@ -1486,8 +1478,8 @@ jobs:
           # Os 5 manifests, nao 3: `tauri.conf.json` e a versao do BUNDLE e
           # `package.json` o do front. De fora deles, o instalador sai com a
           # versao velha (#73). O `--check` prova a igualdade.
-          python3 scripts/sync_version.py --set "$FULL"
-          python3 scripts/sync_version.py --check
+          python3 .github/scripts/sync_version.py --set "$FULL"
+          python3 .github/scripts/sync_version.py --check
       - name: commitar + taguear + subir
         env:
           BRANCH: ${{ steps.prep.outputs.branch }}
@@ -1568,8 +1560,8 @@ jobs:
           # Os 5 manifests, nao 3: `tauri.conf.json` e a versao do BUNDLE e
           # `package.json` o do front. De fora deles, o instalador sai com a
           # versao velha (#73). O `--check` prova a igualdade.
-          python3 scripts/sync_version.py --set "$V"
-          python3 scripts/sync_version.py --check
+          python3 .github/scripts/sync_version.py --set "$V"
+          python3 .github/scripts/sync_version.py --check
       - name: commitar + taguear
         id: final
         env:
@@ -1622,8 +1614,8 @@ jobs:
             # Os 5 manifests, nao 3: `tauri.conf.json` e a versao do BUNDLE e
             # `package.json` o do front. De fora deles, o instalador sai com a
             # versao velha (#73). O `--check` prova a igualdade.
-            python3 scripts/sync_version.py --set "$UP"
-            python3 scripts/sync_version.py --check
+            python3 .github/scripts/sync_version.py --set "$UP"
+            python3 .github/scripts/sync_version.py --check
             git add Cargo.toml packages/app/api/Cargo.toml \
             packages/app/api/tauri.conf.json packages/app/ui/package.json version.json
             git commit -m "chore(release): develop avanca para $UP"
@@ -1739,4 +1731,4 @@ jobs:
           GH_REPO: ${{ github.repository }}
           RUN_ID: ${{ github.run_id }}
           BRANCH_CLASS: ${{ needs.plan.outputs.branch-class }}
-        run: python3 scripts/ci_report.py
+        run: python3 .github/scripts/ci_report.py

@@ -8,7 +8,7 @@
 > falha mais caro deste projeto: o preset gravado errado não volta sozinho.
 >
 > **A Fase C é automatizada (issue #22).** O juiz
-> [`scripts/h2_compare.py`](../../scripts/h2_compare.py) confere os invariantes do
+> [`docs/arquivo/scripts-era-RE/h2_compare.py`](../../docs/arquivo/scripts-era-RE/h2_compare.py) confere os invariantes do
 > §13 nos 3 logs e imprime a tabela do §3.0 — inclusive o **valor que o display
 > DEVERIA mostrar**, para o veredito abaixo ser uma comparação e não uma
 > impressão. O que o fio não preenche é a última coluna, e é a única que
@@ -17,7 +17,7 @@
 ## 3.0 Fase C — o que o fio provou (cola a saída do juiz)
 
 ```bash
-python3 scripts/h2_compare.py docs/arquivo/analysis/h2/<sessão> --markdown
+python3 docs/arquivo/scripts-era-RE/h2_compare.py docs/arquivo/analysis/h2/<sessão> --markdown
 ```
 
 | # | Fluxo (§13) | Invariante do fio | Obtido | Veredito do operador |

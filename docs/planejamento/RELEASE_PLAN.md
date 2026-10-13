@@ -23,12 +23,12 @@ plataformas sem nova decisão do owner registrada aqui.
 | Área | Estado hoje | Prova |
 |---|---|---|
 | Empacotamento | **Só Windows x64**: instalador NSIS (app) + `gp100-cli.exe` (gnu) | `packages/app/api/tauri.conf.json` → `bundle.targets: ["nsis"]`; jobs `release-cli`/`release-installer` em `windows-latest` |
-| Versão nos bundlers | ✅ **RESOLVIDO (#73)** — `scripts/sync_version.py` governa os 5 manifests (`Cargo.toml`×2, `tauri.conf.json`, `package.json`, `version.json`) e tem `--check` no gate do Lint | `sync_version.py --check` |
+| Versão nos bundlers | ✅ **RESOLVIDO (#73)** — `.github/scripts/sync_version.py` governa os 5 manifests (`Cargo.toml`×2, `tauri.conf.json`, `package.json`, `version.json`) e tem `--check` no gate do Lint | `sync_version.py --check` |
 | Assinatura | Nenhuma (Windows nem macOS) — nada de cert/entitlements/notarization | ausente no pipeline |
 | Smoke de instalação | Só smoke de **hardware** (`hardware-smoke`) e testes de cargo — nenhum teste de instalador em ambiente limpo | `Distribuição · instalador` (build da release) |
 | Auto-update | Inexistente (`tauri-plugin-updater` ausente, sem endpoint/keys) | `tauri.conf.json` sem `plugins` |
 | Rollback | Manual e sem runbook | — |
-| Base que AJUDA | Matriz 3-OS já existe (windows-latest, ubuntu-24.04, macos-15-intel); tags `v*` disparam release; guard de prerelease p/ `-rc`; cadeia rc→promote **simulada no gate** (`scripts/simulate_release.py`) | `ci.yml` |
+| Base que AJUDA | Matriz 3-OS já existe (windows-latest, ubuntu-24.04, macos-15-intel); tags `v*` disparam release; guard de prerelease p/ `-rc`; cadeia rc→promote **simulada no gate** (`.github/scripts/simulate_release.py`) | `ci.yml` |
 
 **Lacunas → 5 épicos, 22 issues.** Dependências críticas: assinatura (EPIC-03)
 é o que torna o download direto viável (sem ela, SmartScreen/Gatekeeper
@@ -139,7 +139,7 @@ encaixar nessa cadeia (rc publica binários de teste; promote publica os finais)
 - **ci_cd_workflow_spec:**
   - `trigger_event`: push de tag `v*` (atrás de flag/condição)
   - `runner_matrix`: macos-26
-  - `steps_to_execute`: ["script `scripts/mac_pkg.sh` (pkgbuild --component app --scripts preinstall/postinstall)", "productbuild com title/version/identifier", "Assinar com cert Installer (REL-SIGN-02) e publicar"]
+  - `steps_to_execute`: ["script `packaging/mac_pkg.sh` (pkgbuild --component app --scripts preinstall/postinstall)", "productbuild com title/version/identifier", "Assinar com cert Installer (REL-SIGN-02) e publicar"]
   - `expected_artifacts`: ["gp100-nextgen-editor_<versão>.pkg"]
 - **definition_of_done:**
   - [ ] `installer -pkg *.pkg -target /` funciona no runner limpo
@@ -204,7 +204,7 @@ encaixar nessa cadeia (rc publica binários de teste; promote publica os finais)
 
 ### REL-CI-01 · [Transversal] Framework de smoke por formato (lifecycle completo)
 - **Epic:** EPIC-02 · **Plataformas:** todas · **Prioridade:** Blocker
-- **Descrição:** scripts idempotentes `scripts/smoke/{win,mac,linux}` que
+- **Descrição:** scripts idempotentes `packaging/smoke/{win,mac,linux}` que
   recebem o artefato e executam: instalação silenciosa → abre o app (processo
   vivo + janela/critério de saída) → desinstala → assert de resíduo. Um spec
   por formato: NSIS (`/S`), MSI (`msiexec /qn`), DMG (hdiutil attach/cp/open),
