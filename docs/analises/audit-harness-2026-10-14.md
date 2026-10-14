@@ -211,3 +211,32 @@ tabela de fontes únicas (H-05, H-11, H-12); **(3)** skill `app-dev` + passo de 
 
 > **Não executado nesta etapa:** nenhuma skill foi editada. É auditoria de leitura —
 > a consolidação é a §3 (vira issue → prompt `implementar-issue`).
+
+---
+
+## 4. Desfecho (#249 — executado em 14/10/2026)
+
+A consolidação da §3 foi executada em PR único de 4 commits (branch
+`docs/249-harness-consolidacao`). O que ficou como está e o que mudou:
+
+| Achado | Desfecho |
+|---|---|
+| H-01 era `R1–R4` | Todas as skills/prompts passam a citar **P1–P7** (`ROADMAP.md` §1.2); zero `M0.x` em regra viva |
+| H-02 faixa de ADR | `device-reference` cita `docs/dev/DECISIONS.md` **sem faixa** (o número apodrecia) |
+| H-03 mecanismo da release | `release` documenta a limitação real (`main` pelo SHA da tag, `GH006` — #234) |
+| H-04 ponteiro obsoleto | `device-reference` → `REAL_DEVICE_GAP.md` (vivo); `MANUAL_COVERAGE` marcada histórica (#242) |
+| H-05 duplicação | Tabela **fontes únicas** no `README.md` + regra "uma casa por regra"; ciclo de PR/commits e regra 1a saem de `core-dev` |
+| H-06 camada do app sem skill | **criada** `.agents/skills/app-dev/SKILL.md` (10 skills); registrada no INDEX |
+| H-07 caminho arquivado | `docs/arquivo/scripts-era-RE/add_cargo_path.ps1` em todas as citações |
+| H-08 issue-fantasma | `description` da `testing` reescrita (sem issue morta) |
+| H-09 citações por fase | Rótulos trocados por **P1–P7**/issue |
+| H-10 higiene | Passo 8 do prompt `auditoria.md`: o próprio `.agents/` é artefato auditável |
+| H-11 histórico | Proveniência (`F-11/F-12/#68`, "auditoria 03/10") movida para apêndice da `docs-sync` |
+| H-12 3ª cópia | `README.md` fica com **ordem de entrada + fontes únicas**; o catálogo vive no INDEX |
+
+**Provas rodadas na branch:** zero `R1[–-]R4`/`M0.x` em `.agents/`; as **10** skills com
+front-matter YAML parseável, `name` == pasta e `description` que dispara; nenhuma faixa
+`ADR-1..13`; `add_cargo_path` resolvendo no caminho novo.
+
+**Nota de histórico:** esta auditoria mediu **9** skills (14/10, antes do #249); a 10ª
+(`app-dev`) é o produto da H-06. Os números de linhas do cabeçalho são daquele momento.

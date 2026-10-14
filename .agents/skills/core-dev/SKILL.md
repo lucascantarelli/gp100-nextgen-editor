@@ -48,14 +48,13 @@ e o formato de execução canônico é o prompt `.agents/prompts/implementar-iss
    O labelling antigo de fase (o prefixo de marco que antecedia o conventional)
    NÃO vale mais.
 8. **Modo real não se adiciona fora do gate**: subcomando que "precisaria" de
-   device real = parar e registrar ADR/ROADMAP — nunca flag ad-hoc nem bypass.
-   As duas camadas (feature + `--real --i-know-what-im-doing`; escrita só pós-H2)
-   estão na skill `hardware-dev`.
+   device real = parar e registrar ADR/ROADMAP — nunca flag ad-hoc nem bypass. A
+   política (as duas camadas e o anti-brick) é da skill `hardware-dev`.
 
 ## Checklist por issue
 1. Ler a issue no GitHub (DoD define "pronto", não o feeling); branch/PR pela
    skill `github-flow` (fonte única do ciclo issue→PR→CI→merge).
-2. Ler P5 (`docs/dev/DECISIONS.md`) antes de escolher estrutura/API.
+2. Ler as **ADRs** (`docs/dev/DECISIONS.md`) antes de escolher estrutura/API.
 3. Implementar + testes vetorizados com exemplos do golden.
 4. `cargo fmt && cargo clippy -- -D warnings && cargo test` — gates e estilo
    detalhados em `.agents/skills/rust-practices/SKILL.md` (doc-comments PT-BR
@@ -83,9 +82,10 @@ rust-toolchain.toml  # toolchain pinada (ADR-8)
   esperada 0, achada 1" — o slot 0 vem do `open`, não do req de página.
   Quem relê as 9 páginas em ciclo usa `Session::reload_paginas_correntes`
   (a sequência do boot; #164/ADR-15, `PROTOCOL.md` §13.15).
-- Log de captura é append-only e tem truncamentos SEM-HDR (ring buffer) — fixtures
-  já tratam isso (P4); não "corrigir" no codec.
-- Terminal novo sem cargo no PATH: fix permanente `docs/arquivo/scripts-era-RE/add_cargo_path.ps1` (arquivado na #168)
-  (1x, admin) ou `export PATH="/c/Users/Canta/.cargo/bin:$PATH"` na sessão.
+- Log de captura é append-only e tem truncamentos SEM-HDR (ring buffer) — as
+  fixtures de `packages/core/data/fixtures/` já tratam isso; não "corrigir" no codec.
+- Armadilhas deste host (cargo fora do PATH, toolchain pinada, porta MIDI
+  reenumerada): a **fonte única** é `knowledge.md` §"Armadilhas deste host" — não
+  redescubra no meio da issue.
 - Movimentação/organização de testes: regra explícita na skill `rust-practices`
   (unitário `#[cfg(test)]` = só internals; contratos em `tests/`).

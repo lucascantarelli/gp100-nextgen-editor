@@ -77,8 +77,9 @@ tests/        vitest (jsdom) · e2e/ spec do Playwright (roda do repo, na CI)
 ```
 
 - Componentes **sem lógica de negócio**: recebem dados prontos e callbacks.
-- Tipos TS de payload IPC em `ipc/types.ts` (espelhos manuais até o M1.0
-  decidir ts-rs/specta — ADR pendente do plano).
+- Tipos TS de payload IPC em `ipc/types.ts`: **espelhos manuais** dos DTOs de
+  `packages/app/api/src/commands.rs` (geração automática ts-rs/specta é ADR
+  pendente — mudou DTO no Rust, muda aqui na mesma PR).
 
 ## Gates de qualidade (toda mudança de front passa)
 
