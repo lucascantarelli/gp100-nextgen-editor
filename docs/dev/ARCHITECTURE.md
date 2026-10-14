@@ -205,15 +205,36 @@ App volta a inchar. Um critério que só vale no dia do PR não impede nada.
 | `ipc/diag.ts` | 600 | herda a regra: cresce por operação de diagnóstico, não por feature de UI |
 
 O gate é `.github/scripts/check_module_size.py`, rodado em `.github/scripts/gates.py` e no
-`ci.yml`. Ele falha com o nome do arquivo e a contagem, e a lista de exceções fica
-no próprio script — exceção nova é decisão consciente, não esquecimento.
+`ci.yml` (no job do escopo do **front** e no do escopo **Rust** — `lint-ui` sozinho
+não bastava, porque ele só existe quando o front muda). Ele falha com o nome do
+arquivo e a contagem, e a lista de exceções fica no próprio script — exceção nova
+é decisão consciente, não esquecimento. O teste do gate (com árvores sintéticas,
+porque inflar arquivo de verdade para provar que ele reprova é teste que ninguém
+roda duas vezes) vive em `tools/tests/test_check_module_size.py`.
 
-### 4.1 O crate do app (`packages/app/api`)
+### 4.1 Rust: `packages/*/src` e o crate do app
 
-O gate acima cobre o front. O Rust do crate do app ganhou orçamento **declarado**
-com a #243, que fatiou um `actor.rs` de 2 702 linhas sem nenhum freio automático;
-a cobrança em build é a **#248** (teto de módulo + deadcode para os crates Rust).
-Aqui o número é régua de review.
+A **#248** estendeu o MESMO gate ao Rust, e a razão é medida: sem freio nenhum,
+`packages/app/api/src/actor.rs` chegou a **2 702 linhas** (F-07 da auditoria de
+14/10). A régua é **700 linhas** por `.rs` não declarado — acima disso o módulo
+tem mais de um assunto — e quem já estava acima quando o gate passou a medir tem
+teto **congelado** na própria medida.
+
+| Arquivo | Teto | Por que |
+|---|---|---|
+| qualquer `.rs` de `packages/*/src` | **700** | teto genérico do Rust: mesmo critério do `components/` — dois assuntos no mesmo arquivo |
+| `packages/core/src/session.rs` | 1 395 | **congelado** na medida de 14/10: FSM do fio (ADR-3/4/6) — corte na #257 |
+| `packages/core/src/transport/mock.rs` | 1 258 | **congelado**: o device de mentira espelha o fio — corte na #257 |
+| `packages/cli/src/main.rs` | 1 226 | **congelado**: CLI de campo — corte na #257 |
+| `packages/core/src/preset.rs` | 901 | **congelado**: modelo de preset/decodificação — corte na #257 |
+| `packages/core/src/golden.rs` | 829 | **congelado**: golden do fio (R1–R3) — corte na #257 |
+| `tests.rs`, `tests/` | — | **fora do orçamento**: cresce com a COBERTURA, não com funcionalidade — medir isso só ensinaria a escrever menos teste |
+
+> **Congelado** é decisão, não alvo: o teto é **exatamente** a medida daquele dia,
+> então o arquivo não cresce mais. Quem precisa de linha nova corta — ou traz a
+> decisão de subir o número, com a issue que assume o corte.
+
+#### No crate do app (`packages/app/api`) — desde a #243
 
 | Módulo | Teto | Por que |
 |---|---|---|
