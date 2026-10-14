@@ -111,6 +111,45 @@ def test_make_sdist_embute_as_dependencias_de_caminho_do_shell():
     assert not cb.FAILURES, cb.FAILURES
 
 
+# ── #237: o `dist-sdist` publica o nome que o `make_sdist.py` GRAVA ──────────
+#
+# O bug: o `files:` do passo de publicação montava o nome com
+# `${{ github.ref_name }}` (= `v0.2.1`), mas o `make_sdist.py` grava
+# `gp100-nextgen-editor-0.2.1.tar.gz` (sem o `v`, convenção do PKGBUILD). Com
+# `fail_on_unmatched_files: true` o job morreu DEPOIS de gerar e validar o
+# tarball — a Release saiu sem o insumo do Arch (run 38570410157).
+
+WF_CI = (RAIZ / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+SD_ATUAL = (RAIZ / "packaging" / "make_sdist.py").read_text(encoding="utf-8")
+
+
+def _rodar_publish(sd_text: str, workflow: str) -> list[str]:
+    cb = _carregar_check_bundle()
+    cb.FAILURES.clear()
+    cb.check_sdist_publish_name(sd_text, workflow)
+    return list(cb.FAILURES)
+
+
+def test_publish_do_tarball_sai_do_passo_que_o_gerou():
+    assert not _rodar_publish(SD_ATUAL, WF_CI)
+
+
+def test_publish_com_github_ref_name_reprova():
+    bug = WF_CI.replace(
+        "${{ steps.sdist.outputs.tar }}",
+        "dist-pkg/gp100-nextgen-editor-${{ github.ref_name }}.tar.gz",
+    )
+    assert _rodar_publish(SD_ATUAL, bug)
+
+
+def test_nome_do_tarball_com_o_v_da_tag_reprova():
+    com_v = SD_ATUAL.replace(
+        'nome = f"gp100-nextgen-editor-{versao}.tar.gz"',
+        'nome = f"gp100-nextgen-editor-v{versao}.tar.gz"',
+    )
+    assert _rodar_publish(com_v, WF_CI)
+
+
 def test_o_proprio_gate_de_bundle_roda_limpo_no_repo(monkeypatch):
     """O contrato vale para a arvore REAL: `check_arch` com o conf do repo.
 

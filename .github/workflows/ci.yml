@@ -1233,11 +1233,27 @@ jobs:
       # `gp100-core`, e o `frontendDist` precisa existir (sem ele o
       # `generate_context!()` faz `panic!` em tempo de compilacao).
       - name: o tarball tem o que o build do shell exige
+        id: sdist
         run: |
           set -euo pipefail
           VER="${GITHUB_REF_NAME#v}"
           python3 packaging/make_sdist.py --version "$VER" --out dist-pkg
+          # O NOME SAI DAQUI, e nao do `files:` do passo de publicacao (#237).
+          # O `make_sdist.py` grava `gp100-nextgen-editor-<VER>.tar.gz` (sem o
+          # `v`, que e a convencao do `$pkgname-$_pkgver.tar.gz` do PKGBUILD),
+          # e o `files:` pedia `…-${{ github.ref_name }}.tar.gz` = `…-v0.2.1…`
+          # — com `fail_on_unmatched_files: true` o job morreu DEPOIS de o
+          # tarball estar certo e a Release ficou sem ele (run 38570410157).
           SRC="dist-pkg/gp100-nextgen-editor-$VER.tar.gz"
+          # O `SHA256SUMS.txt` do sdist disputava o MESMO nome de asset com o
+          # `dist-ui` (que publica o resumo dos instaladores): cada um leva o
+          # seu, derivado do nome do proprio artefato.
+          SHA="$SRC.sha256"
+          mv dist-pkg/SHA256SUMS.txt "$SHA"
+          {
+            echo "tar=$SRC"
+            echo "sha=$SHA"
+          } >> "$GITHUB_OUTPUT"
           test -s "$SRC" || { echo "::error::tarball vazio"; exit 1; }
           rm -rf /tmp/sdist-check && mkdir -p /tmp/sdist-check
           tar xzf "$SRC" -C /tmp/sdist-check
@@ -1260,8 +1276,8 @@ jobs:
           tag_name: ${{ github.ref_name }}
           prerelease: ${{ contains(github.ref_name, '-rc') }}
           files: |
-            dist-pkg/gp100-nextgen-editor-${{ github.ref_name }}.tar.gz
-            dist-pkg/SHA256SUMS.txt
+            ${{ steps.sdist.outputs.tar }}
+            ${{ steps.sdist.outputs.sha }}
           fail_on_unmatched_files: true
 
   dist-cli:
