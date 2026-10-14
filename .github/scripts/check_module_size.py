@@ -93,7 +93,12 @@ TETOS_RUST: list[tuple[str, int, str]] = [
         200,
         "#257: o HANDLE (o que a Session POSSUI + o ciclo de vida); metodo novo vira modulo do assunto",
     ),
-    ("packages/core/src/transport/mock.rs", 1258, "congelado: device de mentira espelha o fio; corte na #257"),
+    (
+        "packages/core/src/transport/mock.rs",
+        350,
+        "#257: o HANDLE (o que o MockDevice POSSUI + o ciclo de vida) + o `mod tests` inline "
+        "(um `mod tests` em `mock/tests.rs` e `clippy::module_inception`); metodo novo vira modulo do assunto",
+    ),
     ("packages/cli/src/main.rs", 1226, "congelado: CLI de campo; corte na #257"),
 ]
 
