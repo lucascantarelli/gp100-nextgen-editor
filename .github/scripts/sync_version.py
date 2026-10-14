@@ -17,9 +17,13 @@ arquivos. No `tauri.conf.json`, um `sed` generico pega a PRIMEIRA ocorrencia
 parseado como a estrutura que ele e (TOML por linha anchors, JSON por
 estrutura) e a edicao e conferida.
 
+O `version` tambem aparece nos LOCK FILES, que guardam a versao dos crates de
+CAMINHO: bump sem eles deixa a arvore que `--locked` recusa compilar (#231).
+O gate cobre os dois lados — os 5 manifests E os pacotes locais dos 2 locks.
+
 Uso:
     python3 .github/scripts/sync_version.py --check          # gate: divergencia = erro
-    python3 .github/scripts/sync_version.py --set 0.2.0      # aplica em todos
+    python3 .github/scripts/sync_version.py --set 0.2.0      # aplica em todos (manifests + locks)
     python3 .github/scripts/sync_version.py                  # sem flag: mostra o estado
 """
 
@@ -44,6 +48,82 @@ MANIFESTS: list[tuple[str, str, str]] = [
 ]
 
 RE_ANCHOR = r'^(version\s*=\s*")([^"]+)(")'
+
+# OS LOCK FILES TAMBEM CARREGAM A VERSAO — e o bump sem eles deixa a arvore
+# INCONSISTENTE (#231). Os `Cargo.lock` guardam a versao dos crates de CAMINHO
+# (`gp100-core`, `gp100-cli`, `gp100-library`, `gp100-ui`); com o lock velho,
+# `cargo metadata --locked` e `cargo build --release --locked` recusam atualizar
+# o lock e morrem ("cannot update the lock file … because --locked was passed") —
+# e sao exatamente esses dois os consumidores de release: o passo `dist-sdist`
+# do CI (dentro do tarball) e o `build()` do `packaging/arch/PKGBUILD`.
+#
+# A reescrita e DE LINHA, e so nos pacotes LOCAIS. Pacote de caminho e o que
+# nao tem `source = ...` no lock (terceiro sempre tem) — por isso a lista nao
+# precisa ser mantida a mao, e uma dependencia de caminho nova entra sozinha.
+LOCKS: list[str] = ["Cargo.lock", "packages/app/api/Cargo.lock"]
+
+RE_PKG_INICIO = re.compile(r"^\[\[package\]\]\s*$", re.M)
+RE_PKG_NOME = re.compile(r'^name\s*=\s*"([^"]+)"', re.M)
+RE_PKG_VERSAO = re.compile(r'^(version\s*=\s*")[^"]+(")', re.M)
+RE_PKG_SOURCE = re.compile(r"^source\s*=", re.M)
+
+
+def _blocos_de_pacote(texto: str) -> list[tuple[int, int]]:
+    """Faixas (inicio, fim) de cada bloco `[[package]]` do lock."""
+    marcas = [m.start() for m in RE_PKG_INICIO.finditer(texto)]
+    limites = marcas + [len(texto)]
+    return [(limites[i], limites[i + 1]) for i in range(len(marcas))]
+
+
+def locais_do_lock(texto: str) -> dict[str, str]:
+    """`nome -> versao` dos pacotes LOCAIS (sem `source`) declarados no lock."""
+    locais: dict[str, str] = {}
+    for inicio, fim in _blocos_de_pacote(texto):
+        bloco = texto[inicio:fim]
+        if RE_PKG_SOURCE.search(bloco):
+            continue  # terceiro: o bump de versao nao encosta aqui
+        nome = RE_PKG_NOME.search(bloco)
+        versao = RE_PKG_VERSAO.search(bloco)
+        if nome and versao:
+            locais[nome.group(1)] = versao.group(0).split('"')[1]
+    return locais
+
+
+def escrever_lock(caminho: Path, versao: str) -> int:
+    """Reescreve a versao dos pacotes locais no lock. Devolve quantos mudou.
+
+    Grava em BYTES (`newline` do repo e LF — mesma armadilha do `escrever`).
+    """
+    texto = caminho.read_bytes().decode("utf-8")
+    pedacos: list[str] = []
+    anterior = 0
+    mudou = 0
+    for inicio, fim in _blocos_de_pacote(texto):
+        bloco = texto[inicio:fim]
+        if not RE_PKG_SOURCE.search(bloco) and RE_PKG_NOME.search(bloco):
+            novo_bloco, n = RE_PKG_VERSAO.subn(
+                rf"\g<1>{versao}\g<2>", bloco, count=1
+            )
+            if n == 1 and novo_bloco != bloco:
+                mudou += 1
+            bloco = novo_bloco
+        pedacos.append(texto[anterior:inicio])
+        pedacos.append(bloco)
+        anterior = fim
+    pedacos.append(texto[anterior:])
+    caminho.write_bytes("".join(pedacos).encode("utf-8"))
+    return mudou
+
+
+def divergencias_de_lock(caminho: Path, esperada: str) -> list[str]:
+    """Pacotes locais do lock que NAO estao na versao esperada (#231)."""
+    if not caminho.is_file():
+        return [f"{caminho.name}: lock ausente"]
+    return [
+        f"{caminho.as_posix()}: `{nome}` em {versao} (esperado {esperada})"
+        for nome, versao in sorted(locais_do_lock(caminho.read_text(encoding="utf-8")).items())
+        if versao != esperada
+    ]
 
 
 def log(msg: str) -> None:
@@ -120,6 +200,14 @@ def main() -> int:
         for caminho, _, _ in MANIFESTS:
             escrever(caminho, versao)
         log(f"versao {versao} aplicada em {len(MANIFESTS)} manifests")
+        # Os locks entram no MESMO passo (#231): sem isso a arvore bumpada nao
+        # compila `--locked` (tarball do dist-sdist e PKGBUILD do Arch).
+        for rel in LOCKS:
+            alvo = ROOT / rel
+            if not alvo.is_file():
+                err(f"lock obrigatorio ausente: {rel}")
+            n = escrever_lock(alvo, versao)
+            log(f"{rel}: {n} pacote(s) local(is) em {versao}")
         return 0
 
     for caminho, versao in estado.items():
@@ -129,6 +217,35 @@ def main() -> int:
     distintos = {v for v in estado.values() if v is not None}
     if ausentes:
         err(f"manifesto(s) ausente(s) ou sem `version`: {', '.join(ausentes)}")
+
+    # Os locks tambem sao MANIFESTO da versao (#231): o crate de caminho que
+    # ficou para tras quebra `--locked` em silencio ate a distribuicao rodar.
+    if len(distintos) == 1:
+        esperada = next(iter(distintos))
+        for rel in LOCKS:
+            alvo = ROOT / rel
+            achados = locais_do_lock(
+                alvo.read_text(encoding="utf-8")
+            ) if alvo.is_file() else {}
+            log(
+                f"  {rel:38} "
+                + ", ".join(f"{k}={v}" for k, v in sorted(achados.items()))
+            )
+        pendentes = [
+            d for rel in LOCKS for d in divergencias_de_lock(ROOT / rel, esperada)
+        ]
+        if pendentes:
+            msg = (
+                "LOCK DEFASADO (#231): "
+                + "; ".join(pendentes)
+                + ". Uma arvore bumpada que nao compila `--locked` quebra o "
+                "tarball do dist-sdist e o PKGBUILD do Arch. Rode: "
+                "python3 .github/scripts/sync_version.py --set <versao>"
+            )
+            if args.check:
+                err(msg)
+            log(msg)
+            return 1
 
     if len(distintos) > 1:
         msg = (
