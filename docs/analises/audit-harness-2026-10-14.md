@@ -224,8 +224,8 @@ A consolidação da §3 foi executada em PR único de 4 commits (branch
 | H-01 era `R1–R4` | Todas as skills/prompts passam a citar **P1–P7** (`ROADMAP.md` §1.2); zero `M0.x` em regra viva |
 | H-02 faixa de ADR | `device-reference` cita `docs/dev/DECISIONS.md` **sem faixa** (o número apodrecia) |
 | H-03 mecanismo da release | `release` documenta a limitação real (`main` pelo SHA da tag, `GH006` — #234) |
-| H-04 ponteiro obsoleto | `device-reference` → `REAL_DEVICE_GAP.md` (vivo); `MANUAL_COVERAGE` marcada histórica (#242) |
-| H-05 duplicação | Tabela **fontes únicas** no `README.md` + regra "uma casa por regra"; ciclo de PR/commits e regra 1a saem de `core-dev` |
+| H-04 ponteiro obsoleto | `device-reference` → `REAL_DEVICE_GAP.md` (vivo); `MANUAL_COVERAGE` marcada como matriz da Fase 1 com a #242 **ainda aberta** (o ponteiro só troca de vez quando a #242 fundir o doc) |
+| H-05 duplicação | Tabela **fontes únicas** no `README.md` + regra "uma casa por regra"; a desduplicação item a item dos 6 arquivos fechou na **§5** (o primeiro passe só tirou o ciclo de PR/commits e a regra 1a de `core-dev`) |
 | H-06 camada do app sem skill | **criada** `.agents/skills/app-dev/SKILL.md` (10 skills); registrada no INDEX |
 | H-07 caminho arquivado | `docs/arquivo/scripts-era-RE/add_cargo_path.ps1` em todas as citações |
 | H-08 issue-fantasma | `description` da `testing` reescrita (sem issue morta) |
@@ -240,3 +240,31 @@ front-matter YAML parseável, `name` == pasta e `description` que dispara; nenhu
 
 **Nota de histórico:** esta auditoria mediu **9** skills (14/10, antes do #249); a 10ª
 (`app-dev`) é o produto da H-06. Os números de linhas do cabeçalho são daquele momento.
+
+---
+
+## 5. Desfecho complementar — commits 1 e 2 (#249, mesmo dia)
+
+O fechamento da #249 anunciou a §3 aplicada, e o artefato **não** sustentava duas das
+provas — exatamente o modo de falha que a regra 8 da `docs-sync` combate (e que o
+próprio harness passou a auditar no passo 8 da `auditoria.md`). Medido de novo nos
+arquivos, sobraram:
+
+| O que ficou | Onde | Desfecho |
+|---|---|---|
+| Era RE **fora** do alcance do grep da issue | `knowledge.md` (o doc que a §"Ordem de entrada" manda ler primeiro): `(R3)` numa regra viva e `ROADMAP … regras R1–R4` | trocado por **P1–P7** (`ROADMAP.md` §1.2) e o rótulo `R3` removido (commit 1) |
+| Caminho arquivado malformado, 4ª ocorrência | `knowledge.md`: `add_cargo_path.ps1 (arquivado na #168)` com o parêntese **dentro** do code span | parêntese fora do span (commit 1) |
+| Ponteiro de cobertura do device | `hardware-dev` apontava `MANUAL_COVERAGE.md` como registro vivo | aponta `REAL_DEVICE_GAP.md` (vivo) e marca o manual como Fase 1/#242 (commit 1) |
+| Caminhos que não resolvem | `app-dev` citava `src/actor.rs`, `ui/src/ipc/device.ts` (relativos ao crate/dir) | caminhos completos (`packages/app/api/src/…`, `packages/app/ui/src/ipc/…`) — commit 1 |
+| Desduplicação real | as 6 regras transversais ainda **enunciadas** em 3 a 7 arquivos cada (`aparelho é a fonte` 3 · ciclo 7 · commits 6 · teste 6 · contadores 3 · armadilhas 3) | 1 casa por regra + no máximo 1 entrada, provado por varredura de conteúdo antes→depois (commit 2) |
+
+**Prova da desduplicação (commit 2):** varredura de `.agents/**/*.md` + `knowledge.md`
+que conta, por ARQUIVO, quem carrega o **conteúdo** da regra (re-enunciar é o defeito,
+mesmo quando o arquivo também nomeia a dona) — a tabela de fontes únicas do
+`.agents/README.md` é o índice das regras e é contada à parte. Antes: 6 regras acima do
+teto de 2 arquivos; depois: **0** — `o aparelho é a fonte` → `hardware-dev`; ciclo/commits → `github-flow`;
+unitário × contrato → `rust-practices`; contadores → `docs-sync`; armadilhas de host →
+`knowledge.md`; cadeia rc→promote → `release`. Prompts (`implementar-issue`) e
+`knowledge.md` seguem citando a premissa como **entrada** do trabalho, não como regra;
+a tabela de fontes únicas virou linha própria no `.agents/README.md` (camada do app →
+`app-dev`).

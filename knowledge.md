@@ -81,12 +81,12 @@ comentário NA ISSUE e a fila avança.
   terceira camada (env var, flag, subcomando) para contornar.
 - **Nada de contornar gate vermelho** (CI ou local): sem relaxar `-D warnings`,
   sem pular job, sem `--no-verify`. CI vermelha não vira marco.
-- **Nada de implementar sem issue**; uma issue = um PR (`Closes #N` no corpo);
-  descoberta nova no caminho vira issue na hora.
-- **Contador vive só no `docs/INDEX.md` §6** (regra #81) — repetido em 2 docs é
-  dívida garantida.
+- **Nada de implementar sem issue**; uma issue = um PR; descoberta nova no
+  caminho vira issue na hora — o ciclo é a skill `github-flow`.
+- **Contadores**: a casa é o `docs/INDEX.md` §6 (skill `docs-sync`) — número em
+  dois docs é dívida garantida.
 - **Palpite de protocolo = para o fluxo**: divergência app × aparelho vira issue
-  `protocolo` com evidência; nunca "consertar" o codec/UI no chute (R3).
+  `protocolo` com evidência; nunca "consertar" o codec/UI no chute.
 - Skill nova só se justificar (description dispara em tarefa recorrente); skill
   morta vai para `docs/arquivo/`, nunca é apagada.
 
@@ -104,7 +104,8 @@ comentário NA ISSUE e a fila avança.
   o host não tem MSVC Build Tools. Não trocar de alvo nem apagar o arquivo.
   O shell Tauri (`packages/app/api`) é MSVC/portável por ADR-7/ADR-8 —
   compila na CI, não no host.
-- **PATH do cargo**: fixado no sistema por `docs/arquivo/scripts-era-RE/add_cargo_path.ps1 (arquivado na #168)` (29/09).
+- **PATH do cargo**: fixado no sistema por `docs/arquivo/scripts-era-RE/add_cargo_path.ps1`
+  (arquivado na #168, fix de 29/09).
   Em shell da sessão antiga: `export PATH="/c/Users/Canta/.cargo/bin:$PATH"` —
   PREPEND (winget/choco sombreiam por append) e caminho em estilo POSIX
   (`C:\...` no PATH quebra a lista no `:` do drive).
@@ -191,7 +192,7 @@ comentário NA ISSUE e a fila avança.
 ## Caminhos canônicos
 
 - `docs/INDEX.md` §6 — estado e **números** (fonte única)
-- `docs/planejamento/ROADMAP.md` — plano executivo vigente (Era Hardware; regras R1–R4)
+- `docs/planejamento/ROADMAP.md` — plano executivo vigente (Era Hardware; princípios **P1–P7** no §1.2)
 - `docs/referencias/GP100_DEVICE.md` — o QUE a GP-100 é (fonte canônica do device)
 - `docs/tecnico/PROTOCOL.md` §13 — a FORMA do fio · `docs/referencias/protocol_golden.json` — a mesma
   coisa, executável (especificação de FORMA; consumo via core)
@@ -212,8 +213,7 @@ comentário NA ISSUE e a fila avança.
   `pub`, `deny(missing_docs)`, sem `unwrap` na lib, `thiserror` tipado).
 - Front: skill `ui-ux-practices` (invoke só em `ui/src/ipc/`, estados
   explícitos, a11y, tokens, i18n).
-- Commits conventional (`tipo(escopo): assunto`) com footer Codebuff quando o
-  agente escreve; docs-sync em commit PRÓPRIO na mesma PR.
-- Teste novo acompanha código novo (unidade em `src/`, contrato em `tests/`) —
-  skill `testing`.
+- Commits: formato e footer na skill `github-flow`; docs-sync em commit PRÓPRIO
+  na mesma PR.
+- Teste novo acompanha código novo — onde cada um vive: skill `testing`.
 - Decisão/estado de issue: a **issue é a fonte**; doc não duplica plano de issue.
