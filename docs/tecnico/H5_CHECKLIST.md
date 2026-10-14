@@ -1,8 +1,9 @@
 # 🧭 H5_CHECKLIST — Gate de hardware da Era Hardware: boot, modelo tipado e sincronização
 
-> **Status:** 📝 **rascunho** — este roteiro só roda depois de **#161** (boot gate),
-> **#162** (FactoryPatch/UserPatch), **#164** (sync bilateral) e **#165** (aparelho por
-> default) mergeadas em `develop`.
+> **Status:** 🟡 **pronto para execução** — as dependências do roteiro (#161 boot gate,
+> #162 FactoryPatch/UserPatch, #164 sync bilateral, #165 aparelho por default) estão
+> **mergeadas e fechadas em `develop`** (verificado em 13/10/2026). O que falta é a sessão
+> em si: executada e assinada pelo owner com o GP-100 na USB — não pelo agente.
 > **Criado:** 2026-10-09 · **Issue da sessão:** [#174](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/174) (HW-11) · **Épico:** [#171](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/171)
 > **Responsáveis:** owner no hardware · **Formato:** o mesmo dos relatórios H1–H4 (relatório
 > assinado + evidência preservada).
@@ -33,6 +34,13 @@
       `pnpm exec vitest run` e `pnpm exec playwright test` verdes
 - [ ] Build do app **de leitura**: `tauri build` (o aparelho já é default — #165). O badge da
       navbar **não** pode dizer `Mock Device`.
+      ⚠️ **(13/10)** Neste host o build local do app está **bloqueado**: o build script do
+      crate `tauri` segfaulta (`0xc0000005`) — issue [#223](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/223),
+      com reprodução e controle. Caminhos até a sessão: (a) remediar a #223 e `tauri build`
+      normal; (b) usar o instalador NSIS do job `Distribuição` de um run verde da CI em
+      `develop` (mesmo código); (c) `tauri dev` — SÓ serve se o cargo não precisar re-executar
+      o build script (o exe cacheado também segfaulta neste host — testar antes de anotar).
+      O relatório registra QUAL caminho foi usado (é a linha "Build exato" da §3).
 - [ ] `gp100-cli` de campo disponível com `--mock-device` (o log de fio é o MESMO schema P4
       das capturas — é ele que vai ao relatório)
 
