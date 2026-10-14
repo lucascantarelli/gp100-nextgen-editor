@@ -211,6 +211,40 @@ def check_sdist_deps(sd_text: str, deps: list[str]) -> None:
             )
 
 
+def check_sdist_publish_name(sd_text: str, workflow: str) -> None:
+    """O `dist-sdist` publica o arquivo que o `make_sdist.py` GRAVA (#237).
+
+    O nome do tarball e do empacotador — `gp100-nextgen-editor-<VER>.tar.gz`,
+    sem o `v` (convencao do `$pkgname-$_pkgver.tar.gz` do PKGBUILD). O `files:`
+    do passo de publicacao pedia `…-${{ github.ref_name }}.tar.gz`, ou seja
+    `…-v0.2.1.tar.gz`: com `fail_on_unmatched_files: true` o job morreu DEPOIS
+    de gerar e validar o tarball, e a Release saiu sem o insumo do PKGBUILD
+    (run 38570410157). O gate trava as duas metades.
+    """
+    if not re.search(
+        r'nome\s*=\s*f"gp100-nextgen-editor-\{versao\}\.tar\.gz"', sd_text
+    ):
+        fail(
+            '`make_sdist.py` perdeu o nome canonico do tarball '
+            '(`gp100-nextgen-editor-{versao}.tar.gz`, sem o `v`) — e o nome que o '
+            "PKGBUILD espera (#237)"
+        )
+    if re.search(
+        r"gp100-nextgen-editor-\$\{\{\s*github\.ref_name\s*\}\}\.tar\.gz", workflow
+    ):
+        fail(
+            "`dist-sdist`: o `files:` volta a montar o nome do tarball com "
+            "`github.ref_name` — o `v` da tag NAO esta no nome que o "
+            "`make_sdist.py` grava, e com `fail_on_unmatched_files` o job morre "
+            "depois de validar o tarball (#237)"
+        )
+    if "steps.sdist.outputs.tar" not in workflow:
+        fail(
+            "`dist-sdist`: o tarball publicado tem de sair do nome gerado no "
+            "proprio passo (`steps.sdist.outputs.tar`) — fonte unica do nome (#237)"
+        )
+
+
 def check_arch(conf: dict, root: Path) -> None:
     """O PKGBUILD (#29) mora fora do Tauri, então nada o liga à config por
     padrão: o nome do binário e o caminho dos ícones saem de lá e o daemon
@@ -316,6 +350,8 @@ def check_arch(conf: dict, root: Path) -> None:
     # TODA dependencia de CAMINHO do shell, nao so a que doeu em #72: a lista
     # vem do manifesto (#230).
     check_sdist_deps(sd, deps_caminho_do_shell())
+    # E o job publica o nome que o `make_sdist.py` GRAVA (#237).
+    check_sdist_publish_name(sd, workflow)
 
 
 
