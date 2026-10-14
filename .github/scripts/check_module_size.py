@@ -49,7 +49,7 @@ que ninguém vê deixa de ser revisão.
 
 USO.
     python3 .github/scripts/check_module_size.py
-    python3 .github/scripts/check_module_size.py --allow packages/core/src/session.rs:1420
+    python3 .github/scripts/check_module_size.py --allow packages/core/src/golden.rs:900
     python3 .github/scripts/check_module_size.py --allow src/components/Foo.tsx:820
     python3 .github/scripts/check_module_size.py --list
 """
@@ -87,7 +87,11 @@ TETOS_RUST: list[tuple[str, int, str]] = [
     ("packages/app/api/src/lib.rs", 400, "#243: run()/AppState/registro do generate_handler!"),
     ("packages/core/src/golden.rs", 829, "congelado: golden do fio (R1-R3); corte na #257"),
     ("packages/core/src/preset.rs", 901, "congelado: modelo de preset/decodificacao; corte na #257"),
-    ("packages/core/src/session.rs", 1395, "congelado: FSM do fio (ADR-3/4/6); corte na #257"),
+    (
+        "packages/core/src/session.rs",
+        200,
+        "#257: o HANDLE (o que a Session POSSUI + o ciclo de vida); metodo novo vira modulo do assunto",
+    ),
     ("packages/core/src/transport/mock.rs", 1258, "congelado: device de mentira espelha o fio; corte na #257"),
     ("packages/cli/src/main.rs", 1226, "congelado: CLI de campo; corte na #257"),
 ]
