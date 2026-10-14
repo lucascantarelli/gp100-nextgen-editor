@@ -75,7 +75,7 @@ automática do GitHub.
 ### `docs/dev/` — desenvolvimento
 | Documento | Papel | Status |
 |---|---|---|
-| `ARCHITECTURE.md` | **Estrutura do front** (#82): mapa de módulos (`ipc`/`hooks`/`components`/`design`/…), o que **não** entra em cada camada, árvore de decisão para código novo e o orçamento de tamanho cobrado pelo gate `check_module_size.py` | ✅ atual (#82) |
+| `ARCHITECTURE.md` | **Estrutura do front** (#82) e o **orçamento do Rust** (#248, §4.1): mapa de módulos (`ipc`/`hooks`/`components`/`design`/…), o que **não** entra em cada camada, árvore de decisão para código novo e os tetos de tamanho cobrados pelo gate `check_module_size.py` (front e `packages/*/src`) | ✅ atual (#82, #243, #248) |
 | `DECISIONS.md` | ADR-1..15: decisões de arquitetura/stack do core e do app (cada uma com contexto, decisão e consequência) | ✅ atual |
 | `UI_DESIGN.md` | Design system da UI: paleta palco Valeton (âmbar/preto/vermelho/lavanda com rácios WCAG medidos), escala de Fibonacci, tipografia, motion, identidade "pedalboard ao vivo", checklist de review | ✅ atual (M1.0) |
 | `UI_PLAN.md` | Planejamento issue-a-issue da Fase M1 (Editor UI Tauri/React): escopo, arquitetura DeviceActor, superfície IPC, telas, política de hardware, testes, riscos | 🔨 M1.0 ✅ (ADR-7) · M1.1 ✅ (actor + boot com barra) · M1.2/M1.3 ✅ (palco real + afinador) · V-8 ✅ (#20) · i18n ✅ (#30); M2 planejada (#24–#26) |
@@ -183,7 +183,7 @@ reprova qualquer `analysis/` dentro de `packages/`.
 | `packaging/make_sdist.py` | Tarball de fonte com o `ui/dist` embutido — insumo do PKGBUILD | `Distribuição · tarball de fonte` |
 | `sync_version.py` | Os 5 manifests de versão em sincronia (`--check` é o gate) | `Lint · contratos do pipeline` |
 | `check_deadcode.py` | Todo `export` de `src/` tem consumidor fora do arquivo — cobertura 100% não prova que o contrato é consumível (#78) | `Lint · UI` |
-| `check_module_size.py` | Orçamento de tamanho do front (`App.tsx` < 300 linhas; teto do §4 do `docs/dev/ARCHITECTURE.md`) | gate local (`gates.py`) · `Lint · UI` |
+| `check_module_size.py` | Orçamento de tamanho: front (`App.tsx` < 300 linhas) **e** os `.rs` de `packages/*/src` (#248) — tetos no §4/§4.1 do `docs/dev/ARCHITECTURE.md`; teste em `tools/tests/test_check_module_size.py` | gate local (`gates.py`) · `Lint · UI` · `Lint · Rust (fmt)` |
 | ~~`add_cargo_path.ps1` / `h1_field.sh` / `h1_compare.py`~~ (**arquivados** na #168 em `docs/arquivo/scripts-era-RE/`) | Fix do PATH do cargo (HKLM) · runbook do gate H1 · juiz da Fase C do H1 (níveis 1/2/3 + tabela do §5) | histórico / campo |
 | ~~`h2_field.sh` / `h2_compare.py`~~ (**arquivados** na #168 em `docs/arquivo/scripts-era-RE/`) | Runbook do gate H2 (escrita) · juiz da transcrição do H2 contra a referência de escrita (#22) | histórico / campo |
 | ~~`wirelog_compare.py`~~ (**arquivado** na #168 em `docs/arquivo/scripts-era-RE/`) | **Núcleo comum dos juízes H1/H2** (#141): o `Frame` do schema P4, o parser e os helpers de tabela | histórico |
@@ -309,7 +309,7 @@ O Tauri não gera pacote Arch: a unidade de distribuição **é** a receita vers
 | Cobertura do front | `pnpm run test:coverage` | **87,62%** stmts · **81,25%** branch · **86,78%** funcs · **90,04%** linhas · *08/10* |
 | E2E (Playwright) | `pnpm exec playwright test --list` | **90** testes em **12** arquivos · **96** baselines · *08/10* |
 | Rust (core + cli + library) | `cargo test --workspace` | **349** testes em **42** suítes (40 binários + 2 doc-tests) · *13/10* |
-| Spec (pytest) | `uv run pytest` | **47** em **4** arquivos · *13/10, pós-#168: os juízes H arquivados saíram da suíte* |
+| Spec (pytest) | `uv run pytest` | **81** em **7** arquivos · *14/10, re-medido com `--collect-only` pós-#248 (o teste do gate de tamanho entrou; os juízes H arquivados seguem fora desde a #168)* |
 | Gates locais | `uv run python .github/scripts/gates.py` | **13** · *re-medidos em 13/10 pós-#168 (`--list`)* |
 
 > ✅ **Tempo da suíte do front (medido 08/10 na mesma base `develop`):**

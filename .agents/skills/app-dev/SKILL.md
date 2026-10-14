@@ -112,12 +112,17 @@ páginas divergem do cache.
 
 ## Orçamento de tamanho e dívida
 
-A **#243** fatiou o `actor.rs` de 2 702 linhas: hoje o maior arquivo do crate é
-`commands.rs` (869 linhas, teto declarado 900 — a dívida), e cada módulo do actor
-cabe no teto da tabela de `docs/dev/ARCHITECTURE.md` §4.1 (handle 600, coorte
-300). O `check_module_size.py` ainda cobre **só o front**: a cobrança automática
-do Rust é a **#248** — até lá, o número é régua de review, e quem inflar um
-módulo aqui deve saber que ninguém vai reprovar o build por isso.
+A **#243** fatiou o `actor.rs` de 2 702 linhas e o gate passou a cobrar o Rust
+na **#248**: `check_module_size.py` mede os `.rs` de `packages/*/src` (teto
+genérico **700**) e **reprova o build** — a tabela por arquivo está em
+`docs/dev/ARCHITECTURE.md` §4.1 (`actor.rs` 600, coorte 300, `lib.rs` 400,
+`commands.rs` 900 como dívida declarada; `tests.rs` fica fora, porque cresce com
+a cobertura). O maior arquivo do crate hoje é `commands.rs` (869/900).
+
+O que isso muda na prática: **coorte nova de `Request`/evento que não couber no
+módulo dela faz o gate vermelho** — e a saída certa é módulo novo, não número
+novo. Subir um teto é decisão visível, com a issue que assume o corte citada no
+motivo do arquivo (`python3 .github/scripts/check_module_size.py --list`).
 
 ## Checklist de uma tarefa no crate do app
 
