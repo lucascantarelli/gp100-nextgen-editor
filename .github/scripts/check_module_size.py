@@ -82,6 +82,9 @@ TETO_PADRAO = 700
 # tamanho da medicao — a regra e "nao cresce mais", nao "pode crescer ate aqui".
 # O corte de cada um esta escrito como issue (o numero esta no motivo); subir o
 # teto sem cortar e o que este arquivo existe para tornar visivel.
+# A #257 cortou os CINCO que estavam congelados (session, transport/mock, golden,
+# preset e o `main.rs` do CLI): as entradas deles hoje sao o HANDLE daquele corte,
+# medido, mais a folga da mesma ordem dos outros handles.
 TETOS_RUST: list[tuple[str, int, str]] = [
     ("packages/app/api/src/actor.rs", 600, "#243: handle + spawn; coorte nova vira modulo, nao linha"),
     ("packages/app/api/src/commands.rs", 900, "#243: porta do IPC; o corte por coorte e divida declarada"),
@@ -110,7 +113,13 @@ TETOS_RUST: list[tuple[str, int, str]] = [
         "#257: o HANDLE (o que o MockDevice POSSUI + o ciclo de vida) + o `mod tests` inline "
         "(um `mod tests` em `mock/tests.rs` e `clippy::module_inception`); metodo novo vira modulo do assunto",
     ),
-    ("packages/cli/src/main.rs", 1226, "congelado: CLI de campo; corte na #257"),
+    (
+        "packages/cli/src/main.rs",
+        800,
+        "#257: o HANDLE (o USO, os TIPOS e o ciclo de vida do bin) + o `mod tests` inline "
+        "(mover o corpo obriga a re-indentar: o `check_move_only` o le como perdido, e o bloco "
+        "intacto em `tests.rs` e `clippy::module_inception`); subcomando/fluxo novo vira modulo",
+    ),
 ]
 
 # Teto generico do Rust (qualquer `.rs` de `packages/*/src` nao declarado).
