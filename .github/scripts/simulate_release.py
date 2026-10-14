@@ -71,6 +71,26 @@ BASH = _bash()
 
 WF = os.path.join(REPO, ".github", "workflows", "ci.yml")
 JOBS = {"rc": "release-rc", "promote": "release-promote"}
+
+
+def locais_no_lock(texto: str) -> dict[str, str]:
+    """`nome -> versao` dos pacotes LOCAIS de um `Cargo.lock`.
+
+    Mesma regra do `sync_version.py`: pacote de CAMINHO e o que nao tem
+    `source = ...` no bloco (terceiro sempre tem) — a versao deles e a da
+    release e tem de casar com os manifests (#231).
+    """
+    locais: dict[str, str] = {}
+    for bloco in texto.split("[[package]]")[1:]:
+        if re.search(r"^source\s*=", bloco, re.M):
+            continue
+        nome = re.search(r'^name\s*=\s*"([^"]+)"', bloco, re.M)
+        versao = re.search(r'^version\s*=\s*"([^"]+)"', bloco, re.M)
+        if nome and versao:
+            locais[nome.group(1)] = versao.group(1)
+    return locais
+
+
 BOT = {"BOT_NAME": "sim-bot", "BOT_EMAIL": "sim-bot@example.test"}
 
 EXPR = re.compile(r"\$\{\{\s*([a-zA-Z_][\w.]*)\s*\}\}")
@@ -177,6 +197,19 @@ class Sandbox:
         branch = ref.replace("origin/", "")
         _, out = sh(f"git --git-dir=origin.git show refs/heads/{branch}:version.json", self.root)
         return re.search(r'"version":\s*"([^"]+)"', out).group(1)
+
+    def remote_file(self, full_ref: str, path: str) -> str:
+        """Conteudo de `path` num ref do bare; `full_ref` = refs/heads/<b> | refs/tags/<t>."""
+        _, out = sh(f"git --git-dir=origin.git show {full_ref}:{path}", self.root)
+        return out
+
+    def remote_lock_versions(self, full_ref: str) -> dict[str, str]:
+        """Versoes dos pacotes LOCAIS nos DOIS lock files daquele ref (#235)."""
+        locais: dict[str, str] = {}
+        for lock in ("Cargo.lock", "packages/app/api/Cargo.lock"):
+            for nome, versao in locais_no_lock(self.remote_file(full_ref, lock)).items():
+                locais[f"{lock}:{nome}"] = versao
+        return locais
 
 
 class Workflow:
@@ -311,6 +344,18 @@ def main() -> int:
     assert sandbox.remote_manifest_version("origin/main") == "0.2.0"
     assert sandbox.remote_manifest_version("origin/develop") == "0.3.0"
     assert not sandbox.remote_has("refs/heads/release/0.2.0")
+
+    print("3b) a TAG e a develop saem com LOCK e MANIFEST na MESMA versao (#235)")
+    # O `sync_version.py --set` reescreve tambem os 2 `Cargo.lock` desde #231;
+    # se o commit do job nao os levar junto, a arvore publicada fica com
+    # manifest 0.2.0 e lock 0.3.0 e o `--check` do Lint reprova no push da tag
+    # (distribuicao inteira `skipped`) — foi exatamente o que aconteceu no
+    # ciclo da v0.2.1 (run 38568214477).
+    esperados = ("refs/tags/v0.2.0", "0.2.0"), ("refs/heads/develop", "0.3.0")
+    for ref, versao in esperados:
+        fora = {n: v for n, v in sandbox.remote_lock_versions(ref).items() if v != versao}
+        assert not fora, f"{ref}: lock fora de {versao} — {fora}"
+        assert sandbox.remote_file(ref, "version.json").find(versao) > 0, ref
 
     print("4) promote de novo → recusa (idempotente)")
     wd = sandbox.workdir("promote2")

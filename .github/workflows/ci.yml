@@ -1510,8 +1510,12 @@ jobs:
           set -euo pipefail
           git config user.name "$BOT_NAME"
           git config user.email "$BOT_EMAIL"
-          git add Cargo.toml packages/app/api/Cargo.toml \
-            packages/app/api/tauri.conf.json packages/app/ui/package.json version.json
+          # `-u` e nao uma lista: o conjunto de arquivos do bump e do
+          # `sync_version.py` (os 5 manifests E, desde #231, os 2 `Cargo.lock`).
+          # Re-listar aqui foi como o furo nasceu: o commit da tag saiu com
+          # manifest 0.2.1 e lock 0.3.0, o `--check` do Lint reprovou e a
+          # distribuicao INTEIRA saiu `skipped` (#235).
+          git add -u
           git commit -m "chore(release): $TAG (release candidate)"
           git push origin "$BRANCH"
           git tag "$TAG"
@@ -1594,8 +1598,9 @@ jobs:
           set -euo pipefail
           git config user.name "$BOT_NAME"
           git config user.email "$BOT_EMAIL"
-          git add Cargo.toml packages/app/api/Cargo.toml \
-            packages/app/api/tauri.conf.json packages/app/ui/package.json version.json
+          # `-u` (ver a nota do `release-rc`): a lista a mao omitia os 2
+          # `Cargo.lock` que o bump escreve desde #231 (#235).
+          git add -u
           git commit -m "chore(release): $TAG (promove $RC)"
           git push origin "HEAD:refs/heads/$BRANCH"
           git tag "$TAG"
@@ -1638,8 +1643,8 @@ jobs:
             # versao velha (#73). O `--check` prova a igualdade.
             python3 .github/scripts/sync_version.py --set "$UP"
             python3 .github/scripts/sync_version.py --check
-            git add Cargo.toml packages/app/api/Cargo.toml \
-            packages/app/api/tauri.conf.json packages/app/ui/package.json version.json
+            # `-u` (ver a nota do `release-rc`): manifests + os 2 locks (#231).
+            git add -u
             git commit -m "chore(release): develop avanca para $UP"
             git push origin develop
           else
@@ -1687,8 +1692,8 @@ jobs:
           [ "$PENDING" = "true" ] || { echo "::error::sem bump pendente — nada a cortar"; exit 1; }
           git config user.name "$BOT_NAME"
           git config user.email "$BOT_EMAIL"
-          git add Cargo.toml packages/app/api/Cargo.toml \
-            packages/app/api/tauri.conf.json packages/app/ui/package.json version.json
+          # `-u` (ver a nota do `release-rc`): manifests + os 2 locks (#231).
+          git add -u
           git diff --cached --quiet || {
             git commit -m "chore(release): v$NEXT (bump por conventional commits)"
             git push origin HEAD; }
