@@ -19,38 +19,34 @@ fonte de retrocesso (viola a fonte única por assunto do §7 deste checklist).
 3. **docs/INDEX.md** — novo documento? Entrar no inventário com status; doc mudou
    de natureza (ex.: virou histórico)? Atualizar a tabela. **Falta skill/prompt
    novo na seção "Infra do agente"?** (skills ativas em `.agents/skills/`,
-   templates em `.agents/prompts/`, histórico em `docs/arquivo/` — conferido
-   11/10 na #170).
+   templates em `.agents/prompts/`, histórico em `docs/arquivo/`).
 4. **README.md** — só se algo do panorama mudou (marco estrutural, não issue menor).
 5. **Banners de status** — qualquer doc que ganhou obsolescência parcial ganha
    banner ✅/⚠️/📜 com ponteiro para o substituto.
 6. **PROTOCOL.md** — descobertas de protocolo SEMPRE aqui (com evidência), nunca
    só no knowledge/ROADMAP.
-7. **CONTADORES (regra de 03/10 — nasce do achado #81)** — número de teste,
-   cobertura, e2e, baselines ou contagem de arquivo de ícone **pertence a
-   `docs/INDEX.md` §6** e a nenhum outro lugar. Se o número mudar: atualizar o §6 e
-   **apagar** as ocorrências antigas em README/ROADMAP/knowledge/docs de UI,
-   substituindo por ponteiro ("N testes: `INDEX.md` §6"). Contador repetido em 2
-   docs = dívida garantida — a auditoria de 03/10 achará de novo.
+7. **CONTADORES** — número de teste, cobertura, e2e, baselines ou contagem de
+   arquivo de ícone **pertence a `docs/INDEX.md` §6** e a nenhum outro lugar. Se o
+   número mudar: atualizar o §6 e **apagar** as ocorrências antigas em
+   README/ROADMAP/knowledge/docs de UI, substituindo por ponteiro ("N testes:
+   `INDEX.md` §6"). Contador repetido em 2 docs = dívida garantida.
 8. **Mecanismo citado ≠ mecanismo atual** — quando um doc descreve *como* uma
    parte do repo funciona (workflow, job, action, label, script), conferir o arquivo
-   real antes de dar o fato por bom. A #68 mudou a arquitetura da CI e 6 documentos
-   continuaram ensinando a anterior por semanas. Afeção do mesmo: a lista de
-   skills desta pasta é ela própria parte do que este checklist sincroniza.
-   **Corolário (auditoria 07/10, F-03/F-04):** dívida já paga não pode continuar
-   anunciada — antes de manter um aviso "⚠️ #N pendente" num doc, abra a issue e
-   confira o artefato que ela acusa; aviso de dívida quitada contradiz o §6 e manda
-   o próximo agente procurar defeito que não existe.
+   real antes de dar o fato por bom. A lista de skills desta pasta é ela própria
+   parte do que este checklist sincroniza.
+   **Corolário:** dívida já paga não pode continuar anunciada — antes de manter um
+   aviso "⚠️ #N pendente" num doc, abra a issue e confira o artefato que ela acusa;
+   aviso de dívida quitada contradiz o §6 e manda o próximo agente procurar defeito
+   que não existe.
 9. **Números têm baseline (develop)** — o §6 é medido em `develop`, não "aqui".
    Numa branch de feature os números divergem **por construção** (a branch *adiciona*
    testes). Antes de "corrigir" o §6, confirme em que branch você mediu; divergência
-   em branch não é erro do §6 (auditoria 07/10, F-11).
+   em branch não é erro do §6.
 10. **Gerador que emite arquivo versionado escreve LF explícito** — em Windows o
     modo texto (`open(..., "w")`) traduz `\n`→`\r\n` e suja a árvore a cada suite,
-    contra o `* text=auto eol=lf` do `.gitattributes` (que já alerta que EOL quebrou
-    o golden e o round-trip). Use `newline="\n"` e, como critério de aceite de
-    qualquer gerador novo, rode a suite e exija **`git status` limpo** (auditoria
-    07/10, F-12).
+    contra o `* text=auto eol=lf` do `.gitattributes`. Use `newline="\n"` e, como
+    critério de aceite de qualquer gerador novo, rode a suite e exija **`git status`
+    limpo**.
 
 ## Regras
 - **Commit da docs-sync é PRÓPRIO e SEPARADO** do commit da mudança, na MESMA
@@ -67,3 +63,17 @@ fonte de retrocesso (viola a fonte única por assunto do §7 deste checklist).
   workflow/script, o ROADMAP continua dizendo "FEITO em 01/10 — `release.yml` com
   `action=rc`", mas ganha uma linha dizendo que o mecanismo **foi supersedido** e
   por quê. Não reescrever o marco; marcar o desvio.
+
+## Apêndice — proveniência das regras (histórico)
+
+Movido para cá para as regras de uso diário não carregarem data/citação. Nada aqui
+é regra; é de onde cada uma veio.
+
+- **§3** (lista de skills no inventário): conferência de 11/10/2026, issue #170.
+- **§7** (contadores só no §6): achado #81 da auditoria de 03/10/2026.
+- **§8** (mecanismo ≠ atual): a #68 trocou a arquitetura da CI e 6 documentos
+  seguiram ensinando a anterior por semanas; o corolário nasceu da auditoria de
+  07/10/2026 (F-03/F-04).
+- **§9** (baseline em develop): auditoria de 07/10/2026 (F-11).
+- **§10** (LF explícito): auditoria de 07/10/2026 (F-12) — o EOL quebrou o golden e o
+  round-trip duas vezes em 29/09/2026.
