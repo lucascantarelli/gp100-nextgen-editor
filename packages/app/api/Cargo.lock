@@ -1189,7 +1189,7 @@ dependencies = [
 
 [[package]]
 name = "gp100-core"
-version = "0.3.0"
+version = "0.2.1"
 dependencies = [
  "midir",
  "serde",
@@ -1199,7 +1199,7 @@ dependencies = [
 
 [[package]]
 name = "gp100-library"
-version = "0.3.0"
+version = "0.2.1"
 dependencies = [
  "gp100-core",
  "rusqlite",
@@ -1210,7 +1210,7 @@ dependencies = [
 
 [[package]]
 name = "gp100-ui"
-version = "0.3.0"
+version = "0.2.1"
 dependencies = [
  "gp100-core",
  "gp100-library",
