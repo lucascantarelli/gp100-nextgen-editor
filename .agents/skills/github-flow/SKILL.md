@@ -65,6 +65,11 @@ vale o que estiver em `docs/CONTRIBUTING.md` + `.github/workflows/`.
    `rust-practices`, `ui-ux-practices`, `core-dev`); teste acompanha código novo.
 4. **Commit** — conventional commits (`tipo(escopo): assunto`) — o gate da CI
    REJEITA fora do padrão; footer Codebuff quando você (agente) escreveu.
+   Refactor que **só move texto** (o corte da #257 é o caso canônico) leva o
+   trailer `Move-only: <caminho da origem>` no corpo do commit: o
+   `check_move_only` cobra a promessa contra o pai do commit — não perdeu nem
+   reescreveu linha (#263, `docs/CONTRIBUTING.md` §3). Mudou lógica? Tire o
+   trailer e diga no PR o que mudou.
 5. **Push da branch + PR para `develop`** com o template preenchido; tabela de
    gates executados; **`Closes #N` NO CORPO** (nunca no título/comentário).
 6. **CI do PR** — acompanhe até verde (`gh run watch <id> --exit-status`).

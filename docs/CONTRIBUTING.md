@@ -104,6 +104,17 @@ Formato: `tipo(escopo): assunto` — validado pelo job **gate** do pipeline.
   corta major no próximo play.
 - O **subject** nunca fecha issue; o vínculo de fechamento vai no corpo do PR.
 - Exemplo: `feat(ui): knob com arrasto vertical e teclado (#42)`
+- **Refactor de MOVIMENTO tem trailer** (#263): quando o commit só MOVE texto —
+  o caso canônico é o corte da #257, em que 1 395 linhas saem de `session.rs` e
+  entram em oito módulos —, declare a origem numa linha do corpo:
+  `Move-only: <caminho no repo>` (repetível, um por origem). É uma promessa, e o
+  CI a cobra pelo `check_move_only.py`: contra o **pai** do commit, toda linha de
+  conteúdo da origem tem de existir no destino, na mesma multiplicidade — a única
+  tolerância é o qualificador de visibilidade que o corte exige (`fn tx_req(` →
+  `pub(super) fn tx_req(`) — e toda linha **adicionada** tem de ser andaime
+  (comentário, `use`/`mod`, `impl … {`, `}`, atributo). Mudou uma linha de lógica,
+  inventou código ou re-indentou? O trailer sai do commit e o PR diz o que mudou.
+  Sem trailer o gate não audita nada — ele não adivinha movimento.
 
 ---
 
@@ -122,8 +133,9 @@ Só a área que você tocou — o CI filtra o resto por caminhos.
 
 - **`gates.py` é o atalho para "os gates de script"**: `validate_workflows`,
   `check_bundle`, `check_issue_templates`, `sync_version`, `check_deadcode`,
-  `check_module_size`, `byte_order`, `param_ranges`, `state_pages`, `baseline`,
-  `pytest`, `check_base_images` e `simulate_release` — **13 no total**. Rode
+  `check_module_size`, `check_move_only`, `byte_order`, `param_ranges`,
+  `state_pages`, `baseline`, `pytest`, `check_base_images` e `simulate_release` —
+  **14 no total**. Rode
   `python3 .github/scripts/gates.py --list` para ver a lista, ou passe nomes para rodar
   só alguns: `python3 .github/scripts/gates.py check_bundle validate_workflows`.
   Todas as dependências (`pyyaml`, `jsonschema`) estão no `pyproject.toml`, então
