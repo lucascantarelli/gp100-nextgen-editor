@@ -227,7 +227,7 @@ teto **congelado** na própria medida.
 | `packages/core/src/session/<módulo>.rs` | **400** | coorte do `session` (#262): cada módulo é UM assunto (a transação, o boot, a escrita…); o número sai da medida do corte — ver a nota do mapa, abaixo |
 | `packages/core/src/transport/mock.rs` | **350** | **handle** desde a #257: o que o `MockDevice` POSSUI (estado, dicionário, inbox, plano de falha) e `new`/`with_slot_sem_nome`/`state` — mais o `mod tests` inline, que não pode virar arquivo (um `mod tests` em `mock/tests.rs` é o `clippy::module_inception`, que a CI reprova) |
 | `packages/cli/src/main.rs` | 1 226 | **congelado**: CLI de campo — corte na #257 |
-| `packages/core/src/preset.rs` | 901 | **congelado**: modelo de preset/decodificação — corte na #257 |
+| `packages/core/src/preset.rs` | **175** | **handle** desde a #257: o MODELO (os TIPOS e o que cada um POSSUI, com os campos fechados: `Document`, `Element` e o `LineBreak`), a EMISSÃO (`to_bytes`, a projeção dos próprios campos) e os acessores (`root`/`root_mut`/`preset_info`/`presets`); o `shape`, o helper de erro que todos os módulos usam |
 | `packages/core/src/golden.rs` | **250** | **handle** desde a #257: o que o `GoldenFile` POSSUI (`meta`, `templates`, `by_out`, `by_in`) e a carga/validação (`from_json`/`embedded`); o `GOLDEN_JSON` e o `shape`, o helper de erro que todos os módulos usam |
 | `tests.rs`, `tests/` | — | **fora do orçamento**: cresce com a COBERTURA, não com funcionalidade — medir isso só ensinaria a escrever menos teste |
 
@@ -333,6 +333,49 @@ handle, não o todo:
 > workspace — **349 passed / 0 failed / 1 ignorado** antes e depois do corte, com
 > as linhas de `test result` `diff`-idênticas contagem a contagem, mais o `fmt
 > --check` e o `clippy --workspace --all-targets -- -D warnings` limpos.
+
+Mapa do `preset` (**#257**, quarto corte dos congelados) — `preset.rs` é o
+handle, não o todo:
+
+| Módulo | Dono de |
+|---|---|
+| `preset.rs` | o MODELO (os TIPOS e o que cada um POSSUI, com os campos FECHADOS: `Document` com `decl`/`root`/`trailing`, `Element` com os campos de layout e o `LineBreak`), a EMISSÃO (`to_bytes`, a projeção dos próprios campos) e os acessores (`root`/`root_mut`/`preset_info`/`presets`); o `shape` (o helper de erro que todos os módulos usam) |
+| `preset/elemento.rs` | o COMPORTAMENTO do `Element` — os acessores, o writer e o `contains_raw_ampersand` — e o `escape_value`; o `Attr` |
+| `preset/leitura.rs` | a LEITURA estrita do dialecto: o `Parser` (o cursor) e o `Document::parse`, que o dirige |
+| `preset/pp.rs` | o espaço de `pp`: o DECIMAL do documento (`ppID`) × o banco/slot do FIO |
+| `preset/view.rs` | as VIEWS tipadas do vocabulário `pp*`/`Effect`/`params_0..14` (§13.9) |
+| `preset/instantaneo.rs` | o INSTANTÂNEO do layout (`Quebra`/`ElementSnapshot`/`DocumentSnapshot`, o `snapshot` e o `from_snapshot`) e o `element_from`, que o reconstrói |
+| `preset/recorte.rs` | o RECORTE de um preset de fábrica do arquivo inteiro (`apenas_preset`) |
+
+> **O que a tolerância de visibilidade do gate decide na estrutura.** As
+> DECLARAÇÕES ficam no handle, e é isso que mantém este corte em **três**
+> `pub(super)` em vez de treze. Um campo privado de `preset` já é visível para o
+> `preset` e toda a sua subárvore — que é exatamente quem o toca (`elemento` lê e
+> escreve, `leitura` constrói o `Element`, `instantaneo` o reconstrói e o projeta,
+> e o handle lê `root.pre_ws` e chama `root.write`) —, então nenhum campo abre, e o
+> "Campos privados de propósito" que o doc do `Element` promete continua valendo.
+> O que sobra qualificar são os dois casos que cruzam a fronteira DE VERDADE: o
+> `fn write` (chamado pelo `to_bytes`, que fica no módulo PAI — privado de um filho
+> não é visível para o pai) e o `el` das duas views (construído pelo `presets()` do
+> handle). A alternativa foi MEDIDA e reprova no gate: com o `Element` declarado no
+> `elemento` e os nove campos `pub(super)`, a tolerância de visibilidade do
+> `check_move_only` é GULOSA — `    name: String,` casa com a variante
+> `    pub name: String,`, que no destino é a linha do `ElementSnapshot` — e o "não
+> perdeu" acusa quatro linhas perdidas (`name`, `self_closing`, `at_attr`,
+> `cont_indent`).
+
+> O caminho público não mudou: tudo continua `crate::preset::<Item>` (`Document`,
+> `Element`, `Attr`, `PresetView`, `EffectView`, `Quebra`, `ElementSnapshot`,
+> `DocumentSnapshot`, `escape_value`, `pp_id_decimal`, `indice_do_documento` — os
+> `pub use` do handle são o contrato), então o corte é invisível para `preset_json`
+> (que toca os campos públicos dos dois instantâneos), `pedalboard`, `tone_sheet`,
+> `transport::mock`, `library::seed`, o crate do app e os testes. A prova é a
+> bateria do workspace — **349 passed / 0 failed / 1 ignorado** antes e depois do
+> corte, com as 42 linhas de `test result` formando o mesmo multiconjunto (a ordem
+> troca porque o cargo roda os binários em paralelo), mais o `fmt --check` e o
+> `clippy --workspace --all-targets -- -D warnings` limpos. E, ao contrário do
+> `golden`, **nenhum link intra-doc quebra** neste corte: o `cargo doc` dá o mesmo
+> conjunto de 54 avisos, linha a linha, antes e depois.
 
 #### No crate do app (`packages/app/api`) — desde a #243
 
