@@ -7,14 +7,15 @@ metadata:
 
 # Boas práticas Rust (gp100-core / gp100-cli)
 
-Use ao escrever ou revisar QUALQUER código Rust do projeto (issues M0.x do
-ROADMAP, skill `core-dev`). Complementa as regras R1–R4 do ROADMAP e os ADRs
-pré-assinados de `docs/dev/DECISIONS.md` — em conflito, valem R1–R4 e os ADRs.
+Use ao escrever ou revisar QUALQUER código Rust do projeto (issues do milestone
+`v1.1.0`, skill `core-dev`). Complementa os princípios P1–P7 do
+`docs/planejamento/ROADMAP.md` §1.2 e os ADRs de `docs/dev/DECISIONS.md` — em
+conflito, valem P1–P7 e os ADRs.
 
 ## Gates de qualidade (toda mudança passa pelos 4)
 
 ```bash
-# Se o terminal novo não achar cargo: fix permanente = docs/arquivo/scripts-era-RE/add_cargo_path.ps1 (arquivado na #168)
+# Se o terminal novo não achar cargo: fix permanente = docs/arquivo/scripts-era-RE/add_cargo_path.ps1  (arquivado na #168)
 # (feito em 29/09 — vale para QUALQUER terminal novo); workaround de sessão =
 # export abaixo, só para sessões abertas antes do fix.
 export PATH="/c/Users/Canta/.cargo/bin:$PATH"
@@ -92,10 +93,10 @@ Armadilhas mordidas — não reabrir:
 
 - Erros = `thiserror` com `ProtocolError` tipado (ADR-2). Sem
   `unwrap`/`expect`/`panic!` na lib (allowed só em testes).
-- Sem `unsafe` no M0. Caso legítimo apareça (ex.: WinMM real), novo ADR antes.
+- Sem `unsafe` na lib. Caso legítimo apareça (ex.: WinMM real), novo ADR antes.
 - Magic number de protocolo NUNCA inline: vira `const` documentada ou entra no
   golden (R1). Dados de protocolo vêm de `docs/referencias/protocol_golden.json`; replay
-  usa `packages/core/data/fixtures/` (P4) — nunca hardcode de captura.
+  usa `packages/core/data/fixtures/` — nunca hardcode de captura.
 - Feature `real-device`: default **ON no app** (`gp100-ui`, #165 — `tauri dev`
   fala com o aparelho) e **OFF no core/CLI/testes**; nada de I/O de device fora
   do módulo `transport` (ADR-4). Nos testes o caminho default é o `MockDevice`.
@@ -114,7 +115,7 @@ em 29/09: golden e .prst).
   1. especificação executável (`docs/referencias/protocol_golden.json`);
   2. patches de referência (`files/patches/*.prst`, R4);
   3. evidência de campo (`docs/arquivo/analysis/captures/*.jsonl`, `ir_slot*.bin`);
-  4. fixtures de replay (`packages/core/data/fixtures/*.jsonl` — o replay do M0.6
+  4. fixtures de replay (`packages/core/data/fixtures/*.jsonl` — o replay
      compara byte a byte).
 - **NÃO** entra: produto editável/regenerável (docs, scripts, knob_map,
   parameters.json — identidade semântica, não byte).
@@ -139,7 +140,7 @@ nem inconsistência a "limpar". A divisão obrigatória:
 2. **Contratos → `packages/core/tests/<assunto>.rs`** (crate `gp100-core`;
    caixa-preta, só API
    `pub`): provam comportamento contra EVIDÊNCIA de campo — golden,
-   fixtures P4, round-trip R4. Cada arquivo é um binário de teste; helpers
+   fixtures, round-trip `.prst` (R4). Cada arquivo é um binário de teste; helpers
    em `tests/common/mod.rs` (≈ conftest.py; o nome `mod.rs` evita binário).
    Rodar um: `cargo test --test codec_wire`.
 3. **Regra de decisão:** usa só API pública → `tests/`; precisa de
@@ -147,13 +148,13 @@ nem inconsistência a "limpar". A divisão obrigatória:
    perde o acesso sem ganhar nada. Teste novo acompanha código novo
    (padrão de DoD das issues).
 
-### Exemplo vivo (M0.4 — codec de fio)
+### Exemplo vivo (codec de fio)
 
 ```text
 packages/core/            # crate gp100-core
 ├── src/
 │   ├── lib.rs                  # SEM unitários: consts/erros/envelope — os 3
-│   │                           #   do P2 migraram p/ tests/wire_envelope.rs
+│   │                           #   migraram p/ tests/wire_envelope.rs
 │   └── codec.rs                # 7 unitários #[cfg(test)]: primitivas
 │                               #   nibble strict, rejeição de slot,
 │                               #   vetores mínimos (Bog RedM @ 15.0)
@@ -162,7 +163,7 @@ packages/core/            # crate gp100-core
 └── tests/                      # caixa-preta, só API pub
     ├── common/
     │   └── mod.rs              #    ≈ conftest.py (mod.rs evita binário)
-    ├── codec_wire.rs           # 4 contratos vs fixtures P4 BYTE A BYTE:
+    ├── codec_wire.rs           # 4 contratos vs fixtures BYTE A BYTE:
     │                           #   92 knobs + 2 saves + 1186 frames IR
     ├── golden_consumer.rs
     ├── model_dictionary.rs     #    ≈ tests/test_model_dictionary.py
@@ -188,14 +189,14 @@ packages/core/            # crate gp100-core
 
 - **Doc-tests**: exemplos de doc-comments executáveis (documentação viva);
   regras de framing/endianness viram doc-tests.
-- Vetorizados com os exemplos do golden / fixtures do P4; propriedade
-  mínima: "gerado casa com o próprio exemplo do template" (M0.3).
+- Vetorizados com os exemplos do golden / fixtures; propriedade
+  mínima: "gerado casa com o próprio exemplo do template".
 
 ## Armadilhas deste host (ver knowledge.md)
 
 - Toolchain PINADA `stable-x86_64-pc-windows-gnu` em `rust-toolchain.toml` — o
   host NÃO tem MSVC Build Tools e o `link` do PATH é o GNU coreutils; não
   trocar de alvo nem apagar o arquivo.
-- PATH do cargo: resolvido no sistema em 29/09 (`docs/arquivo/scripts-era-RE/add_cargo_path.ps1 (arquivado na #168)`);
+- PATH do cargo: resolvido no sistema em 29/09 (`docs/arquivo/scripts-era-RE/add_cargo_path.ps1`, arquivado na #168);
   workaround de sessão só para terminais abertos antes do fix:
   `export PATH="/c/Users/Canta/.cargo/bin:$PATH"`.

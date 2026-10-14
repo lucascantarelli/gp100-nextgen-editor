@@ -1,6 +1,6 @@
 ---
 name: ui-ux-practices
-description: Boas práticas de UI/UX para o front (packages/app/ui, Era Hardware) — design tokens (escala de Fibonacci sobre base 4, alinhamento 8pt), acessibilidade WCAG 2.2 (contraste AA, foco visível 2px/3:1), padrões de desktop (Tauri 2), gates de qualidade (pnpm lint/test/build) e a regra R1 aplicada ao front.
+description: Boas práticas de UI/UX para o front (packages/app/ui, Era Hardware) — design tokens (escala de Fibonacci sobre base 4, alinhamento 8pt), acessibilidade WCAG 2.2 (contraste AA, foco visível 2px/3:1), padrões de desktop (Tauri 2), gates de qualidade (pnpm lint/test/build) e a regra de que a UI nunca fala protocolo.
 metadata:
   category: development
 ---
@@ -16,7 +16,7 @@ ADRs de `docs/dev/DECISIONS.md`. Fontes: [docs/dev/UI_DESIGN.md](../../../docs/d
 (arquitetura/issues) e as práticas citadas em cada seção (WCAG 2.2, Fitts,
 Miller, escala 8pt/Fibonacci).
 
-## R1 no front (a UI nunca fala protocolo)
+## No front: a UI nunca fala protocolo
 
 1. Nenhum componente importa `gp100-core` direto — a única porta de entrada é
    o IPC do Tauri (`invoke("…")` + eventos). Lint de IMPORT bloqueia violação.

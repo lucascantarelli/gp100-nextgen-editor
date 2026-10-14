@@ -1,6 +1,6 @@
 ---
 name: testing
-description: O que a suíte da Era HW testa e como — unidades vs contratos em Rust (mock por default, evidência de campo), vitest + gate de cobertura 85%, e2e Playwright (shell, visual, webview real), round-trip .prst e o pytest de spec que morre com HW-3. Use ao escrever, revisar ou diagnosticar teste em qualquer camada, e para decidir onde um teste novo vive.
+description: O que a suíte da Era HW testa e como — unidades vs contratos em Rust (mock por default, evidência de campo), vitest + gate de cobertura 85%, e2e Playwright (shell, visual, webview real), round-trip .prst e o pytest de spec (as travas da especificação). Use ao escrever, revisar ou diagnosticar teste em qualquer camada, e para decidir onde um teste novo vive.
 metadata:
   category: quality
 ---

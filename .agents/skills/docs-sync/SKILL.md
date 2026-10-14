@@ -10,7 +10,7 @@ metadata:
 Use ao concluir qualquer issue do GitHub (milestone `v1.1.0` — Era Hardware), descoberta de
 hardware ou mudança de status de fase. O trabalho aberto é gerido nas ISSUES —
 aqui só se reflete o que já está fechado/provado. A documentação é o produto coletivo — dessincronizada, ela vira
-fonte de retrocesso (viola a regra R1).
+fonte de retrocesso (viola a fonte única por assunto do §7 deste checklist).
 
 ## Checklist de sincronização
 1. **ROADMAP.md** — marcar a fase/linha ✅ + data e apontar a issue do GitHub

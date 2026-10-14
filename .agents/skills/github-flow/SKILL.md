@@ -8,7 +8,7 @@ metadata:
 # Fluxo de trabalho no GitHub (GitFlow) — obrigatório
 
 Use ANTES de qualquer implementação e ao fechar qualquer trabalho. Complementa
-`docs/CONTRIBUTING.md` (detalhe humano) e o ROADMAP (fases/R1–R4). Em conflito,
+`docs/CONTRIBUTING.md` (detalhe humano) e o `ROADMAP.md` §1.2 (princípios P1–P7). Em conflito,
 vale o que estiver em `docs/CONTRIBUTING.md` + `.github/workflows/`.
 
 ## Regra zero — trabalho aberto é uma ISSUE
