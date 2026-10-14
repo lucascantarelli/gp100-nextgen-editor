@@ -119,7 +119,10 @@ def test_make_sdist_embute_as_dependencias_de_caminho_do_shell():
 # `fail_on_unmatched_files: true` o job morreu DEPOIS de gerar e validar o
 # tarball — a Release saiu sem o insumo do Arch (run 38570410157).
 
-WF_CI = (RAIZ / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+# Os blocos de Distribuição/Release saíram do `ci.yml` para workflows
+# reutilizáveis (#245): o texto que este gate lê é o de TODOS os workflows
+# (a fonte única é a função do próprio gate — nunca uma lista escrita aqui).
+WF_TEXTO = _carregar_check_bundle().texto_dos_workflows()
 SD_ATUAL = (RAIZ / "packaging" / "make_sdist.py").read_text(encoding="utf-8")
 
 
@@ -131,11 +134,11 @@ def _rodar_publish(sd_text: str, workflow: str) -> list[str]:
 
 
 def test_publish_do_tarball_sai_do_passo_que_o_gerou():
-    assert not _rodar_publish(SD_ATUAL, WF_CI)
+    assert not _rodar_publish(SD_ATUAL, WF_TEXTO)
 
 
 def test_publish_com_github_ref_name_reprova():
-    bug = WF_CI.replace(
+    bug = WF_TEXTO.replace(
         "${{ steps.sdist.outputs.tar }}",
         "dist-pkg/gp100-nextgen-editor-${{ github.ref_name }}.tar.gz",
     )
@@ -147,7 +150,7 @@ def test_nome_do_tarball_com_o_v_da_tag_reprova():
         'nome = f"gp100-nextgen-editor-{versao}.tar.gz"',
         'nome = f"gp100-nextgen-editor-v{versao}.tar.gz"',
     )
-    assert _rodar_publish(com_v, WF_CI)
+    assert _rodar_publish(com_v, WF_TEXTO)
 
 
 def test_o_proprio_gate_de_bundle_roda_limpo_no_repo(monkeypatch):

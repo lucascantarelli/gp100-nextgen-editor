@@ -174,8 +174,10 @@ env:
   # trava que as duas sempre coincidem.
   CI_IMAGE_BASE: ghcr.io/${{ github.repository }}/ci-base:1
   CI_IMAGE_TAURI: ghcr.io/${{ github.repository }}/ci-linux:1
-  BOT_NAME: github-actions[bot]
-  BOT_EMAIL: github-actions[bot]@users.noreply.github.com
+  # A identidade do bot (`BOT_NAME`/`BOT_EMAIL`) saiu daqui com a extração da
+  # Release para `release-*.yml` (#245): `env:` de topo NÃO atravessa um
+  # `workflow_call`, então ela vive — literal e igual nos três — nos arquivos que
+  # commitam. O contrato 15 do `validate_workflows.py` trava a igualdade.
 
 jobs:
 
@@ -1124,6 +1126,13 @@ jobs:
     # PR, feature ou develop — um `.msi` por push seria desperdício.
     # Dist ← Cobertura (#169): o instalador só sai depois da suíte e da régua
     # de 85% — a cadeia toda é transitiva (coverage ← test-ui ← build-ui ← lint-ui).
+    #
+    # O CORPO vive em `.github/workflows/dist-instalador.yml` (#245). O que fica
+    # AQUI é o que o nome do check mostra e o que decide se roda: a matriz de SO
+    # ("Distribuição · instalador (windows-latest)") e o `if` do stage-dist.
+    # Num job que usa `uses:` o nome exibido é `<caller> / <job chamado>` quando
+    # ele RODA (tag/dispatch); quando o caller é `skipped` (todo PR), o check
+    # aparece com o nome do caller, igual a antes — required check não muda.
     needs: [plan, coverage-ui]
     if: needs.plan.outputs.stage-dist == 'true'
     strategy:
@@ -1143,262 +1152,51 @@ jobs:
             args: --bundles app dmg
           - os: ubuntu-24.04
             args: --bundles deb appimage
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 60
     permissions:
       contents: write # anexar na Release
       issues: read
       actions: read
       packages: read
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          ref: ${{ github.ref }}
-      - uses: ./.github/actions/setup-node-pnpm
-      - uses: ./.github/actions/build-front
-      - uses: ./.github/actions/setup-rust
-        with:
-          workdir: packages/app/api
-          shared-key: ws-api
-      - name: linux precisa dos headers de WebKitGTK
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update -y
-          sudo apt-get install -y --no-install-recommends \
-            libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev
-      - name: linux precisa do ALSA (o `midir` da feature real-device)
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get install -y --no-install-recommends \
-            libasound2-dev
-      - name: linux precisa do Node do tauri-cli
-        if: runner.os == 'Linux'
-        run: sudo apt-get install -y --no-install-recommends pkg-config
-      - name: build do instalador
-        working-directory: packages/app/api
-        # O caminho é `../ui` (o pacote do webview): `../../ui` resolvia para
-        # um packages/ui inexistente e o step MORRIA antes de compilar — por
-        # isso o `dist-ui` nunca gerou instalador (0 runs para v0.1.0 e
-        # v0.2.0-rc.*). E `--features real-device` é a face (A) da #126: o
-        # instalador PUBLICADO fala com a pedaleira, com a escrita travada
-        # pela ADR-5 (sem `write-verified`) e explicada na tela.
-        run: ../ui/node_modules/.bin/tauri build --features real-device ${{ matrix.args }}
-      - name: coletar + sha256
-        id: collect
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p dist-pkg
-          # Glob por plataforma: o layout do bundle muda entre nsis/msi,
-          # dmg/app e deb/appimage.
-          find packages/app/api/target/release/bundle -maxdepth 2 -type f \
-            \( -name '*.exe' -o -name '*.msi' -o -name '*.dmg' -o -name '*.deb' -o -name '*.AppImage' \) \
-            -exec cp {} dist-pkg/ \;
-          ls -la dist-pkg/
-          test -n "$(ls -A dist-pkg)" || { echo "::error::nenhum instalador gerado"; exit 1; }
-          (cd dist-pkg && sha256sum ./* > SHA256SUMS.txt)
-      - name: publicar na Release
-        uses: softprops/action-gh-release@v3
-        with:
-          tag_name: ${{ github.ref_name }}
-          prerelease: ${{ contains(github.ref_name, '-rc') }}
-          files: |
-            dist-pkg/*
-          fail_on_unmatched_files: true
-
+    uses: ./.github/workflows/dist-instalador.yml
+    with:
+      os: ${{ matrix.os }}
+      bundles: ${{ matrix.args }}
   dist-sdist:
     name: Distribuição · tarball de fonte (insumo do Arch)
     # Dist ← Cobertura (#169), mesma razão do `dist-ui` — e este tarball é o
     # insumo do PKGBUILD do Arch (#72), o empacotamento "nativo" do 4o OS.
-    needs: [plan, coverage-ui]
     # O PKGBUILD (#29) compila deste tarball e, ate #72, ele NAO ERA PUBLICADO:
     # `makepkg` procuraria um arquivo inexistente. Alem disso o tarball do git
     # nao tem `packages/app/ui/dist` (gitignored, e o `frontendDist` do conf) nem
     # `packages/core` (dependencia de caminho do crate do Tauri) — o
     # `make_sdist.py` junta os tres e sobe o front antes de empacotar.
+    #
+    # O CORPO vive em `.github/workflows/dist-sdist.yml` (#245).
+    needs: [plan, coverage-ui]
     if: needs.plan.outputs.stage-dist == 'true'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 25
     permissions:
       contents: write # anexar na Release
       issues: read
       actions: read
       packages: read
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          ref: ${{ github.ref }}
-      - uses: ./.github/actions/setup-node-pnpm
-      - uses: ./.github/actions/build-front
-      - uses: ./.github/actions/setup-rust
-        with:
-          workdir: packages/app/api
-          shared-key: ws-api
-      - name: linux precisa dos headers de WebKitGTK
-        run: |
-          sudo apt-get update -y
-          sudo apt-get install -y --no-install-recommends \
-            libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev \
-            librsvg2-dev pkg-config
-      # Prova de que o tarball e realmente CONSUMIVEL, e nao so um .tar.gz:
-      # o manifesto do crate do Tauri precisa resolver a dependencia de caminho
-      # `gp100-core`, e o `frontendDist` precisa existir (sem ele o
-      # `generate_context!()` faz `panic!` em tempo de compilacao).
-      - name: o tarball tem o que o build do shell exige
-        id: sdist
-        run: |
-          set -euo pipefail
-          VER="${GITHUB_REF_NAME#v}"
-          python3 packaging/make_sdist.py --version "$VER" --out dist-pkg
-          # O NOME SAI DAQUI, e nao do `files:` do passo de publicacao (#237).
-          # O `make_sdist.py` grava `gp100-nextgen-editor-<VER>.tar.gz` (sem o
-          # `v`, que e a convencao do `$pkgname-$_pkgver.tar.gz` do PKGBUILD),
-          # e o `files:` pedia `…-${{ github.ref_name }}.tar.gz` = `…-v0.2.1…`
-          # — com `fail_on_unmatched_files: true` o job morreu DEPOIS de o
-          # tarball estar certo e a Release ficou sem ele (run 38570410157).
-          SRC="dist-pkg/gp100-nextgen-editor-$VER.tar.gz"
-          # O `SHA256SUMS.txt` do sdist disputava o MESMO nome de asset com o
-          # `dist-ui` (que publica o resumo dos instaladores): cada um leva o
-          # seu, derivado do nome do proprio artefato.
-          SHA="$SRC.sha256"
-          mv dist-pkg/SHA256SUMS.txt "$SHA"
-          {
-            echo "tar=$SRC"
-            echo "sha=$SHA"
-          } >> "$GITHUB_OUTPUT"
-          test -s "$SRC" || { echo "::error::tarball vazio"; exit 1; }
-          rm -rf /tmp/sdist-check && mkdir -p /tmp/sdist-check
-          tar xzf "$SRC" -C /tmp/sdist-check
-          ROOT="/tmp/sdist-check/gp100-nextgen-editor-$VER"
-          test -f "$ROOT/packages/app/ui/dist/index.html" || {
-            echo "::error::frontendDist ausente — o build do shell entra em panic"; exit 1; }
-          # As DUAS dependencias de caminho do shell (core e library), uma por
-          # linha: o check pontual de `packages/core` ficou verde enquanto o
-          # tarball morria em `gp100-library` (run 38553264817, #230).
-          for dep in packages/core packages/library; do
-            test -f "$ROOT/$dep/Cargo.toml" || {
-              echo "::error::$dep ausente — dependencia de caminho do gp100-ui"; exit 1; }
-          done
-          (cd "$ROOT/packages/app/api" && cargo metadata --format-version 1 --locked >/dev/null) || {
-            echo "::error::manifesto do shell nao resolve dentro do tarball"; exit 1; }
-          echo "tarball consumivel: frontendDist + deps de caminho do shell + manifesto"
-      - name: publicar na Release
-        uses: softprops/action-gh-release@v3
-        with:
-          tag_name: ${{ github.ref_name }}
-          prerelease: ${{ contains(github.ref_name, '-rc') }}
-          files: |
-            ${{ steps.sdist.outputs.tar }}
-            ${{ steps.sdist.outputs.sha }}
-          fail_on_unmatched_files: true
-
+    uses: ./.github/workflows/dist-sdist.yml
   dist-cli:
     name: Distribuição · CLI de campo (Windows)
     # O CLI não tem job de cobertura (a régua de 85% é do front) — o gate de
     # teste dele é o `test-rust`, que é quem ele espera (#169).
+    #
+    # O CORPO vive em `.github/workflows/dist-cli.yml` (#245). O
+    # `RUSTUP_TOOLCHAIN` gnu foi junto: `env:` de job não atravessa um
+    # `workflow_call` (o `env` não é contexto aceito no `with:`), então a
+    # toolchain ficou no arquivo chamado.
     needs: [plan, test-rust]
     if: needs.plan.outputs.stage-dist == 'true'
-    runs-on: windows-latest
-    timeout-minutes: 45
     permissions:
       contents: write
       issues: read
       actions: read
       packages: read
-    env:
-      RUSTUP_TOOLCHAIN: stable-x86_64-pc-windows-gnu
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          ref: ${{ github.ref }}
-      - uses: ./.github/actions/setup-rust
-        with:
-          workdir: .
-          shared-key: ws-raiz
-      - name: gates reconfirmados na tag
-        run: |
-          cargo fmt --check
-          cargo clippy --workspace --all-targets -- -D warnings
-          cargo test
-      - name: build release do binário de campo
-        run: cargo build --release -p gp100-cli --features real-device
-      - uses: ./.github/actions/hardware-smoke
-        with:
-          profile: release
-      - name: empacotar (zip + SHA256 + kit de campo)
-        shell: bash
-        env:
-          TAG: ${{ github.ref_name }}
-        run: |
-          set -euo pipefail
-          STAGE="gp100-cli-$TAG"
-          mkdir -p "$STAGE"
-          cp target/release/gp100-cli.exe "$STAGE/"
-          cp docs/arquivo/H1_CHECKLIST.md docs/arquivo/H1_REPORT.md docs/arquivo/scripts-era-RE/h1_field.sh docs/arquivo/scripts-era-RE/h1_compare.py "$STAGE/"
-          cp docs/arquivo/H2_CHECKLIST.md docs/arquivo/H2_REPORT.md docs/arquivo/scripts-era-RE/h2_field.sh docs/arquivo/scripts-era-RE/h2_compare.py "$STAGE/"
-          cp docs/arquivo/H3_CHECKLIST.md docs/arquivo/H3_REPORT.md "$STAGE/"
-          cp tools/wirelog.py tools/validate_core_capture.py tools/baseline.py tools/baseline.json "$STAGE/"
-          cat > "$STAGE/LEIA-ME.txt" <<MD
-          GP-100 NextGen Editor — CLI de campo ${TAG}
-
-          Gate H1 (LEITURA): docs/arquivo/H1_CHECKLIST.md (roteiro) + h1_field.sh (runbook).
-          Relatorio da sessao: docs/arquivo/H1_REPORT.md.
-
-          A FASE C (comparar e classificar a sessao nos 3 niveis do §4) e
-          automatizada: h1_field.sh chama h1_compare.py ao fim do roteiro e
-          sai com codigo 1 se houver divergencia que bloqueia o H1. Para
-          reprocessar uma sessao sem re-rodar a leitura:
-
-            python h1_compare.py <dir-da-sessao> --markdown
-
-          Gate H2 (ESCRITA): docs/arquivo/H2_CHECKLIST.md (roteiro) + h2_field.sh (runbook)
-          + h2_compare.py (o juiz da Fase C). Relatorio: docs/arquivo/H2_REPORT.md.
-          O runbook roda os 3 fluxos UM POR VEZ, com pausa para o display ser
-          lido entre eles, e exige o 'ok' digitado — por pipe ele recusa, porque
-          o gate de escrita nao pode rodar sem alguem olhando o aparelho.
-          Para reprocessar uma sessao sem re-rodar a escrita:
-              python h2_compare.py <dir-da-sessao> --markdown
-
-          O binario DESTE zip e o do H1: a escrita real esta BLOQUEADA e nao ha
-          flag, variavel de ambiente ou argumento que a abra. Para o gate H2
-          recompile com a feature write-verified:
-              cargo build --release -p gp100-cli --features real-device,write-verified
-
-          Gate H3 (CONGELAMENTO da especificacao): docs/arquivo/H3_CHECKLIST.md +
-          docs/arquivo/H3_REPORT.md. E o gate que tira o golden do Suite e poe o
-          golden do gp100-core. Os scripts vao no zip porque a sessao de campo
-          precisa deles na mao:
-
-            python wirelog.py <log.jsonl>          # inspeciona e normaliza
-            python validate_core_capture.py <log.jsonl>   # juz frame a frame
-                                                  # (0 ok / 1 bug / 2 fora da spec)
-            python baseline.py show                # versao + hash + motivo
-            python baseline.py bump --motivo "..." --issue "#23"
-
-          O log que este binario grava tem timestamp (t, em ms), que antes
-          nao tinha: sem relogio nao ha casamento de transacao.
-
-          Politica de hardware: leitura real exige --real --i-know-what-im-doing
-          (build com feature real-device). A escrita e uma TERCEIRA camada, no
-          transporte (ADR-5), e so depois do gate H2 passar.
-
-          O subcomando de upload de IR existe nos dois builds:
-              upload-ir <slot> <arquivo>   blob de User IR (§13.7)
-          Neste binario ele so imprime os frames (--dry-run implicito na
-          ausencia da feature); no build do H2 ele envia.
-          MD
-          zip -q -r "$STAGE.zip" "$STAGE" 2>/dev/null || 7z a -tzip -bso0 "$STAGE.zip" "$STAGE"
-          sha256sum "$STAGE.zip" > "$STAGE.zip.sha256"
-      - name: publicar na Release
-        uses: softprops/action-gh-release@v3
-        with:
-          tag_name: ${{ github.ref_name }}
-          prerelease: ${{ contains(github.ref_name, '-rc') }}
-          files: |
-            gp100-cli-${{ github.ref_name }}.zip
-            gp100-cli-${{ github.ref_name }}.zip.sha256
-          fail_on_unmatched_files: true
-
+    uses: ./.github/workflows/dist-cli.yml
 # ═══════════════════════════════════════════════════════════════════════
   # RELEASE — versionamento e cadeia rc → promote → play
   #
@@ -1451,284 +1249,44 @@ jobs:
     name: Release · RC
     needs: plan
     # Versionar NUNCA em push ou PR — só na mão do dono.
+    #
+    # O CORPO vive em `.github/workflows/release-rc.yml` (#245). O `outputs.tag`
+    # do job volta pelo `on.workflow_call.outputs` do arquivo chamado: um job que
+    # usa `uses:` não aceita a chave `outputs`.
     if: github.event_name == 'workflow_dispatch' && inputs.action == 'release'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    outputs:
-      tag: ${{ steps.prep.outputs.tag }}
     permissions:
       contents: write # branch + tag + manifests
       issues: read
       actions: read
       packages: read
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          ref: ${{ inputs.source }}
-          fetch-depth: 0
-      - name: buscar tags
-        run: git fetch --tags --force
-      - name: calcular a versão (input > semver pendente)
-        id: ver
-        env:
-          WANT: ${{ inputs.version }}
-          SRC: ${{ inputs.source }}
-        run: |
-          set -euo pipefail
-          WANT="${WANT#v}"
-          if [ -n "$WANT" ]; then
-            echo "$WANT" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$' || { echo "::error::versão inválida: '$WANT'"; exit 1; }
-            echo "next=$WANT" >> "$GITHUB_OUTPUT"
-            echo "versão informada: $WANT"
-            exit 0
-          fi
-          LAST=$(git describe --tags --match 'v*' --abbrev=0 2>/dev/null || echo "")
-          [ -z "$LAST" ] && { echo "::error::sem tags v* — informe o input version"; exit 1; }
-          BASE="${LAST#v}"; BASE="${BASE%%-*}"
-          MAJOR=$(echo "$BASE" | cut -d. -f1); MINOR=$(echo "$BASE" | cut -d. -f2)
-          # `main` já está numa versão publicada: uma rc de correção sobre ela é
-          # patch, não minor. `develop` acumula feature → minor.
-          if [ "$SRC" = "main" ]; then
-            PATCH=$(echo "$BASE" | cut -d. -f3)
-            echo "next=$MAJOR.$MINOR.$((PATCH+1))" >> "$GITHUB_OUTPUT"
-            echo "hotfix sobre v$BASE → $MAJOR.$MINOR.$((PATCH+1))"
-          else
-            git log --format='%s' "$LAST..HEAD" | grep -E '^feat(\(|:)' > /dev/null || {
-              echo "::error::sem bump pendente em $SRC (nenhum feat desde $LAST) — informe o input version"; exit 1; }
-            echo "next=$MAJOR.$((MINOR+1)).0" >> "$GITHUB_OUTPUT"
-            echo "feature desde $LAST → $MAJOR.$((MINOR+1)).0"
-          fi
-      - name: preparar a release branch + número da rc
-        id: prep
-        env:
-          NEXT: ${{ steps.ver.outputs.next }}
-          SRC: ${{ inputs.source }}
-        run: |
-          set -euo pipefail
-          BR="release/$NEXT"
-          if git ls-remote --exit-code --heads origin "$BR" >/dev/null 2>&1; then
-            git checkout -B "$BR" "origin/$BR"
-            echo "reutilizando $BR (rc avançando)"
-          else
-            git checkout -B "$BR" "origin/$SRC"
-            echo "release branch $BR criada de origin/$SRC"
-          fi
-          N=$(( $(git tag --list "v$NEXT-rc.*" | sed 's/.*-rc\.//' | sort -n | tail -1 || echo 0) + 1 ))
-          {
-            echo "branch=$BR"
-            echo "rc=$N"
-            echo "full=$NEXT-rc.$N"
-            echo "tag=v$NEXT-rc.$N"
-          } >> "$GITHUB_OUTPUT"
-      - name: versão rc nos manifests
-        env:
-          FULL: ${{ steps.prep.outputs.full }}
-        run: |
-          set -euo pipefail
-          # Os 5 manifests, nao 3: `tauri.conf.json` e a versao do BUNDLE e
-          # `package.json` o do front. De fora deles, o instalador sai com a
-          # versao velha (#73). O `--check` prova a igualdade.
-          python3 .github/scripts/sync_version.py --set "$FULL"
-          python3 .github/scripts/sync_version.py --check
-      - name: commitar + taguear + subir
-        env:
-          BRANCH: ${{ steps.prep.outputs.branch }}
-          TAG: ${{ steps.prep.outputs.tag }}
-        run: |
-          set -euo pipefail
-          git config user.name "$BOT_NAME"
-          git config user.email "$BOT_EMAIL"
-          # `-u` e nao uma lista: o conjunto de arquivos do bump e do
-          # `sync_version.py` (os 5 manifests E, desde #231, os 2 `Cargo.lock`).
-          # Re-listar aqui foi como o furo nasceu: o commit da tag saiu com
-          # manifest 0.2.1 e lock 0.3.0, o `--check` do Lint reprovou e a
-          # distribuicao INTEIRA saiu `skipped` (#235).
-          git add -u
-          git commit -m "chore(release): $TAG (release candidate)"
-          git push origin "$BRANCH"
-          git tag "$TAG"
-          git push origin "$TAG"
-          {
-            echo "### 🚀 Release Candidate"
-            echo ""
-            echo "| | |"
-            echo "|---|---|"
-            echo "| tag | \`$TAG\` |"
-            echo "| branch | \`$BRANCH\` |"
-            echo "| próximo | testar o prerelease; correções na release branch + dispatch de novo; pronto? \`action=promote\` |"
-          } >> "$GITHUB_STEP_SUMMARY"
-
+    uses: ./.github/workflows/release-rc.yml
+    with:
+      source: ${{ inputs.source }}
+      version: ${{ inputs.version }}
   release-promote:
     name: Release · promote
     needs: plan
+    # O CORPO vive em `.github/workflows/release-promote.yml` (#245).
     if: github.event_name == 'workflow_dispatch' && inputs.action == 'promote'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
-    outputs:
-      tag: ${{ steps.final.outputs.tag }}
     permissions:
       contents: write
       issues: read
       actions: read
       packages: read
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-      - name: buscar tags e branches
-        run: |
-          git fetch --tags --force
-          git fetch origin main develop --force
-      - name: localizar a rc mais recente
-        id: rc
-        env:
-          WANT: ${{ inputs.version }}
-        run: |
-          set -euo pipefail
-          WANT="${WANT#v}"
-          if [ -n "$WANT" ]; then
-            RC=$(git tag --list "v$WANT-rc.*" --sort=-v:refname | head -1)
-          else
-            RC=$(git for-each-ref refs/tags --sort=-v:refname --format='%(refname:short)' \
-                 | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+-rc\.[0-9]+$' | head -1)
-          fi
-          [ -z "$RC" ] && { echo "::error::nenhuma rc encontrada — rode action=release antes"; exit 1; }
-          V="${RC%-rc.*}"; V="${V#v}"
-          BR="release/$V"
-          git ls-remote --exit-code --heads origin "$BR" >/dev/null 2>&1 || {
-            echo "::error::branch $BR não existe — promote exige a release branch"; exit 1; }
-          git rev-parse -q --verify "refs/tags/v$V" >/dev/null && {
-            echo "::error::v$V já existe (promote é idempotente — nada a fazer)"; exit 1; }
-          {
-            echo "rc=$RC"
-            echo "version=$V"
-            echo "branch=$BR"
-          } >> "$GITHUB_OUTPUT"
-      - name: versão final nos manifests
-        env:
-          V: ${{ steps.rc.outputs.version }}
-          BRANCH: ${{ steps.rc.outputs.branch }}
-        run: |
-          set -euo pipefail
-          git checkout "origin/$BRANCH"
-          # Os 5 manifests, nao 3: `tauri.conf.json` e a versao do BUNDLE e
-          # `package.json` o do front. De fora deles, o instalador sai com a
-          # versao velha (#73). O `--check` prova a igualdade.
-          python3 .github/scripts/sync_version.py --set "$V"
-          python3 .github/scripts/sync_version.py --check
-      - name: commitar + taguear
-        id: final
-        env:
-          BRANCH: ${{ steps.rc.outputs.branch }}
-          TAG: v${{ steps.rc.outputs.version }}
-          RC: ${{ steps.rc.outputs.tag }}
-        run: |
-          set -euo pipefail
-          git config user.name "$BOT_NAME"
-          git config user.email "$BOT_EMAIL"
-          # `-u` (ver a nota do `release-rc`): a lista a mao omitia os 2
-          # `Cargo.lock` que o bump escreve desde #231 (#235).
-          git add -u
-          git commit -m "chore(release): $TAG (promove $RC)"
-          git push origin "HEAD:refs/heads/$BRANCH"
-          git tag "$TAG"
-          git push origin "$TAG"
-          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
-      - name: main recebe o SHA da tag
-        # Não é `git push origin main`: a main é protegida e só aceita o
-        # commit de uma tag v* aprovada. GITHUB_TOKEN não burla branch
-        # protection — um merge de branch em main seria barrado no ultimo
-        # passo, DEPOIS de a tag já estar publicada.
-        run: |
-          set -euo pipefail
-          SHA=$(git rev-parse "v${{ steps.rc.outputs.version }}^{commit}")
-          git push origin "$SHA:refs/heads/main"
-          echo "main <- $SHA (tag v${{ steps.rc.outputs.version }})"
-      - name: fechar o ciclo na develop
-        env:
-          BRANCH: ${{ steps.rc.outputs.branch }}
-          TAG: v${{ steps.rc.outputs.version }}
-        run: |
-          set -euo pipefail
-          git config user.name "$BOT_NAME"
-          git config user.email "$BOT_EMAIL"
-          # A develop JA está na próxima versão (avançada no `release-rc`), e
-          # a release branch é ancestral dela — por isso não há merge de
-          # volta: só o merge da tag, que é no-op para o conteúdo e mantém o
-          # histórico honesto.
-          git checkout -B develop origin/develop
-          if git merge --no-ff "origin/$BRANCH" -m "merge release: $TAG (develop recebe a release)"; then
-            # A develop sai da release com a PRÓXIMA versão: ela deixa de
-            # carregar uma versão que acabou de ser publicada. Fazer isso AQUI
-            # e nao no `release-rc` e deliberado — adiantar no rc faria os
-            # manifests da develop divergirem dos da release branch, e todo
-            # merge do ciclo de rc (correcoes entre rcs) viraria conflito.
-            NEXT="${{ steps.rc.outputs.version }}"
-            MAJOR=$(echo "$NEXT" | cut -d. -f1); MINOR=$(echo "$NEXT" | cut -d. -f2)
-            UP="$MAJOR.$((MINOR+1)).0"
-            # Os 5 manifests, nao 3: `tauri.conf.json` e a versao do BUNDLE e
-            # `package.json` o do front. De fora deles, o instalador sai com a
-            # versao velha (#73). O `--check` prova a igualdade.
-            python3 .github/scripts/sync_version.py --set "$UP"
-            python3 .github/scripts/sync_version.py --check
-            # `-u` (ver a nota do `release-rc`): manifests + os 2 locks (#231).
-            git add -u
-            git commit -m "chore(release): develop avanca para $UP"
-            git push origin develop
-          else
-            echo "::error::conflito no merge da release para develop — resolva manualmente (a tag e a main ja estao fora)"
-            git merge --abort || true
-            exit 1
-          fi
-          git push origin --delete "$BRANCH"
-          {
-            echo "### ✅ Release promovida"
-            echo ""
-            echo "| | |"
-            echo "|---|---|"
-            echo "| tag final | \`$TAG\` |"
-            echo "| main | push do SHA da tag (branch protegida) |"
-            echo "| develop | merge da release + versão avançada para a próxima |"
-            echo "| branch | \`$BRANCH\` apagada |"
-          } >> "$GITHUB_STEP_SUMMARY"
-
+    uses: ./.github/workflows/release-promote.yml
+    with:
+      version: ${{ inputs.version }}
   release-play:
     name: Release · play (tag pelo semver)
     needs: plan
+    # O CORPO vive em `.github/workflows/release-play.yml` (#245).
     if: github.event_name == 'workflow_dispatch' && inputs.action == 'play'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
     permissions:
       contents: write
       issues: read
       actions: read
       packages: read
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          ref: develop
-          fetch-depth: 0
-      - run: git fetch --tags --force
-      - uses: ./.github/actions/version-bump
-        id: bump
-      - name: cortar a tag
-        env:
-          NEXT: ${{ steps.bump.outputs.next-version }}
-          PENDING: ${{ steps.bump.outputs.release }}
-        run: |
-          set -euo pipefail
-          [ "$PENDING" = "true" ] || { echo "::error::sem bump pendente — nada a cortar"; exit 1; }
-          git config user.name "$BOT_NAME"
-          git config user.email "$BOT_EMAIL"
-          # `-u` (ver a nota do `release-rc`): manifests + os 2 locks (#231).
-          git add -u
-          git diff --cached --quiet || {
-            git commit -m "chore(release): v$NEXT (bump por conventional commits)"
-            git push origin HEAD; }
-          git tag --force "v$NEXT"
-          git push --force origin "v$NEXT"
-          echo "### 🏷️ Tag \`v$NEXT\` criada" >> "$GITHUB_STEP_SUMMARY"
-
+    uses: ./.github/workflows/release-play.yml
   # ═══════════════════════════════════════════════════════════════════════
   # RELATÓRIO — resumo da run (o ÚLTIMO job, roda SEMPRE `if: always()`)
   #

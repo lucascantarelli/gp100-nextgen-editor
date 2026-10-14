@@ -26,7 +26,9 @@
 
 Cada suíte tem um **juiz independente** — passar numa não cobre outra. A CI roda as
 quatro em jobs separados (`.github/workflows/ci.yml`), filtradas por caminho
-(`.github/scripts/ci_plan.py`): doc puro não sobe Rust nem front.
+(`.github/scripts/ci_plan.py`): doc puro não sobe Rust nem front. Os workflows
+reutilizáveis (`dist-*.yml`/`release-*.yml`, #245) carregam o CORPO da
+distribuição e da release; o `ci.yml` fica com o grafo e o nome dos jobs.
 
 ---
 
@@ -58,6 +60,18 @@ python .github/scripts/gates.py                 # --list mostra a lista; nomes d
 
 - **Mudou só uma área?** A CI filtra por caminho; rode só os gates dessa área
   (tabela do [CONTRIBUTING §4](../CONTRIBUTING.md)).
+- **`simulate_release` tem regime próprio no CI (#246).** É o gate mais caro
+  (~2 min, executa a cadeia rc→promote de verdade) e roda no passo
+  `simulação do GitFlow` só por **escopo**: `schedule`, tag/dispatch (`CHANGED=ALL`)
+  e PR que toca a maquinaria de release (`.github/workflows/`,
+  `.github/actions/version-bump/`, `simulate_release.py`, `ci_plan.py`,
+  `sync_version.py`). Os demais gates de script continuam em todo PR. Local,
+  `python .github/scripts/gates.py simulate_release` roda quando você pedir — o
+  custo local é seu, não de cada PR.
+- **Mexeu na cadeia de release?** O `simulate_release` é o gate que prova; ele lê
+  os blocos dos workflows reutilizáveis e confere o `uses:`/`with:` do caller no
+  `ci.yml` — a falha mais comum (input obrigatório sem valor) só aparece no LOAD
+  da run, ou aqui.
 - **Cobertura do front caiu de 85%?** O gate falha e **pede teste, não exceção**.
 - **`gates.py`** é o atalho para os gates de script (pipeline, empacotamento,
   versão, spec, release).

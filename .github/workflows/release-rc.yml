@@ -1,0 +1,143 @@
+name: Release · RC (reusable)
+
+# ── Extraído do `ci.yml` (#245, achado F-12) ────────────────────────────────
+# A cadeia rc → promote → play é o bloco mais pesado e o que muda mais raramente
+# do pipeline. Aqui ela fica isolada; o `ci.yml` guarda o grafo e as condições.
+#
+# O QUE FICA NO CALLER (e por quê): `if: github.event_name == 'workflow_dispatch'
+# && inputs.action == 'release'` — versionar no push é tag prematura, e essa
+# trava é do pipeline, não do corpo. `needs: plan` e `permissions: contents:
+# write` idem (os jobs daqui herdam as permissões do job que chama).
+#
+# O QUE ATRAVESSA POR `with:`: `source` e `version` (os mesmos nomes dos inputs
+# do dispatch, de propósito — o corpo abaixo não mudou).
+#
+# `BOT_NAME`/`BOT_EMAIL` são repetidos no topo deste arquivo porque `env:` de
+# topo do caller NÃO é propagado para o workflow chamado, e o `env` não é um
+# contexto aceito no `with:` de um `workflow_call`. O gate
+# (`validate_workflows.py`, contrato 15) trava que as cópias continuem idênticas
+# — o mesmo padrão da ref literal de imagem de container.
+on:
+  workflow_call:
+    inputs:
+      source:
+        description: "de onde sai a release branch: develop = fluxo normal · main = hotfix"
+        required: true
+        type: string
+      version:
+        description: "versão alvo sem o v, ex.: 0.2.0 — vazio = calcular pelos commits"
+        required: false
+        type: string
+        default: ""
+    outputs:
+      tag:
+        description: tag da rc cortada (vX.Y.Z-rc.N)
+        value: ${{ jobs.rc.outputs.tag }}
+
+env:
+  BOT_NAME: github-actions[bot]
+  BOT_EMAIL: github-actions[bot]@users.noreply.github.com
+
+jobs:
+  rc:
+    name: rc
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    outputs:
+      tag: ${{ steps.prep.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.source }}
+          fetch-depth: 0
+      - name: buscar tags
+        run: git fetch --tags --force
+      - name: calcular a versão (input > semver pendente)
+        id: ver
+        env:
+          WANT: ${{ inputs.version }}
+          SRC: ${{ inputs.source }}
+        run: |
+          set -euo pipefail
+          WANT="${WANT#v}"
+          if [ -n "$WANT" ]; then
+            echo "$WANT" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$' || { echo "::error::versão inválida: '$WANT'"; exit 1; }
+            echo "next=$WANT" >> "$GITHUB_OUTPUT"
+            echo "versão informada: $WANT"
+            exit 0
+          fi
+          LAST=$(git describe --tags --match 'v*' --abbrev=0 2>/dev/null || echo "")
+          [ -z "$LAST" ] && { echo "::error::sem tags v* — informe o input version"; exit 1; }
+          BASE="${LAST#v}"; BASE="${BASE%%-*}"
+          MAJOR=$(echo "$BASE" | cut -d. -f1); MINOR=$(echo "$BASE" | cut -d. -f2)
+          # `main` já está numa versão publicada: uma rc de correção sobre ela é
+          # patch, não minor. `develop` acumula feature → minor.
+          if [ "$SRC" = "main" ]; then
+            PATCH=$(echo "$BASE" | cut -d. -f3)
+            echo "next=$MAJOR.$MINOR.$((PATCH+1))" >> "$GITHUB_OUTPUT"
+            echo "hotfix sobre v$BASE → $MAJOR.$MINOR.$((PATCH+1))"
+          else
+            git log --format='%s' "$LAST..HEAD" | grep -E '^feat(\(|:)' > /dev/null || {
+              echo "::error::sem bump pendente em $SRC (nenhum feat desde $LAST) — informe o input version"; exit 1; }
+            echo "next=$MAJOR.$((MINOR+1)).0" >> "$GITHUB_OUTPUT"
+            echo "feature desde $LAST → $MAJOR.$((MINOR+1)).0"
+          fi
+      - name: preparar a release branch + número da rc
+        id: prep
+        env:
+          NEXT: ${{ steps.ver.outputs.next }}
+          SRC: ${{ inputs.source }}
+        run: |
+          set -euo pipefail
+          BR="release/$NEXT"
+          if git ls-remote --exit-code --heads origin "$BR" >/dev/null 2>&1; then
+            git checkout -B "$BR" "origin/$BR"
+            echo "reutilizando $BR (rc avançando)"
+          else
+            git checkout -B "$BR" "origin/$SRC"
+            echo "release branch $BR criada de origin/$SRC"
+          fi
+          N=$(( $(git tag --list "v$NEXT-rc.*" | sed 's/.*-rc\.//' | sort -n | tail -1 || echo 0) + 1 ))
+          {
+            echo "branch=$BR"
+            echo "rc=$N"
+            echo "full=$NEXT-rc.$N"
+            echo "tag=v$NEXT-rc.$N"
+          } >> "$GITHUB_OUTPUT"
+      - name: versão rc nos manifests
+        env:
+          FULL: ${{ steps.prep.outputs.full }}
+        run: |
+          set -euo pipefail
+          # Os 5 manifests, nao 3: `tauri.conf.json` e a versao do BUNDLE e
+          # `package.json` o do front. De fora deles, o instalador sai com a
+          # versao velha (#73). O `--check` prova a igualdade.
+          python3 .github/scripts/sync_version.py --set "$FULL"
+          python3 .github/scripts/sync_version.py --check
+      - name: commitar + taguear + subir
+        env:
+          BRANCH: ${{ steps.prep.outputs.branch }}
+          TAG: ${{ steps.prep.outputs.tag }}
+        run: |
+          set -euo pipefail
+          git config user.name "$BOT_NAME"
+          git config user.email "$BOT_EMAIL"
+          # `-u` e nao uma lista: o conjunto de arquivos do bump e do
+          # `sync_version.py` (os 5 manifests E, desde #231, os 2 `Cargo.lock`).
+          # Re-listar aqui foi como o furo nasceu: o commit da tag saiu com
+          # manifest 0.2.1 e lock 0.3.0, o `--check` do Lint reprovou e a
+          # distribuicao INTEIRA saiu `skipped` (#235).
+          git add -u
+          git commit -m "chore(release): $TAG (release candidate)"
+          git push origin "$BRANCH"
+          git tag "$TAG"
+          git push origin "$TAG"
+          {
+            echo "### 🚀 Release Candidate"
+            echo ""
+            echo "| | |"
+            echo "|---|---|"
+            echo "| tag | \`$TAG\` |"
+            echo "| branch | \`$BRANCH\` |"
+            echo "| próximo | testar o prerelease; correções na release branch + dispatch de novo; pronto? \`action=promote\` |"
+          } >> "$GITHUB_STEP_SUMMARY"

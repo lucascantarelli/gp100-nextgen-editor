@@ -1,12 +1,17 @@
 #!/usr/bin/env python3
 """
 Simulação END-TO-END do release-gitflow (rc1→rcN→promote) num sandbox git
-local — sem GitHub e sem Docker. Os blocos `run:` são extraídos DO PRÓPRIO
-`.github/workflows/ci.yml` (jobs `release-rc` e `release-promote`) e
-executados contra um "origin" bare temporário, com
+local — sem GitHub e sem Docker. Os blocos `run:` são extraídos DOS PRÓPRIOS
+WORKFLOWS que rodam de verdade — os reutilizáveis `.github/workflows/
+release-rc.yml` e `release-promote.yml` (+ o contrato do caller no `ci.yml`,
+#245) — e executados contra um "origin" bare temporário, com
 `${{ inputs/steps/env }}` resolvidos como o Actions faria (GITHUB_OUTPUT
-simulado, env de job injetado). O que NÃO é exercido aqui: a execução real no
-Actions e o pipeline de distribuição por tag (esse roda no push).
+simulado, env de job injetado, `with:` do caller resolvido para os inputs do
+workflow chamado). O que NÃO é exercido aqui: a execução real no Actions e o
+pipeline de distribuição por tag (esse roda no push).
+
+No CI este gate roda por ESCOPO (#246): schedule, tag/dispatch e PR que toca a
+maquinaria de release (`ci_plan.py` → `scope-ci`).
 
 Cenários provados:
   1. rc corta release/x.y.z de develop e etiqueta vX.Y.Z-rc.1
@@ -69,8 +74,44 @@ def _bash() -> str:
 
 BASH = _bash()
 
-WF = os.path.join(REPO, ".github", "workflows", "ci.yml")
-JOBS = {"rc": "release-rc", "promote": "release-promote"}
+
+def _python_do_host() -> str:
+    """O interpretador que o sandbox usa no lugar de `python3` (quando precisa).
+
+    O texto dos workflows chama `python3` — é o binário do runner Linux, onde o
+    gate roda de verdade. No host do dono, NEM `python` NEM `python3` do PATH
+    são o interpretador: os dois são os STUBS da Microsoft Store (WindowsApps),
+    que respondem "Python was not found" e matam a simulação no primeiro
+    `python3 .github/scripts/sync_version.py` — o gate local reprovava sem ter
+    nada de errado no workflow. A tradução é para o MESMO interpretador que roda
+    este script, no caminho estilo MSYS que o bash do Git entende (o caminho tem
+    espaço, então vai entre aspas).
+    """
+    exe = sys.executable or "python"
+    if os.name == "nt":
+        exe = "/" + exe[0].lower() + exe[2:].replace("\\", "/")
+    return f'"{exe}"'
+
+
+PYTHON_DO_HOST = _python_do_host()
+
+# ── DE ONDE VÊM OS BLOCOS (#245) ───────────────────────────────────────────
+# Desde a extração da #245 os jobs de release moram em workflows
+# REUTILIZÁVEIS (`workflow_call`), e não mais dentro do `ci.yml`. O simulador
+# executa os `run:` dos blocos: ele lê o arquivo que TEM os blocos, e confere no
+# `ci.yml` que o caller chama aquele arquivo e passa os inputs certos.
+#
+# O `env` de topo do arquivo do job é o que os steps leem (`BOT_NAME`/
+# `BOT_EMAIL`): `env:` de topo do caller NÃO atravessa um `workflow_call`, então
+# o `ci.yml` não tem mais essas duas chaves.
+WF = {
+    "rc": os.path.join(REPO, ".github", "workflows", "release-rc.yml"),
+    "promote": os.path.join(REPO, ".github", "workflows", "release-promote.yml"),
+}
+CI = os.path.join(REPO, ".github", "workflows", "ci.yml")
+# etapa do simulador → (job no ci.yml, job no arquivo reutilizável)
+JOBS = {"rc": "rc", "promote": "promote"}
+CALLER = {"rc": "release-rc", "promote": "release-promote"}
 
 
 def locais_no_lock(texto: str) -> dict[str, str]:
@@ -213,15 +254,29 @@ class Sandbox:
 
 
 class Workflow:
-    """executa os run blocks de um job do ci.yml com contexto simulado."""
+    """executa os run blocks de um job de release com contexto simulado.
+
+    Os jobs vêm dos arquivos reutilizáveis (`release-*.yml`); o `ci.yml` é lido
+    para o CONTRATO do caller — `uses:` apontando para o arquivo certo e os
+    inputs chegando por `with:` (um input obrigatório sem valor recusa a run no
+    LOAD, e esse defeito é invisível em teste de unidade do YAML).
+    """
 
     def __init__(self, root: str):
-        with open(WF, encoding="utf-8") as fh:
-            doc = yaml.safe_load(fh)
-        self.jobs = doc["jobs"]
-        self.wf_env = {k: str(v) for k, v in (doc.get("env") or {}).items()}
+        self.jobs: dict[str, dict] = {}
+        self.env_do_job: dict[str, dict[str, str]] = {}
+        for caminho in WF.values():
+            with open(caminho, encoding="utf-8") as fh:
+                doc = yaml.safe_load(fh)
+            env_arq = {k: str(v) for k, v in (doc.get("env") or {}).items()}
+            for job_id, job in (doc.get("jobs") or {}).items():
+                self.jobs[job_id] = job
+                self.env_do_job[job_id] = env_arq
+        with open(CI, encoding="utf-8") as fh:
+            self.ci_jobs = (yaml.safe_load(fh) or {}).get("jobs") or {}
         self.inputs: dict[str, str] = {}
         self.steps: dict[str, dict[str, str]] = {}
+        self.wf_env: dict[str, str] = {}
 
     def resolve(self, text: str) -> str:
         def sub(m: re.Match) -> str:
@@ -241,11 +296,9 @@ class Workflow:
 
         texto = EXPR.sub(sub, text)
         if os.name == "nt":
-            # No Windows não existe `python3` (o alias da Microsoft Store
-            # intercepta e cobra download); o runner real é ubuntu, onde ele
-            # existe. Traduz para o `python` do ambiente — o sandbox roda o
-            # MESMO conteúdo, só com o binário análogo do host.
-            texto = re.sub(r"\bpython3\b", "python", texto)
+            # O sandbox roda o MESMO conteúdo, só com o binário análogo do host
+            # (`_python_do_host` explica por que não é um `python` cru).
+            texto = re.sub(r"\bpython3\b", PYTHON_DO_HOST, texto)
         return texto
 
     def run_job(self, job: str, cwd: str, inputs: dict[str, str],
@@ -260,11 +313,37 @@ class Workflow:
         O env (workflow + step + magic do Actions) entra por `export` no
         prólogo; GITHUB_OUTPUT/GITHUB_STEP_SUMMARY ficam relativos ao cwd.
         """
-        self.inputs = inputs
         self.steps = {}
         job_id = JOBS.get(job, job)
         if job_id not in self.jobs:
-            raise AssertionError(f"job '{job_id}' não existe em ci.yml (tem: {', '.join(self.jobs)})")
+            raise AssertionError(
+                f"job '{job_id}' não existe nos reutilizáveis (tem: {', '.join(self.jobs)})"
+            )
+        self.wf_env = self.env_do_job[job_id]
+        # Os inputs do JOB CHAMADO vêm do `with:` do caller, resolvido com os
+        # inputs do dispatch — é assim que o Actions faz, e é o que faz a
+        # simulação cobrir o encanamento (nome de input errado, valor faltando).
+        caller = CALLER.get(job)
+        if caller is None:
+            self.inputs = dict(inputs)
+        else:
+            esperado = "./" + os.path.relpath(WF[job], REPO).replace(os.sep, "/")
+            job_caller = self.ci_jobs.get(caller) or {}
+            if str(job_caller.get("uses") or "") != esperado:
+                raise AssertionError(
+                    f"o caller `{caller}` do ci.yml não chama {esperado!r} "
+                    f"(chama {job_caller.get('uses')!r})"
+                )
+            self.inputs = dict(inputs)
+            passados = job_caller.get("with") or {}
+            self.inputs = {k: self.resolve(str(v)) for k, v in passados.items()}
+            if self.inputs.get("version") is None:
+                # o reutilizável lê `inputs.version` (input do workflow_call):
+                # sem a chave o corpo compararia com vazio e cairia no caminho
+                # errado — melhor falhar aqui, nomeando o caller.
+                raise AssertionError(
+                    f"o caller `{caller}` não passa `version` — o job chamado lê esse input"
+                )
         for idx, step in enumerate(self.jobs[job_id]["steps"]):
             if "run" not in step:
                 continue
@@ -366,7 +445,7 @@ def main() -> int:
     wd = sandbox.workdir("rc3", branch="develop")
     wf.run_job("rc", wd, inputs={"action": "release", "version": "", "source": "develop"}, expect_failure=True)
 
-    print("\n✅ cadeia rc1→rcN→promote íntegra no sandbox (ci.yml executado de verdade)")
+    print("\n✅ cadeia rc1→rcN→promote íntegra no sandbox (release-*.yml executados de verdade)")
     if keep:
         print(f"sandbox preservado em {root}")
         return 0

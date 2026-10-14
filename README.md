@@ -96,7 +96,7 @@ boot/scan de presets (S1), upload de IRs mono+estéreo (S2), edição de knobs p
 │   └── … (o mapa completo está no INDEX.md §3)
 ├── tools/                    # ferramentas de spec/dados (golden, baseline, wirelog) + suíte Spec (pytest) — #168
 ├── .venv/                     # Python do projeto (uv, VENV ÚNICO na raiz)
-├── .github/workflows/ci.yml   # ÚNICO workflow, jobs por TIPO (#68; nº em INDEX §6)
+├── .github/workflows/ci.yml   # o pipeline único; jobs por TIPO (#68; nº em INDEX §6)
 ├── knowledge.md               # memória operacional do agente (estado vivo, armadilhas)
 └── .agents/                   # harness do agente: skills/ (9, Era HW), prompts/ (6), README
 ```
@@ -188,7 +188,9 @@ Windows + Git Bash (desenvolvido em `D:\GP-100 app`). Requisitos:
   `docs/arquivo/scripts-era-RE/add_cargo_path.ps1 (arquivado na #168)` (uma vez, como admin). Gates de código Rust:
   `.agents/skills/rust-practices/SKILL.md`
 - **CI (GitHub Actions):** os mesmos gates (`uv run pytest` + `cargo fmt/clippy/test`)
-  rodam num **único** workflow, o [`ci.yml`](.github/workflows/ci.yml), com jobs de
+  rodam num **único pipeline**, o [`ci.yml`](.github/workflows/ci.yml) (o corpo de
+  Distribuição e Release é chamado de 6 workflows reutilizáveis desde a #245),
+  com jobs de
   responsabilidade única agrupados em 11 tipos (`Validação` · `Lint` ·
   `Compilação` · `Testes` · `Cobertura` · `Segurança` · `Relatório` · `Infra` ·
   `Release` · `Distribuição` · `Fechamento`) — a **contagem de jobs** vive em

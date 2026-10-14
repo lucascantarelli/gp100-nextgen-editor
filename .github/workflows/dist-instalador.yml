@@ -1,0 +1,99 @@
+name: Distribuição · instalador (reusable)
+
+# ── POR QUE ESTE ARQUIVO EXISTE (#245, achado F-12 da auditoria de 14/10) ────
+# O `ci.yml` era um arquivo único de 1777 linhas / 29 jobs: mudar a distribuição
+# ou a release obrigava a navegar o pipeline inteiro. Distribuição e Release são
+# os dois blocos pesados e os que mudam mais raramente — agora moram aqui, e o
+# `ci.yml` ficou com o grafo, a validação e os testes.
+#
+# ── UM ARQUIVO POR JOB (não um arquivo com os 3 jobs) ───────────────────────
+# O check que o GitHub exibe para um job de workflow reutilizável é
+# `<job do caller> / <job do chamado>`. Com um job por arquivo a relação com os
+# jobs do `ci.yml` continua 1:1 e a run NÃO ganha nenhum check `skipped` que não
+# existia antes — um arquivo com os três jobs guardados por input deixaria dois
+# `skipped` extras aparecendo em toda tag.
+#
+# ── O QUE ATRAVESSA A FRONTEIRA (e o que NÃO atravessa) ─────────────────────
+# `env:` definido no topo do caller NÃO é propagado para o workflow chamado
+# (docs: "environment variables … are not propagated to the called workflow").
+# Por isso o runner e os `--bundles` chegam por `with:` — o corpo abaixo não lê
+# nada do `ci.yml`.
+#
+# `permissions:` fica SÓ no caller: os jobs daqui recebem as permissões do job
+# que chama (o `contents: write` que o passo de publicação precisa vem de lá), e
+# repetir a lista aqui criaria uma segunda política para divergir.
+#
+# O `if: needs.plan.outputs.stage-dist == 'true'` (a alça de custo que garante
+# que instalador só sai na tag) também fica no caller — aqui o job é só o corpo.
+on:
+  workflow_call:
+    inputs:
+      os:
+        description: runner do bundle — a matriz de SO mora no caller
+        required: true
+        type: string
+      bundles:
+        description: "argumentos do `tauri build` naquele SO (ex.: `--bundles nsis msi`)"
+        required: true
+        type: string
+
+jobs:
+  instalador:
+    name: instalador
+    runs-on: ${{ inputs.os }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.ref }}
+      - uses: ./.github/actions/setup-node-pnpm
+      - uses: ./.github/actions/build-front
+      - uses: ./.github/actions/setup-rust
+        with:
+          workdir: packages/app/api
+          shared-key: ws-api
+      - name: linux precisa dos headers de WebKitGTK
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y --no-install-recommends \
+            libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev
+      - name: linux precisa do ALSA (o `midir` da feature real-device)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get install -y --no-install-recommends \
+            libasound2-dev
+      - name: linux precisa do Node do tauri-cli
+        if: runner.os == 'Linux'
+        run: sudo apt-get install -y --no-install-recommends pkg-config
+      - name: build do instalador
+        working-directory: packages/app/api
+        # O caminho é `../ui` (o pacote do webview): `../../ui` resolvia para
+        # um packages/ui inexistente e o step MORRIA antes de compilar — por
+        # isso o `dist-ui` nunca gerou instalador (0 runs para v0.1.0 e
+        # v0.2.0-rc.*). E `--features real-device` é a face (A) da #126: o
+        # instalador PUBLICADO fala com a pedaleira, com a escrita travada
+        # pela ADR-5 (sem `write-verified`) e explicada na tela.
+        run: ../ui/node_modules/.bin/tauri build --features real-device ${{ inputs.bundles }}
+      - name: coletar + sha256
+        id: collect
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist-pkg
+          # Glob por plataforma: o layout do bundle muda entre nsis/msi,
+          # dmg/app e deb/appimage.
+          find packages/app/api/target/release/bundle -maxdepth 2 -type f \
+            \( -name '*.exe' -o -name '*.msi' -o -name '*.dmg' -o -name '*.deb' -o -name '*.AppImage' \) \
+            -exec cp {} dist-pkg/ \;
+          ls -la dist-pkg/
+          test -n "$(ls -A dist-pkg)" || { echo "::error::nenhum instalador gerado"; exit 1; }
+          (cd dist-pkg && sha256sum ./* > SHA256SUMS.txt)
+      - name: publicar na Release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ github.ref_name }}
+          prerelease: ${{ contains(github.ref_name, '-rc') }}
+          files: |
+            dist-pkg/*
+          fail_on_unmatched_files: true

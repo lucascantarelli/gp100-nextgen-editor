@@ -28,6 +28,15 @@ comentário NA ISSUE e a fila avança.
   do repo atualizados (sed + link checker); `SECURITY.md` da raiz virou ponteiro
   para `docs/tecnico/seguranca.md`; golden bump v1.3 só de proveniência;
   `files/` triado no disco (instalador/DebugView/logs fora — 97→16 MB).
+- 14/10 — **CI enxuta (#245/#246)**: Distribuição e Release saíram do
+  `ci.yml` (1777 → ~1350 linhas) para 6 workflows `workflow_call`, com o
+  `ci.yml` ficando com o grafo, o nome dos jobs e a matriz de OS. O `env:` de
+  topo do caller NÃO atravessa o `workflow_call` (nem é contexto do `with:`) —
+  runner/args vêm por `with:` e o resto (toolchain do CLI, `BOT_NAME`/
+  `BOT_EMAIL`) mora no arquivo chamado. Check de job reutilizável que RODA sai
+  como `<caller> / <job>`; `skipped` (todo PR) sai com o nome do caller, então
+  required check de PR não muda. E o `simulate_release` (~2 min) só roda por
+  escopo (`scope-ci`): schedule, tag/dispatch e PR de release.
 - 13/10 — **#164 (sync bilateral) entregue**: estado tipado único no actor
   (`idle/sync/pending/failed/offline`; `device_info` semeia e `device://sync`
   transiciona), read-back pós-escrita (debounce 800 ms) + refresh de 10 s pela
@@ -40,7 +49,8 @@ comentário NA ISSUE e a fila avança.
   regenera as baselines `-linux`; o input `update-snapshots` saiu do `ci.yml`.
   Motivo: o `default: release` do input `action` fazia o dispatch de baseline
   cortar rc junto (runs 38070949933 e a do incidente rc.5 de 13/10 — revertido).
-  Contrato dos 3 workflows no `validate_workflows.py` (seção 14).
+  Contrato dos 3 workflows de pipeline + dos 6 reutilizáveis de dist/release
+  (#245) no `validate_workflows.py` (contratos 14/15).
 - 12/10 — **Navbar enxuta (diretriz do dono)**: cluster de PATCH (◀ ▶ + nome)
   removido da navbar — troca vive na LISTA e o rótulo no display LED do palco;
   DeviceBadge sem miniatura SVG (dot `.live-dot`/`.idle-dot` + status honesto).
