@@ -368,6 +368,13 @@ jobs:
       - name: workspace da api
         working-directory: packages/app/api
         run: cargo fmt -- --check
+      - name: orcamento de tamanho (front + Rust)
+        # O gate e um so, e ele olha os DOIS lados do IPC: o front (#82) e os
+        # `.rs` de `packages/*/src` (#248). Ele roda aqui — no job de escopo
+        # RUST — porque o `lint-ui` so existe quando o front muda, e foi
+        # exatamente por isso que `actor.rs` chegou a 2 702 linhas sem freio.
+        # Custa segundos: e Python puro, sem dependencia para instalar.
+        run: python3 .github/scripts/check_module_size.py
 
   lint-rust-clippy:
     name: Lint · Rust (clippy · ${{ matrix.project }} · ${{ matrix.os }})
@@ -464,9 +471,11 @@ jobs:
         # Cobre 100% nao prova que o contrato e consumivel: um arquivo 100%
         # coberto cujos exports ninguem chama e o pior dos dois (#78).
         run: python3 .github/scripts/check_deadcode.py
-      - name: orcamento de tamanho do front
+      - name: orcamento de tamanho (front + Rust)
         # A #82 cortou o App.tsx de 514 para 274 linhas e escreveu um numero.
-        # Numero sem gate se cumpre no dia do PR e se esquece depois.
+        # Numero sem gate se cumpre no dia do PR e se esquece depois. Desde a
+        # #248 o mesmo script mede os `.rs` de `packages/*/src` (teto em
+        # docs/dev/ARCHITECTURE.md §4) e as coortes do actor (§4.1).
         run: python3 .github/scripts/check_module_size.py
 
 # ═══════════════════════════════════════════════════════════════════════
