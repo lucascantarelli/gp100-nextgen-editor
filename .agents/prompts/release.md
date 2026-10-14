@@ -19,11 +19,10 @@ EXECUÇÃO:
 4. Dispare por workflow_dispatch no ci.yml (NUNCA tag manual): action=release (rc) ou
    action=promote (final). Acompanhe o run inteiro (gh run watch --exit-status).
 5. Confirme os artefatos da Release (instaladores por plataforma, tarball de fonte, CLI de
-   campo) e a tag; na promote, confirme main == SHA da tag, develop avançada para a
-   próxima minor e release branch apagada.
+   campo) e a tag; na promote, confirme develop avançada e release branch apagada —
+   a `main` só recebe o SHA da tag com o push do OWNER (GH006, #234).
 6. Registre no run/issue: versão, artefatos, sha da tag, pendências.
 
-PROIBIÇÕES: não force-tag; não escreva na main por push (só a promote move, pelo SHA da
-tag); não corte rc com CI vermelha; não publique artefato de build local — artefato nasce
-na tag.
+PROIBIÇÕES: não force-tag; na `main` só entra o SHA da tag (e o push é do OWNER, #234);
+não corte rc com CI vermelha; não publique artefato de build local — artefato nasce na tag.
 ```

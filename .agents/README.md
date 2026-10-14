@@ -5,25 +5,19 @@ repo e trabalhar **sem briefing extra**. Três peças + uma memória:
 
 ```
 .agents/
-├── README.md          # este mapa (estrutura e ordem de entrada)
-├── skills/            # COMO se faz (sob demanda, disparadas pela description)
-│   ├── github-flow/       ciclo issue → branch → PR → CI verde → fechamento
-│   ├── core-dev/          Rust do core/cli dentro das decisões (ADR-13, R4)
-│   ├── rust-practices/    gates, estilo, organização de testes Rust
-│   ├── ui-ux-practices/   front (tokens, a11y, estados, gates)
-│   ├── testing/           o que a suíte testa e onde cada teste vive
-│   ├── hardware-dev/      aparelho real: leitura livre, escrita travada, evidência
-│   ├── device-reference/  o QUE a GP-100 é (vocabulário → docs/referencias/GP100_DEVICE.md)
-│   ├── release/           cadeia rc → promote → tag e artefatos
-│   └── docs-sync/         sincronização de doc ao fechar marco
+├── README.md          # este mapa: ordem de entrada + fontes únicas por regra
+├── skills/            # COMO se faz (sob demanda, disparadas pela `description`)
+│   ├── github-flow/ · core-dev/ · rust-practices/ · app-dev/
+│   ├── ui-ux-practices/ · testing/ · hardware-dev/
+│   └── device-reference/ · release/ · docs-sync/
 └── prompts/           # O QUE executar (templates para colar; vinculam skills)
-    ├── implementar-issue.md        # canônico — executa uma issue
-    ├── executar-issues-em-sequencia.md  # a fila do milestone, uma por PR
-    ├── corrigir-bug.md             # diagnóstico → fix → teste de regressão
-    ├── code-review-completo.md     # revisão com a régua das skills
-    ├── auditoria.md                # medir, relatar, abrir issues
-    └── release.md                  # rc/promote com checklist
+    ├── implementar-issue.md · executar-issues-em-sequencia.md · corrigir-bug.md
+    └── code-review-completo.md · auditoria.md · release.md
 ```
+
+O **catálogo detalhado** (o que cada skill/prompt faz) vive no `docs/INDEX.md`
+§"Infra do agente"; o **gatilho** de cada skill é a `description` do `SKILL.md`.
+Aqui fica só a ordem de entrada — para não manter um terceiro catálogo que apodrece.
 
 ## Como entrar no repo (ordem que funciona)
 
@@ -52,6 +46,22 @@ repo e trabalhar **sem briefing extra**. Três peças + uma memória:
   recorrente); skill morta vai para `docs/arquivo/`, nunca é apagada.
 - Ao fechar marco: `docs-sync` (commit próprio na mesma PR) mantém
   INDEX/ROADMAP/knowledge honestos.
+- **Uma casa por regra:** regra transversal mora em UMA skill e as outras
+  **apontam** (a tabela abaixo). Regra repetida em 3 arquivos sincroniza em 3 e
+  apodrece nos outros — o modo de falha que o §8 da `docs-sync` combate.
+
+## Fontes únicas por regra (não duplicar)
+
+| Assunto | Casa (dono) | Os demais |
+|---|---|---|
+| O aparelho é a fonte; medir, não deduzir (ADR-13) | `hardware-dev` | apontam |
+| Ciclo issue→branch→PR→CI→merge | `github-flow` (+ prompt `implementar-issue`) | apontam |
+| Conventional commits + footer Codebuff | `github-flow` | apontam |
+| Onde cada teste vive (unitário `src/` × contrato `tests/`) | `rust-practices` (visão por camada: `testing`) | apontam |
+| Contadores (testes/cobertura/jobs) só no `INDEX.md` §6 | `docs-sync` | apontam |
+| Armadilhas de host (cargo/PATH, toolchain pinada) | `knowledge.md` | apontam |
+| Cadeia de release rc→promote→tag | `release` (+ prompt `release`) | apontam |
+| Estrutura/limites das camadas do front | `docs/dev/ARCHITECTURE.md` | apontam |
 
 ## Modo ausente do dono (#202)
 

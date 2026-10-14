@@ -43,7 +43,7 @@ cargo build --release -p gp100-cli --features real-device
 
 **Proibido** abrir uma terceira camada (env var, subcomando novo, bypass). Se
 uma feature "precisaria" de escrita para ser desenvolvida, isso vira issue +
-ADR, não flag ad-hoc (regra 8 da skill `core-dev`).
+ADR, não flag ad-hoc (ADR-5/ADR-10 — a política é desta skill).
 
 ## Anti-brick (por que as travas existem)
 

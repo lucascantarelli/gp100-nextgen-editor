@@ -22,9 +22,8 @@ antes de assumir qualquer coisa sobre o aparelho.
 2. **O aparelho manda (ADR-13).** Toda regra de "padrão" nasce de byte OBSERVADO
    (captura + campo), nunca de suposição de fábrica, snapshot de análise ou
    `all.prst`. O golden é spec de **FORMA**; cada espaço de **VALOR** ganha o
-   próprio modelo (precedentes: knobs #110, pp #148). Antes de deduzir
-   comportamento do mock, **meça no aparelho real** (está ligado nesta máquina;
-   CLI de campo `--real --i-know-what-im-doing`, leitura pura).
+   próprio modelo (precedentes: knobs #110, pp #148). A política de campo —
+   "meça no aparelho antes de deduzir" — é a skill `hardware-dev`.
 
 3. **Números reais > marketing.** "150 effects"/"100 patterns" é marketing; o
    firmware medido tem 185 algs e 87 ritmos de drum. Use o número do firmware.
@@ -40,12 +39,14 @@ antes de assumir qualquer coisa sobre o aparelho.
 A app é expansão do editor oficial: biblioteca versionada, Tone Match, gestor
 NAM, Laboratório de IRs, cloud sync, **Live Mode** (o "setlist" que o hardware
 não tem — decisão do APP), export universal, A/B blind, ponte DAW. Detalhe em
-`docs/planejamento/VISION.md` §9 e `docs/referencias/MANUAL_COVERAGE.md` §8.
+`docs/planejamento/VISION.md` §9 (a matriz `MANUAL_COVERAGE.md` §8 é da Fase 1,
+histórica — #242).
 
 ## Onde cada coisa mora
 
 - Comportamento/funcionalidade da pedaleira → `docs/referencias/GP100_DEVICE.md`
-- Cobertura manual×UI (o que já implementamos/testamos) → `docs/referencias/MANUAL_COVERAGE.md`
+- Cobertura manual×UI e o que falta do aparelho → `docs/referencias/REAL_DEVICE_GAP.md`
+  (vivo); `MANUAL_COVERAGE.md` é a matriz da Fase 1 — histórica (#242)
 - Protocolo/fio (endereços, layouts decifrados) → `docs/tecnico/PROTOCOL.md` §13
-- Decisões estruturais → `docs/dev/DECISIONS.md` (ADR-1..13)
-- Fila do dado real (o que falta ler do hardware) → `docs/referencias/GP100_DEVICE.md` §6 + `docs/analises/audit-era-real-2026-10-07.md`
+- Decisões estruturais → `docs/dev/DECISIONS.md` (a fonte das decisões)
+- Fila do dado real (o que falta ler do hardware) → `docs/referencias/GP100_DEVICE.md` §6 + `docs/referencias/REAL_DEVICE_GAP.md`

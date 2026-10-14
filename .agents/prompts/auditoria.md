@@ -22,6 +22,12 @@ MÉTODO (auditar é medir, não opinar):
 6. Segurança: uv/pnpm/cargo audit + dependências; achado vira issue com a label.
 7. Coerência de era: premissa de RE (Suite, proxy, captura como fonte) em doc vivo = achado
    (a fonte é o aparelho desde a ADR-13).
+8. HARNESS (`.agents/`) também é artefato auditável: regra transversal repetida em 2+ skills,
+   regra sem dono (nenhuma skill possui), `description` que não casa com o corpo, ponteiro
+   para ADR/§/arquivo inexistente = achado. O harness é código que o próximo agente executa.
+   Prove mecanicamente que dê: `python -c` que varre `.agents/**/SKILL.md` validando o
+   front-matter (YAML parseável, `name` == pasta, `description` que dispara) — roda na própria
+   máquina, sem depender de olho.
 
 SAÍDA: relatório com sumário executivo (números: achados por severidade, o que foi aberto),
 tabela de achados (id, arquivo, linha, severidade, issue #N) e o veredito honesto. Abra as

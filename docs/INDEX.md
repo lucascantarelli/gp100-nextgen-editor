@@ -214,7 +214,7 @@ R2/R3). Tabela de proveniência completa no PR da #163.
 `.github/ISSUE_TEMPLATE/` (epic, feature, bug, refactor, protocolo — contrato
 com seções obrigatórias + 🤖 prompt do agente, validado pelo gate
 `.github/scripts/check_issue_templates.py`) +
-`.github/PULL_REQUEST_TEMPLATE.md` (checklist do gate + R1–R4),
+`.github/PULL_REQUEST_TEMPLATE.md` (checklist do gate + princípios P1–P7),
 `.gitignore`/`.gitattributes` (o que nunca entra — README §7).
 
 ### Infra do agente (#170)
@@ -222,9 +222,10 @@ com seções obrigatórias + 🤖 prompt do agente, validado pelo gate
 (mapa do harness), `.agents/prompts/` (6 templates: implementar-issue canônico,
 executar-issues-em-sequencia, corrigir-bug, code-review-completo, auditoria,
 release),
-`.agents/skills/{github-flow,core-dev,rust-practices,ui-ux-practices,testing,hardware-dev,device-reference,release,docs-sync}/SKILL.md`
-— 9 skills da Era HW: **fluxo de trabalho** (`github-flow`, `release`) ·
-**desenvolvimento** (`core-dev`, `rust-practices`, `ui-ux-practices`, `hardware-dev`)
+`.agents/skills/{github-flow,core-dev,rust-practices,app-dev,ui-ux-practices,testing,hardware-dev,device-reference,release,docs-sync}/SKILL.md`
+— 10 skills da Era HW: **fluxo de trabalho** (`github-flow`, `release`) ·
+**desenvolvimento** (`core-dev`, `rust-practices`, `app-dev` — o crate do app/Tauri,
+`ui-ux-practices`, `hardware-dev`)
 · **qualidade** (`testing`) · **governança** (`docs-sync`) · **conhecimento do
 device** (`device-reference` → `docs/referencias/GP100_DEVICE.md`).
 

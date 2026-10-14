@@ -18,7 +18,7 @@ no push é a receita de tag prematura). Detalhe humano:
 |---|---|---|
 | RC | `action=release` (+ `source=develop\|main`, `version` opcional) | calcula a próxima versão por semver (feat desde a última tag → minor; hotfix sobre `main` → patch), cria/atualiza `release/x.y.z`, bumpa os 5 manifests, commita, tagueia `vX.Y.Z-rc.N` e publica no MESMO run |
 | Teste | — | o prerelease é testado à mão (checklist da release); correções entram na release branch e another dispatch de `release` avança a rc |
-| Promote | `action=promote` | localiza a rc, bumpa para a versão final, commita, cria a tag `vX.Y`, faz `main` receber o **SHA da tag** (branch protegida não aceita merge), mergeia a release na `develop`, avança a develop para a próxima minor e apaga a release branch |
+| Promote | `action=promote` | localiza a rc, bumpa para a versão final, commita, cria a tag `vX.Y`, tenta fazer `main` receber o **SHA da tag**, mergeia a release na `develop`, avança a develop para a próxima minor e apaga a release branch. ⚠️ o passo da `main` **falha** hoje (`GH006`, #234): o push é do OWNER — ver abaixo |
 | Play | `action=play` | corta tag direto pelo semver dos commits (`version-bump`), sem rc — para correção já estabilizada |
 
 ## Regras que não se reabrem
@@ -30,6 +30,12 @@ no push é a receita de tag prematura). Detalhe humano:
   é o alarme (roda em todo push na `main` e falha se o sha não for de tag).
   Em repo pessoal o GitHub não permite branch protection real; o guard é a
   regra.
+- ⚠️ **Hoje a promote NÃO move a `main` sozinha.** A `main` exige histórico
+  LINEAR e o SHA da tag traz o merge do ciclo — o push morre com `GH006`
+  ([#234](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/234)) e
+  o **owner** empurra a `main` à mão com o comando documentado na issue. O
+  guard acima segue valendo (a `main` só recebe SHA de tag); o que não vale é
+  assumir que o job faz o push.
 - **Release branch não roda testes de propósito** (freeze da develop, já
   testada no merge); o gate da release é o **push da tag `v*`**, que roda a
   suíte inteira antes de gerar artefato.

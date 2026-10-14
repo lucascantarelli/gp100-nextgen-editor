@@ -18,8 +18,8 @@ funcionalidade; DECISIONS.md se tocar estrutura). Se a issue não tem prompt aut
 complete o faltante com o que existir no repo e REGISTRE o que assumiu no corpo do PR.
 
 PREMISSA: o aparelho real é a fonte (ADR-13). Dúvida de comportamento do device se RESOLVE
-medindo (CLI de campo --real --i-know-what-im-doing, leitura pura) — nunca por suposição do
-mock ou do manual de marketing. Escrita no aparelho só com as travas (ADR-5 + gate H2).
+medindo no aparelho (o procedimento e as travas estão na skill hardware-dev) — nunca por
+suposição do mock ou do manual de marketing. Escrita no aparelho só com as travas (ADR-5 + gate H2).
 
 TAREFA: implemente o escopo da issue (nada fora dele — o que aparecer vira issue nova com
 evidência). Teste novo acompanha código novo (skill testing: unitário em src/, contrato em
