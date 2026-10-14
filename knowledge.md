@@ -82,6 +82,14 @@ comentário NA ISSUE e a fila avança.
 
 ## Armadilhas deste host (Windows 11 + Git Bash) — continuam mordendo
 
+- **gnu 1.99.0 (update 13/10, 03:23) quebra o build script do crate `tauri`**
+  (#223): compila e o exe segfaulta ao rodar (0xc0000005, módulo "unknown",
+  qualquer path; bytes estáveis, Defender sem detecção). Efeito: `tauri
+  build`/`check`/`dev` com o pin gnu morrem. **App shell = MSVC** por ADR-7
+  (`RUSTUP_TOOLCHAIN=stable-x86_64-pc-windows-msvc`, o mesmo do launch.json):
+  compila e builda verde (NSIS+MSI gerados em 13/10). gnu pin segue válido para
+  core/cli/library (cargo test/build fresh rodam).
+
 - **Toolchain PINADA** `stable-x86_64-pc-windows-gnu` (`rust-toolchain.toml`):
   o host não tem MSVC Build Tools. Não trocar de alvo nem apagar o arquivo.
   O shell Tauri (`packages/app/api`) é MSVC/portável por ADR-7/ADR-8 —
