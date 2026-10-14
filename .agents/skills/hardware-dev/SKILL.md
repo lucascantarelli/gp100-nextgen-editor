@@ -65,8 +65,9 @@ O firmware da GP-100 **asserta e derruba o pedal** em escrita fora de faixa
 - **Linha sem `F7` final não é frame** (lição da baseline v1.1): buffer truncado
   ou `ff` de cauda não vira dado. Interpretação de fio é `docs/tecnico/PROTOCOL.md` §13.
 - Fatos sobre o aparelho entram em `docs/referencias/GP100_DEVICE.md` (fonte canônica) com
-  data e método de medição; o `MANUAL_COVERAGE.md` registra o que já foi
-  coberto/testado; `PROTOCOL.md` §13 registra a FORMA do fio.
+  data e método de medição; o que já foi **coberto/testado** vive em
+  `docs/referencias/REAL_DEVICE_GAP.md` (o `MANUAL_COVERAGE.md` é a matriz da Fase 1 —
+  histórica, funde na Era HW pela #242); `PROTOCOL.md` §13 registra a FORMA do fio.
 
 ## Fila de lacunas (não deduzir, encher a fila)
 

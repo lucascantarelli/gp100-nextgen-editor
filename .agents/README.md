@@ -61,6 +61,7 @@ Aqui fica só a ordem de entrada — para não manter um terceiro catálogo que 
 | Contadores (testes/cobertura/jobs) só no `INDEX.md` §6 | `docs-sync` | apontam |
 | Armadilhas de host (cargo/PATH, toolchain pinada) | `knowledge.md` | apontam |
 | Cadeia de release rc→promote→tag | `release` (+ prompt `release`) | apontam |
+| Camada do app (`packages/app/api`: actor, commands, DTO/IPC) | `app-dev` | apontam |
 | Estrutura/limites das camadas do front | `docs/dev/ARCHITECTURE.md` | apontam |
 
 ## Modo ausente do dono (#202)

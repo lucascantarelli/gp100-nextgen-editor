@@ -19,11 +19,9 @@ antes de assumir qualquer coisa sobre o aparelho.
    de boot que lê `12001012` (5 entradas), semântica ainda não decifrada
    (`GP100_DEVICE.md` §5#1). Nunca exponha "setlist" como recurso do produto.
 
-2. **O aparelho manda (ADR-13).** Toda regra de "padrão" nasce de byte OBSERVADO
-   (captura + campo), nunca de suposição de fábrica, snapshot de análise ou
-   `all.prst`. O golden é spec de **FORMA**; cada espaço de **VALOR** ganha o
-   próprio modelo (precedentes: knobs #110, pp #148). A política de campo —
-   "meça no aparelho antes de deduzir" — é a skill `hardware-dev`.
+2. **Nada de "regra de fábrica" por suposição.** Snapshot de análise e `all.prst`
+   não criam padrão — premissa, medição e travas de campo têm casa na skill
+   `hardware-dev`.
 
 3. **Números reais > marketing.** "150 effects"/"100 patterns" é marketing; o
    firmware medido tem 185 algs e 87 ritmos de drum. Use o número do firmware.

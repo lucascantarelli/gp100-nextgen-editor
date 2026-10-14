@@ -15,9 +15,8 @@ conflito, valem P1–P7 e os ADRs.
 ## Gates de qualidade (toda mudança passa pelos 4)
 
 ```bash
-# Se o terminal novo não achar cargo: fix permanente = `docs/arquivo/scripts-era-RE/add_cargo_path.ps1` (arquivado na #168)
-# (feito em 29/09 — vale para QUALQUER terminal novo); workaround de sessão =
-# export abaixo, só para sessões abertas antes do fix.
+# Terminal novo sem cargo? As armadilhas de host (fix permanente + workaround de
+# sessão) têm UMA casa: `knowledge.md` §"Armadilhas deste host" — não redescubra.
 export PATH="/c/Users/Canta/.cargo/bin:$PATH"
 cargo fmt --check
 cargo clippy --workspace --all-targets -- -D warnings
@@ -194,11 +193,8 @@ packages/core/            # crate gp100-core
 - Vetorizados com os exemplos do golden / fixtures; propriedade
   mínima: "gerado casa com o próprio exemplo do template".
 
-## Armadilhas deste host (fonte única: `knowledge.md` §"Armadilhas deste host")
+## Armadilhas deste host
 
-- Toolchain PINADA `stable-x86_64-pc-windows-gnu` em `rust-toolchain.toml` — o
-  host NÃO tem MSVC Build Tools e o `link` do PATH é o GNU coreutils; não
-  trocar de alvo nem apagar o arquivo.
-- PATH do cargo: resolvido no sistema em 29/09 (`docs/arquivo/scripts-era-RE/add_cargo_path.ps1`, arquivado na #168);
-  workaround de sessão só para terminais abertos antes do fix:
-  `export PATH="/c/Users/Canta/.cargo/bin:$PATH"`.
+Toolchain pinada, PATH do cargo, `python3`/uv, console cp1252, EOL e CJK acidental:
+**fonte única** é `knowledge.md` §"Armadilhas deste host" (leia antes de brigar com o
+ambiente). Aqui fica só o comando de sessão do bloco acima.

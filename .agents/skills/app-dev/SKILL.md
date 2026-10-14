@@ -46,10 +46,11 @@ abertura do app um vetor de escrita de surpresa. A escolha é a feature; o CLI
 mantém a política explícita (`--real --i-know-what-im-doing` / `--mock-device`).
 
 O sinal de escrita chega ao front em `DeviceInfo.write_verified`, e o front tem
-**um único** ponto que o lê — `escritaLiberada()` em `ui/src/ipc/device.ts`
-(#126). Não reimplemente a política em command nem em outro hook.
+**um único** ponto que o lê — `escritaLiberada()` em
+`packages/app/ui/src/ipc/device.ts` (#126). Não reimplemente a política em
+command nem em outro hook.
 
-## O actor — a peça central (`src/actor.rs`)
+## O actor — a peça central (`packages/app/api/src/actor.rs`)
 
 O `DeviceActor` é **dono único** da `Session` (D8 do ADR-6): a FSM é `&mut self`,
 então compartilhar `Mutex<Session>` com a UI permitiria interleave de transações.
@@ -63,7 +64,8 @@ Tauri roda fora da main thread — ADR-3 preservado).
   `UploadSnapTone`, `Save`, `Dump`, `DrainPushes`, `SyncNow`, `LogSession`,
   `LogStop`, `LogPath`, `Shutdown`.
 - **Eventos** (`device://`): `progress` (boot — barra, nunca trava), `sync`
-  (#164) e `push` (backlog D7). O front escuta em `ui/src/ipc/`.
+  (#164) e `push` (backlog D7). O front escuta na porta de IPC
+  (`packages/app/ui/src/ipc/`).
 
 ### Sincronização bilateral (#164 / ADR-15)
 
@@ -82,7 +84,7 @@ páginas divergem do cache.
 > escrita é dívida aberta (**#239**); não aumente o trabalho dentro do loop sem
 > pensar na fila.
 
-## Boot e log de fio (`src/lib.rs`)
+## Boot e log de fio (`packages/app/api/src/lib.rs`)
 
 - `abrir_backend()` monta o `Backend` e o actor; **sem aparelho o app sobe no
   estado `Desligado`** com `MOTIVO_DESLIGADO` legível e o botão "Reconectar"
@@ -97,23 +99,26 @@ páginas divergem do cache.
 `actor.rs` tem **2702 linhas** (**#243**) e o `check_module_size.py` cobre **só o
 front** (**#248**) — ou seja, não há freio automático aqui. Regra prática: **coorte
 nova de `Request`/evento vira módulo próprio**; não cresça o `actor.rs`.
-`commands.rs` (869 linhas) já é o segundo.
+`commands.rs` (`packages/app/api/src/commands.rs`, 869 linhas) já é o segundo.
 
 ## Checklist de uma tarefa no crate do app
 
 1. Ler a issue (DoD define "pronto"); branch/PR pela `github-flow`.
-2. **DTO mudou?** Espelhe em `ui/src/ipc/types.ts` (os DTOs são o contrato do fio
-   IPC, camelCase via serde) e cubra com teste do front que lê o campo.
+2. **DTO mudou?** Espelhe em `packages/app/ui/src/ipc/types.ts` (os DTOs são o
+   contrato do fio IPC, camelCase via serde) e cubra com teste do front que lê o
+   campo.
 3. **Command novo?** Entre pela fila do actor (nunca `Session` direto) e registre
-   no `generate_handler!` de `lib.rs` — commands vivem em submódulo porque o macro
+   no `generate_handler!` de `packages/app/api/src/lib.rs` — commands vivem em
+   submódulo porque o macro
    oculto `__cmd__<name>` colidiria (E0255).
-4. **Evento novo?** Prefixo `device://`; a leitura fica na porta `ui/src/ipc/`.
+4. **Evento novo?** Prefixo `device://`; a leitura fica na porta
+   `packages/app/ui/src/ipc/`.
 5. Doc-comment PT-BR com a FONTE (ADR/§13/issue) — o crate compila com
    `#![deny(missing_docs)]`, item público sem doc é erro de build.
 6. Gates locais: `cargo fmt --check` · `cargo clippy --workspace --all-targets --
    -D warnings` · `cargo test` (detalhe em `rust-practices`). O crate é do
    workspace **MSVC**; se mexeu no fio, rode também o core.
-7. Commits conventional + footer Codebuff; CI verde antes do merge (`github-flow`).
+7. Fechar pelo ciclo da skill `github-flow`.
 
 ## Armadilhas conhecidas
 
