@@ -168,6 +168,49 @@ def check_targets_vs_workflow(conf: dict) -> None:
             )
 
 
+SHELL_MANIFEST = Path("packages/app/api/Cargo.toml")
+
+
+def deps_caminho_do_shell() -> list[str]:
+    """Diretorios (relativos a raiz) das dependencias `path = ...` do crate do shell.
+
+    Fonte unica: o MANIFESTO, nunca uma constante escrita a mao. O `cargo`
+    resolve `path` a partir do diretorio do manifesto, entao `../../core` vira
+    `packages/core` — e e esse caminho, um por dependencia, que o
+    `make_sdist.py` precisa embutir para o `cargo metadata --locked` resolver
+    de DENTRO do tarball.
+    """
+    if not SHELL_MANIFEST.is_file():
+        return []
+    texto = SHELL_MANIFEST.read_text(encoding="utf-8")
+    base = SHELL_MANIFEST.parent
+    return sorted(
+        {
+            os.path.normpath(os.path.join(str(base), rel)).replace(os.sep, "/")
+            for rel in re.findall(r'path\s*=\s*"([^"]+)"', texto)
+        }
+    )
+
+
+def check_sdist_deps(sd_text: str, deps: list[str]) -> None:
+    """O `make_sdist.py` embute TODA dependencia de caminho do shell (#230).
+
+    `packages/core` foi fechado em #72; `packages/library` ficou de fora e o
+    tarball publicado morreu em `failed to load manifest for dependency
+    gp100-library` no primeiro run real da distribuição (run 38553264817,
+    #230). O gate lia so a dependencia que ja tinha doido — a lista derivada
+    do manifesto e o que fecha a classe inteira.
+    """
+    for dep in deps:
+        if f'"{dep}"' not in sd_text:
+            fail(
+                f"`make_sdist.py` nao embute `{dep}` — e dependencia de CAMINHO "
+                "do gp100-ui (`path = ...` em packages/app/api/Cargo.toml); sem "
+                "ela o `cargo metadata --locked` do tarball morre em 'failed to "
+                "load manifest for dependency' (#72/#230)"
+            )
+
+
 def check_arch(conf: dict, root: Path) -> None:
     """O PKGBUILD (#29) mora fora do Tauri, então nada o liga à config por
     padrão: o nome do binário e o caminho dos ícones saem de lá e o daemon
@@ -270,12 +313,9 @@ def check_arch(conf: dict, root: Path) -> None:
                 f"`make_sdist.py` embute `{no_sdist}` — o build do shell entra "
                 "em panic do `generate_context!` (#72)"
             )
-    if '"packages/core"' not in sd:
-        fail(
-            '`make_sdist.py` nao embute `packages/core` — e dependencia de '
-            'caminho do gp100-ui (path = "../../core"); sem ela o manifesto '
-            "nem resolve (#72)"
-        )
+    # TODA dependencia de CAMINHO do shell, nao so a que doeu em #72: a lista
+    # vem do manifesto (#230).
+    check_sdist_deps(sd, deps_caminho_do_shell())
 
 
 

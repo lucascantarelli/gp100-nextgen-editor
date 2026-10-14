@@ -15,7 +15,7 @@ Contrato de saída (lido pelo `plan` do .github/workflows/ci.yml):
     branch-class     develop | main | dev | release | hotfix | tag | schedule
     scope-rust       gp100-core/cli/ui mudaram?
     scope-front      packages/app/ui mudou?
-    scope-spec       docs|scripts|pyproject mudaram?
+    scope-spec       docs|scripts|tools|packaging|pyproject mudaram?
     stage-test       Testes rodam?
     stage-coverage   Cobertura roda?
     stage-security   Segurança roda?
@@ -150,7 +150,12 @@ def scopes(changed: str) -> dict[str, bool]:
         # deixaria o job de pytest como `skipped` — os testes ficariam
         # verdes sem nunca rodarem contra a mudanca. Teste que nao
         # re-executa nao e teste.
-        "spec": has(r"^(docs/|scripts/|pyproject\.toml$|uv\.lock$)"),
+        # `tools/` e `packaging/` entraram aqui na #230, pelo mesmo motivo do
+        # `scripts/` em #21: o pytest mora em `tools/tests/` (o `testpaths` do
+        # pyproject) e o empacotador do PKGBUILD em `packaging/`. De fora do
+        # escopo, mexer no gate ou no empacotador deixava o job de pytest
+        # `skipped` — teste que nao re-executa nao e teste.
+        "spec": has(r"^(docs/|scripts/|tools/|packaging/|pyproject\.toml$|uv\.lock$)"),
     }
 
 
