@@ -14,8 +14,8 @@ do milestone v1.1.0 (ou a lista que eu passar), UMA por vez, na ordem de priorid
 2. Para CADA issue, na fila:
    a. Leia a issue inteira. Se ela tem o "🤖 prompt do agente" no corpo, ele É o passo a
       passo (formato canônico: .agents/prompts/implementar-issue.md).
-   b. Execute o ciclo completo: branch → implementação + testes → gates locais → push →
-      PR (Closes #N) → CI verde → merge squash → issue fechada pelo workflow → docs-sync.
+   b. Execute o ciclo completo da skill `github-flow` — a fonte do ciclo é a skill, não
+      esta lista — com os gates locais da área antes do PR.
    c. Registre na issue o que foi entregue (comentário com medidas/links de run).
    d. PARE entre issues: cada uma é um PR revisável; nunca junte duas issues num PR.
 3. Descoberta no caminho (bug, gap de hardware, dívida) vira issue nova NA HORA

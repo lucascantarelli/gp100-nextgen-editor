@@ -22,8 +22,8 @@ medindo no aparelho (o procedimento e as travas estão na skill hardware-dev) �
 suposição do mock ou do manual de marketing. Escrita no aparelho só com as travas (ADR-5 + gate H2).
 
 TAREFA: implemente o escopo da issue (nada fora dele — o que aparecer vira issue nova com
-evidência). Teste novo acompanha código novo (skill testing: unitário em src/, contrato em
-tests/; front: vitest + coverage 85%). Commits conventional com o footer Codebuff.
+evidência). Teste novo acompanha código novo — régua da skill `testing` (camadas, gate de
+cobertura do front). Commits conventional com o footer Codebuff.
 
 FECHAMENTO: branch feature/N-slug → gates LOCAIS da área → push → PR para develop com o
 template preenchido (tabela Antes→Depois, gates executados, ambiente) e `Closes #N` no

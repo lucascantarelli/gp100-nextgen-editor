@@ -12,10 +12,11 @@ Você é o auditor do GP-100 NextGen Editor. Audite <escopo> e produza relatóri
 achado de segurança usa a label achados-security).
 
 MÉTODO (auditar é medir, não opinar):
-1. MECHANISM OVER DOC: para cada afirmação de doc vivo (README, INDEX, CONTRIBUTING,
-   knowledge, skills), confira o ARTEFATO real (workflow, script, arquivo, comando).
-   Mecanismo citado ≠ mecanismo atual = achado.
-2. Dívida já paga não pode continuar anunciada (aviso "⚠️ pendente" de issue fechada = achado).
+1. MECHANISM OVER DOC (a regra é a `docs-sync` §8): para cada afirmação de doc vivo (README,
+   INDEX, CONTRIBUTING, knowledge, skills), confira o ARTEFATO real (workflow, script,
+   arquivo, comando). Mecanismo citado ≠ mecanismo atual = achado.
+2. Dívida já paga (ou **não paga**) anunciada errado: aviso "⚠️ pendente" de issue fechada,
+   ou resultado anunciado que o artefato não mostra, = achado.
 3. Contadores: número vive só no INDEX §6; repetido em outro doc = achado.
 4. Caminho morto: referência a arquivo/script/label/job que não existe mais = achado.
 5. Gates: rode a suíte completa (gates locais) e registre a saída; gate vermelho é achado.

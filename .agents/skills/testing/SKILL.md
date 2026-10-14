@@ -19,8 +19,8 @@ padrão de DoD de toda issue, não sugestão.
 | UI | `packages/app/ui/tests/*.test.tsx` (vitest + jsdom) | idem — papel/label/foco/estado de tela |
 | e2e | — | `packages/app/ui/e2e/*.spec.ts` (Playwright) + `tauri.smoke.mjs` (webview real) |
 
-Nunca mova unitário para `tests/` "por organização": `tests/` compila como
-crate externo e não enxerga internals (detalhe na skill `rust-practices`).
+A regra de decisão (e o porquê de unitário morar em `src/`) tem **uma casa**: a
+skill `rust-practices` §"Regra de organização".
 
 ## O que a suíte Rust prova (mock por default)
 
