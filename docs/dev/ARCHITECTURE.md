@@ -6,9 +6,10 @@
 > e o teste que o cobre com 1027 — o sintoma de um componente que passou a hora de
 > virar hook/container.
 >
-> **Escopo.** Só o `packages/app/ui` (Tauri + React + TypeScript). O core Rust
-> tem decisão própria em `docs/dev/DECISIONS.md` (ADR-1..8); a fronteira entre os dois
-> é o comando Tauri, descrito em `docs/dev/UI_PLAN.md`.
+> **Escopo.** O `packages/app/ui` (Tauri + React + TypeScript) e — desde a #243 —
+> o orçamento de tamanho e o mapa de módulos do crate do app, `packages/app/api`
+> (§4.1). O core Rust tem decisão própria em `docs/dev/DECISIONS.md` (ADR-1..8); a
+> fronteira entre os dois é o comando Tauri, descrito em `docs/dev/UI_PLAN.md`.
 
 ---
 
@@ -206,6 +207,34 @@ App volta a inchar. Um critério que só vale no dia do PR não impede nada.
 O gate é `.github/scripts/check_module_size.py`, rodado em `.github/scripts/gates.py` e no
 `ci.yml`. Ele falha com o nome do arquivo e a contagem, e a lista de exceções fica
 no próprio script — exceção nova é decisão consciente, não esquecimento.
+
+### 4.1 O crate do app (`packages/app/api`)
+
+O gate acima cobre o front. O Rust do crate do app ganhou orçamento **declarado**
+com a #243, que fatiou um `actor.rs` de 2 702 linhas sem nenhum freio automático;
+a cobrança em build é a **#248** (teto de módulo + deadcode para os crates Rust).
+Aqui o número é régua de review.
+
+| Módulo | Teto | Por que |
+|---|---|---|
+| `src/actor.rs` | **600** | é o HANDLE (a API que a thread do Tauri usa) + o spawn: coorte que couber aqui é responsabilidade no lugar errado |
+| `src/actor/<coorte>.rs` | **300** | cada coorte é `Request` → `Session` de UM assunto (leitura/escrita/boot/diagnóstico) ou uma peça do relógio; acima disso, o assunto virou dois |
+| `src/commands.rs` | 900 | porta do IPC: cresce por operação exposta, e o corte por coorte é a mesma receita da #243 (**dívida declarada**) |
+| `src/lib.rs` | 400 | `run()`, `AppState` e o registro do `generate_handler!` |
+| `src/actor/tests.rs` | — | **fora do orçamento**: cresce com a cobertura (um teste por contrato do actor), não com funcionalidade |
+
+Mapa do actor (#243) — `actor.rs` é a fachada, não o todo:
+
+| Módulo | Dono de |
+|---|---|
+| `actor.rs` | handle clonável + spawn (`spawn`, `desligado`, `desligado_procurando`) e os métodos que os commands chamam |
+| `actor/estado.rs` | o que a thread POSSUI (`Estado`, caches do scan, relógio da convergência) e os auxiliares `device_snapshot`/`emite`/`marca` |
+| `actor/relogio.rs` | o loop com prazos (debounce + refresh), o read-back e o roteamento das `Request` |
+| `actor/fila.rs` | `Request` — o contrato da fila |
+| `actor/tipos.rs` | os DTOs do IPC (snapshot, sync, biblioteca) |
+| `actor/backends.rs` | a trait do transporte e real/mock/`Desligado`/`ProcuraAparelho` |
+| `actor/{leitura,escrita,boot,diagnostico}.rs` | as coortes de `Request` → `Session` |
+| `actor/tests.rs` | os contratos do actor (unitário em `src/` — regra da `rust-practices`) |
 
 ---
 
