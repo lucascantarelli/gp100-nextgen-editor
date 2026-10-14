@@ -19,7 +19,7 @@ não reimplementa nada dele.
 
 | Assunto | Dono | Motivo |
 |---|---|---|
-| Regra de protocolo / byte de fio | `gp100-core` (`core-dev`) | R1 — o crate do app não conhece endereço nem layout |
+| Regra de protocolo / byte de fio | `gp100-core` (`core-dev`) | o crate do app não conhece endereço nem layout |
 | Armazenamento (versão, seed, busca) | `gp100-library` | ADR-9 — a casca delega; o `rusqlite` não entra no MSVC |
 | Política do aparelho e travas (ADR-5/ADR-10) | skill `hardware-dev` | aqui só se **consome** o sinal, nunca se recria |
 | Geometria/tokens/estados de tela | `packages/app/ui` (`ui-ux-practices`) | o app Rust não decide layout nem texto |

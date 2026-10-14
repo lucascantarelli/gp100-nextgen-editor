@@ -30,7 +30,7 @@ e o formato de execução canônico é o prompt `.agents/prompts/implementar-iss
    (default de knob, faixa, semântica) nasce de byte OBSERVADO no aparelho e
    ganha o próprio modelo/teste (precedentes: knobs #110, pp #148). Mudar a
    baseline é processo raro, com evidência de campo — ver skill `hardware-dev`.
-3. **Round-trip sagrado (R4)**: o modelo `.prst` só está pronto quando os 3 arquivos
+3. **Round-trip sagrado**: o modelo `.prst` só está pronto quando os 3 arquivos
    de `files/patches/` regeneram byte-idênticos.
 4. **Aparelho no app, mock no teste (#165)**: no `gp100-ui` a feature
    `real-device` é **default** (`tauri dev` abre o GP-100; `--no-default-features`

@@ -95,7 +95,7 @@ Armadilhas mordidas — não reabrir:
   `unwrap`/`expect`/`panic!` na lib (allowed só em testes).
 - Sem `unsafe` na lib. Caso legítimo apareça (ex.: WinMM real), novo ADR antes.
 - Magic number de protocolo NUNCA inline: vira `const` documentada ou entra no
-  golden (R1). Dados de protocolo vêm de `docs/referencias/protocol_golden.json`; replay
+  golden. Dados de protocolo vêm de `docs/referencias/protocol_golden.json`; replay
   usa `packages/core/data/fixtures/` — nunca hardcode de captura.
 - Feature `real-device`: default **ON no app** (`gp100-ui`, #165 — `tauri dev`
   fala com o aparelho) e **OFF no core/CLI/testes**; nada de I/O de device fora
@@ -105,7 +105,7 @@ Armadilhas mordidas — não reabrir:
 
 ## Regime de bytes (`.gitattributes -text`)
 
-Arquivo cuja identidade é **byte-a-byte** (hash de baseline, round-trip R4,
+Arquivo cuja identidade é **byte-a-byte** (hash de baseline, round-trip `.prst`,
 comparação de replay) entra no `.gitattributes` com **`-text` ANTES do
 primeiro commit** — EOL faz parte dos bytes, e a normalização de EOL do git
 quebra a identidade silenciosamente (disco CRLF × blob LF; mordido 2x na CI
@@ -113,7 +113,7 @@ em 29/09: golden e .prst).
 
 - Classes na lista (ver seção comentada no `.gitattributes`):
   1. especificação executável (`docs/referencias/protocol_golden.json`);
-  2. patches de referência (`files/patches/*.prst`, R4);
+  2. patches de referência (`files/patches/*.prst` — round-trip);
   3. evidência de campo (`docs/arquivo/analysis/captures/*.jsonl`, `ir_slot*.bin`);
   4. fixtures de replay (`packages/core/data/fixtures/*.jsonl` — o replay
      compara byte a byte).
@@ -121,7 +121,7 @@ em 29/09: golden e .prst).
   parameters.json — identidade semântica, não byte).
 - Ao tocar na lista: `git add --renormalize .` e conferir
   `git show :<caminho> | sha256sum` × `sha256sum <caminho>`.
-- Teste que depende de bytes de arquivo (R4/replay) deve ler o arquivo **do
+- Teste que depende de bytes de arquivo (round-trip/replay) deve ler o arquivo **do
   repo** (checkout limpo) — nunca de cópia local fora do git.
 
 ## Testes (modelo híbrido, análogo ao pytest)
@@ -140,7 +140,7 @@ nem inconsistência a "limpar". A divisão obrigatória:
 2. **Contratos → `packages/core/tests/<assunto>.rs`** (crate `gp100-core`;
    caixa-preta, só API
    `pub`): provam comportamento contra EVIDÊNCIA de campo — golden,
-   fixtures, round-trip `.prst` (R4). Cada arquivo é um binário de teste; helpers
+   fixtures, round-trip `.prst`. Cada arquivo é um binário de teste; helpers
    em `tests/common/mod.rs` (≈ conftest.py; o nome `mod.rs` evita binário).
    Rodar um: `cargo test --test codec_wire`.
 3. **Regra de decisão:** usa só API pública → `tests/`; precisa de

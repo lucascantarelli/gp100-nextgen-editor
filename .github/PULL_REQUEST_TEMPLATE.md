@@ -29,11 +29,16 @@
 
 - [ ] Teste/coverage novo para o comportamento (padrão de DoD das issues) — ou justifique a exceção
 
-## Regras da casa (ROADMAP R1–R4)
+## Regras da casa (ROADMAP §1.2 — princípios P1–P7)
 
-- [ ] **R1** — nenhum byte de protocolo "adivinhado": golden/§13 consultados como insumo
-- [ ] **R2/R3** — se tocou spec/capturas: captura nova → `build_golden` → `validate_golden` 100% → bump de hash no §13
-- [ ] **R4** — round-trip `.prst` byte-idêntico preservado (se a mudança toca o modelo de preset)
+<!-- O ROADMAP vigente é a Era Hardware: os princípios são P1–P7. As regras R1–R4
+     são da era de engenharia reversa, arquivada em docs/arquivo/. -->
+
+- [ ] **P1** — o aparelho é a fonte: nenhum byte "adivinhado" (golden/§13 são insumo) nem dado de análise embutido no runtime
+- [ ] **P2** — fábrica × usuário são tipos; hex nunca chega à tela
+- [ ] **P4** — escrita é privilégio: nada escreve no boot, faixa travada (ADR-10); anti-brick é critério de aceite
+- [ ] **P5** — teste só do comportamento real (sem replay de RE); round-trip `.prst` byte-idêntico preservado se a mudança toca o modelo de preset
+- [ ] **P7** — doc e harness acompanham: skill/prompt/INDEX/knowledge na MESMA PR que muda comportamento
 - [ ] **ADR** — se mudou decisão de `docs/dev/DECISIONS.md`: novo ADR marcando o anterior como Superseded
 
 ## Política de conteúdo (README §7)

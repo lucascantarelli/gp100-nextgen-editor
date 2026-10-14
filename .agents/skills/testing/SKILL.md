@@ -30,7 +30,7 @@ crate externo e não enxerga internals (detalhe na skill `rust-practices`).
 - Contratos pesados em `packages/core/tests/`: consumo do golden de FORMA
   (`golden_consumer`), gate de escrita (`write_gate` — a trava ADR-5 como
   feature de compilação), boot (`boot_mock`), round-trip `.prst` byte-idêntico
-  (`roundtrip_prst` — regra R4), guarda de dados canônicos
+  (`roundtrip_prst`), guarda de dados canônicos
   (`guard_dados_canonicos`), envelope/framing (`wire_envelope`), páginas de
   preset (`pp_doc`, `pp_decimal`).
 - Gates: `cargo fmt --check` · `cargo clippy --workspace --all-targets --

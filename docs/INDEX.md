@@ -214,7 +214,7 @@ R2/R3). Tabela de proveniência completa no PR da #163.
 `.github/ISSUE_TEMPLATE/` (epic, feature, bug, refactor, protocolo — contrato
 com seções obrigatórias + 🤖 prompt do agente, validado pelo gate
 `.github/scripts/check_issue_templates.py`) +
-`.github/PULL_REQUEST_TEMPLATE.md` (checklist do gate + R1–R4),
+`.github/PULL_REQUEST_TEMPLATE.md` (checklist do gate + princípios P1–P7),
 `.gitignore`/`.gitattributes` (o que nunca entra — README §7).
 
 ### Infra do agente (#170)
