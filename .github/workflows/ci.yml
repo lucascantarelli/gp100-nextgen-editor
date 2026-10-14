@@ -207,12 +207,22 @@ jobs:
           git fetch --tags --force
           PR_BASE="${{ github.event.pull_request.base.sha }}"
           BEFORE="${{ github.event.before }}"
-          if [ -n "$PR_BASE" ]; then
+          REF="${{ github.ref }}"
+          # TAG PUBLICA A ÁRVORE, NÃO UM DIFF (#228). Numa tag NOVA o `before`
+          # é zeros e o else já dava ALL; numa tag MOVIDA, porém, `before` é
+          # um SHA VÁLIDO (o alvo anterior) e o diff pode sair VAZIO — run
+          # 38508338840: `CHANGED=(none)` → escopos false → testes, cobertura
+          # e distribuição `skipped` → run VERDE com a tag publicada SEM
+          # instalador e SEM Release. O `ci_plan.py` já classifica `tag` com
+          # suíte + dist; o que falta é o plano enxergar a árvore inteira.
+          if [ "${REF#refs/tags/}" != "$REF" ]; then
+            BASE=""
+          elif [ -n "$PR_BASE" ]; then
             BASE="$PR_BASE"
           elif [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ] && git cat-file -e "$BEFORE" 2>/dev/null; then
             BASE="$BEFORE"
           else
-            BASE="" # tag, schedule ou 1ª run: sem diff → tudo
+            BASE="" # schedule ou 1ª run: sem diff → tudo
           fi
           if [ -z "$BASE" ]; then
             CHANGED="ALL"
