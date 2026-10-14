@@ -27,7 +27,8 @@ DUAS FAMILIAS DE TETO:
 - **genérico** — vale para o que não está declarado: 700 no `components/` do
   front (acima disso, ou falta extrair regra ou falta extrair subcomponente) e
   700 em qualquer `.rs` de `packages/*/src` (acima disso o módulo tem mais de um
-  assunto). As coortes do actor têm teto PRÓPRIO de 300 (§4.1).
+  assunto). As coortes têm teto PRÓPRIO, abaixo do genérico, porque ali o
+  critério é mais estreito: 300 no actor (#243) e 400 em `session/` (#262).
 - **declarado** — o arquivo que SABEMOS passar do genérico e cujo corte está
   escrito como issue (`TETOS` para o front, `TETOS_RUST` para o Rust). A coluna
   do "por que" não é decoração: quando alguém quiser subir um teto, o motivo do
@@ -105,6 +106,18 @@ TETO_RUST_PADRAO = 700
 TETO_COORTE_ACTOR = 300
 DIR_COORTE_ACTOR = "packages/app/api/src/actor/"
 
+# Coorte do `session` (#262 / ARCHITECTURE §4.1): os modulos que o corte da #257
+# tirou do `session.rs` sao UM assunto cada (a transacao, o boot, a escrita, a
+# leitura...), e o teto e menor que o generico pelo mesmo motivo do actor.
+#
+# O numero sai da MEDIDA: o maior assunto legitimo hoje e a `escrita` (347 = as
+# cinco operacoes de escrita do §13.7/§13.11/§13.12/§5); a coorte do actor e 300
+# sobre o maior modulo dela (244, +23%), entao 400 sobre 347 e a mesma folga
+# (+15%). Acima disso o modulo virou dois — o primeiro candidato e separar
+# IR/SnapTone da `escrita`.
+TETO_COORTE_SESSAO = 400
+DIR_COORTE_SESSAO = "packages/core/src/session/"
+
 # Arquivo de teste nao entra no orcamento (cresce com a cobertura, nao com
 # funcionalidade) — por nome e por diretorio.
 NOMES_DE_TESTE = {"tests.rs", "test.rs"}
@@ -123,11 +136,18 @@ def e_teste(rel: str) -> bool:
 
 
 def teto_rust(rel: str, declarados: dict[str, int]) -> int:
-    """Teto de um `.rs`: declarado > coorte do actor > genérico."""
+    """Teto de um `.rs`: declarado > coorte do actor > coorte do session > genérico.
+
+    O declarado vem primeiro porque é decisão registrada para UM arquivo: é ele
+    que sustenta o handle da FSM (`session.rs` = 200) — sem essa precedência, a
+    coorte do diretório engoliria o teto mais estreito.
+    """
     if rel in declarados:
         return declarados[rel]
     if rel.startswith(DIR_COORTE_ACTOR):
         return TETO_COORTE_ACTOR
+    if rel.startswith(DIR_COORTE_SESSAO):
+        return TETO_COORTE_SESSAO
     return TETO_RUST_PADRAO
 
 
@@ -202,6 +222,7 @@ def main() -> int:
         for rel, teto, motivo in TETOS_RUST:
             print(f"  {rel:<44} {teto:>5}  {motivo}")
         print(f"  {DIR_COORTE_ACTOR + '<coorte>.rs':<44} {TETO_COORTE_ACTOR:>5}  coorte do actor (#243, ARCHITECTURE 4.1)")
+        print(f"  {DIR_COORTE_SESSAO + '<modulo>.rs':<44} {TETO_COORTE_SESSAO:>5}  coorte do session (#262, ARCHITECTURE 4.1)")
         print(f"  {'(demais .rs de packages/*/src)':<44} {TETO_RUST_PADRAO:>5}  regra padrao do Rust")
         print(f"  {'(testes: tests.rs, tests/)':<44} {'-':>5}  fora do orcamento: cresce com a cobertura")
         return 0
