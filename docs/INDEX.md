@@ -305,7 +305,7 @@ O Tauri não gera pacote Arch: a unidade de distribuição **é** a receita vers
 | Unit do front | `pnpm exec vitest run` | **513** em **38** arquivos (513 passando) · *08/10* |
 | Cobertura do front | `pnpm run test:coverage` | **87,62%** stmts · **81,25%** branch · **86,78%** funcs · **90,04%** linhas · *08/10* |
 | E2E (Playwright) | `pnpm exec playwright test --list` | **90** testes em **12** arquivos · **96** baselines · *08/10* |
-| Rust (core + cli + library) | `cargo test --workspace` | **309** testes em **36** suítes (34 binários de teste + 2 suites de doc-test) |
+| Rust (core + cli + library) | `cargo test --workspace` | **349** testes em **42** suítes (40 binários + 2 doc-tests) · *13/10* |
 | Spec (pytest) | `uv run pytest` | **47** em **4** arquivos · *13/10, pós-#168: os juízes H arquivados saíram da suíte* |
 | Gates locais | `uv run python .github/scripts/gates.py` | **13** · *re-medidos em 13/10 pós-#168 (`--list`)* |
 
