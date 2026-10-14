@@ -218,7 +218,10 @@ A **#248** estendeu o MESMO gate ao Rust, e a razão é medida: sem freio nenhum
 `packages/app/api/src/actor.rs` chegou a **2 702 linhas** (F-07 da auditoria de
 14/10). A régua é **700 linhas** por `.rs` não declarado — acima disso o módulo
 tem mais de um assunto — e quem já estava acima quando o gate passou a medir tem
-teto **congelado** na própria medida.
+teto **congelado** na própria medida. Os **cinco** congelados (`session`,
+`transport/mock`, `golden`, `preset` e o `main.rs` do CLI) foram cortados na
+#257: as entradas de hoje são o **handle medido** daquele corte, com o motivo
+escrito na própria linha.
 
 | Arquivo | Teto | Por que |
 |---|---|---|
@@ -226,14 +229,16 @@ teto **congelado** na própria medida.
 | `packages/core/src/session.rs` | **200** | **handle da FSM** desde a #257: só a `Session` (o que ela POSSUI) e o ciclo de vida (`new`/`into_transport`); método novo vai para o módulo do assunto |
 | `packages/core/src/session/<módulo>.rs` | **400** | coorte do `session` (#262): cada módulo é UM assunto (a transação, o boot, a escrita…); o número sai da medida do corte — ver a nota do mapa, abaixo |
 | `packages/core/src/transport/mock.rs` | **350** | **handle** desde a #257: o que o `MockDevice` POSSUI (estado, dicionário, inbox, plano de falha) e `new`/`with_slot_sem_nome`/`state` — mais o `mod tests` inline, que não pode virar arquivo (um `mod tests` em `mock/tests.rs` é o `clippy::module_inception`, que a CI reprova) |
-| `packages/cli/src/main.rs` | 1 226 | **congelado**: CLI de campo — corte na #257 |
+| `packages/cli/src/main.rs` | **800** | **handle** desde a #257: o USO, os CÓDIGOS de saída (`EXIT_*`), os TIPOS (`Command`/`Args`/`UsageError`) e o `main` — mais o `mod tests` inline (o corpo re-indentado o `check_move_only` lê como perdido, e o bloco intacto em `tests.rs` é o `clippy::module_inception`, o mesmo caso do `mock`) |
 | `packages/core/src/preset.rs` | **175** | **handle** desde a #257: o MODELO (os TIPOS e o que cada um POSSUI, com os campos fechados: `Document`, `Element` e o `LineBreak`), a EMISSÃO (`to_bytes`, a projeção dos próprios campos) e os acessores (`root`/`root_mut`/`preset_info`/`presets`); o `shape`, o helper de erro que todos os módulos usam |
 | `packages/core/src/golden.rs` | **250** | **handle** desde a #257: o que o `GoldenFile` POSSUI (`meta`, `templates`, `by_out`, `by_in`) e a carga/validação (`from_json`/`embedded`); o `GOLDEN_JSON` e o `shape`, o helper de erro que todos os módulos usam |
 | `tests.rs`, `tests/` | — | **fora do orçamento**: cresce com a COBERTURA, não com funcionalidade — medir isso só ensinaria a escrever menos teste |
 
-> **Congelado** é decisão, não alvo: o teto é **exatamente** a medida daquele dia,
-> então o arquivo não cresce mais. Quem precisa de linha nova corta — ou traz a
-> decisão de subir o número, com a issue que assume o corte.
+> **Teto declarado** é decisão, não alvo: o número é a medida daquele dia — no
+> `congelado` da #248 era exatamente o tamanho do arquivo que já passava do
+> genérico, e depois dos cortes (#243 no crate do app, #257 no core e no CLI) é o
+> HANDLE medido. Quem precisa de linha nova corta — ou traz a decisão de subir o
+> número, com a issue que assume o corte.
 
 Mapa do `session` (**#257**, primeiro corte dos congelados) — `session.rs` é o
 handle, não o todo:
@@ -376,6 +381,44 @@ handle, não o todo:
 > `clippy --workspace --all-targets -- -D warnings` limpos. E, ao contrário do
 > `golden`, **nenhum link intra-doc quebra** neste corte: o `cargo doc` dá o mesmo
 > conjunto de 54 avisos, linha a linha, antes e depois.
+
+Mapa do `cli` (**#257**, quinto e ÚLTIMO dos congelados) — `main.rs` é o handle,
+não o todo (no bin, um `mod x;` do crate root procura `src/x.rs`, e não
+`src/main/`: os dois módulos são IRMÃOS do handle em `packages/cli/src/`):
+
+| Módulo | Dono de |
+|---|---|
+| `main.rs` | o USO (`USAGE`), os CÓDIGOS de saída (`EXIT_POLICY_BLOCKED`/`EXIT_PROTOCOL_ERROR`), os TIPOS que o parser constrói e a execução lê (`Command`, `Args`, `UsageError`) e o ciclo de vida do bin (`main`); o `mod tests` inline |
+| `args.rs` | o PARSER: a superfície (subcomando e flags) e a POLÍTICA do `--real` — o `parse_args` e os três `parse_u*` |
+| `execucao.rs` | a EXECUÇÃO: o despacho do `run` e os três fluxos de escrita (`set-param`, `save`, `upload-ir`) com a trava do ADR-5, mais o `fail` (erro de protocolo → exit 3) e o `escrita_verificada` (a trava de compilação) |
+
+> **O que a `clippy` decide na estrutura — e o teto que ela força a declarar.** O
+> `mod tests` fica INLINE, como no `mock`, e as duas saídas foram MEDIDAS: mover o
+> corpo para `src/tests.rs` obriga a re-indentar as ~460 linhas do bloco (o
+> `rustfmt` reindenta, `fmt --check` é gate da CI — e a linha re-indentada o
+> `check_move_only` lê como PERDIDA), e o bloco intacto dentro de `src/tests.rs` é
+> o `clippy::module_inception` (um `mod tests` declarado num arquivo `tests.rs`; o
+> `-D warnings` da CI reprova). É por isso que o teto deste arquivo (**800**) fica
+> acima do genérico — depois do `commands.rs` (900, dívida declarada da #243) é o
+> único caso: 759 linhas são o handle mais o bloco de testes que a doutrina do
+> gate preferiria fora do orçamento.
+
+> **As DECLARAÇÕES ficam no handle** (`Command`, `Args`, `UsageError`, `USAGE` e os
+> `EXIT_*`), como no corte do `preset`: um campo privado do crate root já é visível
+> para o crate root e toda a sua subárvore — que é exatamente quem o toca (`args`
+> constrói o `Args`, `execucao` lê os campos) —, então nenhum campo abre, e o corte
+> fica em CINCO `pub(super)`: o `parse_args` e o `run` (chamados pelo `main`) e os
+> três que só os TESTES do handle chamam (`run_set_param`, `run_save`,
+> `escrita_verificada`).
+
+> O corte é invisível — e, sendo o CLI um **binário**, não há caminho público a
+> preservar: nem o nome dos testes mudou. A prova é a bateria do workspace, no
+> `diff` mais forte da série: **349 passed / 0 failed / 1 ignorado** antes (medido
+> num `git worktree` em `HEAD`) e depois, com a lista de **350 nomes de teste
+> idêntica** — incluindo o caminho do módulo: os 23 do CLI continuam
+> `tests::<nome>` — e as 42 linhas de `test result` iguais contagem a contagem, na
+> MESMA ordem; mais o `fmt --check` e o `clippy --workspace --all-targets --
+> -D warnings` limpos.
 
 #### No crate do app (`packages/app/api`) — desde a #243
 
