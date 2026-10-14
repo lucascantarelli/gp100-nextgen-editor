@@ -348,6 +348,15 @@ jobs:
           fetch-depth: 0
       - name: conventional commits
         run: python3 .github/scripts/check_commits.py
+      - name: auditoria de movimento (trailer `Move-only:`)
+        # #263: o commit que declara movimento puro prova, contra o PAI dele, que
+        # nao perdeu nem reescreveu linha. Sem trailer, o gate nao audita nada —
+        # e de graca para todo PR que nao e corte. A base vem do mesmo lugar que
+        # o `plan` usa; sem `BEFORE`/`PR_BASE` o proprio gate cai em HEAD~1..HEAD.
+        env:
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          BEFORE: ${{ github.event.before }}
+        run: python3 .github/scripts/check_move_only.py
 
   lint-rust-fmt:
     name: Lint · Rust (fmt)
