@@ -293,7 +293,7 @@ jobs:
           docker run --rm -v "$PWD:/repo" -w /repo \
             rhysd/actionlint:1.7.7 \
             -ignore 'label "macos-15-intel" is unknown'
-      - name: sintaxe + contratos + empacotamento + simulação do GitFlow
+      - name: sintaxe + contratos + empacotamento
         run: |
           # `pyyaml` e `jsonschema` ja vem no `pyproject.toml` (#80); a linha
           # abaixo e o fallback para rodar o script fora do ambiente do projeto.
@@ -309,7 +309,19 @@ jobs:
           # prompt auto-suficiente. Sem gate, "enxugar template" remove a secao
           # e o contrato morre em silencio — mesma classe do check_bundle (#71).
           python3 .github/scripts/check_issue_templates.py
-          # O juiz da Fase C do gate H1 (#21) contra o §13. E o gate que impede
+      # ── A SIMULAÇÃO DO GITFLOW É CONDICIONAL (#246, achado F-13) ─────────
+      #
+      # `simulate_release.py` executa a cadeia rc→promote DE VERDADE num sandbox
+      # git: ~2 min para proteger uma cadeia que muda raramente. Em TODO PR isso
+      # era custo; o risco real mora em PR que toca a maquinaria de release.
+      #
+      # A regra é do `ci_plan.py` (`scope-ci`), NUNCA um `if:` escrito à mão
+      # aqui — contrato 5, a mesma fonte que decide branch→tipos de job.
+      # `CHANGED=ALL` (tag, schedule, dispatch) marca o escopo como verdadeiro,
+      # então a auditoria noturna e a tag continuam provando a cadeia inteira.
+      - name: simulação do GitFlow (cadeia rc→promote)
+        if: needs.plan.outputs.scope-ci == 'true'
+        run: |
           # Os self-checks dos juízes H1/H2 saíram com a dissolução de
           # `scripts/` (#168): os juízes de campo viraram histórico em
           # `docs/arquivo/scripts-era-RE/` (a evidência dos gates vive nos

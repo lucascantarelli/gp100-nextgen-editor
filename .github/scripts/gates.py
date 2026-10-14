@@ -93,7 +93,8 @@ GATES: list[tuple[str, list[str], str]] = [
     (
         "simulate_release",
         [sys.executable, ".github/scripts/simulate_release.py"],
-        "cadeia rc -> promote executada de verdade (LENTO: ~2 min)",
+        "cadeia rc -> promote executada de verdade (LENTO: ~2 min; no CI só "
+        "por escopo — schedule, tag/dispatch e PR de release, #246)",
     ),
 ]
 

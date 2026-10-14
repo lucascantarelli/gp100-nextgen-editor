@@ -16,6 +16,7 @@ Contrato de saída (lido pelo `plan` do .github/workflows/ci.yml):
     scope-rust       gp100-core/cli/ui mudaram?
     scope-front      packages/app/ui mudou?
     scope-spec       docs|scripts|tools|packaging|pyproject mudaram?
+    scope-ci         a MAQUINARIA de CI/release mudou? (governa o `simulate_release`)
     stage-test       Testes rodam?
     stage-coverage   Cobertura roda?
     stage-security   Segurança roda?
@@ -132,6 +133,24 @@ def scope_rust_regex() -> str:
 
 CRATES_RUST = scope_rust_regex()
 
+# ── OS CAMINHOS QUE GOVERNAN A CADEIA DE RELEASE (#246, achado F-13) ─────────
+#
+# O gate `simulate_release` executa a cadeia rc→promote DE VERDADE num sandbox
+# (~2 min). Ele é a prova de que o versionamento continua inteiro — e o que ele
+# prova mora nestes arquivos: o próprio pipeline, o bump de versão e os scripts
+# que a cadeia chama. Mudança neles pode quebrar a release sem tocar em NADA que
+# a suíte veja (foi assim que a #235 saiu: o commit do bump não levava os locks
+# e só a tag reprovou). Fora deles, 2 min por PR é custo sem prova.
+#
+# O CASO EM QUE ELE SEMPRE RODA: `CHANGED=ALL` (tag, schedule e dispatch — ver
+# o passo de diff do `plan` e o #228). Schedule é a auditoria noturna; a tag é a
+# distribuição. Nenhum dos dois passa por aqui.
+CI_PATHS = (
+    r"^\.github/workflows/"
+    r"|^\.github/actions/version-bump/"
+    r"|^\.github/scripts/(simulate_release|ci_plan|sync_version)\.py$"
+)
+
 
 def scopes(changed: str) -> dict[str, bool]:
     is_all = changed == "ALL"
@@ -156,6 +175,7 @@ def scopes(changed: str) -> dict[str, bool]:
         # escopo, mexer no gate ou no empacotador deixava o job de pytest
         # `skipped` — teste que nao re-executa nao e teste.
         "spec": has(r"^(docs/|scripts/|tools/|packaging/|pyproject\.toml$|uv\.lock$)"),
+        "ci": has(CI_PATHS),
     }
 
 
@@ -267,6 +287,7 @@ def main() -> int:
         "scope-rust": "true" if sc["rust"] else "false",
         "scope-front": "true" if sc["front"] else "false",
         "scope-spec": "true" if sc["spec"] else "false",
+        "scope-ci": "true" if sc["ci"] else "false",
         "stage-test": "true" if run_tests else "false",
         "stage-coverage": "true" if run_coverage else "false",
         "stage-security": "true" if run_security else "false",
