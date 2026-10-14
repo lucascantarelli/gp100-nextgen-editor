@@ -364,6 +364,24 @@ def main() -> int:
     if "startsWith(github.ref, 'refs/heads/release" in ci_raw or "startsWith(github.ref, 'refs/heads/hotfix" in ci_raw:
         FAILURES.append("ci: regra branch → tipos de job NÃO pode voltar como `if:` no YAML (fonte única é ci_plan.py)")
 
+    # TAG → CHANGED=ALL no passo do diff (#228). A tag publica a ÁRVORE, não
+    # um diff: numa tag MOVIDA o `before` é um SHA válido e o diff pode sair
+    # vazio — `CHANGED=(none)` → escopos false → testes/cobertura/dist
+    # `skipped` → run VERDE com a tag sem instalador e sem Release (run
+    # 38508338840). O `ci_plan.py` já marca `tag` com suíte + dist; o gate
+    # abaixo impede que um "enxugar" futuro devolva a tag ao ramo do diff.
+    diff_step = next(
+        (str(step.get("run") or "")
+         for step in ((jobs.get("plan") or {}).get("steps") or [])
+         if step.get("id") == "base"),
+        "",
+    )
+    if "refs/tags/" not in diff_step or 'CHANGED="ALL"' not in diff_step:
+        FAILURES.append(
+            "ci: o passo 'Diff contra a base do evento' precisa forçar CHANGED=ALL em ref de tag "
+            "(#228 — tag movida tem `before` válido e diff vazio, e a distribuição some em silêncio)"
+        )
+
     # ── 6. versionamento e dist por evento, nunca por push/PR ────────────
     # A main só recebe o sha de uma tag v*; como o GitHub não deixa expressar
     # isso como regra em repo pessoal, o guard transforma a regra em ALARME.
