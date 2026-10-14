@@ -34,13 +34,12 @@
       `pnpm exec vitest run` e `pnpm exec playwright test` verdes
 - [ ] Build do app **de leitura**: `tauri build` (o aparelho já é default — #165). O badge da
       navbar **não** pode dizer `Mock Device`.
-      ⚠️ **(13/10)** Neste host o build local do app está **bloqueado**: o build script do
-      crate `tauri` segfaulta (`0xc0000005`) — issue [#223](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/223),
-      com reprodução e controle. Caminhos até a sessão: (a) remediar a #223 e `tauri build`
-      normal; (b) usar o instalador NSIS do job `Distribuição` de um run verde da CI em
-      `develop` (mesmo código); (c) `tauri dev` — SÓ serve se o cargo não precisar re-executar
-      o build script (o exe cacheado também segfaulta neste host — testar antes de anotar).
-      O relatório registra QUAL caminho foi usado (é a linha "Build exato" da §3).
+      ⚠️ **(13/10, #223 RESOLVIDO)** o pin gnu (`rust-toolchain.toml`) foi atualizado hoje e
+      o build script do crate `tauri` passou a segfaultar com ele — **o shell do app é MSVC
+      por ADR-7** (o mesmo do `launch.json`): `RUSTUP_TOOLCHAIN=stable-x86_64-pc-windows-msvc
+      tauri build` conclui neste host (NSIS + MSI en-US/pt-BR gerados em 13/10). O pin gnu
+      segue válido para core/cli/library. O relatório registra a toolchain exata usada
+      (linha "Build exato" da §3).
 - [ ] `gp100-cli` de campo disponível com `--mock-device` (o log de fio é o MESMO schema P4
       das capturas — é ele que vai ao relatório)
 
