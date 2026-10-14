@@ -228,7 +228,7 @@ teto **congelado** na própria medida.
 | `packages/core/src/transport/mock.rs` | **350** | **handle** desde a #257: o que o `MockDevice` POSSUI (estado, dicionário, inbox, plano de falha) e `new`/`with_slot_sem_nome`/`state` — mais o `mod tests` inline, que não pode virar arquivo (um `mod tests` em `mock/tests.rs` é o `clippy::module_inception`, que a CI reprova) |
 | `packages/cli/src/main.rs` | 1 226 | **congelado**: CLI de campo — corte na #257 |
 | `packages/core/src/preset.rs` | 901 | **congelado**: modelo de preset/decodificação — corte na #257 |
-| `packages/core/src/golden.rs` | 829 | **congelado**: golden do fio (R1–R3) — corte na #257 |
+| `packages/core/src/golden.rs` | **250** | **handle** desde a #257: o que o `GoldenFile` POSSUI (`meta`, `templates`, `by_out`, `by_in`) e a carga/validação (`from_json`/`embedded`); o `GOLDEN_JSON` e o `shape`, o helper de erro que todos os módulos usam |
 | `tests.rs`, `tests/` | — | **fora do orçamento**: cresce com a COBERTURA, não com funcionalidade — medir isso só ensinaria a escrever menos teste |
 
 > **Congelado** é decisão, não alvo: o teto é **exatamente** a medida daquele dia,
@@ -294,6 +294,45 @@ handle, não o todo:
 > prova é a bateria do workspace — **349 passed / 0 failed / 1 ignorado** antes e
 > depois do corte, com as contagens por binário `diff`-idênticas, mais o `fmt
 > --check` e o `clippy -D warnings` do workspace.
+
+Mapa do `golden` (**#257**, terceiro corte dos congelados) — `golden.rs` é o
+handle, não o todo:
+
+| Módulo | Dono de |
+|---|---|
+| `golden.rs` | o `GoldenFile` (os CAMPOS que ele possui: `meta`, `templates` e os dois índices por endpoint) e a CARGA/validação (`from_json`/`embedded`) mais `meta`/`templates`; o `GOLDEN_JSON` e o `shape` (o helper de erro que todos os módulos usam) |
+| `golden/fio.rs` | os BYTES do fio: `hex_decode` (hex ASCII → bytes) e `decode_envelope` (o SysEx completo em `(func, addr, data)`) |
+| `golden/padrao.rs` | o PADRÃO de payload (`Pattern`/`PatternKind`/`Segment`/`SegmentKind`): casar, extrair as vars e construir |
+| `golden/template.rs` | a TRANSAÇÃO (`Template`/`Endpoint`/`Example`): o par OUT/IN e a materialização dele no fio (`build_request`, `matches_response`, `build_response`) |
+| `golden/despacho.rs` | o DESPACHO por endpoint: o índice `(func, addr)` e a escolha do template (`request_template`, `for_response`/`for_request`, `match_*`) |
+
+> **O que a privacidade decide na estrutura.** Este corte não precisou de um único
+> `pub(super)`: o `shape` (o helper de erro) é privado do handle e os módulos o
+> alcançam por `super::shape`, e o único privado que cruzaria fronteira —
+> `addr_hex`, usado só nas mensagens de erro do despacho — foi para o
+> `despacho.rs`, junto do seu único chamador. A linha da origem
+> `use crate::{ProtocolError, SYSEX_EOX, SYSEX_HEADER};` saiu **intacta** para o
+> `template.rs` (o único módulo que usa os três); o handle fica com a versão curta,
+> que é andaime — e `use` é andaime por definição do gate, não linha de item.
+
+> **O preço declarado do byte-a-byte.** Três links intra-doc cruzavam módulo e
+> deixam de resolver: `[GoldenFile::request_template]` e
+> `[Template::matches_shape]` (no `padrao.rs`) e `[decode_envelope]` (no
+> `despacho.rs`). O corte não pode REEXPRESSAR a linha do doc (a cláusula (b) do
+> `check_move_only` a recusa como conteúdo novo) nem acrescentar o `use` que a
+> faria resolver (import usado só por doc-link é `unused_imports` no `-D warnings`
+> da CI). Re-apontar um link é conteúdo, não andaime: fica para um PR fora do
+> `Move-only` — `cargo doc` não é gate da CI, e o crate já gerava 51 avisos
+> desses antes deste corte.
+
+> O caminho público não mudou: tudo continua `crate::golden::<Item>` (`GoldenFile`,
+> `Template`, `Pattern`, `PatternKind`, `Segment`, `SegmentKind`, `Endpoint`,
+> `Example`, `hex_decode`, `decode_envelope`, `GOLDEN_JSON` — os `pub use` do
+> handle são o contrato), então o corte é invisível para `codec`, `session`,
+> `transport::mock`, `wire_log`, `cli` e os testes. A prova é a bateria do
+> workspace — **349 passed / 0 failed / 1 ignorado** antes e depois do corte, com
+> as linhas de `test result` `diff`-idênticas contagem a contagem, mais o `fmt
+> --check` e o `clippy --workspace --all-targets -- -D warnings` limpos.
 
 #### No crate do app (`packages/app/api`) — desde a #243
 
