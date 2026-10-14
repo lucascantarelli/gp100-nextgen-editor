@@ -29,8 +29,8 @@ comentário NA ISSUE e a fila avança.
   para `docs/tecnico/seguranca.md`; golden bump v1.3 só de proveniência;
   `files/` triado no disco (instalador/DebugView/logs fora — 97→16 MB).
 - 14/10 — **#243 (actor fatiado) entregue**: `packages/app/api/src/actor.rs`
-  saiu de 2 702 linhas para um módulo (`actor.rs` = handle + spawn, 518) +
-  `actor/`: `estado` (o que a thread possui), `relogio` (loop com prazos +
+  saiu de 2 702 linhas para um módulo (`actor.rs` = handle + spawn, sob o teto de
+  600) + `actor/`: `estado` (o que a thread possui), `relogio` (loop com prazos +
   read-back), `fila` (`Request`), `tipos` (DTOs do IPC), `backends`,
   `{leitura,escrita,boot,diagnostico}` e `tests`. Comportamento idêntico: 27
   contratos do actor antes e depois, mesmos 40 testes do crate. O par
