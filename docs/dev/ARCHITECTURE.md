@@ -225,7 +225,7 @@ teto **congelado** na própria medida.
 | qualquer `.rs` de `packages/*/src` | **700** | teto genérico do Rust: mesmo critério do `components/` — dois assuntos no mesmo arquivo |
 | `packages/core/src/session.rs` | **200** | **handle da FSM** desde a #257: só a `Session` (o que ela POSSUI) e o ciclo de vida (`new`/`into_transport`); método novo vai para o módulo do assunto |
 | `packages/core/src/session/<módulo>.rs` | **400** | coorte do `session` (#262): cada módulo é UM assunto (a transação, o boot, a escrita…); o número sai da medida do corte — ver a nota do mapa, abaixo |
-| `packages/core/src/transport/mock.rs` | 1 258 | **congelado**: o device de mentira espelha o fio — corte na #257 |
+| `packages/core/src/transport/mock.rs` | **350** | **handle** desde a #257: o que o `MockDevice` POSSUI (estado, dicionário, inbox, plano de falha) e `new`/`with_slot_sem_nome`/`state` — mais o `mod tests` inline, que não pode virar arquivo (um `mod tests` em `mock/tests.rs` é o `clippy::module_inception`, que a CI reprova) |
 | `packages/cli/src/main.rs` | 1 226 | **congelado**: CLI de campo — corte na #257 |
 | `packages/core/src/preset.rs` | 901 | **congelado**: modelo de preset/decodificação — corte na #257 |
 | `packages/core/src/golden.rs` | 829 | **congelado**: golden do fio (R1–R3) — corte na #257 |
@@ -261,6 +261,39 @@ IR/SnapTone da `escrita`).
 > `library` e o crate do app. A prova é a bateria do workspace — **349 passed /
 > 0 failed / 1 ignorado** antes e depois do corte, com a lista de nomes
 > `diff`-idêntica (a medição é da #257; o número do crate sozinho é menor).
+
+Mapa do `transport/mock` (**#257**, segundo corte dos congelados) — `mock.rs` é o
+handle, não o todo:
+
+| Módulo | Dono de |
+|---|---|
+| `mock.rs` | o `MockDevice` (os CAMPOS que ele possui: `state`, `dict`, `inbox`, `fault`, `latency`, contadores) e `new`/`with_slot_sem_nome`/`state`; `embedded_preset`, `shape_err` e as constantes embedadas |
+| `mock/despacho.rs` | a porta do FIO (`impl DeviceTransport`: `open`/`close`/`send_raw`/`recv_raw`, com a latência de ida/volta e a morte que precede o parse) e o despacho do envelope §13 (`ingest`, D1/D3/D5). Os dois no mesmo módulo porque `ingest` é privado dele — de fora só se entra pela porta |
+| `mock/estado.rs` | o ESTADO (`MockState`, derivado de `all.prst`) e os defaults globais |
+| `mock/falha.rs` | o plano de falha do test double (`MockFault::{DieAfter,UsbFlaky}`) e o jitter determinístico (LCG de semente fixa) |
+| `mock/fila.rs` | a fila IN por endpoint (D1/D7): `drain_inbox` e os `queue_push*` |
+| `mock/familia.rs` | o segundo framing do mock: a família GP-50/SnapTone-NAM (§5) e o seu ACK por bloco |
+| `mock/respostas.rs` | do template do golden para a RESPOSTA no fio (o fill indexado, as vars e o envelope) |
+
+> **O que a `clippy` decide na estrutura.** O `mod tests` fica INLINE no handle, e
+> não em `mock/tests.rs`: um módulo `tests` dentro de um arquivo `tests.rs` é o
+> `clippy::module_inception` (o `-D warnings` da CI reprova), e mover o bloco para
+> um arquivo de nome diferente quebraria o `use super::*` dos testes. O teto de
+> 350 conta esse bloco, que a doutrina do gate preferiria fora do orçamento.
+> A `impl DeviceTransport` fica no `despacho.rs` pelo motivo simétrico: `ingest`
+> nasceu método privado do `impl MockDevice` do `mock.rs`, e o corte não pode
+> reescrever a assinatura — `pub(super) fn ingest(...)` passaria dos 100 colunas e
+> o `rustfmt` teria de REEXPRESSAR a linha movida, o que a cláusula (b) do
+> `check_move_only` recusa (a linha reescrita sai da origem e aparece como
+> PERDIDA). Com a porta no mesmo módulo, `ingest` continua privado e a linha
+> assinada sai byte a byte.
+
+> O caminho público não mudou: tudo continua `crate::transport::mock::<Item>`
+> (`MockDevice`, `MockState`, `MockFault` — os `pub use` do handle são o
+> contrato), então o corte é invisível para `cli`, `library` e o crate do app. A
+> prova é a bateria do workspace — **349 passed / 0 failed / 1 ignorado** antes e
+> depois do corte, com as contagens por binário `diff`-idênticas, mais o `fmt
+> --check` e o `clippy -D warnings` do workspace.
 
 #### No crate do app (`packages/app/api`) — desde a #243
 
