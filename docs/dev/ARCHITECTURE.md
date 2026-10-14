@@ -223,7 +223,7 @@ teto **congelado** na própria medida.
 | Arquivo | Teto | Por que |
 |---|---|---|
 | qualquer `.rs` de `packages/*/src` | **700** | teto genérico do Rust: mesmo critério do `components/` — dois assuntos no mesmo arquivo |
-| `packages/core/src/session.rs` | 1 395 | **congelado** na medida de 14/10: FSM do fio (ADR-3/4/6) — corte na #257 |
+| `packages/core/src/session.rs` | **200** | **handle da FSM** desde a #257: só a `Session` (o que ela POSSUI) e o ciclo de vida (`new`/`into_transport`); método novo vai para o módulo do assunto |
 | `packages/core/src/transport/mock.rs` | 1 258 | **congelado**: o device de mentira espelha o fio — corte na #257 |
 | `packages/cli/src/main.rs` | 1 226 | **congelado**: CLI de campo — corte na #257 |
 | `packages/core/src/preset.rs` | 901 | **congelado**: modelo de preset/decodificação — corte na #257 |
@@ -233,6 +233,26 @@ teto **congelado** na própria medida.
 > **Congelado** é decisão, não alvo: o teto é **exatamente** a medida daquele dia,
 > então o arquivo não cresce mais. Quem precisa de linha nova corta — ou traz a
 > decisão de subir o número, com a issue que assume o corte.
+
+Mapa do `session` (**#257**, primeiro corte dos congelados) — `session.rs` é o
+handle, não o todo:
+
+| Módulo | Teto | Dono de |
+|---|---|---|
+| `session.rs` | 200 | a `Session` (o que a FSM possui: `transport`, `current_pp`, `pps`, `backlog`, `pages`) e `new`/`set_inventory`/`inventory`/`current_pp`/`into_transport` |
+| `session/transacao.rs` | 700 | D1/D5/D6/D7: montar o pedido, esperar no endpoint certo, validar a FORMA (`tx_req*`, `wait_for*`, `Forma`) |
+| `session/boot.rs` | 700 | o script §13.10 (boot + scan) e o `progress` observacional |
+| `session/paginas.rs` | 700 | a família 13xx: ler do fio e cachear (`state_page`, `scan_state`, `preset_state`) |
+| `session/escrita.rs` | 700 | o que MANDA byte: select, knob (D4), save (D3), IR, SnapTone |
+| `session/globais.rs` | 700 | os registradores da §13.13 (a família fora do golden) |
+| `session/leitura.rs` | 700 | o que só PERGUNTA: User IRs, `read_state5`, backlog de pushes |
+| `session/inventario.rs` | 700 | o espaço de pps do aparelho (§13.4) |
+| `session/tipos.rs` | 700 | os DTOs e constantes que atravessam a fronteira |
+
+> O caminho público não mudou: tudo continua `crate::session::<Item>` (os
+> `pub use` do handle são o contrato), então o corte é invisível para `cli`,
+> `library` e o crate do app. A prova é a bateria do crate — contagem de testes
+> idêntica à de antes do corte (238 passed / 1 ignorado, a mesma lista).
 
 #### No crate do app (`packages/app/api`) — desde a #243
 
