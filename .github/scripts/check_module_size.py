@@ -92,7 +92,13 @@ TETOS_RUST: list[tuple[str, int, str]] = [
         "#257: o HANDLE (o que o GoldenFile POSSUI + a carga/validacao) + o `GOLDEN_JSON` "
         "e o `shape` (o helper de erro que todos os modulos usam); metodo novo vira modulo do assunto",
     ),
-    ("packages/core/src/preset.rs", 901, "congelado: modelo de preset/decodificacao; corte na #257"),
+    (
+        "packages/core/src/preset.rs",
+        175,
+        "#257: o HANDLE (o MODELO — os TIPOS e o que cada um POSSUI, com os campos fechados — "
+        "mais a EMISSAO `to_bytes` e os acessores) + o `shape` (o helper de erro que todos os "
+        "modulos usam); metodo novo vira modulo do assunto",
+    ),
     (
         "packages/core/src/session.rs",
         200,
