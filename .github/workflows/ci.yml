@@ -190,6 +190,11 @@ jobs:
       scope-rust: ${{ steps.plan.outputs.scope-rust }}
       scope-front: ${{ steps.plan.outputs.scope-front }}
       scope-spec: ${{ steps.plan.outputs.scope-spec }}
+      # O escopo da MAQUINARIA de CI/release (#246): é ele que decide se o passo
+      # `simulação do GitFlow` (~2 min) roda neste evento. Declarado aqui porque
+      # `needs.plan.outputs.*` só existe para as chaves desta lista — o actionlint
+      # pega a chave ausente, o `validate_workflows.py` trava a regra.
+      scope-ci: ${{ steps.plan.outputs.scope-ci }}
       stage-test: ${{ steps.plan.outputs.stage-test }}
       stage-coverage: ${{ steps.plan.outputs.stage-coverage }}
       stage-security: ${{ steps.plan.outputs.stage-security }}

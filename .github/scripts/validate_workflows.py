@@ -490,6 +490,27 @@ def main() -> int:
         if token not in plan_raw:
             FAILURES.append(f"ci_plan.py: perdeu '{token}' (é a fonte de verdade da regra)")
 
+    # ── 5a. `needs.<job>.outputs.<chave>` tem de estar DECLARADA ─────────
+    #
+    # `needs.X.outputs.Y` só existe se Y estiver no mapa `outputs:` do job X —
+    # fora dele a expressão resolve para vazio, o `if` compara com vazio e o
+    # passo fica `skipped` EM SILÊNCIO. O actionlint pega essa classe, mas ele
+    # roda numa imagem docker (só na CI); esta checagem roda local em segundos,
+    # e foi ela que faltou quando o `scope-ci` (#246) entrou como saída nova.
+    for ref_job, chave in sorted(set(re.findall(r"needs\.([\w-]+)\.outputs\.([\w-]+)", ci_raw))):
+        alvo = jobs.get(ref_job)
+        if alvo is None:
+            FAILURES.append(
+                f"ci: `needs.{ref_job}.outputs.{chave}` aponta para um job que não existe"
+            )
+            continue
+        declaradas = alvo.get("outputs") or {}
+        if chave not in declaradas:
+            FAILURES.append(
+                f"ci: `needs.{ref_job}.outputs.{chave}` não está no `outputs:` do job `{ref_job}` "
+                f"(declaradas: {sorted(declaradas)}) — a expressão vira vazio e o passo fica skipped em silêncio"
+            )
+
     # ── 5b. o GATE LENTO RODA POR ESCOPO (#246, achado F-13) ─────────────
     #
     # `simulate_release` executa a cadeia rc→promote de verdade (~2 min) e
