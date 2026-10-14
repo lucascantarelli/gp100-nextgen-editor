@@ -75,6 +75,13 @@ INCLUDE_DIRETORIOS = [
     # verificacao -- provado com `cargo metadata --locked` no tarball (achado #72,
     # terceiro furo do mesmo caminho).
     "packages/core",
+    # `packages/library` e a SEGUNDA dependencia de CAMINHO do crate do Tauri
+    # (`gp100-library = { path = "../../library" }`). Ficou de fora ate #230, e
+    # o tarball publicado morreu no primeiro run real da distribuicao:
+    # "failed to load manifest for dependency `gp100-library`" (run 38553264817).
+    # O gate `check_sdist_deps` deriva esta lista do manifesto — manter os dois
+    # em acordo (o teste `tools/tests/test_check_bundle.py` cobre o par).
+    "packages/library",
     "packaging/arch",
 ]
 # O front entra so pelo PRODUTO compilado (`dist/`), nunca pelo fonte.

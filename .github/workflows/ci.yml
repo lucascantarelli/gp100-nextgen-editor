@@ -1117,13 +1117,20 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # BUNDLES SEM VÍRGULA (#230): no runner Windows o `run:` padrão é
+        # PowerShell, onde `nsis,msi` é uma expressão de ARRAY — o PowerShell
+        # junta o array com espaço ao chamar um comando nativo, e o `tauri`
+        # recebe UM argumento `nsis msi` (`invalid value 'nsis msi' for
+        # '--bundles'`, run 38553264817). Valores separados por espaço são
+        # aceitos nos DOIS shells (o clap do tauri declara
+        # `--bundles [<BUNDLES>...]`), então o formato e o mesmo nos 3 SOs.
         include:
           - os: windows-latest
-            args: --bundles nsis,msi
+            args: --bundles nsis msi
           - os: macos-15-intel
-            args: --bundles app,dmg
+            args: --bundles app dmg
           - os: ubuntu-24.04
-            args: --bundles deb,appimage
+            args: --bundles deb appimage
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
     permissions:
@@ -1237,11 +1244,16 @@ jobs:
           ROOT="/tmp/sdist-check/gp100-nextgen-editor-$VER"
           test -f "$ROOT/packages/app/ui/dist/index.html" || {
             echo "::error::frontendDist ausente — o build do shell entra em panic"; exit 1; }
-          test -f "$ROOT/packages/core/Cargo.toml" || {
-            echo "::error::packages/core ausente — dependencia de caminho do gp100-ui"; exit 1; }
+          # As DUAS dependencias de caminho do shell (core e library), uma por
+          # linha: o check pontual de `packages/core` ficou verde enquanto o
+          # tarball morria em `gp100-library` (run 38553264817, #230).
+          for dep in packages/core packages/library; do
+            test -f "$ROOT/$dep/Cargo.toml" || {
+              echo "::error::$dep ausente — dependencia de caminho do gp100-ui"; exit 1; }
+          done
           (cd "$ROOT/packages/app/api" && cargo metadata --format-version 1 --locked >/dev/null) || {
             echo "::error::manifesto do shell nao resolve dentro do tarball"; exit 1; }
-          echo "tarball consumivel: frontendDist + gp100-core + manifesto"
+          echo "tarball consumivel: frontendDist + deps de caminho do shell + manifesto"
       - name: publicar na Release
         uses: softprops/action-gh-release@v3
         with:
