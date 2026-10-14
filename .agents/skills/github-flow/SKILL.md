@@ -47,7 +47,8 @@ vale o que estiver em `docs/CONTRIBUTING.md` + `.github/workflows/`.
   `on.push` no `validate_workflows.py` existe para isso não voltar.
 - Tags `v*` disparam o **release** (publish instalador + CLI + tarball de
   fonte); a cadeia rc→promote é manual, por `workflow_dispatch` com input
-  `action` (`release` / `promote` / `play`), dentro do próprio `ci.yml`.
+  `action` (`release` / `promote` / `play`), dentro do próprio `ci.yml` — o
+  corpo de cada etapa mora em `release-*.yml` (reutilizáveis, #245).
 - A **imagem de CI** (ghcr.io) é artefato versionado: mudou o
   Dockerfile/lockfile em `develop`/`main` → a imagem `:1` é republicada pelo job
   `Infra · imagens de container`; PR que mexe no Dockerfile só BUILDAA (sem

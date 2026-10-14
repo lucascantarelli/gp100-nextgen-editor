@@ -27,7 +27,9 @@ cargo build
 
 ## CI (GitHub Actions) — mesma régua do local
 
-A CI é o pipeline `.github/workflows/ci.yml` + o workflow próprio de fechamento
+A CI é o pipeline `.github/workflows/ci.yml` + os seis reutilizáveis de
+Distribuição/Release (`dist-*.yml`/`release-*.yml`, `workflow_call` — #245: o
+corpo saiu do `ci.yml`, que ficou com o grafo) + o workflow próprio de fechamento
 `issues-fechamento.yml` (#169) + o `visual-baselines.yml`, workflow de
 manutenção read-only que regenera as baselines `-linux` por dispatch (#204:
 saiu do ci.yml porque o `default: release` do dispatch cortava tag junto com

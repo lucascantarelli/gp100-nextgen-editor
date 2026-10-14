@@ -36,8 +36,23 @@ import urllib.request
 from pathlib import Path
 
 CONF = Path("packages/app/api/tauri.conf.json")
-WORKFLOW = Path(".github/workflows/ci.yml")
+WORKFLOWS = Path(".github/workflows")
 SCHEMA_URL = "https://schema.tauri.app/config/2"
+
+
+def texto_dos_workflows() -> str:
+    """O texto de TODOS os workflows, concatenado (#245).
+
+    Os blocos de Distribuição e Release saíram do `ci.yml` para workflows
+    reutilizáveis. Ler só o `ci.yml` daria VERDE POR NÃO ENCONTRAR NADA: os
+    tokens que este gate procura (`--bundles`, `make_sdist.py`, o `files:` do
+    tarball) passaram a viver em outro arquivo, e a ausência deles não pode
+    valer como ausência do problema — é o pior tipo de verde.
+    """
+    return "\n".join(
+        caminho.read_text(encoding="utf-8")
+        for caminho in sorted(WORKFLOWS.glob("*.yml"))
+    )
 
 # `app` não é um alvo declarável em `targets`: é o bundle cru, que o Tauri
 # sempre produz. Logo, um token `--bundles` dele não é esperado na lista.
@@ -153,9 +168,7 @@ def check_targets_vs_workflow(conf: dict) -> None:
     if not targets:
         fail("bundle.targets vazio — `tauri build` local nao gera nada")
         return
-    if not WORKFLOW.is_file():
-        return
-    text = WORKFLOW.read_text(encoding="utf-8")
+    text = texto_dos_workflows()
     asked: set[str] = set()
     for m in re.finditer(r"--bundles\s+([a-z0-9_,]+)", text):
         asked |= {t.strip() for t in m.group(1).split(",") if t.strip()}
@@ -320,7 +333,7 @@ def check_arch(conf: dict, root: Path) -> None:
         )
         return
 
-    workflow = Path(".github/workflows/ci.yml").read_text(encoding="utf-8")
+    workflow = texto_dos_workflows()
     if "make_sdist.py" not in workflow:
         fail(
             "nenhum job do CI invoca `packaging/make_sdist.py` — o tarball do "

@@ -121,14 +121,22 @@ Só a área que você tocou — o CI filtra o resto por caminhos.
 | **Gates de script** (pipeline, empacotamento, versão, spec, release) | **`python3 .github/scripts/gates.py`** — roda todos de uma vez, na ordem do CI |
 
 - **`gates.py` é o atalho para "os gates de script"**: `validate_workflows`,
-  `check_bundle`, `sync_version`, `check_deadcode`, `check_module_size`,
-  `h1_compare`, `byte_order`, `param_ranges`, `h2_compare`, `baseline`,
+  `check_bundle`, `check_issue_templates`, `sync_version`, `check_deadcode`,
+  `check_module_size`, `byte_order`, `param_ranges`, `state_pages`, `baseline`,
   `pytest`, `check_base_images` e `simulate_release` — **13 no total**. Rode
   `python3 .github/scripts/gates.py --list` para ver a lista, ou passe nomes para rodar
   só alguns: `python3 .github/scripts/gates.py check_bundle validate_workflows`.
   Todas as dependências (`pyyaml`, `jsonschema`) estão no `pyproject.toml`, então
   `uv sync --all-groups` basta — nada de instalar pacote na linha de comando
   (#80).
+- **Um gate é CONDICIONAL no CI** (#246): o `simulate_release` roda a cadeia
+  rc→promote de verdade (~2 min) e só roda em `schedule`, tag/dispatch e **PR que
+  toca a maquinaria de release** (`.github/workflows/`, `.github/actions/version-bump/`,
+  `simulate_release.py`, `ci_plan.py`, `sync_version.py` — a lista é `CI_PATHS` do
+  `ci_plan.py`, que publica o escopo `scope-ci`). Localmente o `gates.py`
+  `simulate_release` roda sempre que você pedir: o custo aqui é seu, não de cada
+  PR. A regra fica na **fonte única** (nada de `if:` escrito à mão no YAML), e o
+  `validate_workflows.py` cobra que o passo leia `needs.plan.outputs.scope-ci`.
 - **`scripts/` está no escopo do `spec`** (`.github/scripts/ci_plan.py`): o pytest testa
   scripts de gate, e mexer só no script deixaria o job de spec como `skipped` —
   os testes ficariam verdes sem rodarem contra a mudança (#21).
@@ -230,13 +238,17 @@ spec, precisa de ADR · `3` o log não carregou).
 
 **Abertura** ([template](../.github/PULL_REQUEST_TEMPLATE.md)): o quê/por quê ·
 tabela **antes → depois** · tabela de **gates executados** (marque o que rodou)
-· ambiente verificado · R1–R4 · política de conteúdo (nenhum material
-proprietário do device).
+· ambiente verificado · princípios **P1–P7** (§1.2 do ROADMAP) · política de
+conteúdo (nenhum material proprietário do device).
 
-**CI — TRÊS workflows: o pipeline (10 tipos de job) + o Fechamento + as
-Baselines visuais** (consolidado na #68; a divisão anterior em 6 arquivos por
-função veio da #31–#34 e da imagem de container da #41; a separação do
-Fechamento veio da #169; a das Baselines veio da #204):
+**CI — TRÊS workflows de pipeline + SEIS reutilizáveis.** Os três de pipeline
+são o `ci.yml` (10 tipos de job) + o Fechamento + as Baselines visuais
+(consolidado na #68; a divisão anterior em 6 arquivos por função veio da
+#31–#34 e da imagem de container da #41; a separação do Fechamento veio da
+#169; a das Baselines veio da #204). Os seis reutilizáveis, da #245:
+`dist-instalador.yml`, `dist-sdist.yml`, `dist-cli.yml`, `release-rc.yml`,
+`release-promote.yml` e `release-play.yml` — ver a seção dos reutilizáveis
+abaixo.
 
 Existem dois arquivos além do pipeline, e ambos são deliberados. O
 `issues-fechamento.yml` fecha issues do PR mergeado com gatilho próprio
@@ -271,8 +283,8 @@ então lint vermelho não gasta mais compile-time de build/test atrás dele.
 | `Segurança` | cargo audit · pnpm audit · issue ACHADOS · pytest da spec | sempre — **antes** dos testes (#169) |
 | `Testes` | rust (unit) · vitest · pytest · e2e Chromium · e2e visual · e2e webview | dev · develop · main · hotfix · tag |
 | `Cobertura` | vitest com instrumentação + gate 85% | dev · develop · main · hotfix · tag |
-| `Distribuição` | instaladores (3 OS) · tarball de fonte · CLI de campo | só na tag `v*` |
-| `Release` | guarda da main · rc · promote · play | versionamento só por dispatch |
+| `Distribuição` | instaladores (3 OS) · tarball de fonte · CLI de campo — corpo em `dist-*.yml` (#245) | só na tag `v*` |
+| `Release` | guarda da main · rc · promote · play — corpo em `release-*.yml` (#245) | versionamento só por dispatch |
 | `Relatório` | resumo visual no step summary | **sempre**, por último (`if: always()`), mesmo com falha |
 
 O **Fechamento** (issues do PR mergeado) mora no workflow próprio
@@ -283,8 +295,41 @@ inteiro (tudo `skipped`) só para fechar issue.
 
 Um job cujo `if:` é falso aparece como *skipped* na lista de checks: o GitHub
 cria um check para todo job declarado e não há como esconder. Só sumiria se o
-job não existisse naquele workflow — e espalhar em vários arquivos é
-exatamente o custo que a #68 eliminou.
+job não existisse naquele workflow — e espalhar o pipeline em arquivos que
+disparam sozinhos é exatamente o custo que a #68 eliminou.
+
+### Os workflows reutilizáveis de Distribuição e Release (#245)
+
+Distribuição e Release são os dois blocos mais pesados do pipeline (o `ci.yml`
+tinha 1777 linhas e 29 jobs) e os que mudam mais raramente. O **corpo** de cada
+job vive agora num arquivo com `workflow_call`; no `ci.yml` fica o que o
+**grafo** decide: `name`, `needs`, `if`, `permissions` e — no instalador — a
+matriz de OS.
+
+As regras de todos eles (contrato 14 do `validate_workflows.py`):
+
+- **Um job por arquivo.** O `ci.yml` mantém um job por artefato, com o MESMO
+  `name:` de antes. O check de um job que está RODANDO é exibido como
+  `<job do caller> / <job do chamado>`; quando o caller é *skipped* — todo PR,
+  onde dist/release nunca rodam —, o check aparece com o nome do caller, igual
+  a antes: a lista de required checks de PR não muda. A hierarquia só aparece
+  na tag e no dispatch.
+- **`permissions` só no caller.** Os jobs do arquivo chamado recebem as
+  permissões do job que chama (o `contents: write` que publica na Release vem
+  de lá). Declarar dos dois lados criaria duas políticas — e a que vale é a
+  interseção, que ninguém lê.
+- **Nada de `env:` de topo atravessando.** O `env:` do caller NÃO é propagado
+  para o workflow chamado (e `env` não é contexto aceito no `with:`), então o
+  que o corpo precisa chega por `with:` — como os `--bundles` do instalador —
+  ou fica no próprio arquivo, como o `RUSTUP_TOOLCHAIN` do CLI de campo e a
+  identidade do bot (`BOT_NAME`/`BOT_EMAIL`, idêntica nos três de release, com o
+  gate travando a igualdade).
+- **Gatilho só `workflow_call`.** Um `push`/`pull_request` em qualquer um deles
+  rodaria a distribuição/release FORA do grafo do `ci.yml`.
+
+O `simulate_release.py` lê os blocos dos arquivos reutilizáveis e confere o
+`uses:`/`with:` do caller: a cadeia rc→promote continua provada de verdade,
+agora incluindo o encanamento entre caller e workflow chamado.
 
 A tabela **branch → tipos de job** mora em `.github/scripts/ci_plan.py` (uma fonte de
 verdade, testável localmente), e não em `if:` espalhado no YAML — foi
@@ -419,7 +464,10 @@ job: virou camada da imagem publicada no ghcr.io.
      pendente. Correções entre rcs: rode `action=release` de novo (o N
      incrementa sozinho).
   2. **`action=promote`** — remove o `-rc.N`, etiqueta `vX.Y.Z` FINAL, faz
-     `main` receber o **SHA da tag**, faz merge `--no-ff` da release na
+     `main` receber o **SHA da tag** (⚠️ passo que hoje falha com `GH006`
+     enquanto a [#234](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/234) estiver aberta —
+     o push da `main` é do OWNER, e a skill `release` traz o caminho manual),
+     faz merge `--no-ff` da release na
      `develop` **avançando a develop para a próxima versão**, e apaga a
      release branch. Conflito de merge = falha explícita para resolução
      manual; promote é idempotente (tag existente recusa).
@@ -432,11 +480,14 @@ job: virou camada da imagem publicada no ghcr.io.
   o servidor garante: histórico linear, sem force-push, sem deleção. Em repo
   de organização dá para trocar a guarda por `restrictions.push` de verdade.
 - **Ensaio da cadeia (gate + local)**: `python3 .github/scripts/simulate_release.py`
-  extrai os blocos `run:` do `ci.yml` (jobs `release-rc` e
-  `release-promote`) e os executa num sandbox git temporário — prova
-  rc1→rc2→promote, a `develop` avançando para a próxima versão, idempotência
-  e os guards de recusa ANTES de qualquer uso real. Roda no job
-  `Lint · contratos do pipeline`; local precisa só de git+bash+python3 (+pyyaml).
+  extrai os blocos `run:` dos **workflows reutilizáveis** (`release-rc.yml` e
+  `release-promote.yml`, #245) — conferindo que o caller do `ci.yml` chama
+  aquele arquivo e passa os inputs certos — e os executa num sandbox git
+  temporário: prova rc1→rc2→promote, a `develop` avançando para a próxima
+  versão, idempotência e os guards de recusa ANTES de qualquer uso real. Roda no
+  passo `simulação do GitFlow`, dentro de `Lint · contratos do pipeline`, e só
+  por **escopo** (#246): schedule, tag/dispatch e PR que toca a maquinaria de
+  release. Local precisa só de git+bash+python (+pyyaml).
   `--keep` preserva o sandbox em $TMPDIR para inspeção.
 
 ---

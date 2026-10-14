@@ -1,0 +1,157 @@
+name: Release · promote (reusable)
+
+# Extraído do `ci.yml` (#245, F-12) — ver `release-rc.yml` para as regras comuns
+# (o que fica no caller, o que atravessa por `with:`, e por que
+# `BOT_NAME`/`BOT_EMAIL` se repetem aqui).
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: "versão alvo sem o v — vazio = a rc mais recente"
+        required: false
+        type: string
+        default: ""
+    outputs:
+      tag:
+        description: tag final criada (vX.Y.Z)
+        value: ${{ jobs.promote.outputs.tag }}
+
+env:
+  BOT_NAME: github-actions[bot]
+  BOT_EMAIL: github-actions[bot]@users.noreply.github.com
+
+jobs:
+  promote:
+    name: promote
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    outputs:
+      tag: ${{ steps.final.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: buscar tags e branches
+        run: |
+          git fetch --tags --force
+          git fetch origin main develop --force
+      - name: localizar a rc mais recente
+        id: rc
+        env:
+          WANT: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          WANT="${WANT#v}"
+          if [ -n "$WANT" ]; then
+            RC=$(git tag --list "v$WANT-rc.*" --sort=-v:refname | head -1)
+          else
+            RC=$(git for-each-ref refs/tags --sort=-v:refname --format='%(refname:short)' \
+                 | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+-rc\.[0-9]+$' | head -1)
+          fi
+          [ -z "$RC" ] && { echo "::error::nenhuma rc encontrada — rode action=release antes"; exit 1; }
+          V="${RC%-rc.*}"; V="${V#v}"
+          BR="release/$V"
+          git ls-remote --exit-code --heads origin "$BR" >/dev/null 2>&1 || {
+            echo "::error::branch $BR não existe — promote exige a release branch"; exit 1; }
+          git rev-parse -q --verify "refs/tags/v$V" >/dev/null && {
+            echo "::error::v$V já existe (promote é idempotente — nada a fazer)"; exit 1; }
+          {
+            echo "rc=$RC"
+            echo "version=$V"
+            echo "branch=$BR"
+          } >> "$GITHUB_OUTPUT"
+      - name: versão final nos manifests
+        env:
+          V: ${{ steps.rc.outputs.version }}
+          BRANCH: ${{ steps.rc.outputs.branch }}
+        run: |
+          set -euo pipefail
+          git checkout "origin/$BRANCH"
+          # Os 5 manifests, nao 3: `tauri.conf.json` e a versao do BUNDLE e
+          # `package.json` o do front. De fora deles, o instalador sai com a
+          # versao velha (#73). O `--check` prova a igualdade.
+          python3 .github/scripts/sync_version.py --set "$V"
+          python3 .github/scripts/sync_version.py --check
+      - name: commitar + taguear
+        id: final
+        env:
+          BRANCH: ${{ steps.rc.outputs.branch }}
+          TAG: v${{ steps.rc.outputs.version }}
+          RC: ${{ steps.rc.outputs.tag }}
+        run: |
+          set -euo pipefail
+          git config user.name "$BOT_NAME"
+          git config user.email "$BOT_EMAIL"
+          # `-u` (ver a nota do `release-rc`): a lista a mao omitia os 2
+          # `Cargo.lock` que o bump escreve desde #231 (#235).
+          git add -u
+          git commit -m "chore(release): $TAG (promove $RC)"
+          git push origin "HEAD:refs/heads/$BRANCH"
+          git tag "$TAG"
+          git push origin "$TAG"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+      - name: main recebe o SHA da tag
+        # Não é `git push origin main`: a main é protegida e só aceita o
+        # commit de uma tag v* aprovada. GITHUB_TOKEN não burla branch
+        # protection — um merge de branch em main seria barrado no ultimo
+        # passo, DEPOIS de a tag já estar publicada.
+        #
+        # ESTE PASSO FALHA HOJE (#234, aberta): o push leva `GH006` (histórico
+        # linear + o SHA da tag trazendo o merge do ciclo) e a `main` acaba
+        # recebendo o SHA pelo push do OWNER. A skill `release` documenta o
+        # caminho manual; quando a #234 fechar, este passo volta a ser o único.
+        # O SANDBOX do `simulate_release.py` não tem essa proteção e prova o
+        # passo como ele deve ser — é por isso que a simulação continua verde
+        # enquanto o repo real tem a pendência.
+        run: |
+          set -euo pipefail
+          SHA=$(git rev-parse "v${{ steps.rc.outputs.version }}^{commit}")
+          git push origin "$SHA:refs/heads/main"
+          echo "main <- $SHA (tag v${{ steps.rc.outputs.version }})"
+      - name: fechar o ciclo na develop
+        env:
+          BRANCH: ${{ steps.rc.outputs.branch }}
+          TAG: v${{ steps.rc.outputs.version }}
+        run: |
+          set -euo pipefail
+          git config user.name "$BOT_NAME"
+          git config user.email "$BOT_EMAIL"
+          # A develop JA está na próxima versão (avançada no `release-rc`), e
+          # a release branch é ancestral dela — por isso não há merge de
+          # volta: só o merge da tag, que é no-op para o conteúdo e mantém o
+          # histórico honesto.
+          git checkout -B develop origin/develop
+          if git merge --no-ff "origin/$BRANCH" -m "merge release: $TAG (develop recebe a release)"; then
+            # A develop sai da release com a PRÓXIMA versão: ela deixa de
+            # carregar uma versão que acabou de ser publicada. Fazer isso AQUI
+            # e nao no `release-rc` e deliberado — adiantar no rc faria os
+            # manifests da develop divergirem dos da release branch, e todo
+            # merge do ciclo de rc (correcoes entre rcs) viraria conflito.
+            NEXT="${{ steps.rc.outputs.version }}"
+            MAJOR=$(echo "$NEXT" | cut -d. -f1); MINOR=$(echo "$NEXT" | cut -d. -f2)
+            UP="$MAJOR.$((MINOR+1)).0"
+            # Os 5 manifests, nao 3: `tauri.conf.json` e a versao do BUNDLE e
+            # `package.json` o do front. De fora deles, o instalador sai com a
+            # versao velha (#73). O `--check` prova a igualdade.
+            python3 .github/scripts/sync_version.py --set "$UP"
+            python3 .github/scripts/sync_version.py --check
+            # `-u` (ver a nota do `release-rc`): manifests + os 2 locks (#231).
+            git add -u
+            git commit -m "chore(release): develop avanca para $UP"
+            git push origin develop
+          else
+            echo "::error::conflito no merge da release para develop — resolva manualmente (a tag e a main ja estao fora)"
+            git merge --abort || true
+            exit 1
+          fi
+          git push origin --delete "$BRANCH"
+          {
+            echo "### ✅ Release promovida"
+            echo ""
+            echo "| | |"
+            echo "|---|---|"
+            echo "| tag final | \`$TAG\` |"
+            echo "| main | push do SHA da tag (branch protegida) |"
+            echo "| develop | merge da release + versão avançada para a próxima |"
+            echo "| branch | \`$BRANCH\` apagada |"
+          } >> "$GITHUB_STEP_SUMMARY"

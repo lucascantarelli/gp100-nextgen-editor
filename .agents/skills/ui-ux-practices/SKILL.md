@@ -98,7 +98,9 @@ pnpm build         # vite build (bundle; tsc já rodou acima)
 - Rust lado Tauri (`packages/app/api/`, crate `gp100-ui` — ADR-7): mesmos
   gates da `rust-practices` (fmt, clippy -D warnings, testes), no job
   `Lint`/`Compilação`/`Testes · Rust (… · ui-rust · windows-latest)`.
-- CI: o pipeline `.github/workflows/ci.yml` (#68, reorganizado na #169) + o
+- CI: o pipeline `.github/workflows/ci.yml` (#68, reorganizado na #169; desde a
+  #245 o corpo de Distribuição/Release vive nos reutilizáveis `dist-*.yml`/
+  `release-*.yml`) + o
   workflow próprio de fechamento + o `visual-baselines.yml` de manutenção
   read-only (regenera baselines `-linux` por dispatch, #204). Os gates do
   front: `Lint · UI (eslint)` ·

@@ -44,7 +44,14 @@ estrutura — e, desde a #68, que a ESTRUTURA nova é o que o projeto adoptou.Co
   13. guard EXPLÍCITO (`always()` + `needs.<x>.result != 'failure'`) em toda job
       que depende de um upstream que pode ser skipped (sec-audit, test-ui) — o
       `success()` implícito pula a fase inteira de testes, provado na run
-      38168716758 (actions/runner#2205).
+      38168716758 (actions/runner#2205);
+  14. os workflows REUTILIZÁVEIS de Distribuição e Release (#245, achado F-12 da
+      auditoria de 14/10): um job por arquivo, gatilho só `workflow_call`, sem
+      `permissions` (as do caller é que valem) e sem `steps:` no caller; o
+      `ci.yml` mantém o grafo e o TETO de linhas — o corpo pesado não volta;
+  15. o `simulate_release` (LENTO) roda por ESCOPO (#246, F-13): o `if` do passo
+      lê o `scope-ci` do `ci_plan.py`, e a identidade do bot
+      (`BOT_NAME`/`BOT_EMAIL`) é idêntica nos três arquivos de release.
 
 Uso: python3 .github/scripts/validate_workflows.py  (exit 1 na primeira violação)
 """
@@ -87,6 +94,18 @@ def load(path: str) -> dict | None:
     except Exception as exc:  # noqa: BLE001 — reportar qualquer YAML quebrado
         FAILURES.append(f"{path}: YAML inválido ({exc})")
         return None
+
+
+def sem_comentarios(texto: str) -> str:
+    """O texto sem as linhas de comentário — comentário NÃO é instrução.
+
+    O `ci.yml` cita os arquivos extraídos em comentário de propósito (para o
+    próximo agente achar o corpo), e citar `make_sdist.py` num comentário não
+    pode valer como "o corpo voltou". Mesma regra do `ci-base/Dockerfile`.
+    """
+    return "\n".join(
+        linha for linha in texto.splitlines() if not linha.lstrip().startswith("#")
+    )
 
 
 def raw(path: str) -> str:
@@ -165,6 +184,45 @@ GRAFO_ESPERADO: dict[str, set[str]] = {
     "release-play": {"plan"},
 }
 
+# ── OS WORKFLOWS REUTILIZÁVEIS (#245, achado F-12) ───────────────────────────
+#
+# Distribuição e Release saíram do `ci.yml` (1777 linhas / 29 jobs) para
+# arquivos com `workflow_call`. Valor da tabela: arquivo → job do `ci.yml` que o
+# chama. As regras que o gate trava aqui valem para TODOS eles:
+#   * UM job por arquivo — o check de um job reutilizável aparece como
+#     `<job do caller> / <job do chamado>`, então um arquivo com os três jobs
+#     guardados por input faria a run ganhar `skipped` que não existiam;
+#   * gatilho SÓ `workflow_call` — push/pull_request aqui rodaria a
+#     distribuição/release FORA do grafo do `ci.yml`;
+#   * `permissions` NUNCA declarado aqui: os jobs recebem as do job que chama
+#     (o `contents: write` do caller é o que publica na Release). Declarar dos
+#     dois lados cria uma segunda política — e a que vale é a interseção, que
+#     ninguém lê.
+REUSABLE: dict[str, str] = {
+    ".github/workflows/dist-instalador.yml": "dist-ui",
+    ".github/workflows/dist-sdist.yml": "dist-sdist",
+    ".github/workflows/dist-cli.yml": "dist-cli",
+    ".github/workflows/release-rc.yml": "release-rc",
+    ".github/workflows/release-promote.yml": "release-promote",
+    ".github/workflows/release-play.yml": "release-play",
+}
+
+# O TETO do `ci.yml` (#245). O número não é estético: são 29 jobs e 1777 linhas
+# ANTES da extração, e o objetivo dela é o arquivo voltar a ser o GRAFO (o grafo
+# + a validação, medidos hoje, são ~1350). Sem teto, o próximo bloco pesado
+# reentra no arquivo e ninguém vê o tamanho voltar.
+CI_MAX_LINHAS = 1400
+
+# O CORPO pesado que NÃO pode voltar para o `ci.yml` (comentário não conta — a
+# extração é citada em comentário de propósito). Cada token é a assinatura de um
+# bloco que hoje vive em um reutilizável.
+CORPO_NO_REUSABLE = (
+    ("tauri build --features real-device", ".github/workflows/dist-instalador.yml"),
+    ("make_sdist.py", ".github/workflows/dist-sdist.yml"),
+    ("sync_version.py --set", ".github/workflows/release-*.yml"),
+    ("softprops/action-gh-release", ".github/workflows/dist-*.yml"),
+)
+
 # Legados: a consolidação da #68 os substituiu por um workflow só.
 LEGACY = (
     "_validate.yml",
@@ -224,9 +282,10 @@ def main() -> int:
         ".github/workflows/ci.yml",
         ".github/workflows/issues-fechamento.yml",
         ".github/workflows/visual-baselines.yml",
+        *REUSABLE,
     }
     if set(workflows) != esperados:
-        FAILURES.append(f"esperado exatamente 2 workflows {sorted(esperados)}; existem: {workflows}")
+        FAILURES.append(f"esperado exatamente 3 workflows de pipeline + {len(REUSABLE)} reutilizáveis {sorted(esperados)}; existem: {workflows}")
 
     ci = docs.get(".github/workflows/ci.yml") or {}
     if not ci:
@@ -339,6 +398,85 @@ def main() -> int:
     if desconhecidos:
         FAILURES.append(f"ci: jobs fora de qualquer tipo: {desconhecidos}")
 
+    # ── 4b. os REUTILIZÁVEIS de Distribuição/Release e os seus callers (#245) ─
+    ci_raw = raw(".github/workflows/ci.yml")
+    for path, caller in REUSABLE.items():
+        doc_r = docs.get(path)
+        if not doc_r:
+            FAILURES.append(
+                f"{path}: workflow reutilizável ausente — o corpo do job `{caller}` tem de viver aqui (#245)"
+            )
+            continue
+        gatilhos_r = set(triggers(doc_r)) - {None}
+        if gatilhos_r != {"workflow_call"}:
+            FAILURES.append(
+                f"{path}: gatilho precisa ser SÓ workflow_call (tem {sorted(str(g) for g in gatilhos_r)}) — "
+                "um push/pull_request aqui roda a distribuição/release FORA do grafo do `ci.yml`"
+            )
+        jobs_r = doc_r.get("jobs") or {}
+        if len(jobs_r) != 1:
+            FAILURES.append(
+                f"{path}: precisa de EXATAMENTE um job (tem {sorted(jobs_r)}) — o check de um job reutilizável "
+                "aparece como `<caller> / <job>`; com N jobs guardados por input a run ganha N-1 `skipped` novos"
+            )
+        if doc_r.get("permissions"):
+            FAILURES.append(
+                f"{path}: `permissions` não se declara aqui — os jobs recebem as do job que chama "
+                "(o `contents: write` do caller é o que publica); dos dois lados viram duas políticas"
+            )
+        job_caller = jobs.get(caller) or {}
+        chamada = str(job_caller.get("uses") or "")
+        if chamada != f"./{path}":
+            FAILURES.append(f"ci: `{caller}` precisa de `uses: ./{path}`; veio {chamada!r}")
+        if job_caller.get("steps"):
+            FAILURES.append(
+                f"ci: `{caller}` é um caller de workflow — não pode ter `steps:` (o corpo vive em {path}); "
+                "`runs-on`/`timeout-minutes`/`env`/`outputs` também não são aceitos num job que usa `uses:`"
+            )
+        for chave in ("runs-on", "timeout-minutes", "steps", "env", "outputs"):
+            if chave in job_caller:
+                FAILURES.append(
+                    f"ci: `{caller}` não pode declarar '{chave}' — num job que chama um workflow reutilizável "
+                    f"esse valor pertence a {path}"
+                )
+        # input obrigatório sem valor = a run morre no LOAD, com mensagem só na annotation
+        call_r = triggers(doc_r).get("workflow_call") or {}
+        if not isinstance(call_r, dict):
+            call_r = {}
+        exigidos = {
+            nome
+            for nome, spec in (call_r.get("inputs") or {}).items()
+            if isinstance(spec, dict) and spec.get("required")
+        }
+        passados = set(job_caller.get("with") or {})
+        faltando = exigidos - passados
+        if faltando:
+            FAILURES.append(
+                f"ci: `{caller}` não passa {sorted(faltando)} para {path} — input obrigatório vazio recusa a run no LOAD"
+            )
+        sobrando = passados - set((call_r.get("inputs") or {}))
+        if sobrando:
+            FAILURES.append(
+                f"ci: `{caller}` passa {sorted(sobrando)} e {path} não declara esse input (a run é recusada no LOAD)"
+            )
+
+    # O CORPO não volta: os blocos extraídos só podem reaparecer como comentário,
+    # que é como o `ci.yml` aponta para o arquivo (e é o que o teto de linhas
+    # existe para impedir de crescer de novo).
+    ci_sem_comentario = sem_comentarios(ci_raw)
+    for token, destino in CORPO_NO_REUSABLE:
+        if token in ci_sem_comentario:
+            FAILURES.append(
+                f"ci: o corpo '{token}' voltou para o `ci.yml` — ele vive em {destino} (#245); "
+                "o caller só mantém nome, grafo e matriz"
+            )
+    linhas_ci = ci_raw.count("\n") + 1
+    if linhas_ci > CI_MAX_LINHAS:
+        FAILURES.append(
+            f"ci: {linhas_ci} linhas (teto {CI_MAX_LINHAS}) — o `ci.yml` é grafo + validação; "
+            "um bloco pesado novo vai para um workflow reutilizável (#245)"
+        )
+
     declarados = list(jobs)
     if declarados != SEQUENCIA_ESPERADA:
         FAILURES.append(
@@ -348,10 +486,84 @@ def main() -> int:
 
     # ── 5. a REGRA branch → tipos de job mora no ci_plan.py, e só lá ──────────
     plan_raw = raw(".github/scripts/ci_plan.py")
-    ci_raw = raw(".github/workflows/ci.yml")
     for token in ("def classify", "def scopes", "stage-test", "stage-dist", "stage-release"):
         if token not in plan_raw:
             FAILURES.append(f"ci_plan.py: perdeu '{token}' (é a fonte de verdade da regra)")
+
+    # ── 5a. `needs.<job>.outputs.<chave>` tem de estar DECLARADA ─────────
+    #
+    # `needs.X.outputs.Y` só existe se Y estiver no mapa `outputs:` do job X —
+    # fora dele a expressão resolve para vazio, o `if` compara com vazio e o
+    # passo fica `skipped` EM SILÊNCIO. O actionlint pega essa classe, mas ele
+    # roda numa imagem docker (só na CI); esta checagem roda local em segundos,
+    # e foi ela que faltou quando o `scope-ci` (#246) entrou como saída nova.
+    for ref_job, chave in sorted(set(re.findall(r"needs\.([\w-]+)\.outputs\.([\w-]+)", ci_raw))):
+        alvo = jobs.get(ref_job)
+        if alvo is None:
+            FAILURES.append(
+                f"ci: `needs.{ref_job}.outputs.{chave}` aponta para um job que não existe"
+            )
+            continue
+        declaradas = alvo.get("outputs") or {}
+        if chave not in declaradas:
+            FAILURES.append(
+                f"ci: `needs.{ref_job}.outputs.{chave}` não está no `outputs:` do job `{ref_job}` "
+                f"(declaradas: {sorted(declaradas)}) — a expressão vira vazio e o passo fica skipped em silêncio"
+            )
+
+    # ── 5b. o GATE LENTO RODA POR ESCOPO (#246, achado F-13) ─────────────
+    #
+    # `simulate_release` executa a cadeia rc→promote de verdade (~2 min) e
+    # protegia uma cadeia que muda raramente em TODO PR. A regra é do
+    # `ci_plan.py` (`CI_PATHS` → `scope-ci`) e o único lugar que a lê é o `if` do
+    # passo. A checagem existe para o `if` não voltar a ser `true` fixo (o que
+    # devolveria o custo em silêncio) nem o escopo desaparecer do plano.
+    if "CI_PATHS" not in plan_raw or "scope-ci" not in plan_raw:
+        FAILURES.append(
+            "ci_plan.py: perdeu 'CI_PATHS'/'scope-ci' — é o escopo que governa o gate `simulate_release` "
+            "(#246: a cadeia de release é provada onde ela pode quebrar, não em todo PR)"
+        )
+    passo_sim = next(
+        (
+            step
+            for step in ((jobs.get("lint-workflows") or {}).get("steps") or [])
+            if "simulate_release.py" in str(step.get("run") or "")
+        ),
+        None,
+    )
+    if passo_sim is None:
+        FAILURES.append(
+            "ci: `lint-workflows` perdeu o passo que roda `simulate_release.py` — é a prova da cadeia rc→promote"
+        )
+    elif "scope-ci" not in str(passo_sim.get("if") or ""):
+        FAILURES.append(
+            "ci: o passo do `simulate_release.py` precisa de `if: needs.plan.outputs.scope-ci == 'true'` "
+            "(#246) — sem ele o gate de ~2 min volta a rodar em todo PR"
+        )
+
+    # ── 5c. a IDENTIDADE DO BOT é a mesma nos três reutilizáveis (#245) ──
+    #
+    # `env:` de topo NÃO atravessa um `workflow_call` e o `env` não é contexto
+    # aceito no `with:`, então `BOT_NAME`/`BOT_EMAIL` são repetidos nos arquivos
+    # que commitam. Repetição de literal só é segura com contrato que trava a
+    # igualdade — o mesmo padrão da ref de imagem de container.
+    identidade: dict[str, set[str]] = {"BOT_NAME": set(), "BOT_EMAIL": set()}
+    for path in REUSABLE:
+        env_r = (docs.get(path) or {}).get("env") or {}
+        for chave in identidade:
+            if chave in env_r:
+                identidade[chave].add(str(env_r[chave]))
+    for chave, valores in identidade.items():
+        if len(valores) != 1:
+            FAILURES.append(
+                f"{chave} divergente entre os reutilizáveis de release: {sorted(valores)} — "
+                "o commit do bot e o guard do fechamento dependem desse nome"
+            )
+    if "BOT_NAME" in (ci.get("env") or {}):
+        FAILURES.append(
+            "ci: `BOT_NAME` no env de topo do `ci.yml` ficou sem consumidor depois da extração (#245) — "
+            "a identidade do bot vive nos arquivos que commitam"
+        )
     if "ci_plan.py" not in ci_raw:
         FAILURES.append("ci: o job `plan` precisa chamar .github/scripts/ci_plan.py")
     if "codeql-action" in ci_raw:
@@ -670,7 +882,10 @@ def main() -> int:
         for failure in FAILURES:
             print(" -", failure)
         return 1
-    print("\n3 workflows + 5 actions compostas + 2 imagens: YAML válido e contratos preservados.")
+    print(
+        f"\n3 workflows de pipeline + {len(REUSABLE)} reutilizáveis + 5 actions compostas "
+        "+ 2 imagens: YAML válido e contratos preservados."
+    )
     return 0
 
 

@@ -1,0 +1,46 @@
+name: Release · play (reusable)
+
+# Extraído do `ci.yml` (#245, F-12) — ver `release-rc.yml` para as regras comuns
+# (o que fica no caller, o que atravessa por `with:`, e por que
+# `BOT_NAME`/`BOT_EMAIL` se repetem aqui).
+#
+# `play` é o atalho: corta a tag pelo semver dos commits, sem rc — para correção
+# já estabilizada. O `if: inputs.action == 'play'` fica no caller, junto com o
+# `needs: plan` e o `contents: write`.
+on:
+  workflow_call:
+
+env:
+  BOT_NAME: github-actions[bot]
+  BOT_EMAIL: github-actions[bot]@users.noreply.github.com
+
+jobs:
+  play:
+    name: play
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: develop
+          fetch-depth: 0
+      - run: git fetch --tags --force
+      - uses: ./.github/actions/version-bump
+        id: bump
+      - name: cortar a tag
+        env:
+          NEXT: ${{ steps.bump.outputs.next-version }}
+          PENDING: ${{ steps.bump.outputs.release }}
+        run: |
+          set -euo pipefail
+          [ "$PENDING" = "true" ] || { echo "::error::sem bump pendente — nada a cortar"; exit 1; }
+          git config user.name "$BOT_NAME"
+          git config user.email "$BOT_EMAIL"
+          # `-u` (ver a nota do `release-rc`): manifests + os 2 locks (#231).
+          git add -u
+          git diff --cached --quiet || {
+            git commit -m "chore(release): v$NEXT (bump por conventional commits)"
+            git push origin HEAD; }
+          git tag --force "v$NEXT"
+          git push --force origin "v$NEXT"
+          echo "### 🏷️ Tag \`v$NEXT\` criada" >> "$GITHUB_STEP_SUMMARY"
