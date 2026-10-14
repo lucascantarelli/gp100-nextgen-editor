@@ -86,7 +86,12 @@ TETOS_RUST: list[tuple[str, int, str]] = [
     ("packages/app/api/src/actor.rs", 600, "#243: handle + spawn; coorte nova vira modulo, nao linha"),
     ("packages/app/api/src/commands.rs", 900, "#243: porta do IPC; o corte por coorte e divida declarada"),
     ("packages/app/api/src/lib.rs", 400, "#243: run()/AppState/registro do generate_handler!"),
-    ("packages/core/src/golden.rs", 829, "congelado: golden do fio (R1-R3); corte na #257"),
+    (
+        "packages/core/src/golden.rs",
+        250,
+        "#257: o HANDLE (o que o GoldenFile POSSUI + a carga/validacao) + o `GOLDEN_JSON` "
+        "e o `shape` (o helper de erro que todos os modulos usam); metodo novo vira modulo do assunto",
+    ),
     ("packages/core/src/preset.rs", 901, "congelado: modelo de preset/decodificacao; corte na #257"),
     (
         "packages/core/src/session.rs",
