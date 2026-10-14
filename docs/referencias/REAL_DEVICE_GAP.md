@@ -219,7 +219,7 @@ mesmo código. Uma sessão de teste no aparelho é a única forma de medi-los:
    > literal. O que sobra é **medir** o que deixa de ser verdade quando a fonte
    > muda — é isso que a sessão do passo 7 preenche.
 2. **O palco (`device_board`) mostra o arquivo embutido, não o aparelho.**
-   [`Request::Board`](../../packages/app/api/src/actor.rs) faz
+   [`Request::Board`](../../packages/app/api/src/actor/leitura.rs) faz
    `embedded_document()` — projeção pura de `all.prst`, **zero tráfego de fio**.
    Consequências com o aparelho real: um preset de usuário (`U01`…) não existe no
    arquivo embutido; e o valor do knob que o palco mostra é o do arquivo, não o

@@ -28,6 +28,15 @@ comentário NA ISSUE e a fila avança.
   do repo atualizados (sed + link checker); `SECURITY.md` da raiz virou ponteiro
   para `docs/tecnico/seguranca.md`; golden bump v1.3 só de proveniência;
   `files/` triado no disco (instalador/DebugView/logs fora — 97→16 MB).
+- 14/10 — **#243 (actor fatiado) entregue**: `packages/app/api/src/actor.rs`
+  saiu de 2 702 linhas para um módulo (`actor.rs` = handle + spawn, 518) +
+  `actor/`: `estado` (o que a thread possui), `relogio` (loop com prazos +
+  read-back), `fila` (`Request`), `tipos` (DTOs do IPC), `backends`,
+  `{leitura,escrita,boot,diagnostico}` e `tests`. Comportamento idêntico: 27
+  contratos do actor antes e depois, mesmos 40 testes do crate. O par
+  `sink`+`debounce` virou `Cadencia` (escrita marca o estado e avisa a tela
+  junto) e o orçamento do crate ficou declarado em `docs/dev/ARCHITECTURE.md`
+  §4.1 — a cobrança automática do Rust é a **#248**.
 - 14/10 — **CI enxuta (#245/#246)**: Distribuição e Release saíram do
   `ci.yml` (1777 → ~1350 linhas) para 6 workflows `workflow_call`, com o
   `ci.yml` ficando com o grafo, o nome dos jobs e a matriz de OS. O `env:` de

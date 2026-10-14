@@ -50,13 +50,29 @@ O sinal de escrita chega ao front em `DeviceInfo.write_verified`, e o front tem
 `packages/app/ui/src/ipc/device.ts` (#126). Não reimplemente a política em
 command nem em outro hook.
 
-## O actor — a peça central (`packages/app/api/src/actor.rs`)
+## O actor — a peça central (`packages/app/api/src/actor/`)
 
 O `DeviceActor` é **dono único** da `Session` (D8 do ADR-6): a FSM é `&mut self`,
 então compartilhar `Mutex<Session>` com a UI permitiria interleave de transações.
 O actor roda UMA thread com uma fila `mpsc` de `Request`; cada command envia a
 requisição + um canal de resposta e bloqueia no `recv` (o command síncrono do
 Tauri roda fora da main thread — ADR-3 preservado).
+
+Depois da **#243** o ator é um módulo, não um arquivo — `actor.rs` é o HANDLE
+e o spawn; o resto vive em `actor/`:
+
+| Módulo | Dono de |
+|---|---|
+| `actor.rs` | handle clonável, `spawn`/`desligado`/`desligado_procurando`, os métodos que os commands chamam |
+| `actor/estado.rs` | o que a thread POSSUI (`Estado`, caches do scan, prazos da convergência) + `device_snapshot`/`emite`/`marca`/`Cadencia` |
+| `actor/relogio.rs` | o loop com prazos (debounce + refresh), o read-back e o roteamento das `Request` |
+| `actor/fila.rs` · `actor/tipos.rs` | `Request` (contrato da fila) · DTOs do IPC |
+| `actor/backends.rs` | trait do transporte + real/mock/`Desligado`/`ProcuraAparelho` |
+| `actor/{leitura,escrita,boot,diagnostico}.rs` | as coortes de `Request` → `Session` |
+| `actor/tests.rs` | os contratos do actor (unitário em `src/`, régua da `rust-practices`) |
+
+**Coorte nova de `Request`/evento vira módulo próprio** — o handle não cresce.
+Orçamento por arquivo e o mapa acima: `docs/dev/ARCHITECTURE.md` §4.1.
 
 - **Nunca toque a `Session` direto de um command** — entre pela fila.
 - `Request` é o contrato da fila: `Info`, `Conectar`, `Boot`, `Board`, `Library`,
@@ -96,10 +112,12 @@ páginas divergem do cache.
 
 ## Orçamento de tamanho e dívida
 
-`actor.rs` tem **2702 linhas** (**#243**) e o `check_module_size.py` cobre **só o
-front** (**#248**) — ou seja, não há freio automático aqui. Regra prática: **coorte
-nova de `Request`/evento vira módulo próprio**; não cresça o `actor.rs`.
-`commands.rs` (`packages/app/api/src/commands.rs`, 869 linhas) já é o segundo.
+A **#243** fatiou o `actor.rs` de 2 702 linhas: hoje o maior arquivo do crate é
+`commands.rs` (869 linhas, teto declarado 900 — a dívida), e cada módulo do actor
+cabe no teto da tabela de `docs/dev/ARCHITECTURE.md` §4.1 (handle 600, coorte
+300). O `check_module_size.py` ainda cobre **só o front**: a cobrança automática
+do Rust é a **#248** — até lá, o número é régua de review, e quem inflar um
+módulo aqui deve saber que ninguém vai reprovar o build por isso.
 
 ## Checklist de uma tarefa no crate do app
 
