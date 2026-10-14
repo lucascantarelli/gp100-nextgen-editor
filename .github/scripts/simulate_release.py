@@ -121,6 +121,21 @@ class Sandbox:
             "packages/app/api/tauri.conf.json": '{\n  "version": "0.1.0",\n  "build": {\n    "frontendDist": "../ui/dist"\n  }\n}\n',
             "packages/app/ui/package.json": '{\n  "name": "sim-ui",\n  "version": "0.1.0"\n}\n',
             "version.json": '{\n  "version": "0.1.0"\n}\n',
+            # ... e os DOIS lock files (#231): desde que o bump reescreve a
+            # versao dos pacotes LOCAIS neles (crate de caminho = o que nao
+            # tem `source`), um sandbox sem lock nao se parece com o repo real
+            # — e o "--set" morreria aqui enquanto a cadeia de verdade passava.
+            # Mesma licenca do #73: o sandbox tem de ter o que os jobs leem.
+            "Cargo.lock": (
+                "# gerado\nversion = 4\n\n"
+                '[[package]]\nname = "sim"\nversion = "0.1.0"\n'
+            ),
+            "packages/app/api/Cargo.lock": (
+                "# gerado\nversion = 4\n\n"
+                '[[package]]\nname = "sim-api"\nversion = "0.1.0"\n\n'
+                '[[package]]\nname = "serde"\nversion = "1.0.0"\n'
+                'source = "registry+https://github.com/rust-lang/crates.io-index"\n'
+            ),
         }
         for path, content in manifests.items():
             full = os.path.join(self.seed, path)
