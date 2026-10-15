@@ -15,6 +15,14 @@ e chegam no modulo novo DENTRO de outro `impl`, com a MESMA indentacao — so a
 assinatura ganha o `pub(super)`. Indentacao faz parte do texto: um movimento que
 re-indenta nao e movimento puro, e o gate diz isso.
 
+O SQUASH E O MERGE DO GITHUB entram aqui como CASO, nao como excecao: o `Squash
+and merge` colapsa os commits do PR num so, e o diff do commit que a CI ve no
+`develop` passa a ser o PR INTEIRO — auditar isso como movimento atribuia a linha
+de um commit IRMAO ao corte (medido no repo: `develop` vermelho, sem conserto
+possivel, porque o commit que declarou nao existe mais). Os testes fixam os dois
+lados: a linha do irmao vira AVISO (nao reprova) e a linha PERDIDA continua
+reprovando, porque a clausula (a) nao depende do colapso.
+
 Os testes chamam as funcoes do gate direto (auditoria/parse) e, nos casos de
 contrato, o proprio script pela linha de comando — porque o que a CI cobra e o
 exit code.
@@ -124,6 +132,30 @@ def destino(corpo: str = CORPO_PUB, imports: str = "use super::Session;\n") -> s
         f"{ABRE_IMPL}\n"
         f"{corpo}}}\n"
     )
+
+
+# ── o colapso do GitHub: `Squash and merge` e o merge de verdade ──────────────
+
+# A mensagem do `Squash and merge` deste repo (`squash_merge_commit_message:
+# COMMIT_MESSAGES`): titulo do PR + a LISTA das mensagens dos commits + o
+# separador de hifens que o GitHub poe antes do bloco de co-autoria. Medida no
+# squash real do corte do `actor.rs` (`38bba33`, PR #253): nove hifens.
+SEPARADOR_SQUASH = "---------"
+
+
+def _mensagem_squash(titulo: str, *mensagens: str) -> str:
+    """O que o GitHub escreve quando colapsa N commits num so: o titulo do PR e a
+    lista das mensagens dos commits — assunto E corpo, e e por isso que o trailer
+    sobrevive ao squash (medido: o squash real do corte do `actor.rs` traz os
+    corpos inteiros dos dois commits do PR)."""
+    commits = "\n".join(f"* {m}\n" for m in mensagens)
+    return f"{titulo}\n\n{commits}\n{SEPARADOR_SQUASH}\n\nCo-authored-by: teste <teste@teste>\n"
+
+
+def _squash(raiz: pathlib.Path, base: str, mensagem: str) -> str:
+    """Colapsa tudo depois de `base` num commit so, com a mensagem do squash."""
+    _git(raiz, "reset", "-q", "--soft", base)
+    return _commit(raiz, mensagem, {})
 
 
 def _movimento(tmp_path: pathlib.Path, destino_txt: str = "", facade: str = ""):
@@ -268,6 +300,202 @@ def test_origem_com_caminho_errado_e_erro_de_uso(tmp_path):
         cm.audita(raiz, "src/nao_existe.rs", base, base, "teste")
 
 
+# ── squash e merge do GitHub: o colapso nao e o movimento ─────────────────────
+
+
+def test_squash_com_commit_irmao_nao_reprova(tmp_path):
+    """O caso MEDIDO no repo, e o que motivou reconhecer o squash.
+
+    O `Squash and merge` colapsa o PR e a linha escrita por um commit IRMAO caia
+    na conta do movimento — reprovando um squash limpo no `develop`, onde nao ha
+    mais "tire o trailer" que conserte. Com o squash reconhecido, o achado vira
+    AVISO.
+    """
+    raiz = _repo(tmp_path)
+    base = _commit(raiz, "chore: base", {"src/a.rs": ORIGEM})
+    origem = _commit(
+        raiz,
+        "refactor(core): fatia a.rs\n\nMove-only: src/a.rs",
+        {"src/a.rs": FACADE, "src/transacao.rs": destino()},
+    )
+    irmao = _commit(
+        raiz,
+        "test(core): nota de um commit irmao do PR",
+        {"src/transacao.rs": destino(CORPO_PUB + "    fn do_irmao() {}\n")},
+    )
+    topo = _squash(
+        raiz,
+        base,
+        _mensagem_squash(
+            "refactor(core): fatia a.rs (#1)",
+            "refactor(core): fatia a.rs\n\nMove-only: src/a.rs",
+            "test(core): nota de um commit irmao do PR",
+        ),
+    )
+
+    cm = _carregar()
+    # No PR, por commit: o movimento passa estrito, e o irmao nem e auditado (nao declara).
+    assert cm.audita(raiz, "src/a.rs", base, origem, "teste").ok
+    assert cm.declara_movimento(raiz, irmao) == []
+    # O squash — o commit que a CI ve no `develop` — e caso de movimento valido.
+    assert cm.estrutura_do_commit(raiz, topo) == "squash"
+    r = cm.audita(raiz, "src/a.rs", base, topo, "teste", estrutura="squash")
+    assert r.ok, (r.faltando, r.fora)
+    assert any("fn do_irmao()" in linha for _, linha in r.avisos)
+
+
+def test_squash_ainda_acusa_linha_perdida(tmp_path):
+    """A folga do colapso e SO da clausula do andaime: o que sumiu continua perdido."""
+    raiz = _repo(tmp_path)
+    base = _commit(raiz, "chore: base", {"src/a.rs": ORIGEM})
+    _commit(
+        raiz,
+        "refactor(core): fatia a.rs\n\nMove-only: src/a.rs",
+        {
+            "src/a.rs": FACADE,
+            "src/transacao.rs": destino(CORPO_PUB.replace("        out.push(pp as u8);\n", "")),
+        },
+    )
+    topo = _squash(
+        raiz,
+        base,
+        _mensagem_squash(
+            "refactor(core): fatia a.rs (#1)", "refactor(core): fatia a.rs\n\nMove-only: src/a.rs"
+        ),
+    )
+
+    cm = _carregar()
+    r = cm.audita(raiz, "src/a.rs", base, topo, "teste", estrutura="squash")
+    assert not r.ok
+    assert any("out.push(pp as u8);" in linha for linha in r.faltando)
+
+
+def test_merge_de_verdade_e_auditado(tmp_path):
+    """Merge com >= 2 pais: `--no-merges` deixava um movimento declarado num merge
+    sem auditoria NENHUMA. Agora ele e lido, contra o primeiro pai."""
+    raiz = _repo(tmp_path)
+    base = _commit(raiz, "chore: base", {"src/a.rs": ORIGEM})
+    _git(raiz, "checkout", "-q", "-b", "corte")
+    _commit(
+        raiz,
+        "refactor(core): fatia a.rs\n\nMove-only: src/a.rs",
+        {"src/a.rs": FACADE, "src/transacao.rs": destino()},
+    )
+    _commit(
+        raiz,
+        "test(core): nota de um commit irmao do PR",
+        {"src/transacao.rs": destino(CORPO_PUB + "    fn do_irmao() {}\n")},
+    )
+    _git(raiz, "checkout", "-q", "main")
+    _git(
+        raiz,
+        "merge",
+        "-q",
+        "--no-ff",
+        "-m",
+        "merge: corte do a.rs\n\nMove-only: src/a.rs",
+        "corte",
+    )
+    topo = _git(raiz, "rev-parse", "HEAD").strip()
+
+    cm = _carregar()
+    assert cm.estrutura_do_commit(raiz, topo) == "merge"
+    r = cm.audita(raiz, "src/a.rs", base, topo, "teste", estrutura="merge")
+    assert r.ok, (r.faltando, r.fora)
+    assert any("fn do_irmao()" in linha for _, linha in r.avisos)
+
+
+def test_commit_normal_nao_ganha_folga_de_squash(tmp_path):
+    """Sem o separador o commit e estrito: a folga e do COLAPSO, nao do trailer."""
+    raiz, base, topo = _movimento(
+        tmp_path, destino_txt=destino(CORPO_PUB + "    fn inventada(&self) {}\n")
+    )
+    cm = _carregar()
+    assert cm.estrutura_do_commit(raiz, topo) == "commit"
+    r = cm.audita(raiz, "src/a.rs", base, topo, "teste", estrutura="commit")
+    assert not r.ok
+    assert ("src/transacao.rs", "    fn inventada(&self) {}") in r.fora
+    assert r.avisos == []
+
+
+# ── a previsao do squash: o vermelho chega no PR, nao no `develop` ────────────
+
+
+def _pr_com_irmao(tmp_path: pathlib.Path, destino_irmao: str):
+    """Um PR de DOIS commits — o movimento e um commit IRMAO — como a CI o ve.
+
+    O irmao nao declara nada, entao por commit ele nao e auditado; era por isso
+    que uma perda dele so aparecia depois do squash, no `develop`.
+    """
+    raiz = _repo(tmp_path)
+    base = _commit(raiz, "chore: base", {"src/a.rs": ORIGEM})
+    movimento = _commit(
+        raiz,
+        "refactor(core): fatia a.rs\n\nMove-only: src/a.rs",
+        {"src/a.rs": FACADE, "src/transacao.rs": destino()},
+    )
+    topo = _commit(
+        raiz,
+        "fix(core): um ajuste DEPOIS do corte",
+        {"src/transacao.rs": destino_irmao},
+    )
+    return raiz, base, movimento, topo
+
+
+def test_previsao_do_squash_pega_a_perda_no_PRA(tmp_path):
+    """O caso medido no repo: o PR passava (o irmao nao declara nada) e o squash
+    deixava o `develop` vermelho, sem conserto possivel — o commit que declarou o
+    movimento nao existe mais la. A previsao muda o vermelho para onde da para
+    consertar."""
+    raiz, base, movimento, _ = _pr_com_irmao(
+        tmp_path, destino(CORPO_PUB.replace("        out.push(pp as u8);\n", ""))
+    )
+    cm = _carregar()
+    # No commit do movimento, nada se perdeu...
+    assert cm.audita(raiz, "src/a.rs", base, movimento, "teste").ok
+    # ...e mesmo assim o PR reprova: e o squash previsto que acusa.
+    saida = _cli(raiz, "--from", base, "--to", "HEAD")
+    assert saida.returncode == 1
+    assert "previsto" in saida.stderr
+    assert "PERDIDAS" in saida.stderr
+    assert "out.push(pp as u8);" in saida.stderr
+
+
+def test_previsao_nao_duplica_a_auditoria_do_squash(tmp_path):
+    """No push do `develop` o commit da faixa JA e o squash: a previsao seria a
+    mesma auditoria dita duas vezes — uma linha por origem, nao duas."""
+    raiz = _repo(tmp_path)
+    base = _commit(raiz, "chore: base", {"src/a.rs": ORIGEM})
+    _commit(
+        raiz,
+        "refactor(core): fatia a.rs\n\nMove-only: src/a.rs",
+        {"src/a.rs": FACADE, "src/transacao.rs": destino()},
+    )
+    _squash(
+        raiz,
+        base,
+        _mensagem_squash(
+            "refactor(core): fatia a.rs (#1)", "refactor(core): fatia a.rs\n\nMove-only: src/a.rs"
+        ),
+    )
+    saida = _cli(raiz, "--from", base, "--to", "HEAD")
+    assert saida.returncode == 0, saida.stderr
+    assert "previsto" not in saida.stdout
+    assert saida.stdout.count("[check_move_only]") == 1
+
+
+def test_previsao_nao_inventa_vermelho_para_o_irmao(tmp_path):
+    """A previsao nao pode criar vermelho: conteudo NOVO de um commit irmao e
+    AVISO, exatamente como no squash de verdade."""
+    raiz, base, _, _ = _pr_com_irmao(
+        tmp_path, destino(CORPO_PUB + "    fn do_irmao() {}\n")
+    )
+    saida = _cli(raiz, "--from", base, "--to", "HEAD")
+    assert saida.returncode == 0, saida.stderr
+    assert "previsto" in saida.stdout
+    assert "AVISO" in saida.stdout
+
+
 # ── o contrato do CLI (o que a CI cobra: o exit code) ─────────────────────────
 
 
@@ -324,6 +552,9 @@ def test_cli_declared_audita_range_sem_trailer(tmp_path):
     saida = _cli(raiz, "--declared", "src/a.rs", "--from", base, "--to", "HEAD")
     assert saida.returncode == 0, saida.stderr
     assert "declarado: src/a.rs" in saida.stdout
+    # O modo retroativo audita o range que o usuario pediu: a previsao do squash
+    # nao entra (ela e do caminho de trailer).
+    assert "previsto" not in saida.stdout
 
 
 def test_cli_declared_com_perda_sai_um(tmp_path):
@@ -340,3 +571,66 @@ def test_cli_declared_com_perda_sai_um(tmp_path):
     saida = _cli(raiz, "--declared", "src/a.rs", "--from", base, "--to", "HEAD")
     assert saida.returncode == 1
     assert "PERDIDAS" in saida.stderr
+
+
+def test_cli_squash_com_irmao_sai_zero(tmp_path):
+    """O que a CI cobra no `develop` depois do merge: exit 0, com o AVISO na saida."""
+    raiz = _repo(tmp_path)
+    base = _commit(raiz, "chore: base", {"src/a.rs": ORIGEM})
+    _commit(
+        raiz,
+        "refactor(core): fatia a.rs\n\nMove-only: src/a.rs",
+        {"src/a.rs": FACADE, "src/transacao.rs": destino()},
+    )
+    _commit(
+        raiz,
+        "test(core): nota de um commit irmao do PR",
+        {"src/transacao.rs": destino(CORPO_PUB + "    fn do_irmao() {}\n")},
+    )
+    _squash(
+        raiz,
+        base,
+        _mensagem_squash(
+            "refactor(core): fatia a.rs (#1)", "refactor(core): fatia a.rs\n\nMove-only: src/a.rs"
+        ),
+    )
+    saida = _cli(raiz, "--from", base, "--to", "HEAD")
+    assert saida.returncode == 0, saida.stderr
+    assert "(squash)" in saida.stdout  # o rotulo diz que o diff auditado e o PR inteiro
+    assert "AVISO" in saida.stdout
+
+
+def test_cli_squash_com_perda_sai_um(tmp_path):
+    raiz = _repo(tmp_path)
+    base = _commit(raiz, "chore: base", {"src/a.rs": ORIGEM})
+    _commit(
+        raiz,
+        "refactor(core): fatia a.rs\n\nMove-only: src/a.rs",
+        {
+            "src/a.rs": FACADE,
+            "src/transacao.rs": destino(CORPO_PUB.replace("        out.push(pp as u8);\n", "")),
+        },
+    )
+    _squash(
+        raiz,
+        base,
+        _mensagem_squash(
+            "refactor(core): fatia a.rs (#1)", "refactor(core): fatia a.rs\n\nMove-only: src/a.rs"
+        ),
+    )
+    saida = _cli(raiz, "--from", base, "--to", "HEAD")
+    assert saida.returncode == 1
+    assert "PERDIDAS" in saida.stderr
+
+
+def test_cli_merge_sem_trailer_nao_audita(tmp_path):
+    """O filtro e o TRAILER, nao o numero de pais: merge comum nao audita nada."""
+    raiz = _repo(tmp_path)
+    base = _commit(raiz, "chore: base", {"src/a.rs": ORIGEM})
+    _git(raiz, "checkout", "-q", "-b", "corte")
+    _commit(raiz, "feat(core): coisa nova", {"src/b.rs": "fn nova() {}\n"})
+    _git(raiz, "checkout", "-q", "main")
+    _git(raiz, "merge", "-q", "--no-ff", "-m", "merge: corte", "corte")
+    saida = _cli(raiz, "--from", base, "--to", "HEAD")
+    assert saida.returncode == 0, saida.stderr
+    assert "nada a auditar" in saida.stdout
