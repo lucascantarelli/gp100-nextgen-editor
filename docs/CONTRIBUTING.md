@@ -115,6 +115,22 @@ Formato: `tipo(escopo): assunto` — validado pelo job **gate** do pipeline.
   (comentário, `use`/`mod`, `impl … {`, `}`, atributo). Mudou uma linha de lógica,
   inventou código ou re-indentou? O trailer sai do commit e o PR diz o que mudou.
   Sem trailer o gate não audita nada — ele não adivinha movimento.
+  **Squash e merge são caso de movimento** (#263): o `Squash and merge` colapsa
+  os commits do PR num só — o trailer sobrevive (a mensagem do squash lista as
+  mensagens dos commits, `squash_merge_commit_message: COMMIT_MESSAGES`), mas o
+  diff do commit que a CI vê no `develop` passa a ser o PR inteiro. O gate
+  reconhece o squash (a linha de hífens que o GitHub põe antes do bloco de
+  co-autoria) e o merge (≥ 2 pais, contra o primeiro pai) e separa as cláusulas:
+  o "não perdeu" continua inteiro, o "não reescreveu" continua coberto (linha
+  reescrita some da origem) e só o **andaime** vira aviso — a linha nova pode ser
+  de um commit irmão do PR, e no `develop` não há mais trailer para tirar. A
+  cláusula do andaime foi cobrada inteira por commit, no PR.
+  **A CI do PR já prevê o squash** (#264): além de auditar cada commit contra o
+  pai dele, o gate audita o **range inteiro** como o squash que o merge vai
+  criar — mesmo regime (o "não perdeu" inteiro, o andaime como aviso). É o que
+  pega o commit irmão que apaga uma linha depois do corte: antes o PR passava e o
+  `develop` reprovava sem conserto possível. Um vermelho "previsto" se conserta
+  no PR: reponha a linha, ou atualize a branch (rebase) se a base andou.
 
 ---
 
