@@ -16,6 +16,13 @@ comentário NA ISSUE e a fila avança.
 
 ## Estado vivo (atualizar a cada marco — 1–3 linhas, sem prosa)
 
+- 14/10 — **#261 (`scope-rust` do plano)**: a lista de crates Rust da CI sai dos
+  `members` do manifesto do WORKSPACE (= `parents[2]` de `.github/scripts/`, a
+  armadilha registrada na #168) e o plano agora **falha alto** se não conseguir
+  lê-lo — o `except OSError` que devolvia lista vazia fazia PR de
+  `packages/core|cli|library` rodar a CI SEM lint/compile/teste de Rust e ficar
+  verde. Trava em `tools/tests/test_ci_plan.py`.
+
 - 13/10 — **#168 (`scripts/` dissolvida)**: CI/gates → `.github/scripts/`;
   spec/dados → `tools/` (suíte Spec em  `tools/tests/`); empacotamento →
   `packaging/`; RE → `docs/arquivo/scripts-era-RE/`. `uv run python
