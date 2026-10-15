@@ -190,3 +190,6 @@ pub mod gain;
 // Os testes dos herdados do P2 (header/envelope §13.1) usam SÓ API pública,
 // então vivem como contratos caixa-preta em `tests/wire_envelope.rs` (regra
 // da skill rust-practices: unitário dentro de `src/` só para internals).
+
+// Sonda da #261 (PR de teste, fecha sem merge): um diff que toca SO este crate
+// tem de subir os jobs de Rust do plano de CI.
