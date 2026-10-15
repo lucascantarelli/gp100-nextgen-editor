@@ -353,6 +353,14 @@ jobs:
         # nao perdeu nem reescreveu linha. Sem trailer, o gate nao audita nada —
         # e de graca para todo PR que nao e corte. A base vem do mesmo lugar que
         # o `plan` usa; sem `BEFORE`/`PR_BASE` o proprio gate cai em HEAD~1..HEAD.
+        # O squash/merge do GitHub e reconhecido como caso de movimento: o diff
+        # do commit que chega aqui e o PR INTEIRO (o trailer sobrevive no corpo
+        # do squash), entao o gate cobra o `nao perdeu` inteiro e trata o
+        # conteudo novo como AVISO — a linha pode ser de um commit irmao do PR.
+        # No PR ele tambem audita o RANGE INTEIRO como o squash que o merge vai
+        # criar (#264): o vermelho do `develop` chega aqui, onde da para
+        # consertar — antes, um commit irmao que apagava uma linha so aparecia
+        # depois do merge, quando o commit que declarou nao existe mais.
         env:
           PR_BASE: ${{ github.event.pull_request.base.sha }}
           BEFORE: ${{ github.event.before }}

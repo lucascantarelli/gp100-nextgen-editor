@@ -63,7 +63,7 @@ GATES: list[tuple[str, list[str], str]] = [
     (
         "check_move_only",
         [sys.executable, ".github/scripts/check_move_only.py"],
-        "o commit que declara `Move-only:` so moveu texto (nao perdeu nem reescreveu linha, #263)",
+        "o commit que declara `Move-only:` so moveu texto (nao perdeu nem reescreveu linha; squash/merge e o squash PREVISTO do range, #263/#264)",
     ),
     (
         "byte_order",
