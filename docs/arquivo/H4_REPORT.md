@@ -1,4 +1,6 @@
-> 📜 **histórico** — Era de RE, arquivado na #168 · última revisão 2026-10-13.
+> ⚠️ **parcial** · última revisão 2026-10-16 — **aguardando a sessão de campo com o owner**, o
+> MESMO marcador do [H4_CHECKLIST.md](H4_CHECKLIST.md): o gate não rodou (o artefato de offsets
+> veio de S1 + `all.prst` e é gated por `state_pages`; o que falta é a medição no aparelho).
 
 # 🧾 H4_REPORT — Relatório do gate H4 (as páginas 13xx em campo: nome, palco, knob)
 
