@@ -20,9 +20,14 @@ CINCO CHECAGENS:
     e todo papel citado ali existe: nem orfao (contrato que ninguem acha), nem
     fantasma (README apontando para arquivo que nao existe).
  4. FONTE UNICA — as regras transversais da tabela de fontes unicas tem UMA casa:
-    a dona precisa enunciar a regra e nenhuma outra SKILL pode re-enuncia-la.
-    Apontar para a dona e permitido; re-enunciar e o defeito (a regra que mora em
-    dois lugares sincroniza em um e apodrece no outro).
+    a dona precisa enunciar a regra e nenhum outro arquivo do harness pode
+    re-enuncia-la. Apontar para a dona e permitido; re-enunciar e o defeito (a
+    regra que mora em dois lugares sincroniza em um e apodrece no outro).
+    O ESCOPO e todo o harness, nao so `/skills/`: a #269 mediu o defeito no lugar
+    onde ele acontece de verdade — o `AGENTS.md` nasceu repetindo a lista de
+    "nao fazer" do `knowledge.md` e o "modo ausente" do `.agents/README.md`, e
+    nenhum dos tres e skill. Guarda que so olha skill nao pega o proximo arquivo
+    de entrada que copiar (foi o pedido explicito da #269).
  5. TABELA — a tabela de fontes unicas do `.agents/README.md` e GERADA do REGRAS
     (abaixo): o gate emite o bloco entre os marcadores `fontes-unica:` e reprova a
     tabela editada a mao. Escrita a mao ela listava 9 regras enquanto o gate cobria
@@ -133,6 +138,18 @@ REGRAS: dict[str, tuple[tuple[str, ...], str]] = {
     "Papéis da equipe + estado da demanda (`flow:*`)": (
         (".agents/agents/README.md",),
         r"labels `?flow:\*|Estado da demanda",
+    ),
+    "Modo ausente do dono (#202)": (
+        (".agents/README.md",),
+        r"modo ausente do dono|oper[ao] sem perguntar|fila aut[ôo]noma",
+    ),
+    # A regra aqui e a EXISTENCIA de uma lista unica: o padrao e o cabecalho da
+    # secao, nao o texto de cada item (cada item ja aponta a casa dele, e o
+    # `hardware-dev` e o `github-flow` enunciam as regras deles nas proprias
+    # casas). Duas secoes "nao fazer" = duas listas que divergem.
+    "O que NÃO fazer (lista única)": (
+        ("AGENTS.md",),
+        r"^#+ ?\d*\.? ?(o )?(que )?n[ãa]o fazer",
     ),
     "Gates locais por área (antes do PR)": (
         ("docs/CONTRIBUTING.md",),
@@ -318,8 +335,8 @@ def checa_fonte_unica(fontes: dict[str, str]) -> None:
         apelidos -= APELIDOS_GENERICOS
         ponteiro = re.compile("|".join(re.escape(x) for x in sorted(apelidos) if x))
         for rel, texto in fontes.items():
-            if rel in donas or "/skills/" not in rel:
-                continue  # prompt/README/knowledge citam a premissa como ENTRADA
+            if rel in donas:
+                continue  # a dona enuncia; ela nao precisa apontar para si mesma
             for b in blocos(texto):
                 if rx.search(b) and not ponteiro.search(b):
                     viola("FONTE UNICA", f"{regra}: re-enunciada em {rel} — «{b[:110]}»")

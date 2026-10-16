@@ -1,19 +1,14 @@
 # `.agents/` — o harness do agente (Era Hardware)
 
 Este diretório é o que faz qualquer agente (eu, você, o próximo) entrar neste
-repo e trabalhar **sem briefing extra**. Três camadas + um mapa + uma memória:
+repo e trabalhar **sem briefing extra**:
 
 ```
 .agents/
-├── README.md          # este mapa: ordem de entrada + fontes únicas por regra
-├── agents/            # QUEM faz (papéis da equipe: triagem→implementador→revisor→verificador)
-├── skills/            # COMO se faz (sob demanda, disparadas pela `description`)
-│   ├── github-flow/ · core-dev/ · rust-practices/ · app-dev/
-│   ├── ui-ux-practices/ · testing/ · hardware-dev/
-│   └── device-reference/ · release/ · docs-sync/
-└── prompts/           # O QUE executar (templates para colar; vinculam skills)
-    ├── implementar-issue.md · executar-issues-em-sequencia.md · corrigir-bug.md
-    └── code-review-completo.md · auditoria.md · release.md
+├── README.md   # este mapa: ordem de entrada + fontes únicas por regra
+├── agents/     # QUEM faz (triagem→implementador→revisor→verificador)
+├── skills/     # COMO se faz (10 skills, sob demanda pela `description`)
+└── prompts/    # O QUE executar (6 templates; vinculam skills)
 ```
 
 O **catálogo detalhado** (o que cada skill/prompt faz) vive no `docs/INDEX.md`
@@ -22,42 +17,30 @@ Aqui fica só a ordem de entrada — para não manter um terceiro catálogo que 
 
 ## Como entrar no repo (ordem que funciona)
 
-1. **`knowledge.md`** (raiz) — premissa (o aparelho é a fonte), armadilhas de
-   ambiente que já morderam, o que NÃO fazer. Ler inteiro: é curto de propósito.
-2. **`docs/INDEX.md`** — mapa: qual doc responde qual pergunta. Não adivinhe
-   caminho; pergunte ao INDEX.
-3. **A issue** (`gh issue view #N`) — o corpo dela traz contexto medido, escopo,
-   DoD e o **🤖 prompt do agente** pronto para colar. Se você veio por pedido
-   direto do dono, procure a issue correspondente; se não existir, crie antes
-   de codar (`.github/ISSUE_TEMPLATE/`).
-4. **A skill da área** — o campo `description` de cada `SKILL.md` diz quando
-   usá-la; skills de processo (`github-flow`, `docs-sync`) valem sempre.
-5. **O papel que você está exercendo** — `.agents/agents/README.md` diz qual contrato
-   ler (triagem, implementador, revisor, verificador) e em que estado (`flow:*`) a
-   demanda entra e sai. Um papel, um turno: não misture implementar e revisar.
+1. **`knowledge.md`** (raiz) — premissa (a dona dela é a `hardware-dev`), armadilhas
+   de ambiente que já morderam e o estado vivo. Ler inteiro: é curto de propósito.
+2. **`docs/INDEX.md`** — mapa: qual doc responde qual pergunta. Não adivinhe caminho.
+3. **A issue** (`gh issue view #N`) — contexto medido, escopo, DoD e o `🤖 prompt`. Pedido
+   direto do dono sem issue? Crie a issue antes de codar (`.github/ISSUE_TEMPLATE/`).
+4. **A skill da área** — o gatilho é a `description` do `SKILL.md`; `github-flow` e
+   `docs-sync` valem sempre.
+5. **O papel da vez** — `.agents/agents/README.md`: qual contrato ler (triagem,
+   implementador, revisor, verificador) e em que `flow:*` a demanda entra e sai. Um papel,
+   um turno: não misture implementar e revisar.
 
 ## Regras de vida do harness
 
-- **Issue manda**: DoD dela define "pronto"; doc não duplica plano de issue.
-- **Uma issue = um PR**; `Closes #N` no corpo; CI verde antes de merge; o
-  fechamento é automático (workflow próprio desde a #169).
-- **Nada de RE**: a especificação não é reconstruída de Suite/proxy — o
-  aparelho é a fonte (ADR-13). Skills da Era RE estão arquivadas em
-  `docs/arquivo/skills-era-RE/` (história, não processo).
-- **Nada de escrever no aparelho** fora das travas (ADR-5 + gate H2) — ver
-  `hardware-dev`.
-- Skill nova só se justificar (dispara quando a description casa com uma tarefa
-  recorrente); skill morta vai para `docs/arquivo/`, nunca é apagada.
-- Ao fechar marco: `docs-sync` (commit próprio na mesma PR) mantém
-  INDEX/ROADMAP/knowledge honestos.
-- **Uma casa por regra:** regra transversal mora em UMA skill e as outras
-  **apontam** (a tabela abaixo, gerada pelo gate). Regra repetida em 3 arquivos sincroniza em 3 e
-  apodrece nos outros — o modo de falha que o §8 da `docs-sync` combate.
-- **O harness tem gate próprio:** `python3 .github/scripts/check_harness.py`
-  (ou `gates.py check_harness`) cobra caminho que resolve, `description` que
-  dispara, contrato de papel com índice e a tabela de fontes únicas acima.
-  Rode ao mexer aqui: a leitura manual já deu "está tudo certo" duas vezes com
-  defeito no arquivo (#249).
+- **Issue manda**: o DoD dela define "pronto"; doc não duplica plano de issue.
+- **Ciclo**: skill `github-flow` — uma issue = um PR, `Closes #N` no corpo, CI verde antes
+  do merge, fechamento automático e `docs-sync` em commit próprio na mesma PR.
+- **Nada de apagar**: skill, doc ou era morta vai para `docs/arquivo/` com banner; a lista do
+  que NÃO se faz é a do `AGENTS.md` §5, e a premissa é da `hardware-dev`.
+- **Uma casa por regra:** regra transversal mora em UMA casa (skill ou arquivo de entrada) e
+  as outras **apontam** (tabela abaixo, gerada pelo gate). Repetida em 3, sincroniza em 3 e
+  apodrece nos outros — o §8 da `docs-sync` combate.
+- **O harness tem gate próprio:** `.github/scripts/check_harness.py` cobra caminho que
+  resolve, `description` que dispara, contrato de papel com índice e a tabela acima. Rode ao
+  mexer aqui: a leitura manual já deu "está tudo certo" duas vezes com defeito (#249).
 
 ## Fontes únicas por regra (não duplicar)
 
@@ -79,6 +62,8 @@ regra no gate e rode `check_harness.py --tabela`.
 | Camada do app (`packages/app/api`: actor, commands, DTO/IPC) | `app-dev` | apontam |
 | Estrutura e limites das camadas do front | `docs/dev/ARCHITECTURE.md` | apontam |
 | Papéis da equipe + estado da demanda (`flow:*`) | `.agents/agents/README.md` | apontam |
+| Modo ausente do dono (#202) | `.agents/README.md` | apontam |
+| O que NÃO fazer (lista única) | `AGENTS.md` | apontam |
 | Gates locais por área (antes do PR) | `docs/CONTRIBUTING.md` | apontam |
 <!-- fontes-unica:fim -->
 

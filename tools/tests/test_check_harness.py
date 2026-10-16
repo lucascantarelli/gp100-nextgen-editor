@@ -149,14 +149,92 @@ def test_dona_que_nao_enuncia_reprova() -> None:
     assert any("nenhuma dona" in v for v in _violacoes_da_regra(mod, "aparelho")), mod.VIOLACOES
 
 
-def test_prompt_citando_a_premissa_nao_e_re_enunciado() -> None:
-    """Prompt e knowledge são ENTRADA do trabalho, não skill — o teto é por skill."""
+def test_prompt_re_enunciando_sem_ponteiro_reprova() -> None:
+    """O teto vale para TODO o harness, não só para `/skills/` (#269).
+
+    A #269 mediu o defeito onde ele acontece: o `AGENTS.md` nasceu repetindo a
+    lista de "não fazer" do `knowledge.md` e o "modo ausente" do README — nenhum
+    dos três é skill. Guarda que só olhava skill deixava o próximo arquivo de
+    entrada copiar igual.
+    """
     mod = _carregar()
     _limpar(mod)
     fontes = _fontes_fonte_unica("nada")
     fontes[".agents/prompts/implementar-issue.md"] = "Antes de codar: medir, não deduzir."
     mod.checa_fonte_unica(fontes)
+    assert any("re-enunciada" in v for v in _violacoes_da_regra(mod, "aparelho")), mod.VIOLACOES
+
+
+def test_prompt_com_ponteiro_para_a_dona_passa() -> None:
+    """Apontar segue sendo o que se pede de quem não é a casa."""
+    mod = _carregar()
+    _limpar(mod)
+    fontes = _fontes_fonte_unica("nada")
+    fontes[".agents/prompts/implementar-issue.md"] = (
+        "Premissa (medir, não deduzir): a dona é a skill `hardware-dev`."
+    )
+    mod.checa_fonte_unica(fontes)
     assert not _violacoes_da_regra(mod, "aparelho"), mod.VIOLACOES
+
+
+# ── 4b. AS DUAS REGRAS NOVAS DA #269 (modo ausente e lista de "não fazer") ────
+
+
+def test_modo_ausente_re_enunciado_em_skill_reprova() -> None:
+    """A casa é o `.agents/README.md` (#202); quem repetir a rotina aponta ou reprova."""
+    mod = _carregar()
+    _limpar(mod)
+    mod.checa_fonte_unica(
+        {
+            ".agents/skills/outra/SKILL.md": (
+                "## Fila autônoma\nCom o dono fora, a rotina opera sem perguntar na ordem de "
+                "prioridade do milestone."
+            )
+        }
+    )
+    assert any("re-enunciada" in v for v in _violacoes_da_regra(mod, "modo ausente")), mod.VIOLACOES
+
+
+def test_modo_ausente_com_ponteiro_passa() -> None:
+    mod = _carregar()
+    _limpar(mod)
+    mod.checa_fonte_unica(
+        {
+            ".agents/skills/outra/SKILL.md": (
+                "O **modo ausente** é do `.agents/README.md` — leia lá antes de operar sem perguntar."
+            )
+        }
+    )
+    assert not _violacoes_da_regra(mod, "modo ausente"), mod.VIOLACOES
+
+
+def test_segunda_lista_de_nao_fazer_reprova() -> None:
+    """Duas seções "não fazer" = duas listas que divergem (defeito medido na #269)."""
+    mod = _carregar()
+    _limpar(mod)
+    mod.checa_fonte_unica(
+        {"knowledge.md": "## O que NÃO fazer\n\n- Nada de engenharia reversa.\n- Nada de contornar gate."}
+    )
+    assert any("re-enunciada" in v for v in _violacoes_da_regra(mod, "lista única")), mod.VIOLACOES
+
+
+def test_lista_unica_com_ponteiro_para_o_agents_passa() -> None:
+    mod = _carregar()
+    _limpar(mod)
+    mod.checa_fonte_unica(
+        {"knowledge.md": "A lista do que não se faz tem casa no `AGENTS.md` §5 — ponteiro, não cópia."}
+    )
+    assert not _violacoes_da_regra(mod, "lista única"), mod.VIOLACOES
+
+
+def test_as_regras_novas_tem_dona_que_enuncia_no_repo_real() -> None:
+    """Ler do disco: `AGENTS.md` e `.agents/README.md` enunciam as suas regras hoje."""
+    mod = _carregar()
+    _limpar(mod)
+    mod.checa_fonte_unica({})
+    assert not mod.VIOLACOES, mod.VIOLACOES
+    for regra in ("Modo ausente do dono (#202)", "O que NÃO fazer (lista única)"):
+        assert regra in mod.REGRAS, regra
 
 
 def test_pyyaml_ausente_reprova_em_vez_de_pular(monkeypatch) -> None:
