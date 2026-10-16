@@ -1,4 +1,4 @@
-"""Teste de regressão do `scope-ci` (#246, achado F-13 da auditoria de 14/10).
+"""Teste de regressão dos ESCOPOS do plano de CI (#246 `scope-ci`, #261 `scope-rust`).
 
 O gate `simulate_release` executa a cadeia rc→promote DE VERDADE num sandbox git
 (~2 min) e rodava em TODO PR. Ele passou a rodar por ESCOPO: `schedule`, tag e
@@ -7,6 +7,11 @@ dispatch (`CHANGED=ALL`) e PR que toca a maquinaria de release. A regra mora no
 `validate_workflows.py`) — e é ELA que este teste trava: um caminho de release
 entrando ou saindo da lista muda o custo do CI e a cobertura da cadeia em
 silêncio, sem nenhum arquivo de workflow parecer diferente.
+
+O `scope-rust` (#261) entrou aqui depois de a CI ficar VERDE sem os jobs de Rust:
+a lista de crates sai dos `members` do manifesto do workspace, o caminho do
+manifesto estava um `..` curto e o `except OSError` engolia a falha. Nenhum teste
+de produto acusa isso — o que acusa é o `scope-rust` publicado no contrato.
 """
 from __future__ import annotations
 
@@ -15,6 +20,8 @@ import os
 import pathlib
 import subprocess
 import sys
+
+import pytest
 
 _SCRIPTS = pathlib.Path(__file__).resolve().parents[2] / ".github" / "scripts"
 RAIZ = pathlib.Path(__file__).resolve().parents[2]
@@ -100,4 +107,128 @@ def test_plano_publica_scope_ci_no_contrato_de_saida():
         )
         assert saida.returncode == 0, saida.stderr
         esperado_txt = f"scope-ci={'true' if esperado else 'false'}"
+        assert esperado_txt in saida.stdout.splitlines(), (caminho, saida.stdout)
+
+
+# ── escopo de RUST (#261): os crates saem do WORKSPACE ─────────────────────
+#
+# O bug que este bloco trava, medido no PR #260: `crates_rust()` lia
+# `.github/Cargo.toml` (um `..` de menos no caminho), o `except OSError` engolia
+# a falha e a lista ficava SÓ com os `extra`. PR que mexia apenas em
+# `packages/core/`, `packages/cli/` ou `packages/library/` rodava a CI com
+# `scope-rust=false` — lint, compile e teste de Rust `skipping` — e ficava
+# verde: o pior tipo de bug de CI, o que não dá erro, só não roda.
+
+CRATES_DO_WORKSPACE = ("packages/core", "packages/cli", "packages/library")
+
+# Os `extra` NÃO são membros do workspace e entram de propósito: o shell do
+# Tauri mora FORA dele (`exclude` + ADR-7) e `app/ui` acompanha o build do shell
+# (o `tauri.conf.json` e o front mudam junto). Manter o `scope-rust` disparando
+# onde já disparava é decisão registrada aqui, não acidente.
+EXTRAS = ("packages/app/api", "packages/app/ui")
+
+# Caminhos Rust: o `.rs` de cada crate do workspace e os três arquivos que
+# governam a toolchain inteira. O `manifest.json` de `packages/core/data/` entra
+# porque dado DENTRO do crate é dado EMBUTIDO no binário (`include_str!` em
+# `core/src/model.rs`): mudar o dado sem rodar o job de Rust é a mesma classe de
+# falha da #261 — mudança que a CI não vê.
+CAMINHOS_DE_RUST = (
+    "packages/core/src/session.rs",
+    "packages/cli/src/main.rs",
+    "packages/library/src/diff.rs",
+    "packages/core/data/fixtures/manifest.json",
+    "Cargo.toml",
+    "Cargo.lock",
+    "rust-toolchain.toml",
+)
+
+# O resto do repo: mexer só nisso não pode subir a matriz de Rust.
+FORA_DO_RUST = (
+    "README.md",
+    "docs/tecnico/TESTING.md",
+    "docs/planejamento/ROADMAP.md",
+    ".github/workflows/ci.yml",
+    "tools/tests/test_ci_plan.py",
+)
+
+
+def test_manifesto_do_workspace_e_o_da_raiz():
+    """O caminho do manifesto é o ponto exato do bug (#261): a RAIZ do repo.
+
+    `__file__` mora em `.github/scripts/`, então o manifesto está TRÊS pais
+    acima. Ler `.github/Cargo.toml` não dá erro de git, de YAML nem de sintaxe —
+    dá uma lista de crates vazia, que é o que deixou a CI verde sem Rust.
+    """
+    plan = _carregar_ci_plan()
+    assert plan.MANIFESTO_WORKSPACE == RAIZ / "Cargo.toml"
+    assert plan.MANIFESTO_WORKSPACE.is_file(), plan.MANIFESTO_WORKSPACE
+
+
+def test_crates_rust_le_os_membros_do_workspace():
+    """Sem os membros a lista é só os `extra` — e o escopo de Rust não existe."""
+    plan = _carregar_ci_plan()
+    crates = plan.crates_rust()
+    for crate in CRATES_DO_WORKSPACE:
+        assert crate in crates, (crate, crates)
+
+
+def test_extras_continuam_na_lista():
+    """A correção não podia encolher a lista: `app/api` e `app/ui` ficam."""
+    plan = _carregar_ci_plan()
+    crates = plan.crates_rust()
+    for extra in EXTRAS:
+        assert extra in crates, (extra, crates)
+
+
+def test_scope_rust_liga_nos_crates_do_workspace():
+    plan = _carregar_ci_plan()
+    for caminho in CAMINHOS_DE_RUST:
+        assert plan.scopes(caminho)["rust"], caminho
+
+
+def test_scope_rust_nao_liga_fora_do_rust():
+    plan = _carregar_ci_plan()
+    for caminho in FORA_DO_RUST:
+        assert not plan.scopes(caminho)["rust"], caminho
+
+
+def test_scope_rust_liga_no_shell_e_no_front():
+    """O shell do Tauri e o front mexem no build do shell: seguem no escopo."""
+    plan = _carregar_ci_plan()
+    for caminho in ("packages/app/api/src/lib.rs", "packages/app/ui/src/App.tsx"):
+        assert plan.scopes(caminho)["rust"], caminho
+
+
+def test_manifesto_ausente_falha_alto(tmp_path):
+    """O silêncio ERA o defeito (#261): sem manifesto, o plano GRITA."""
+    plan = _carregar_ci_plan()
+    with pytest.raises(RuntimeError, match="manifesto"):
+        plan.membros_do_workspace(tmp_path / "Cargo.toml")
+
+
+def test_manifesto_sem_members_falha_alto(tmp_path):
+    """Sem `members` não há o que ler — lista vazia é jobs ausentes, não zero."""
+    manifesto = tmp_path / "Cargo.toml"
+    manifesto.write_text('[workspace]\nresolver = "2"\n', encoding="utf-8")
+    plan = _carregar_ci_plan()
+    with pytest.raises(RuntimeError, match="members"):
+        plan.membros_do_workspace(manifesto)
+
+
+def test_plano_publica_scope_rust_no_contrato_de_saida():
+    """O `plan` do ci.yml lê `key=value`: escopo que não sai no contrato deixa o
+    `if` do job comparando com vazio — e o job fica `skipping` em silêncio."""
+    for caminho, esperado in (
+        ("packages/core/src/session.rs", True),
+        ("docs/tecnico/TESTING.md", False),
+    ):
+        saida = subprocess.run(
+            [sys.executable, str(_SCRIPTS / "ci_plan.py")],
+            cwd=RAIZ,
+            capture_output=True,
+            text=True,
+            env={**os.environ, "CHANGED": caminho, "EVENT": "pull_request", "BASE_REF": "develop"},
+        )
+        assert saida.returncode == 0, saida.stderr
+        esperado_txt = f"scope-rust={'true' if esperado else 'false'}"
         assert esperado_txt in saida.stdout.splitlines(), (caminho, saida.stdout)

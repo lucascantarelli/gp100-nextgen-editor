@@ -1,3 +1,5 @@
+> ✅ **atual** · última revisão 2026-10-14.
+
 # knowledge.md — GP-100 NextGen Editor (ler antes de agir)
 
 > Mapa geral da documentação: **`docs/INDEX.md`** · plano vivo: **`docs/planejamento/ROADMAP.md`**
@@ -18,12 +20,23 @@ comentário NA ISSUE e a fila avança.
 
 ## Estado vivo (atualizar a cada marco — 1–3 linhas, sem prosa)
 
+- 16/10 — **a higiene do harness virou gate (#267)**: `check_harness.py` cobra caminho
+  que resolve, `description` que dispara, contrato de papel com índice e a regra
+  transversal em UMA casa; a **tabela de fontes únicas** do `.agents/README.md` é
+  SAÍDA dele (`--tabela` gera; editar à mão reprova). Ligação gate → job pela tabela
+  `GATES_LIGADOS` (#273), não por `if` especial.
 - 15/10 — **equipe multiagente (harness v2)**: a limitação foi **medida**, não suposta —
   este cliente não carrega agente definido no projeto em nenhum dos 3 layouts testados
   (`.agents/<id>.ts`, `.agents/agents/<id>.ts`, `.agents/agents/<id>.md`); a única
   spawnável é a injetada (`researcher-web`). Contorno: papel = contrato de arquivo
   (`.agents/agents/`: triagem→implementador→revisor→verificador) + estado em labels
   `flow:*` no GitHub + `git worktree` para paralelismo. Entrada nova: `AGENTS.md`.
+- 14/10 — **#261 (`scope-rust` do plano)**: a lista de crates Rust da CI sai dos
+  `members` do manifesto do WORKSPACE (= `parents[2]` de `.github/scripts/`, a
+  armadilha registrada na #168) e o plano agora **falha alto** se não conseguir
+  lê-lo — o `except OSError` que devolvia lista vazia fazia PR de
+  `packages/core`, `packages/cli` ou `packages/library` rodar a CI SEM lint/compile/teste de Rust e ficar
+  verde. Trava em `tools/tests/test_ci_plan.py`.
 
 - 13/10 — **#168 (`scripts/` dissolvida)**: CI/gates → `.github/scripts/`;
   spec/dados → `tools/` (suíte Spec em  `tools/tests/`); empacotamento →
@@ -42,7 +55,7 @@ comentário NA ISSUE e a fila avança.
   600) + `actor/`: `estado` (o que a thread possui), `relogio` (loop com prazos +
   read-back), `fila` (`Request`), `tipos` (DTOs do IPC), `backends`,
   `{leitura,escrita,boot,diagnostico}` e `tests`. Comportamento idêntico: 27
-  contratos do actor antes e depois, mesmos 40 testes do crate. O par
+  contratos do actor antes e depois, mesmos testes do crate (contagem no `docs/INDEX.md` §6). O par
   `sink`+`debounce` virou `Cadencia` (escrita marca o estado e avisa a tela
   junto) e o orçamento do crate ficou declarado em `docs/dev/ARCHITECTURE.md`
   §4.1 — a cobrança automática do Rust é a **#248**.
@@ -138,7 +151,7 @@ comentário NA ISSUE e a fila avança.
 - **Arquivo escrito em modo texto vira CRLF** no Windows e suja o diff contra o
   `* text=auto eol=lf`: escrever com `newline="\n"`; gerador novo = rodar a
   suite e exigir `git status` limpo. **Nunca** aplicar normalização de EOL em
-  BINÁRIO (já corrompeu os 16 ícones). Arquivo com identidade byte-a-byte entra
+  BINÁRIO (já corrompeu os arquivos de ícone — contagem no `docs/INDEX.md` §6). Arquivo com identidade byte-a-byte entra
   no `.gitattributes` com `-text` antes do 1º commit (golden, .prst, capturas,
   fixtures).
 - **CJK acidental em texto PT-BR**: ao redigir/ editar, varrer
@@ -179,7 +192,8 @@ comentário NA ISSUE e a fila avança.
   existiu (lição da baseline v1.1: 63 de 77 mensagens de save eram inventadas).
 - **Log de captura é `append-only`**, com truncamentos SEM-HDR (ring buffer);
   separar sessões por gaps >30s. Nunca "consertar" isso no codec. Citada por
-  `packages/core/src/golden.rs` (`op_payload`).
+  `packages/core/src/codec.rs` (`op_payload`; a citação anterior apontava `golden.rs`, que
+  **nunca** foi o dono — o gate de obsolescência doc × módulo (#275) pegou o ponteiro errado).
 
 ## Workflows canônicos (nunca fazer na mão)
 

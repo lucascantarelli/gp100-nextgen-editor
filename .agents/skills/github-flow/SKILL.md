@@ -65,6 +65,17 @@ vale o que estiver em `docs/CONTRIBUTING.md` + `.github/workflows/`.
    `rust-practices`, `ui-ux-practices`, `core-dev`); teste acompanha código novo.
 4. **Commit** — conventional commits (`tipo(escopo): assunto`) — o gate da CI
    REJEITA fora do padrão; footer Codebuff quando você (agente) escreveu.
+   Refactor que **só move texto** (o corte da #257 é o caso canônico) leva o
+   trailer `Move-only: <caminho da origem>` no corpo do commit: o
+   `check_move_only` cobra a promessa contra o pai do commit — não perdeu nem
+   reescreveu linha (#263, `docs/CONTRIBUTING.md` §3). Mudou lógica? Tire o
+   trailer e diga no PR o que mudou. O **squash** (e o merge de ≥ 2 pais) é
+   reconhecido: o trailer sobrevive no corpo do squash e o gate sabe que ali o
+   diff é o PR inteiro — cobra o "não perdeu" inteiro e trata andaime como
+   **aviso**, porque a linha nova pode ser de um commit irmão do PR. No PR o
+   gate **já prevê o squash** (#264): audita o range inteiro no mesmo regime, e
+   um commit irmão que apaga uma linha do corte reprova no PR — onde dá para
+   consertar — em vez de deixar o `develop` vermelho depois do merge.
 5. **Push da branch + PR para `develop`** com o template preenchido; tabela de
    gates executados; **`Closes #N` NO CORPO** (nunca no título/comentário).
 6. **CI do PR** — acompanhe até verde (`gh run watch <id> --exit-status`).

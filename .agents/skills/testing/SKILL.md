@@ -24,7 +24,9 @@ skill `rust-practices` §"Regra de organização".
 
 ## O que a suíte Rust prova (mock por default)
 
-- O transporte padrão é o **`MockDevice`** (`packages/core/src/transport/mock.rs`)
+- O transporte padrão é o **`MockDevice`** (`packages/core/src/transport/mock.rs` — o
+  **handle** desde a #257; o interior vive em `mock/`: `estado.rs`, `familia.rs`, `respostas.rs`,
+  `fila.rs`, `falha.rs`, `despacho.rs`)
   — determinístico, sem hardware. `RealDevice` só entra com a feature
   `real-device` (ver skill `hardware-dev`).
 - Contratos pesados em `packages/core/tests/`: consumo do golden de FORMA

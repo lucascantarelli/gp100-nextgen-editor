@@ -1,3 +1,5 @@
+> ✅ **atual** · última revisão 2026-10-15.
+
 # REAL_DEVICE_GAP — o que o app fala com o aparelho, e o que ainda é mock
 
 > **Status:** 🔨 vivo · **Criado:** 05/10/2026 · **Última auditoria:** 06/10/2026 (a §1 foi reescrita: a barreira de código caiu no mesmo dia em que foi levantada) · **Issue:** [#17](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/17) (bloqueio), [#16](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/16) (entrada)
@@ -96,8 +98,9 @@ janela nativa (MSVC no host, ADR-7). O CLI seguiu explícito e ganhou
    O instalador passa a ser build de **leitura**: fala com a pedaleira e recusa a
    escrita antes do driver (ADR-5), com o motivo na tela (§6 passo 3). **A prova
    do step só existe na próxima tag** — `stage-dist` é `tag` em
-   [`ci_plan.py`](../../.github/scripts/ci_plan.py); em PR o caminho real é coberto pelo
-   `ui-rust` nos três SOs. Restava antes do campo:
+   [`ci_plan.py`](../../.github/scripts/ci_plan.py) (a lista de crates Rust sai dos `members`
+   do manifesto da **raiz** do repo e **falha alto** se ele não for legível — #261); em PR o
+   caminho real é coberto pelo `ui-rust` nos três SOs. Restava antes do campo:
 2. **Nenhuma sessão de campo partiu do APP.** O H1/H2 provaram o core e o CLI;
    `ir_send`, `tone_send` e o knob do **editor** não foram medidos. É o passo 7
    da §6, e é o que a #17 espera.
@@ -187,8 +190,10 @@ Windows nao pega.
 | macOS (CoreMIDI) | job `lint-rust-clippy` / `build-rust`, entrada `ui-rust` — **desde 05/10 (passo 6b)** |
 
 **O buraco do CoreMIDI fechou, e com ele o último motivo técnico do CLI — e
-agora com prova, não com afirmacao de commit.** A run `37389032681` (48 jobs,
-zero vermelhos) compila, passa `clippy -D warnings` e roda `cargo test` do crate
+agora com prova, não com afirmacao de commit.** A run `37389032681` (o pipeline
+inteiro, zero vermelhos — a medição da run está no registro de
+[`analises/medicoes-datadas-2026-10-15.md`](../analises/medicoes-datadas-2026-10-15.md))
+compila, passa `clippy -D warnings` e roda `cargo test` do crate
 do app com `real-device` nos DOIS SOs da matrix do `ui-rust`, Windows e macOS.
 Enquanto o `ui-rust` ficou só no Windows, o `gp100-cli` era a ÚNICA cobertura
 de CoreMIDI do transporte USB-MIDI — ele roda em 3 SOs, o app não. Esse era o

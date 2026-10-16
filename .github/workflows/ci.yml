@@ -263,7 +263,14 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
+      # `fetch-depth: 0`: o gate da documentação (`check_docs_modulos.py`, #275)
+      # mede ANCESTRALIDADE de commit (o módulo andou DEPOIS da última revisão do
+      # doc?) — no checkout raso de 1 commit o histórico da base não existe e a
+      # pergunta fica sem resposta. O repo tem ~200 commits: o clone inteiro
+      # custa segundos, e é o mesmo regime que o `lint-commits` já usa.
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
       # actionlint pega erro de EXPRESSAO que o parser Python nao pega:
       # `${{ }}` malformada, `if:` com tipo errado, matriz vazia, contexto de
       # expressao invalido. O `validate_workflows.py` cobre os CONTRATOS do
@@ -305,39 +312,35 @@ jobs:
           # `pyyaml` e `jsonschema` ja vem no `pyproject.toml` (#80); a linha
           # abaixo e o fallback para rodar o script fora do ambiente do projeto.
           python3 -c "import yaml" 2>/dev/null || python3 -m pip install --quiet pyyaml
-          # O gate de empacotamento (#71) estava escrito mas NAO LIGADO: o
-          # `docs/tecnico/PACKAGING.md` afirmava que ele rodava aqui e nao rodava em
-          # lugar nenhum. Sem ele, mainBinaryName, .desktop, .deb e PKGBUILD
-          # podiam divergir em silencio.
+          # O gate de empacotamento (#71) estava escrito mas NAO LIGADO (o PACKAGING.md
+          # afirmava que rodava aqui): mainBinaryName/.desktop/.deb/PKGBUILD divergiam em silencio.
           python3 .github/scripts/check_bundle.py
           python3 .github/scripts/sync_version.py --check
           python3 .github/scripts/validate_workflows.py
-          # O contrato dos templates de issue (#170): secoes obrigatorias e o
-          # prompt auto-suficiente. Sem gate, "enxugar template" remove a secao
-          # e o contrato morre em silencio — mesma classe do check_bundle (#71).
+          # O contrato dos templates de issue (#170): secoes obrigatorias + prompt
+          # auto-suficiente; sem ele, "enxugar template" mata a secao em silencio (#71).
           python3 .github/scripts/check_issue_templates.py
-          # Higiene do harness do agente (#249): o harness e lido por agentes e
-          # nao tinha gate. A auditoria de 14/10 provou 2x por leitura manual que
-          # "estava tudo certo" quando nao estava (caminho morto, regra
-          # re-enunciada em 6 arquivos) — leitura manual nao pega regressao.
+          # Os juízes do HARNESS (#249) e da DOCUMENTACAO (#270): regras que existiam
+          # sem gate (caminho morto, skill que nao dispara, link/ancora, banner com data,
+          # contador so no INDEX §6). A razao de cada um vive no docstring do script.
           python3 .github/scripts/check_harness.py
+          python3 .github/scripts/check_docs.py
+      # ── A OBSOLESCÊNCIA DO DOC TEM JUIZ (#275) ──────────────────────────
+      # Link morto e estrutura (o #270 pega); aqui e link VIVO com conteudo morto: a ultima
+      # revisao do doc contra a SUPERFICIE dos modulos que ele cita (commit, nao relogio).
+      - name: obsolescência da documentação (doc × módulo que ele descreve)
+        run: python3 .github/scripts/check_docs_modulos.py
       # ── A SIMULAÇÃO DO GITFLOW É CONDICIONAL (#246, achado F-13) ─────────
       #
-      # `simulate_release.py` executa a cadeia rc→promote DE VERDADE num sandbox
-      # git: ~2 min para proteger uma cadeia que muda raramente. Em TODO PR isso
-      # era custo; o risco real mora em PR que toca a maquinaria de release.
-      #
-      # A regra é do `ci_plan.py` (`scope-ci`), NUNCA um `if:` escrito à mão
-      # aqui — contrato 5, a mesma fonte que decide branch→tipos de job.
-      # `CHANGED=ALL` (tag, schedule, dispatch) marca o escopo como verdadeiro,
-      # então a auditoria noturna e a tag continuam provando a cadeia inteira.
+      # `simulate_release.py` executa a cadeia rc→promote DE VERDADE num sandbox git
+      # (~2 min): em TODO PR isso era custo, e o risco real mora em PR que toca a
+      # maquinaria de release. A regra é do `ci_plan.py` (`scope-ci`), NUNCA um `if:`
+      # à mão — contrato 5; `CHANGED=ALL` (tag, schedule, dispatch) mantém a cadeia provada.
       - name: simulação do GitFlow (cadeia rc→promote)
         if: needs.plan.outputs.scope-ci == 'true'
         run: |
-          # Os self-checks dos juízes H1/H2 saíram com a dissolução de
-          # `scripts/` (#168): os juízes de campo viraram histórico em
-          # `docs/arquivo/scripts-era-RE/` (a evidência dos gates vive nos
-          # relatórios H; os gates fecharam em campo — INDEX §6).
+          # Os self-checks dos juízes H1/H2 saíram com a dissolução de `scripts/` (#168):
+          # viraram histórico em `docs/arquivo/scripts-era-RE/` (INDEX §6).
           python3 .github/scripts/simulate_release.py
 
   lint-commits:
@@ -353,6 +356,17 @@ jobs:
           fetch-depth: 0
       - name: conventional commits
         run: python3 .github/scripts/check_commits.py
+      - name: auditoria de movimento (trailer `Move-only:`)
+        # #263: o commit que declara movimento puro prova, contra o PAI, que nao perdeu nem
+        # reescreveu linha (sem trailer o gate nao audita nada). A base vem do mesmo lugar
+        # que o `plan` usa. O squash do GitHub e caso de movimento: o diff aqui e o PR
+        # INTEIRO — o trailer sobrevive no corpo do squash — e o range inteiro e auditado
+        # como o squash que o merge vai criar (#264), onde da para consertar. Detalhes no
+        # docstring de `check_move_only.py`.
+        env:
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          BEFORE: ${{ github.event.before }}
+        run: python3 .github/scripts/check_move_only.py
 
   lint-rust-fmt:
     name: Lint · Rust (fmt)
@@ -969,6 +983,23 @@ jobs:
         run: uv sync --all-groups
       - name: golden, baseline versionada, knob_map e fixtures
         run: uv run pytest
+      # ── OS TRÊS GATES DE DADOS QUE SÓ O `gates.py` LOCAL RODAVA (#273) ──
+      # `byte_order`, `param_ranges` e `state_pages` estavam na lista do
+      # `gates.py` e em NENHUM passo do CI: o gate existia, alguém confiava
+      # nele, e quem reprovava era o `gates.py` — que só roda na máquina de
+      # quem lembra de rodar. O `byte_order` não tinha cobertura nenhuma (gate
+      # morto desde o #23); o `param_ranges --check` e o `state_pages` também
+      # rodam DENTRO do pytest logo acima, mas o passo próprio é o que deixa o
+      # veredito visível no log — a mesma razão do passo da baseline abaixo.
+      # O contrato 16 do `validate_workflows.py` cobra os três daqui, então
+      # apagar qualquer uma destas linhas reprova o `Lint · contratos do
+      # pipeline`.
+      - name: fio real é LE (effectCode u32 — par do H2)
+        run: uv run python tools/check_byte_order.py
+      - name: trava de conteúdo do knob (639 faixas + 92 amostras reais)
+        run: uv run python tools/param_ranges.py --check
+      - name: layout das páginas 13xx contra o artefato embutido
+        run: uv run python tools/validate_state_pages.py
       # O pytest já cobre `baseline.py --check` (o teste
       # `test_golden_baseline_hash_unchanged` chama o gate), mas rodar o
       # comando aqui deixa o número da baseline VISÍVEL no log do job. Sem

@@ -52,6 +52,18 @@ GATES: list[tuple[str, list[str], str]] = [
         "contrato de papel tem indice e a regra transversal tem UMA casa (#249)",
     ),
     (
+        "check_docs",
+        [sys.executable, ".github/scripts/check_docs.py"],
+        "higiene da documentacao: link/ancora resolvem, todo doc tem banner de status com data, "
+        "e contador vive so no INDEX §6 (#270)",
+    ),
+    (
+        "check_docs_modulos",
+        [sys.executable, ".github/scripts/check_docs_modulos.py"],
+        "o doc que descreve um modulo acompanha a superficie dele (ancestralidade de commit + "
+        "diff de superficie; a violacao aponta o documento, #275)",
+    ),
+    (
         "sync_version",
         [sys.executable, ".github/scripts/sync_version.py", "--check"],
         "os 5 manifests de versao em sincronia",
@@ -65,6 +77,11 @@ GATES: list[tuple[str, list[str], str]] = [
         "check_module_size",
         [sys.executable, ".github/scripts/check_module_size.py"],
         "orcamento de tamanho do front e do Rust (App.tsx < 300, .rs < 700; docs/dev/ARCHITECTURE.md §4/§4.1)",
+    ),
+    (
+        "check_move_only",
+        [sys.executable, ".github/scripts/check_move_only.py"],
+        "o commit que declara `Move-only:` so moveu texto (nao perdeu nem reescreveu linha; squash/merge e o squash PREVISTO do range, #263/#264)",
     ),
     (
         "byte_order",

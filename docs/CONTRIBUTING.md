@@ -1,3 +1,5 @@
+> ✅ **atual** · última revisão 2026-10-15.
+
 # 🤝 CONTRIBUTING — Fluxo de contribuição (GP-100 NextGen Editor)
 
 > Vale para humanos **e** agentes. O ciclo completo: **issue → branch → commits →
@@ -78,7 +80,10 @@ mais nada) e checklist de validação da entrega. O gate
   cobre essa lacuna via API (§5).
 - **Push e PR** disparam a CI em toda branch de desenvolvimento. O filtro é o
   de *caminho* (`.github/scripts/ci_plan.py`): um PR que só mexe em `docs/` não sobe
-  Rust nem front.
+  Rust nem front. A lista de caminhos Rust sai dos `members` do `Cargo.toml` da **raiz**
+  do repo e **falha alto** quando ele não é legível (#261 — antes, um erro de caminho
+  virava lista vazia e o PR que mexia só em `packages/core` rodava a CI sem lint, compile
+  e teste de Rust, verde).
 
 ```bash
 git checkout develop && git pull
@@ -104,6 +109,33 @@ Formato: `tipo(escopo): assunto` — validado pelo job **gate** do pipeline.
   corta major no próximo play.
 - O **subject** nunca fecha issue; o vínculo de fechamento vai no corpo do PR.
 - Exemplo: `feat(ui): knob com arrasto vertical e teclado (#42)`
+- **Refactor de MOVIMENTO tem trailer** (#263): quando o commit só MOVE texto —
+  o caso canônico é o corte da #257, em que 1 395 linhas saem de `session.rs` e
+  entram em oito módulos —, declare a origem numa linha do corpo:
+  `Move-only: <caminho no repo>` (repetível, um por origem). É uma promessa, e o
+  CI a cobra pelo `check_move_only.py`: contra o **pai** do commit, toda linha de
+  conteúdo da origem tem de existir no destino, na mesma multiplicidade — a única
+  tolerância é o qualificador de visibilidade que o corte exige (`fn tx_req(` →
+  `pub(super) fn tx_req(`) — e toda linha **adicionada** tem de ser andaime
+  (comentário, `use`/`mod`, `impl … {`, `}`, atributo). Mudou uma linha de lógica,
+  inventou código ou re-indentou? O trailer sai do commit e o PR diz o que mudou.
+  Sem trailer o gate não audita nada — ele não adivinha movimento.
+  **Squash e merge são caso de movimento** (#263): o `Squash and merge` colapsa
+  os commits do PR num só — o trailer sobrevive (a mensagem do squash lista as
+  mensagens dos commits, `squash_merge_commit_message: COMMIT_MESSAGES`), mas o
+  diff do commit que a CI vê no `develop` passa a ser o PR inteiro. O gate
+  reconhece o squash (a linha de hífens que o GitHub põe antes do bloco de
+  co-autoria) e o merge (≥ 2 pais, contra o primeiro pai) e separa as cláusulas:
+  o "não perdeu" continua inteiro, o "não reescreveu" continua coberto (linha
+  reescrita some da origem) e só o **andaime** vira aviso — a linha nova pode ser
+  de um commit irmão do PR, e no `develop` não há mais trailer para tirar. A
+  cláusula do andaime foi cobrada inteira por commit, no PR.
+  **A CI do PR já prevê o squash** (#264): além de auditar cada commit contra o
+  pai dele, o gate audita o **range inteiro** como o squash que o merge vai
+  criar — mesmo regime (o "não perdeu" inteiro, o andaime como aviso). É o que
+  pega o commit irmão que apaga uma linha depois do corte: antes o PR passava e o
+  `develop` reprovava sem conserto possível. Um vermelho "previsto" se conserta
+  no PR: reponha a linha, ou atualize a branch (rebase) se a base andou.
 
 ---
 
@@ -121,11 +153,11 @@ Só a área que você tocou — o CI filtra o resto por caminhos.
 | **Gates de script** (pipeline, empacotamento, versão, spec, release) | **`python3 .github/scripts/gates.py`** — roda todos de uma vez, na ordem do CI |
 
 - **`gates.py` é o atalho para "os gates de script"**: `validate_workflows`,
-  `check_bundle`, `check_issue_templates`, `check_harness`, `sync_version`,
-  `check_deadcode`, `check_module_size`, `byte_order`, `param_ranges`,
-  `state_pages`, `baseline`, `pytest`, `check_base_images` e `simulate_release` —
-  a **contagem** é do `INDEX.md` §6 (medida em `develop`; aqui o número apodreceria).
-  Rode
+  `check_bundle`, `check_issue_templates`, `check_harness`, `check_docs`, `check_docs_modulos`,
+  `sync_version`, `check_deadcode`, `check_module_size`, `check_move_only`, `byte_order`,
+  `param_ranges`, `state_pages`, `baseline`, `pytest`, `check_base_images` e
+  `simulate_release` — a **contagem no total é a do §6 do [`INDEX`](INDEX.md)** (fonte única;
+  aqui a lista, lá o número). Rode
   `python3 .github/scripts/gates.py --list` para ver a lista, ou passe nomes para rodar
   só alguns: `python3 .github/scripts/gates.py check_bundle validate_workflows`.
   Todas as dependências (`pyyaml`, `jsonschema`) estão no `pyproject.toml`, então
@@ -139,6 +171,23 @@ Só a área que você tocou — o CI filtra o resto por caminhos.
   `simulate_release` roda sempre que você pedir: o custo aqui é seu, não de cada
   PR. A regra fica na **fonte única** (nada de `if:` escrito à mão no YAML), e o
   `validate_workflows.py` cobra que o passo leia `needs.plan.outputs.scope-ci`.
+- **Todo gate de `gates.py` tem passo no `ci.yml`** — e no job declarado em
+  `GATES_LIGADOS` ([validate_workflows.py](../.github/scripts/validate_workflows.py),
+  contrato 16, #273). A ligação gate → job é uma terceira lista (o `gates.py`
+  local, os passos do `ci.yml` e os escopos do `ci_plan.py`): gate escrito e não
+  ligado é a classe do #71 — o `check_bundle.py` ficou fora do CI até alguém
+  reparar, e o `gates.py` **verde** local nunca acusa (ele roda por conta
+  própria). Os três gates de dados que estavam nessa situação
+  (`byte_order`, `param_ranges`, `state_pages`) passaram ao `Testes · Especificação`.
+  Gate novo? O passo no `ci.yml` **e** a linha na tabela, no mesmo commit.
+- **Todo doc que DESCREVE um módulo tem juiz de obsolescência** (#275): o
+  `check_docs_modulos.py` (`.github/scripts/`) compara a última revisão do
+  documento com a **superfície** dos módulos de código que ele cita
+  (`.rs`/`.ts`/`.tsx`/`.js`/`.py`/`.css`, com caminho) e **aponta o documento**
+  quando a superfície mudou depois dele. Refatoração interna (corpo, comentário,
+  formatação) não cobra nada; mudou contrato e o doc não acompanhou? Releia o
+  documento (a data do banner conta como revisão — INDEX §4 item 1) ou declare
+  `ISENCOES[(doc, módulo)]` **com o motivo**, no próprio gate.
 - **`scripts/` está no escopo do `spec`** (`.github/scripts/ci_plan.py`): o pytest testa
   scripts de gate, e mexer só no script deixaria o job de spec como `skipped` —
   os testes ficariam verdes sem rodarem contra a mudança (#21).
@@ -197,8 +246,10 @@ vai colar com a pedaleira ligada.
 
 Ao mexer em transporte/`Session`/CLI, **compile nos dois modos**: o desligado
 prova que nada de escrita entrou por acidente; o ligado prova que a trava não
-virou erro de compilação nem de runtime. `cargo test --workspace` roda os dois
-(14 testes de CLI em cada modo).
+virou erro de compilação nem de runtime. `cargo test --workspace` roda os dois — a medição
+por modo (14/10) está no registro de
+[`analises/medicoes-datadas-2026-10-15.md`](analises/medicoes-datadas-2026-10-15.md), porque
+no doc vivo ela envelhece sem avisar.
 
 Runbooks: [H1_CHECKLIST.md](arquivo/H1_CHECKLIST.md) (leitura),
 [H2_CHECKLIST.md](arquivo/H2_CHECKLIST.md) (escrita — **muda estado do aparelho do
@@ -302,8 +353,10 @@ disparam sozinhos é exatamente o custo que a #68 eliminou.
 
 ### Os workflows reutilizáveis de Distribuição e Release (#245)
 
-Distribuição e Release são os dois blocos mais pesados do pipeline (o `ci.yml`
-tinha 1777 linhas e 29 jobs) e os que mudam mais raramente. O **corpo** de cada
+Distribuição e Release são os dois blocos mais pesados do pipeline (até a #245 o `ci.yml`
+carregava o corpo inteiro dos dois; a medição de antes está no registro de
+[`analises/medicoes-datadas-2026-10-15.md`](analises/medicoes-datadas-2026-10-15.md)) e os que
+mudam mais raramente. O **corpo** de cada
 job vive agora num arquivo com `workflow_call`; no `ci.yml` fica o que o
 **grafo** decide: `name`, `needs`, `if`, `permissions` e — no instalador — a
 matriz de OS.

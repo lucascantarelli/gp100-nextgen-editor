@@ -1,3 +1,5 @@
+> 📜 **histórico** (o `INDEX` §3 é a fonte do status) · última revisão 2026-10-13 · substituto: `docs/INDEX.md` §3.
+
 # 🔍 Auditoria de skills — regras implícitas explicitadas (29/09)
 
 > **O que é:** auditoria pontual nas 8 skills de `.agents/skills/`, motivada pela regra de

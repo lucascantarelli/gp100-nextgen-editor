@@ -1,6 +1,6 @@
 # 🎸 GP100_DEVICE — a pedaleira real: funcionalidades e comportamentos
 
-> **Status:** ✅ atual · **Criado:** 10/10/2026 · **Fontes:** manual oficial Valeton
+> **Status:** ✅ atual · **Criado:** 10/10/2026 · **Revisão:** 2026-10-15 · **Fontes:** manual oficial Valeton
 > GP-100 (firmware V1.8/V1.9 texto + V2.1 nas capturas), página do produto
 > (valeton.net/product/gp-100), e as **nossas capturas S1–S4 + campo** (o que o
 > fio prova). Onde a fonte externa e a medição local divergem, as duas aparecem.
@@ -86,7 +86,8 @@ verificado), MIDI channel (**não existe** no manual — não afirmar).
 > Atualizado conforme corrigido (sai daqui e vira issue/commit).
 
 - **#1 — "Setlist" é nome de etapa de boot, não recurso do produto.**
-  `BootStage::Setlist` em `packages/core/src/session.rs` nomeia a **leitura de
+  `BootStage::Setlist` (hoje em `packages/core/src/session/tipos.rs` — o `session.rs` é o
+  **handle** da FSM desde a #257, e os DTOs vivem na coorte `session/`) nomeia a **leitura de
   `12001012`** (5 entradas de 44B) no boot. O PROTOCOL.md §13.3 já hesita:
   *"provavelmente setlist/loja"*. O manual **não** tem setlist.
   → **Ação:** não expor "setlist" como conceito de produto na UI; renomear o
