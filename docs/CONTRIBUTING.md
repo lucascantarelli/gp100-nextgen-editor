@@ -1,3 +1,5 @@
+> ✅ **atual** · última revisão 2026-10-15.
+
 # 🤝 CONTRIBUTING — Fluxo de contribuição (GP-100 NextGen Editor)
 
 > Vale para humanos **e** agentes. O ciclo completo: **issue → branch → commits →
@@ -121,7 +123,7 @@ Só a área que você tocou — o CI filtra o resto por caminhos.
 | **Gates de script** (pipeline, empacotamento, versão, spec, release) | **`python3 .github/scripts/gates.py`** — roda todos de uma vez, na ordem do CI |
 
 - **`gates.py` é o atalho para "os gates de script"**: `validate_workflows`,
-  `check_bundle`, `check_issue_templates`, `sync_version`, `check_deadcode`,
+  `check_bundle`, `check_issue_templates`, `check_docs`, `sync_version`, `check_deadcode`,
   `check_module_size`, `byte_order`, `param_ranges`, `state_pages`, `baseline`,
   `pytest`, `check_base_images` e `simulate_release` — **13 no total**. Rode
   `python3 .github/scripts/gates.py --list` para ver a lista, ou passe nomes para rodar
@@ -195,8 +197,10 @@ vai colar com a pedaleira ligada.
 
 Ao mexer em transporte/`Session`/CLI, **compile nos dois modos**: o desligado
 prova que nada de escrita entrou por acidente; o ligado prova que a trava não
-virou erro de compilação nem de runtime. `cargo test --workspace` roda os dois
-(14 testes de CLI em cada modo).
+virou erro de compilação nem de runtime. `cargo test --workspace` roda os dois — a medição
+por modo (14/10) está no registro de
+[`analises/medicoes-datadas-2026-10-15.md`](analises/medicoes-datadas-2026-10-15.md), porque
+no doc vivo ela envelhece sem avisar.
 
 Runbooks: [H1_CHECKLIST.md](arquivo/H1_CHECKLIST.md) (leitura),
 [H2_CHECKLIST.md](arquivo/H2_CHECKLIST.md) (escrita — **muda estado do aparelho do
@@ -300,8 +304,10 @@ disparam sozinhos é exatamente o custo que a #68 eliminou.
 
 ### Os workflows reutilizáveis de Distribuição e Release (#245)
 
-Distribuição e Release são os dois blocos mais pesados do pipeline (o `ci.yml`
-tinha 1777 linhas e 29 jobs) e os que mudam mais raramente. O **corpo** de cada
+Distribuição e Release são os dois blocos mais pesados do pipeline (até a #245 o `ci.yml`
+carregava o corpo inteiro dos dois; a medição de antes está no registro de
+[`analises/medicoes-datadas-2026-10-15.md`](analises/medicoes-datadas-2026-10-15.md)) e os que
+mudam mais raramente. O **corpo** de cada
 job vive agora num arquivo com `workflow_call`; no `ci.yml` fica o que o
 **grafo** decide: `name`, `needs`, `if`, `permissions` e — no instalador — a
 matriz de OS.

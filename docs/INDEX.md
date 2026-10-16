@@ -1,3 +1,5 @@
+> ✅ **atual** · última revisão 2026-10-14.
+
 # 📇 INDEX — Mapa da documentação (GP-100 NextGen Editor)
 
 > **Comece aqui.** Este índice diz o que cada documento é, quando ler e qual é a
@@ -103,6 +105,7 @@ automática do GitHub.
 |---|---|---|
 | `audit-2026-10-14.md` | **Auditoria ampla (14/10)**: docs, Rust, front, CI/DevOps, latência MIDI e cobertura do manual — 18 achados (F-01…F-18) com severidade e backlog priorizado; faxina dos artefatos locais não rastreados (`re_tmp`, `superpowers`, `test-results`) | ✅ atual (14/10) |
 | `audit-harness-2026-10-14.md` | **Auditoria do harness (14/10)**: as 9 skills e os 6 prompts de `.agents/` — 12 achados (H-01…H-12), plano de consolidação em 3 commits e a tabela de fontes únicas (issue [#249](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/249)) | ✅ atual (14/10) |
+| `medicoes-datadas-2026-10-15.md` | **Registro das medições datadas (15/10)**: os contadores que saíram dos documentos vivos na [#270](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/270) — diagnóstico da virada (09/10), rodadas de teste manual da UI (set/out) e números de prosa — cada um com a data e a origem; o doc vivo aponta para cá **ou** para o §6 | 📜 histórico (registro da #270) |
 | `audit-2026-10-07.md` | **Auditoria completa (07/10)**: code review + governança + arquitetura + limpeza em todo o repo, com números remediados, achados F-01…F-12 e backlog A-1…A-10 (desfecho na §10) | 📜 histórico (desfecho 08/10) |
 | `audit-era-real-2026-10-07.md` | Auditoria da Era Real (07/10): estado do app real vs mock | 📜 histórico |
 | `skills-audit-2026-09-29.md` | Auditoria das skills: regras que eram prática implícita, agora escritas (5 achados em core-dev/docs-sync/spec-baseline) | 📜 histórico |
@@ -183,6 +186,7 @@ reprova qualquer `analysis/` dentro de `packages/`.
 | `packaging/make_sdist.py` | Tarball de fonte com o `ui/dist` embutido — insumo do PKGBUILD | `Distribuição · tarball de fonte` |
 | `sync_version.py` | Os 5 manifests de versão em sincronia (`--check` é o gate) | `Lint · contratos do pipeline` |
 | `check_deadcode.py` | Todo `export` de `src/` tem consumidor fora do arquivo — cobertura 100% não prova que o contrato é consumível (#78) | `Lint · UI` |
+| `check_docs.py` | **Higiene da documentação**: link/âncora resolvem, todo doc tem banner de status com data e contador vive só neste §6 (#270) — teste em `tools/tests/test_check_docs.py` | gate local (`gates.py check_docs`) · `Lint · contratos do pipeline` |
 | `check_module_size.py` | Orçamento de tamanho: front (`App.tsx` < 300 linhas) **e** os `.rs` de `packages/*/src` (#248) — tetos no §4/§4.1 do `docs/dev/ARCHITECTURE.md`; teste em `tools/tests/test_check_module_size.py` | gate local (`gates.py`) · `Lint · UI` · `Lint · Rust (fmt)` |
 | ~~`add_cargo_path.ps1` / `h1_field.sh` / `h1_compare.py`~~ (**arquivados** na #168 em `docs/arquivo/scripts-era-RE/`) | Fix do PATH do cargo (HKLM) · runbook do gate H1 · juiz da Fase C do H1 (níveis 1/2/3 + tabela do §5) | histórico / campo |
 | ~~`h2_field.sh` / `h2_compare.py`~~ (**arquivados** na #168 em `docs/arquivo/scripts-era-RE/`) | Runbook do gate H2 (escrita) · juiz da transcrição do H2 contra a referência de escrita (#22) | histórico / campo |

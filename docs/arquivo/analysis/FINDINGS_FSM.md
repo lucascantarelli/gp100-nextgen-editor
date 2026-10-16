@@ -1,3 +1,5 @@
+> 📜 **histórico** — Era de RE, arquivado na #168 · última revisão 2026-10-11 · achados corroborados no `docs/tecnico/PROTOCOL.md` §13.
+
 # FINDINGS — FSM handlers + opcode extraction (RE estática, sessão 2)
 
 Scripts: `disasm_fsm.py`, `disasm_senders.py`, `opcode_extract.py`

@@ -1,3 +1,5 @@
+> 📜 **histórico** — Era de RE, arquivado na #168 · última revisão 2026-10-13 · resultado do gate no `docs/INDEX.md` §3/§6.
+
 # 🎛️ H2_CHECKLIST — Gate de hardware: escrita real dos 3 fluxos capturados
 
 > **Status:** ⏳ aguardando a pedaleira + owner · **Última revisão:** 2026-10-06
