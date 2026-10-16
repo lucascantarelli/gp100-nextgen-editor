@@ -43,11 +43,25 @@ fonte de retrocesso (viola a fonte única por assunto do §7 deste checklist).
    Numa branch de feature os números divergem **por construção** (a branch *adiciona*
    testes). Antes de "corrigir" o §6, confirme em que branch você mediu; divergência
    em branch não é erro do §6.
-10. **Gerador que emite arquivo versionado escreve LF explícito** — em Windows o
+10. **O par checklist × relatório do mesmo gate conta UMA história** —
+    `*_CHECKLIST.md` e `*_REPORT.md` do mesmo gate levam o **mesmo marcador de
+    status** (os dois ✅, ou os dois ⚠️, ou os dois 📜) e nenhum dos dois se
+    anuncia como *template* ou "aguardando a sessão" quando o §3 do INDEX já dá o
+    gate como fechado. Isto é **conteúdo**, não forma: a forma (banner de UMA
+    linha, marcador + data) o `check_docs.py` já cobra, e é o único arquivo que
+    enuncia as duas regras — esta aqui não se repete no INDEX nem no gate
+    (#287: o `H4_REPORT` dizia 📜 contra o checklist ⚠️ parcial, e o `H3_REPORT`
+    ainda se dizia template com o gate fechado desde 04/10).
+11. **Gerador que emite arquivo versionado escreve LF explícito** — em Windows o
     modo texto (`open(..., "w")`) traduz `\n`→`\r\n` e suja a árvore a cada suite,
     contra o `* text=auto eol=lf` do `.gitattributes`. Use `newline="\n"` e, como
-    critério de aceite de qualquer gerador novo, rode a suite e exija **`git status`
-    limpo**.
+    critério de aceite de qualquer gerador novo, rode a    suite e exija **`git status` limpo**.
+
+> **Dívida registrada do item 10:** os pares H1 e H2 ainda divergem
+> (`H1_CHECKLIST` sem banner próprio com o status ⏳ do transporte × `H1_REPORT` 📜 e
+> "template"; `H2_CHECKLIST` 📜 × `H2_REPORT` ✅). Estão na
+> [#289](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/289) —
+> reescrever o conteúdo dos relatórios H1/H2 ficou fora do escopo da #287.
 
 ## Regras
 - **Commit da docs-sync é PRÓPRIO e SEPARADO** do commit da mudança, na MESMA
