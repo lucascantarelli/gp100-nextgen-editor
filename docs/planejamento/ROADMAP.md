@@ -1,4 +1,4 @@
-> ✅ **atual** · última revisão 2026-10-13.
+> ✅ **atual** · última revisão 2026-10-15.
 
 # 🗺️ ROADMAP — Era Hardware (o app comandado pelo aparelho)
 
@@ -23,15 +23,20 @@ mesa, a fonte da verdade muda para o aparelho, e o repo precisa refletir isso po
 
 ### 1.1 O problema, medido
 
+> Os números desta tabela foram **medidos em 09/10/2026** e estão guardados, com a data, no
+> registro [`analises/medicoes-datadas-2026-10-15.md`](../analises/medicoes-datadas-2026-10-15.md)
+> (o mesmo retrato está no corpo do épico [#171](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/171));
+> a **régua de hoje** é o §6 do [`INDEX`](../INDEX.md).
+
 | Sintoma | Evidência no repo (09/10/2026) |
 |---|---|
 | Boot "trava"/mostra placeholder e hex; tela não interage | `useBoot.ts` roda o boot em background e `App.tsx` **renderiza a casca inteira sempre**; só existe faixa de progresso, não gate. Sem dado, painéis caem em fallback (`MSG.libPp(pp)`, `ipc/fallbackData.ts`) |
 | Dados amarrados a análises | `core/src/model.rs` faz `include_str!("../../../packages/core/data/parameters.json")`; `core/src/preset_pages.rs` embute `packages/core/data/state_pages_offsets.json`; 5 artefatos de UI (`fxData`, `drumData`, `presetChains`, `presetData`, `fxModels`) são **gerados por scripts de `docs/arquivo/analysis/`**; fixtures de captura são a espinha de vários testes Rust |
 | Sem tipos fábrica × usuário | Não existem `FactoryPatch`/`UserPatch` no core. Fábrica é semeada de `files/patches/all.prst` (`TOTAL_DE_FABRICA = 99`); o barramento tem 198 posições (99+99, nomes 198/198 medidos no decode 13xx). A identidade do preset é um `pp: number` sem tipo |
 | Dev local sem aparelho | Feature `real-device` **default OFF**; browser usa fallback sintético; sem ela o app sobe em `Backend::Desligado` (#150) — honesto, mas o **default do dev não tem aparelho** |
-| Suíte inflada | Rust **309 / 36 suítes**; front **513 / 38 arquivos**; e2e **90 / 12 arquivos / 96 baselines**; pytest **92**; gates **13**. Boa parte prova a RE (golden, replay de captura, hash de baseline), não o comportamento com o aparelho |
-| Repo espalhado | `docs/arquivo/analysis/` (60+ itens), `scripts/` (22 itens), `files/` (~90 MB locais), `docs/` (30 arquivos sem categoria), `.agents/skills` (10 skills, 5 da era RE), sem `.agents/prompts/` |
-| CI fora da ordem | 26 jobs num workflow. `Relatório · resumo da run` depende **só do `plan`** (roda primeiro — devia ser o último); `Fechamento · issues vinculadas` sem `needs` (devia ser workflow próprio `Issues · Fechamento de issues vinculadas`); `Segurança` roda depois da cobertura; `Distribuição` não espera os gates |
+| Suíte inflada | Rust e front inchados de testes que provam a RE (golden, replay de captura, hash de baseline), não o comportamento com o aparelho — a régua de hoje é o §6 do [`INDEX`](../INDEX.md) |
+| Repo espalhado | `docs/arquivo/analysis/` (60+ itens), `scripts/` (22 itens), `files/` (~90 MB locais), `docs/` sem categoria, `.agents/skills` (10 skills, 5 da era RE), sem `.agents/prompts/` |
+| CI fora da ordem | O pipeline inteiro num workflow só. `Relatório · resumo da run` depende **só do `plan`** (roda primeiro — devia ser o último); `Fechamento · issues vinculadas` sem `needs` (devia ser workflow próprio `Issues · Fechamento de issues vinculadas`); `Segurança` roda depois da cobertura; `Distribuição` não espera os gates |
 
 ### 1.2 Princípios (não negociáveis)
 

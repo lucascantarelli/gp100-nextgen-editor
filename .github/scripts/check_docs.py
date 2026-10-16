@@ -8,8 +8,10 @@ dependia de alguem reler as 55 fontes (13.431 linhas, medido em 15/10/2026). Rod
 ESTE script contra `origin/develop` ANTES do conserto: **37 violacoes** — 36 de banner
 em **24 arquivos** (faltava marcador ou data) e 2 contadores no `knowledge.md` — sobre
 **27 contadores fora do §6** e **0 link morto** (o repo esta limpo hoje; a checagem de
-link e guarda de regressao, nao conserto). Depois do conserto: **0 violacoes** e 25
-contadores congelados no baseline.
+link e guarda de regressao, nao conserto). Depois do conserto: **0 violacoes** e **0
+contadores fora do §6** — os 25 que o gate congelou no primeiro dia foram pagos um a um
+(#270, 15/10/2026), para o registro `docs/analises/medicoes-datadas-2026-10-15.md` (medicao
+datada) ou para a medicao do §6 (numero de hoje).
 
 TRES CHECAGENS:
  1. LINK — link relativo e ancora (`arquivo.md#secao`) resolvem; a ancora e conferida
@@ -19,8 +21,10 @@ TRES CHECAGENS:
     obsoleto nao e apagado, ganha o banner apontando para onde o assunto vive agora).
  3. CONTADOR — numero de teste/suite/arquivo/job/gate/baseline/icone (e cobertura %)
     fora do `INDEX.md` §6. `docs/analises/**` (evidencia com data) e `docs/arquivo/**`
-    (historico) NAO contam. O que ja existia entrou como BASELINE congelado, no padrao do
-    `check_module_size`: "o teto e o tamanho da medicao — a regra e nao crescer mais".
+    (historico) NAO contam. O `BASELINE_CONTADOR` (padrao do `check_module_size`) existe para
+    o caso datado e **nasce vazio**: congelar divida nao e conserto — o numero que so o doc
+    vivo conhece envelhece em silencio (o `knowledge.md` dizia 16 icones onde o §6 dizia 18).
+    Contador datado tem casa: o registro em `docs/analises/`.
 
 FALSO POSITIVO QUE O PADRAO EVITA: `99,57%` do `PROTOCOL.md` e metrica de protocolo, nao
 cobertura — porcentagem so conta com vocabulario de cobertura ao lado.
@@ -51,40 +55,14 @@ FONTES += [RAIZ / "README.md", RAIZ / "knowledge.md"]
 # Prosa de terceiro (dumps de ferramenta) pode citar caminho de fora; hoje a lista esta vazia.
 CAMINHOS_DE_PROPOSITO: dict[str, str] = {}
 
-# Contador congelado: arquivo -> (ocorrencias medidas em 15/10/2026, por que NAO se corrige agora).
-# Sao o "antes" da Era Hardware (diagnostico com data) ou dado de plano que nao pertence ao §6.
-BASELINE_CONTADOR: dict[str, tuple[int, str]] = {
-    "docs/dev/UI_TEST_PLAN.md": (
-        12,
-        "plano com as medicoes POR FASE da era anterior (o 'antes' da Era Hardware), datadas; "
-        "reescrever e decisao de conteudo, nao de gate",
-    ),
-    "docs/planejamento/ROADMAP.md": (
-        6,
-        "tabela de DIAGNOSTICO da era anterior: o retrato que justificou a Era Hardware, com data",
-    ),
-    "docs/CONTRIBUTING.md": (
-        2,
-        "citacao historica em prosa explicativa (14 testes de CLI por modo; '1777 linhas e 29 "
-        "jobs' do incidente que gerou a #169)",
-    ),
-    "docs/referencias/UI_REFERENCE.md": (
-        2,
-        "referencia de design citando a contagem de baselines de uma medicao antiga",
-    ),
-    "docs/dev/DECISIONS.md": (
-        1,
-        "ADR citando a contagem de jobs da epoca da decisao",
-    ),
-    "docs/dev/UI_PLAN.md": (
-        1,
-        "plano antigo de UI citando a contagem de testes da epoca",
-    ),
-    "docs/referencias/REAL_DEVICE_GAP.md": (
-        1,
-        "diagnostico do gap do aparelho citando a contagem de jobs da medicao",
-    ),
-}
+# Contador congelado: arquivo -> (ocorrencias medidas, por que NAO se corrige agora).
+# VAZIO DE PROPOSITO (#270, 15/10/2026). A divida medida no primeiro dia do gate saiu toda:
+# cada contador foi para a medicao do §6 (numero de hoje) ou para o registro datado
+# `docs/analises/medicoes-datadas-2026-10-15.md` — o doc vivo aponta para la em vez de repetir
+# o numero. Baseline nao e deposito, e entrada aqui e decisao consciente: o teste
+# `test_baseline_nasce_vazio` cai junto, para o teto nao virar o novo lugar onde o contador
+# envelhece sem avisar.
+BASELINE_CONTADOR: dict[str, tuple[int, str]] = {}
 
 MARCA = re.compile("✅|📜|⚠️")
 DATA = re.compile(r"\d{2}/\d{2}/\d{4}|\d{4}-\d{2}-\d{2}")

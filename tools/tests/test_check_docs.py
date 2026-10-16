@@ -8,8 +8,10 @@ Por isso cada checagem tem teste dos DOIS lados: o caso que reprova e o vizinho 
 nao pode ser punido (link de linha `#L42`; arquivo com front-matter, que nao aceita
 banner markdown; porcentagem de protocolo, que nao e cobertura; `docs/analises/**` e
 `docs/arquivo/**`, que sao evidencia e historico). E o gate roda sobre o repo REAL:
-o baseline tem de bater com o que o gate mede — entrada de baseline folgada e deposito
-de divida invisivel.
+**0 contador fora do §6** e o baseline **vazio** — a divida do primeiro dia (25 contadores
+datados) foi paga um a um, para o registro de `docs/analises/` ou para a medicao do §6.
+Baseline folgado e deposito de divida invisivel: e por isso que o teto tem motivo e o
+vazio e contrato, nao sobra.
 """
 
 from __future__ import annotations
@@ -63,6 +65,28 @@ def test_baseline_bate_com_a_medicao(tmp_path, monkeypatch) -> None:
             f"{arq}: teto {teto} != medido {mod.CONTADOS.get(arq, 0)} — "
             "baixe o teto (divida paga) ou conserte o contador novo"
         )
+
+
+def test_baseline_nasce_vazio() -> None:
+    """Congelar divida nao e conserto (#270): o teto tem de estar vazio, e a entrada nova
+
+    e decisao consciente — quem congelar contador muda ESTE teste junto, com o motivo escrito.
+    """
+    mod = _carregar()
+    assert mod.BASELINE_CONTADOR == {}, (
+        f"baseline com entrada: {sorted(mod.BASELINE_CONTADOR)} — contador datado vai para o "
+        "registro de docs/analises/ e o doc vivo aponta para la; congelar exige mudar este teste"
+    )
+
+
+def test_repo_nao_tem_contador_fora_do_6() -> None:
+    """O contrato do §6: medicao ZERO no repo real — nao "dentro do teto do baseline"."""
+    r = subprocess.run(
+        [sys.executable, str(_SCRIPTS / "check_docs.py")],
+        cwd=_RAIZ, capture_output=True, text=True, encoding="utf-8",
+    )
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert "contadores fora do §6: 0" in r.stdout, r.stdout
 
 
 # ── 1. LINK ──────────────────────────────────────────────────────────────────

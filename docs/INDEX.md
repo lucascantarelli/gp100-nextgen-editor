@@ -105,6 +105,7 @@ automática do GitHub.
 |---|---|---|
 | `audit-2026-10-14.md` | **Auditoria ampla (14/10)**: docs, Rust, front, CI/DevOps, latência MIDI e cobertura do manual — 18 achados (F-01…F-18) com severidade e backlog priorizado; faxina dos artefatos locais não rastreados (`re_tmp`, `superpowers`, `test-results`) | ✅ atual (14/10) |
 | `audit-harness-2026-10-14.md` | **Auditoria do harness (14/10)**: as 9 skills e os 6 prompts de `.agents/` — 12 achados (H-01…H-12), plano de consolidação em 3 commits e a tabela de fontes únicas (issue [#249](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/249)) | ✅ atual (14/10) |
+| `medicoes-datadas-2026-10-15.md` | **Registro das medições datadas (15/10)**: os contadores que saíram dos documentos vivos na [#270](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/270) — diagnóstico da virada (09/10), rodadas de teste manual da UI (set/out) e números de prosa — cada um com a data e a origem; o doc vivo aponta para cá **ou** para o §6 | 📜 histórico (registro da #270) |
 | `audit-2026-10-07.md` | **Auditoria completa (07/10)**: code review + governança + arquitetura + limpeza em todo o repo, com números remediados, achados F-01…F-12 e backlog A-1…A-10 (desfecho na §10) | 📜 histórico (desfecho 08/10) |
 | `audit-era-real-2026-10-07.md` | Auditoria da Era Real (07/10): estado do app real vs mock | 📜 histórico |
 | `skills-audit-2026-09-29.md` | Auditoria das skills: regras que eram prática implícita, agora escritas (5 achados em core-dev/docs-sync/spec-baseline) | 📜 histórico |
