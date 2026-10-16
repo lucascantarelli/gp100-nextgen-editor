@@ -52,12 +52,19 @@ estrutura — e, desde a #68, que a ESTRUTURA nova é o que o projeto adoptou.Co
   15. o `simulate_release` (LENTO) roda por ESCOPO (#246, F-13): o `if` do passo
       lê o `scope-ci` do `ci_plan.py`, e a identidade do bot
       (`BOT_NAME`/`BOT_EMAIL`) é idêntica nos três arquivos de release.
+  16. a LIGAÇÃO gate → job (#273, classe do #71): todo gate de `gates.py` tem
+      passo no `ci.yml`, e a tabela `GATES_LIGADOS` diz em QUAL job — o passo
+      tem de estar lá, e o `run:` dele tem de conter o comando do gate
+      (comentário não conta). Gate novo, de outro PR, sem linha na tabela ainda
+      é cobrado: o comando dele tem de existir em algum `run:` do `ci.yml`.
+      O que não passa, por nenhuma das duas portas, é o gate DESLIGADO.
 
 Uso: python3 .github/scripts/validate_workflows.py  (exit 1 na primeira violação)
 """
 from __future__ import annotations
 
 import glob
+import importlib.util
 import os
 import re
 import sys
@@ -255,6 +262,160 @@ PISO_VERSAO_ACTION = {
     "softprops/action-gh-release": 3,
     "taiki-e/install-action": 2,
 }
+
+# ── A LIGAÇÃO gate → job (#273, classe do #71) ───────────────────────────────
+#
+# `gates.py` é a lista dos gates de SCRIPT, o `ci.yml` é quem os roda de verdade
+# e o `ci_plan.py` decide o escopo de cada job: TRÊS fontes de verdade. Quem
+# divergir apodrece em silêncio, e o modo de falhar é sempre "verde" — foi
+# exatamente o #71: `check_bundle.py` escrito, documentado como gate do CI e
+# **não ligado**; o gate só apareceu quando o schema já tinha divergido. Medido
+# em 15/10 (#273), a mesma classe ainda tinha três casos vivos: `byte_order`,
+# `param_ranges` e `state_pages` não estavam em NENHUM passo (e o primeiro não
+# era coberto nem pelo pytest).
+#
+# A tabela é a política escrita UMA vez: para cada gate, os jobs que PRECISAM
+# ter o passo e o trecho que o `run:` daquele job tem de conter (as flags podem
+# diferir do `gates.py` — a `baseline` roda `show` no CI de propósito).
+#
+# O contrato 16 cobra os dois lados:
+#   * linha declarada → aquele job existe no `ci.yml` E tem o passo; mudar o
+#     gate de job (ou apagar a linha do `run:`) reprova dizendo o job;
+#   * gate sem linha → o comando dele tem de aparecer em ALGUM `run:` do
+#     `ci.yml`. É de propósito que a ausência de linha não seja falha: exigir
+#     "toda linha" deixaria o `develop` vermelho quando um PR irmão acrescenta
+#     gate + passo no mesmo commit, e o vermelho seria de outro. O que NUNCA
+#     passa é o gate sem passo nenhum, que reprova pelas duas portas.
+GATES_LIGADOS: dict[str, tuple[tuple[str, ...], str]] = {
+    # Os contratos do pipeline no MESMO job: é ele que lê o `ci.yml`.
+    "validate_workflows": (("lint-workflows",), ".github/scripts/validate_workflows.py"),
+    "check_bundle": (("lint-workflows",), ".github/scripts/check_bundle.py"),
+    "check_issue_templates": (("lint-workflows",), ".github/scripts/check_issue_templates.py"),
+    # Os DOIS gates de documentacao, no mesmo job (e o `ci.yml` e quem le o
+    # proprio `ci.yml`): a higiene do doc (#270) divide o passo dos contratos; a
+    # obsolescencia doc x modulo (#275) tem passo proprio, pelo custo do git log.
+    "check_docs": (("lint-workflows",), ".github/scripts/check_docs.py"),
+    "check_docs_modulos": (("lint-workflows",), ".github/scripts/check_docs_modulos.py"),
+    "sync_version": (("lint-workflows",), ".github/scripts/sync_version.py"),
+    # O gate LENTO: o passo vive no mesmo job, atrás do escopo do `ci_plan.py`
+    # (#246); o `if:` é cobrado no 5b, o JOB vem daqui — um mecanismo só.
+    "simulate_release": (("lint-workflows",), ".github/scripts/simulate_release.py"),
+    # O `check_module_size` é UM gate olhando os DOIS lados do IPC (#248): o job
+    # do front e o do Rust têm de rodá-lo, senão o lado que não mudou fica sem
+    # freio — foi assim que o `actor.rs` chegou a 2 702 linhas.
+    "check_deadcode": (("lint-ui",), ".github/scripts/check_deadcode.py"),
+    "check_module_size": (
+        ("lint-ui", "lint-rust-fmt"),
+        ".github/scripts/check_module_size.py",
+    ),
+    # A auditoria de MOVIMENTO roda no job das mensagens: o trailer `Move-only:`
+    # vive no commit, e e ele que o gate le (#263/#264).
+    "check_move_only": (("lint-commits",), ".github/scripts/check_move_only.py"),
+    # Os gates de DADOS da especificação (#273): leem artefato versionado
+    # (`param_ranges.json`, `state_pages_offsets.json`, a captura da sessão 3) e
+    # não precisam de binário nem de GUI — o job da spec é a casa deles.
+    "byte_order": (("test-spec",), "tools/check_byte_order.py"),
+    "param_ranges": (("test-spec",), "tools/param_ranges.py --check"),
+    "state_pages": (("test-spec",), "tools/validate_state_pages.py"),
+    # A baseline roda no CI como `show` — de propósito: o número fica VISÍVEL no
+    # log. O `--check` que reprova é do pytest e do `gates.py`.
+    "baseline": (("test-spec",), "tools/baseline.py show"),
+    "pytest": (("test-spec",), "uv run pytest"),
+    "check_base_images": (("ci-images",), ".github/scripts/check_base_images.py"),
+}
+
+# O caminho da LISTA (relativo ao repo): é dele que sai o conjunto de gates.
+GATES_RAIZ = os.path.join(".github", "scripts", "gates.py")
+
+
+def gates_declarados() -> dict[str, list[str]]:
+    """`gates.py` → {nome do gate: assinaturas do comando}.
+
+    A lista vem do PRÓPRIO `gates.py` (importlib, o padrão dos specs): manter
+    uma segunda lista aqui seria a divergência de novo, e a que valeria seria a
+    que ninguém roda. A assinatura é o que tem de aparecer no `run:` de um
+    passo: o caminho do script quando o comando nomeia um `.py`; senão o comando
+    sem flags e sem o interpretador — o `sys.executable` é um caminho absoluto
+    que muda por runner —, que é o caso do `pytest` ("uv run pytest").
+    """
+    caminho = os.path.join(REPO, GATES_RAIZ)
+    try:
+        spec = importlib.util.spec_from_file_location("gates_dos_gates", caminho)
+        if spec is None or spec.loader is None:
+            raise ImportError(f"spec vazio para {caminho}")
+        modulo = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(modulo)
+        declarados: dict[str, list[str]] = {}
+        for nome, comando, _motivo in modulo.GATES:
+            scripts = [str(tok) for tok in comando if str(tok).endswith(".py")]
+            declarados[nome] = scripts or [
+                " ".join(
+                    str(tok)
+                    for tok in comando
+                    if not str(tok).startswith("-") and not os.path.isabs(str(tok))
+                )
+            ]
+        return declarados
+    except Exception as exc:  # noqa: BLE001 — o gate não pode estourar traceback
+        FAILURES.append(f"{GATES_RAIZ}: não consegui ler a lista de gates ({exc})")
+        return {}
+
+
+def runs_do_ci(doc: dict) -> list[str]:
+    """O texto de todo `run:` do `ci.yml`, sem as linhas de comentário."""
+    return [
+        sem_comentarios(str((passo or {}).get("run") or ""))
+        for job in (doc.get("jobs") or {}).values()
+        for passo in ((job or {}).get("steps") or [])
+    ]
+
+
+def passos_que_rodam(job: dict | None, trecho: str) -> list[dict]:
+    """Os passos de `job` cujo `run:` contém `trecho` — comentário NÃO conta."""
+    return [
+        passo
+        for passo in ((job or {}).get("steps") or [])
+        if trecho in sem_comentarios(str((passo or {}).get("run") or ""))
+    ]
+
+
+def gates_desligados(doc: dict) -> list[str]:
+    """Contrato 16: gate de script sem passo no `ci.yml` (classe do #71/#273)."""
+    declarados = gates_declarados()
+    if not declarados:
+        # `gates_declarados` já reportou a falha; sem lista não há o que conferir.
+        return []
+    faltas: list[str] = []
+    jobs = doc.get("jobs") or {}
+    runs = runs_do_ci(doc)
+    for nome, assinaturas in declarados.items():
+        linha = GATES_LIGADOS.get(nome)
+        if linha is None:
+            if not any(assinatura in run for assinatura in assinaturas for run in runs):
+                faltas.append(
+                    f"gate '{nome}' ({assinaturas[0]!r}) não está em nenhum `run:` do `ci.yml` — "
+                    "gate escrito e NÃO LIGADO é a classe do #71: o `gates.py` local fica verde "
+                    "com o gate morto (#273)"
+                )
+            continue
+        for job_id in linha[0]:
+            if job_id not in jobs:
+                faltas.append(
+                    f"GATES_LIGADOS['{nome}'] declara o job '{job_id}', que não existe no `ci.yml` — "
+                    "a ligação aponta para o vazio e ninguém roda o gate (#273)"
+                )
+            elif not passos_que_rodam(jobs.get(job_id), linha[1]):
+                faltas.append(
+                    f"ci: o job '{job_id}' perdeu o passo do gate '{nome}' "
+                    f"(`run:` sem {linha[1]!r}) — a ligação gate → job está em GATES_LIGADOS "
+                    "(#273): o passo tem de estar LÁ, não em qualquer job"
+                )
+    for nome in sorted(set(GATES_LIGADOS) - set(declarados)):
+        faltas.append(
+            f"GATES_LIGADOS declara o gate '{nome}', que não existe em `gates.py` — linha órfã: "
+            "a ligação deixou de ser conferida (gate renomeado ou removido?)"
+        )
+    return faltas
 
 
 def main() -> int:
@@ -523,23 +684,16 @@ def main() -> int:
             "ci_plan.py: perdeu 'CI_PATHS'/'scope-ci' — é o escopo que governa o gate `simulate_release` "
             "(#246: a cadeia de release é provada onde ela pode quebrar, não em todo PR)"
         )
-    passo_sim = next(
-        (
-            step
-            for step in ((jobs.get("lint-workflows") or {}).get("steps") or [])
-            if "simulate_release.py" in str(step.get("run") or "")
-        ),
-        None,
-    )
-    if passo_sim is None:
-        FAILURES.append(
-            "ci: `lint-workflows` perdeu o passo que roda `simulate_release.py` — é a prova da cadeia rc→promote"
-        )
-    elif "scope-ci" not in str(passo_sim.get("if") or ""):
-        FAILURES.append(
-            "ci: o passo do `simulate_release.py` precisa de `if: needs.plan.outputs.scope-ci == 'true'` "
-            "(#246) — sem ele o gate de ~2 min volta a rodar em todo PR"
-        )
+    # O JOB do gate vem da tabela (#273) — um mecanismo só. A EXISTÊNCIA do passo
+    # é do contrato 16; aqui se cobra o `if:` que mantém o gate barato.
+    for job_id in GATES_LIGADOS["simulate_release"][0]:
+        for passo_sim in passos_que_rodam(jobs.get(job_id), ".github/scripts/simulate_release.py"):
+            if "scope-ci" not in str(passo_sim.get("if") or ""):
+                FAILURES.append(
+                    "ci: o passo do `simulate_release.py` precisa de "
+                    "`if: needs.plan.outputs.scope-ci == 'true'` (#246) — sem ele o gate de ~2 min "
+                    "volta a rodar em todo PR"
+                )
 
     # ── 5c. a IDENTIDADE DO BOT é a mesma nos três reutilizáveis (#245) ──
     #
@@ -873,6 +1027,14 @@ def main() -> int:
                 "visual-baselines: artefato precisa de `if-no-files-found: error` — aqui o "
                 "artefato é o produto, e verde sem nada gerado é a mentira mais cara"
             )
+
+    # ── 16. nenhum gate de script fica DESLIGADO (#273, classe do #71) ───
+    # O `gates.py` roda por conta própria: ele fica VERDE mesmo quando o passo
+    # saiu do `ci.yml`. Sem este contrato, apagar a linha do `run:` (ou mover o
+    # gate para um job que o escopo não abre) devolve um CI verde com o gate
+    # morto — o que aconteceu com o `check_bundle.py` (#71) e, medido em 15/10,
+    # com `byte_order`, `param_ranges` e `state_pages`.
+    FAILURES.extend(gates_desligados(ci))
 
     # ── relatório ───────────────────────────────────────────────────────
     for path in sorted(docs):

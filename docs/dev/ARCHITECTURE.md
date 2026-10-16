@@ -1,3 +1,5 @@
+> ✅ **atual** · última revisão 2026-10-14.
+
 # ARQUITETURA — o front (gp100-ui)
 
 > **O que este documento é.** O mapa de módulos do front e, principalmente, **o que

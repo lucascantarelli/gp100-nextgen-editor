@@ -1,3 +1,5 @@
+> 📜 **histórico** — Era de RE, arquivado na #168 · última revisão 2026-10-11 · achados corroborados no `docs/tecnico/PROTOCOL.md` §13.
+
 # FINDINGS — Parser/serializer `0x6209D0`: os 7 formatos de objeto
 
 Sessão 3 de disassembly. Função: `BOOL encode_object(BitStream* esi, Object* edi)`

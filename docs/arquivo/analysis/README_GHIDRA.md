@@ -1,3 +1,5 @@
+> 📜 **histórico** — Era de RE, arquivado na #168 · última revisão 2026-10-11 · mapa da cápsula: `docs/arquivo/analysis/README.md`.
+
 # Extração bruta da tabela `algorithmParaNameConstData` (work opcional)
 
 Objetivo: confirmar in-place os nomes/contagens de parâmetros direto da firmware V2.1,

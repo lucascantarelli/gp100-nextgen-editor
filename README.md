@@ -1,3 +1,5 @@
+> ✅ **atual** · última revisão 2026-10-14.
+
 # GP-100 NextGen Editor
 
 [![ci](https://github.com/lucascantarelli/gp100-nextgen-editor/actions/workflows/ci.yml/badge.svg)](https://github.com/lucascantarelli/gp100-nextgen-editor/actions/workflows/ci.yml)

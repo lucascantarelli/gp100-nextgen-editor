@@ -1,6 +1,6 @@
 # 🧪 TESTING — Contrato da suíte de testes
 
-> **Status:** ✅ atual · **Revisão:** 2026-10-11 · **Nascido da #166** (suíte enxuta, Era Hardware)
+> **Status:** ✅ atual · **Revisão:** 2026-10-15 · **Nascido da #166** (suíte enxuta, Era Hardware)
 >
 > Este é o **mapa e o contrato** da suíte: o que ela cobre, como rodar, **o que um
 > teste novo precisa provar**, **o que não entra** e **as proteções que não podem
@@ -26,7 +26,11 @@
 
 Cada suíte tem um **juiz independente** — passar numa não cobre outra. A CI roda as
 quatro em jobs separados (`.github/workflows/ci.yml`), filtradas por caminho
-(`.github/scripts/ci_plan.py`): doc puro não sobe Rust nem front. Os workflows
+(`.github/scripts/ci_plan.py`): doc puro não sobe Rust nem front. O escopo `rust` sai dos
+`members` do `Cargo.toml` da **raiz** do repo e **falha alto** quando ele não é legível
+(#261: o `except OSError` que morava ali trocava erro de caminho por lista vazia, e o PR
+que mexia só em `packages/core` rodava a CI **sem** lint, compile e teste de Rust — verde).
+Os workflows
 reutilizáveis (`dist-*.yml`/`release-*.yml`, #245) carregam o CORPO da
 distribuição e da release; o `ci.yml` fica com o grafo e o nome dos jobs.
 

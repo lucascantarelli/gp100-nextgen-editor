@@ -1,3 +1,5 @@
+> 📜 **histórico** — Era de RE, arquivado na #168 · última revisão 2026-10-11 · achados corroborados no `docs/tecnico/PROTOCOL.md` §13.
+
 # FINDINGS — Sessão 4: chamadores dos VLQ e do tag mapper (fechamento do mapa)
 
 Alvos: `0x6331D0` (writeVarLen64), `0x633520` (writeVarLen32), `0x620570`

@@ -4,6 +4,11 @@
 > (`pnpm dev` em `packages/app/ui`, porta 5173) OU no shell Tauri. Marcar ✅/❌ por
 > item e devolver os achados para `docs/referencias/UI_REFERENCE.md` §3. Cada fase só passa
 > para a próxima com a aprovação do owner (decisão 30/09).
+>
+> **Medições por rodada:** a rodada registra aqui o **resultado** (verde/vermelho e o que
+> passou a ser testado); os números dela (unit, e2e, cobertura, baselines) vivem no registro de
+> [`analises/medicoes-datadas-2026-10-15.md`](../analises/medicoes-datadas-2026-10-15.md) — e a
+> régua de hoje é o §6 do [`INDEX`](../INDEX.md).
 
 ---
 
@@ -127,8 +132,8 @@
 > Escopo fechado com o owner: (a) estreitar a biblioteca; (b) fazer o patch
 > selecionado REFLETIR nos 9 pedais; (c) implementar a UI de User Patch (até
 > então decorativa, bloqueada). Gates: tsc · eslint · vitest · coverage · build ·
-> playwright. Resultado: **144 unit ✅ (12 arquivos) · 77 e2e ✅ · cobertura
-> 89,9% stmts / 86,6% branch** (gate 85) · 18 baselines win32 regeneradas.
+> playwright. Resultado: **suíte inteira verde** (unit, e2e e cobertura acima do gate 85) ·
+> baselines win32 regeneradas (números da rodada de 02/10 no registro).
 
 **Achado de fundo (o bug real):** o core Rust já montava a cadeia por preset;
 o que estava congelado era o **mock web**, com uma cadeia FIXA para os 99. Dois
@@ -171,8 +176,8 @@ consequências que os testes revelaram ao deixar de mentir:
 > limpo). Só a escrita no device espera a captura do `0x47`
 > (`docs/arquivo/CAPTURE_PLAN.md`, CAPTURA 5).
 >
-> **Resultado: 155 unit ✅ (13 arquivos) · 78 e2e ✅ · cobertura 90,3% stmts /
-> 86,5% branch** (gate 85). `effects.ts` e `PedalModal.tsx` em 100% de linhas.
+> **Resultado: a suíte inteira verde** (unit, e2e e cobertura acima do gate 85; números da
+> rodada de 02/10 no registro). `effects.ts` e `PedalModal.tsx` em 100% de linhas.
 
 **Regras que os testes travam (as que dão sentido ao editor):**
 - A lista é do **MÓDULO**: PRE não oferece `Bog RedM` (que é AMP).
@@ -285,8 +290,10 @@ issues Q-6/Q-7 (sliders/kill/error states).
 
 ## 🖼️ EXECUÇÃO — U-6/U-7: REGRESSÃO VISUAL + SMOKE DO SHELL TAURI (30/09)
 
-**U-6 — visual.spec.ts (toHaveScreenshot):** 15 baselines (board/looper/biblioteca
-+ erro-boot/erro-preset × 1440/1280/1024), animações congeladas, tolerância 1%,
+**U-6 — visual.spec.ts (toHaveScreenshot):** baselines de board/looper/biblioteca
++ erro-boot/erro-preset × 1440/1280/1024 (contagem no registro de
+[`analises/medicoes-datadas-2026-10-15.md`](../analises/medicoes-datadas-2026-10-15.md) e no §6
+do [`INDEX`](../INDEX.md)), animações congeladas, tolerância 1%,
 **baseline por
 plataforma** (`{arg}-{platform}`; fontes divergem Win/Linux). Estado atual:
 baselines `win32` **e `linux`** commitadas e comparando no CI ✅ (issue #45);
@@ -451,7 +458,7 @@ oficial Tauri v2 (webkit2gtk-driver + xvfb + WEBKIT_DISABLE_DMABUF_RENDERER).
 > Página em VIEWPORT ÚNICA (`main` navbar → meio com scroll próprio →
 > rodapé): a lista de 99 presets ganhou altura delimitada (max 38vh)
 > com rolagem interna e o rodapé virou o chassi da pedaleira
-> (IN · GP · OUT). 48 baselines regeneradas; 71/71 e2e ✅.
+> (IN · GP · OUT). Baselines regeneradas e a suíte e2e inteira ✅ (números da rodada no registro).
 >
 > **Navbar em 1 linha (garantia do owner):** logo compacta "GP-100" em
 > UMA linha (tagline migrada para o rodapé), status de conexão "on/off",
@@ -464,7 +471,7 @@ oficial Tauri v2 (webkit2gtk-driver + xvfb + WEBKIT_DISABLE_DMABUF_RENDERER).
 >
 > **Gate de coverage 85% (01/10, Vitest + @vitest/coverage-v8):** unit
 > 27 → 77 (tsc/lint ✅); thresholds statements/functions/lines = 85 no
-> `vite.config.ts` (branches 81.6% medido, sem gate — ganho por
+> `vite.config.ts` (a cobertura de branches medida então está no registro — sem gate, ganho por
 > incremento). A CI trava pelo build-front (`pnpm test:coverage`),
 > válido para front, ui-rust, e2e-tauri e releases. Furos fechados:
 > ipc/device completo (boot em lotes com cap travado em unit,
@@ -524,9 +531,9 @@ módulo igual.
 **Posições testadas:** 1–9 (9 slots do palco) + 7 controles do looper
 (REW/STOP/PLAY/REC/CLEAR, PRE/POST, 3 faders) + 4 módulos da navbar.
 
-**Status:** ✅ 141 unit · 53 e2e funcionais (R1–R6 + drum + looper + 3
-responsivos + atalhos) · cobertura 90,1%/85,9% · baselines visuais
-regeneradas pela CI.
+**Status:** ✅ rodada verde (unit, e2e funcionais R1–R6 + drum + looper + responsivos +
+atalhos, cobertura acima do gate) · baselines visuais regeneradas pela CI — números da rodada
+no registro.
 
 ### Rodada #30 — i18n pt-BR/en/es/zh (03/10)
 
@@ -563,8 +570,8 @@ Proxy + `useLanguage`).
 sub-objetos (`bootStages`, `looperMode`, `settingsTabs`, `tapTempoLabels`), os
 formatadores (chamados com placeholders), e o seletor em Settings → General.
 
-**Status:** ✅ 178 unit (15 arquivos, +14 de i18n) · 78 e2e verdes sem mexer
-em baseline · cobertura 91,7%/86,7% (gate 85%) · tsc + eslint limpos.
+**Status:** ✅ suíte inteira verde com os testes novos de i18n · e2e sem mexer em baseline ·
+cobertura acima do gate 85% · tsc + eslint limpos — números da rodada no registro.
 
 ## Registro de rodada (colar no fim de docs/referencias/UI_REFERENCE.md §3)
 

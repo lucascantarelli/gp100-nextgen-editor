@@ -1,3 +1,5 @@
+> ✅ **atual** · última revisão 2026-10-14.
+
 # knowledge.md — GP-100 NextGen Editor (ler antes de agir)
 
 > Mapa geral da documentação: **`docs/INDEX.md`** · plano vivo: **`docs/planejamento/ROADMAP.md`**
@@ -16,6 +18,13 @@ comentário NA ISSUE e a fila avança.
 
 ## Estado vivo (atualizar a cada marco — 1–3 linhas, sem prosa)
 
+- 14/10 — **#261 (`scope-rust` do plano)**: a lista de crates Rust da CI sai dos
+  `members` do manifesto do WORKSPACE (= `parents[2]` de `.github/scripts/`, a
+  armadilha registrada na #168) e o plano agora **falha alto** se não conseguir
+  lê-lo — o `except OSError` que devolvia lista vazia fazia PR de
+  `packages/core|cli|library` rodar a CI SEM lint/compile/teste de Rust e ficar
+  verde. Trava em `tools/tests/test_ci_plan.py`.
+
 - 13/10 — **#168 (`scripts/` dissolvida)**: CI/gates → `.github/scripts/`;
   spec/dados → `tools/` (suíte Spec em  `tools/tests/`); empacotamento →
   `packaging/`; RE → `docs/arquivo/scripts-era-RE/`. `uv run python
@@ -33,7 +42,7 @@ comentário NA ISSUE e a fila avança.
   600) + `actor/`: `estado` (o que a thread possui), `relogio` (loop com prazos +
   read-back), `fila` (`Request`), `tipos` (DTOs do IPC), `backends`,
   `{leitura,escrita,boot,diagnostico}` e `tests`. Comportamento idêntico: 27
-  contratos do actor antes e depois, mesmos 40 testes do crate. O par
+  contratos do actor antes e depois, mesmos testes do crate (contagem no `docs/INDEX.md` §6). O par
   `sink`+`debounce` virou `Cadencia` (escrita marca o estado e avisa a tela
   junto) e o orçamento do crate ficou declarado em `docs/dev/ARCHITECTURE.md`
   §4.1 — a cobrança automática do Rust é a **#248**.
@@ -129,7 +138,7 @@ comentário NA ISSUE e a fila avança.
 - **Arquivo escrito em modo texto vira CRLF** no Windows e suja o diff contra o
   `* text=auto eol=lf`: escrever com `newline="\n"`; gerador novo = rodar a
   suite e exigir `git status` limpo. **Nunca** aplicar normalização de EOL em
-  BINÁRIO (já corrompeu os 16 ícones). Arquivo com identidade byte-a-byte entra
+  BINÁRIO (já corrompeu os arquivos de ícone — contagem no `docs/INDEX.md` §6). Arquivo com identidade byte-a-byte entra
   no `.gitattributes` com `-text` antes do 1º commit (golden, .prst, capturas,
   fixtures).
 - **CJK acidental em texto PT-BR**: ao redigir/ editar, varrer

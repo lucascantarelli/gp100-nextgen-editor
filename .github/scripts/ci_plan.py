@@ -32,6 +32,7 @@ from __future__ import annotations
 import json
 import os
 import re
+from pathlib import Path
 
 # O macOS fica em `macos-15-intel` (x86_64) de propósito: todo runner macos-*
 # arm64 carrega a anotação "capacity constraints … longer queue times" do
@@ -100,23 +101,49 @@ def classify(ref: str, base_ref: str, event: str) -> str:
 # `packages/app/ui` NÃO é crate Rust, mas o `tauri.conf.json` e o front fazem
 # parte do build do shell e mudam juntos; ele entra na lista de Paths para o
 # escopo `rust` continuar disparando onde já disparava (compatibilidade).
+# A RAIZ do repo: `__file__` mora em `.github/scripts/`, entao sao TRES pais
+# ate ela (#168 registrou a armadilha; a #261 pagou por ela).
+RAIZ = Path(__file__).resolve().parent.parent.parent
+# O manifesto do workspace fica na RAIZ do repo — NAO em `.github/` ([#261]).
+MANIFESTO_WORKSPACE = RAIZ / "Cargo.toml"
+
 _CRATES_CACHE: list[str] | None = None
+
+
+def membros_do_workspace(manifesto: Path) -> list[str]:
+    """Os `members` do manifesto do workspace — FALHA ALTO se nao der para ler.
+
+    Nao existe fallback, de proposito (#261). A lista de caminhos Rust da CI sai
+    daqui, e o `except OSError: membros = []` que morava nesta funcao trocava um
+    erro de caminho por uma lista so com os `extra`: PR que mexia apenas em
+    `packages/core/**`, `packages/cli/**` ou `packages/library/**` rodava a CI
+    SEM lint, SEM compile e SEM teste de Rust — e ficava verde. Um erro de
+    leitura tem de doer aqui, onde a causa aparece, e nao virar jobs ausentes.
+    """
+    try:
+        texto = manifesto.read_text(encoding="utf-8")
+    except OSError as e:
+        raise RuntimeError(
+            f"ci_plan: manifesto do workspace ilegivel em {manifesto} ({e}). Sem os "
+            "`members` o escopo `rust` so enxerga os crates `extra` e a CI roda sem "
+            "lint/compile/teste de Rust para packages/core, cli e library (#261)"
+        ) from e
+    bloco = re.search(r"members\s*=\s*\[(.*?)\]", texto, re.S)
+    membros = re.findall(r'"([^"]+)"', bloco.group(1)) if bloco else []
+    if not membros:
+        raise RuntimeError(
+            f"ci_plan: {manifesto} nao declara `members` — e dai que sai o escopo "
+            "`rust` do plano, e uma lista vazia viraria jobs de Rust ausentes numa "
+            "run verde (#261)"
+        )
+    return membros
 
 
 def crates_rust() -> list[str]:
     """Diretórios com código Rust, lidos dos membros do workspace."""
     global _CRATES_CACHE
     if _CRATES_CACHE is None:
-        manifesto = os.path.join(os.path.dirname(__file__), "..", "Cargo.toml")
-        membros: list[str] = []
-        try:
-            with open(manifesto, encoding="utf-8") as fh:
-                texto = fh.read()
-            bloco = re.search(r"members\s*=\s*\[(.*?)\]", texto, re.S)
-            if bloco:
-                membros = re.findall(r'"([^"]+)"', bloco.group(1))
-        except OSError:
-            membros = []
+        membros = membros_do_workspace(MANIFESTO_WORKSPACE)
         # inclui o crate excluido da raiz (o shell do Tauri) e o front
         extra = ["packages/app/api", "packages/app/ui"]
         for e in extra:

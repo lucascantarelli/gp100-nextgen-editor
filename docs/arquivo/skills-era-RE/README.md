@@ -1,3 +1,5 @@
+> 📜 **histórico** — Era de RE, arquivado na #168 · última revisão 2026-10-13 · casas vivas: `docs/INDEX.md` §3.
+
 # Skills da Era de Engenharia Reversa (arquivadas em 11/10/2026 — #170)
 
 Estas **5 skills** descreviam o processo da Era de Engenharia Reversa, em que a

@@ -1,3 +1,5 @@
+> 📜 **histórico** — Era de RE, arquivado na #168 · última revisão 2026-10-13.
+
 # Sessão H2 real — 05/10/2026, GP-100 V2.1
 
 Evidência do gate H2 de escrita real. O veredito está em
