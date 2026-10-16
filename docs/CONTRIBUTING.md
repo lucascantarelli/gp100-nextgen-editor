@@ -140,6 +140,15 @@ Só a área que você tocou — o CI filtra o resto por caminhos.
   `simulate_release` roda sempre que você pedir: o custo aqui é seu, não de cada
   PR. A regra fica na **fonte única** (nada de `if:` escrito à mão no YAML), e o
   `validate_workflows.py` cobra que o passo leia `needs.plan.outputs.scope-ci`.
+- **Todo gate de `gates.py` tem passo no `ci.yml`** — e no job declarado em
+  `GATES_LIGADOS` ([validate_workflows.py](../.github/scripts/validate_workflows.py),
+  contrato 16, #273). A ligação gate → job é uma terceira lista (o `gates.py`
+  local, os passos do `ci.yml` e os escopos do `ci_plan.py`): gate escrito e não
+  ligado é a classe do #71 — o `check_bundle.py` ficou fora do CI até alguém
+  reparar, e o `gates.py` **verde** local nunca acusa (ele roda por conta
+  própria). Os três gates de dados que estavam nessa situação
+  (`byte_order`, `param_ranges`, `state_pages`) passaram ao `Testes · Especificação`.
+  Gate novo? O passo no `ci.yml` **e** a linha na tabela, no mesmo commit.
 - **Todo doc que DESCREVE um módulo tem juiz de obsolescência** (#275): o
   `check_docs_modulos.py` (`.github/scripts/`) compara a última revisão do
   documento com a **superfície** dos módulos de código que ele cita

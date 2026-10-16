@@ -175,7 +175,7 @@ reprova qualquer `analysis/` dentro de `packages/`.
 | Script | Papel | Roda em |
 |---|---|---|
 | `ci_plan.py` | Fonte de verdade da regra branch → escopos → matriz/stágios | `Validação · plano e escopo` |
-| `validate_workflows.py` | Sintaxe + contratos do pipeline + trigger (proíbe branch de trabalho no `push`) | `Lint · contratos do pipeline` |
+| `validate_workflows.py` | Sintaxe + contratos do pipeline + trigger (proíbe branch de trabalho no `push`) + a ligação **gate → job** (`GATES_LIGADOS`, contrato 16 — nenhum gate de script fica desligado, #273) | `Lint · contratos do pipeline` |
 | `check_bundle.py` | Schema do Tauri, ícones (16/32/48/256 + integridade PNG), `.deb`/PKGBUILD/`.desktop`, `targets` vs job de dist, tarball de fonte | `Lint · contratos do pipeline` (#71) |
 | `check_base_images.py` | Toda `FROM`/`COPY --from=` resolve o default de `ARG` e sonda o registro antes do build | `Infra · imagens de container` |
 | `simulate_release.py` | Executa os blocos rc/promote dos reutilizáveis `release-*.yml` (conferindo o `uses:`/`with:` do caller no `ci.yml`) num sandbox git — no CI só por escopo: schedule, tag/dispatch e PR de release (#245/#246) | `Lint · contratos do pipeline` |
@@ -205,10 +205,10 @@ R2/R3). Tabela de proveniência completa no PR da #163.
 | `baseline.py` · `baseline.json` | Registro da baseline (versão + hash + **motivo** + histórico); `--check` é gate, `bump` exige justificativa | gate `baseline` · CI `Testes · Especificação` |
 | `wirelog.py` · `validate_core_capture.py` | Normaliza os 2 schemas de log (Suite e gp100-core) · juiz frame a frame de uma captura do core | CI `Testes · Especificação` |
 | `make_fixtures.py` | Regenera `packages/core/data/fixtures/` e trava a paridade com o golden | pytest |
-| `param_ranges.py` · `param_ranges.json` | 639 faixas do knob + as 92 amostras reais que as corroboram (ADR-10) | gate `param_ranges` |
-| `validate_state_pages.py` | Layout das páginas 13xx contra o artefato embutido no binário (#155) | gate `state_pages` |
+| `param_ranges.py` · `param_ranges.json` | 639 faixas do knob + as 92 amostras reais que as corroboram (ADR-10) | gate `param_ranges` · CI `Testes · Especificação` |
+| `validate_state_pages.py` | Layout das páginas 13xx contra o artefato embutido no binário (#155) | gate `state_pages` · CI `Testes · Especificação` |
 | `map_state_pages.py` | Gera `packages/core/data/state_pages_offsets.json` a partir de S1 + `all.prst` | manual (gate de campo H4) |
-| `check_byte_order.py` | effectCode é u32 **LE** no fio real — prova com o par do H2 (#23) | gate `byte_order` |
+| `check_byte_order.py` | effectCode é u32 **LE** no fio real — prova com o par do H2 (#23) | gate `byte_order` · CI `Testes · Especificação` |
 | `validate_knob_map.py` · `knob_map.json` | Mapa knob→fio (§13.11): 13/14 no range + exceção CAB/Mic | pytest |
 | `dump_fx_map.py` · `dump_drum_kit.py` · `dump_preset_chains.py` · `dump_preset_list.py` | Geram `packages/core/data/fx_map.json` e os artefatos de `packages/app/ui/src/artifacts/` (não editar à mão) | manual |
 | `tests/` | A suíte **Spec** (pytest) — o que ela cobre está em `docs/tecnico/TESTING.md` §1 | CI `Testes · Especificação` |
