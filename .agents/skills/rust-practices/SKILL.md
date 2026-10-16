@@ -51,7 +51,10 @@ propósito: compilar o shell Tauri lá não pegava classe de bug própria.
 **não** dispara push — entra só por `pull_request` (a #68 restringiu `on.push`
 a integration porque `feature/**` + `pull_request` davam duas runs por push).
 O filtro é de *caminho* (`.github/scripts/ci_plan.py`): PR que só mexe em `docs/` não
-sobe Rust nem front.
+sobe Rust nem front. A lista de caminhos Rust sai dos `members` do `Cargo.toml` da
+**raiz** do repo e **falha alto** se ele não for legível (#261: antes, um caminho errado
+virava lista vazia e o PR que mexia só em `packages/core` rodava a CI **sem** lint,
+compile e teste de Rust — e ficava verde).
 
 Armadilhas mordidas — não reabrir:
 
