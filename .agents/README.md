@@ -51,7 +51,7 @@ Aqui fica só a ordem de entrada — para não manter um terceiro catálogo que 
 - Ao fechar marco: `docs-sync` (commit próprio na mesma PR) mantém
   INDEX/ROADMAP/knowledge honestos.
 - **Uma casa por regra:** regra transversal mora em UMA skill e as outras
-  **apontam** (a tabela abaixo). Regra repetida em 3 arquivos sincroniza em 3 e
+  **apontam** (a tabela abaixo, gerada pelo gate). Regra repetida em 3 arquivos sincroniza em 3 e
   apodrece nos outros — o modo de falha que o §8 da `docs-sync` combate.
 - **O harness tem gate próprio:** `python3 .github/scripts/check_harness.py`
   (ou `gates.py check_harness`) cobra caminho que resolve, `description` que
@@ -61,19 +61,26 @@ Aqui fica só a ordem de entrada — para não manter um terceiro catálogo que 
 
 ## Fontes únicas por regra (não duplicar)
 
+A tabela é **saída do gate**: quem manda é o `REGRAS` do
+`.github/scripts/check_harness.py`, que cobra **uma casa por regra** (§4) — a dona
+enuncia, as outras apontam. Editar a tabela à mão reprova; para mudar uma linha, mude a
+regra no gate e rode `check_harness.py --tabela`.
+
+<!-- fontes-unica:inicio (gerada por `.github/scripts/check_harness.py --tabela`; editar a mao reprova) -->
 | Assunto | Casa (dono) | Os demais |
 |---|---|---|
 | O aparelho é a fonte; medir, não deduzir (ADR-13) | `hardware-dev` | apontam |
-| Ciclo issue→branch→PR→CI→merge | `github-flow` (+ prompt `implementar-issue`) | apontam |
+| Ciclo issue→branch→PR→CI→merge | `github-flow` | apontam |
 | Conventional commits + footer Codebuff | `github-flow` | apontam |
-| Onde cada teste vive (unitário `src/` × contrato `tests/`) | `rust-practices` (visão por camada: `testing`) | apontam |
+| Onde cada teste vive (unitário `src/` × contrato `tests/`) | `rust-practices` + `testing` | apontam |
 | Contadores (testes/cobertura/jobs) só no `INDEX.md` §6 | `docs-sync` | apontam |
 | Armadilhas de host (cargo/PATH, toolchain pinada) | `knowledge.md` | apontam |
-| Cadeia de release rc→promote→tag | `release` (+ prompt `release`) | apontam |
+| Cadeia de release rc→promote→tag | `release` | apontam |
 | Camada do app (`packages/app/api`: actor, commands, DTO/IPC) | `app-dev` | apontam |
-| Estrutura/limites das camadas do front | `docs/dev/ARCHITECTURE.md` | apontam |
+| Estrutura e limites das camadas do front | `docs/dev/ARCHITECTURE.md` | apontam |
 | Papéis da equipe + estado da demanda (`flow:*`) | `.agents/agents/README.md` | apontam |
-| Gates locais por área (antes do PR) | `docs/CONTRIBUTING.md` §4 | `AGENTS.md` indexa |
+| Gates locais por área (antes do PR) | `docs/CONTRIBUTING.md` | apontam |
+<!-- fontes-unica:fim -->
 
 ## Modo ausente do dono (#202)
 
