@@ -147,12 +147,24 @@ e pega, com arquivo:linha:
 - tarball de fonte que ninguém produz, ou que não embute o `frontendDist` /
   `packages/core` (os três furos do #72).
 
+O gate lê **todos** os workflows (`WORKFLOWS` + `texto_dos_workflows()`, #245),
+não só o `ci.yml`: os blocos de Distribuição e Release saíram para os
+reutilizáveis `dist-*.yml`/`release-*.yml`, e ler um arquivo só daria **verde
+por não encontrar nada** — a ausência do token (`--bundles`, `make_sdist.py`, o
+`files:` do tarball) não pode valer como ausência do problema.
+
 [`.github/scripts/sync_version.py`](../../.github/scripts/sync_version.py) roda no mesmo job e
 falha quando os **cinco** manifests de versão divergem — `Cargo.toml` (raiz),
 `packages/app/api/Cargo.toml`, `packages/app/api/tauri.conf.json`,
 `packages/app/ui/package.json` e `version.json`. O `tauri.conf.json` é o que o
 Tauri usa como **versão do bundle**: sem ele na lista, cortar `v0.2.0` produz um
 instalador que se apresenta como `0.1.0` (#73).
+
+Desde a #231 o mesmo gate cobre **também os lock files** (`Cargo.lock` e
+`packages/app/api/Cargo.lock`): é o lock que guarda a versão dos crates de
+**caminho** (os locais, sem `source`), e bump que não passa por lá deixa a árvore
+que `cargo build --release --locked` recusa compilar — exatamente os dois
+consumidores de release (o `dist-sdist` e o `build()` do PKGBUILD).
 
 ## Pendências
 
