@@ -23,7 +23,7 @@ suposição do mock ou do manual de marketing. Escrita no aparelho só com as tr
 
 TAREFA: implemente o escopo da issue (nada fora dele — o que aparecer vira issue nova com
 evidência). Teste novo acompanha código novo — régua da skill `testing` (camadas, gate de
-cobertura do front). Commits conventional com o footer Codebuff.
+cobertura do front). Commits no formato da skill `github-flow` (conventional + footer).
 
 FECHAMENTO: branch feature/N-slug → gates LOCAIS da área → push → PR para develop com o
 template preenchido (tabela Antes→Depois, gates executados, ambiente) e `Closes #N` no

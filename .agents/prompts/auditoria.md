@@ -17,7 +17,8 @@ MÉTODO (auditar é medir, não opinar):
    arquivo, comando). Mecanismo citado ≠ mecanismo atual = achado.
 2. Dívida já paga (ou **não paga**) anunciada errado: aviso "⚠️ pendente" de issue fechada,
    ou resultado anunciado que o artefato não mostra, = achado.
-3. Contadores: número vive só no INDEX §6; repetido em outro doc = achado.
+3. Contadores: número vive no §6 do INDEX (regra da skill `docs-sync`); repetido em
+   outro doc = achado.
 4. Caminho morto: referência a arquivo/script/label/job que não existe mais = achado.
 5. Gates: rode a suíte completa (gates locais) e registre a saída; gate vermelho é achado.
 6. Segurança: uv/pnpm/cargo audit + dependências; achado vira issue com a label.

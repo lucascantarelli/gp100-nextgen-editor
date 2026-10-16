@@ -9,38 +9,12 @@
 
 ## 1. O que o cliente carrega — MEDIDO, não suposto (15/10/2026)
 
-Antes de desenhar a equipe, a pergunta que decide a arquitetura: **este cliente carrega agente
-definido no projeto?** Testado com quatro sondas, no formato que a documentação oficial do
-Codebuff (a base do Freebuff) publica:
-
-| Layout testado | id da sonda | Resultado medido |
-|---|---|---|
-| `.agents/<id>.ts` (o caminho documentado) | `poc-pesquisador` | ❌ `Agent "poc-pesquisador" is not available to spawn` |
-| `.agents/agents/<id>.ts` | `poc-pesquisador-dir` | ❌ `not available to spawn` |
-| `.agents/agents/<id>.md` (layout de subagente Markdown) | `poc-pesquisador-md` | ❌ `not available to spawn` |
-| agente **injetado pelo cliente** | `researcher-web` | ✅ única spawnável · até **6** em paralelo por chamada |
-
-**O que o cliente INJETA (e aí sim cross-sessão):** agentes (`researcher-web` — o único) e **MCPs**
-conectados ao repo: `github` (26 ferramentas: `create_issue`, `list_issues`, `create_pull_request`,
-`create_pull_request_review`, `get_pull_request_status`…), `playwright` (25: `browser_navigate`,
-`browser_snapshot`, `browser_take_screenshot`, `browser_console_messages`…) e `filesystem`. Chamada
-de prova: `github.list_issues(labels=["flow:pronto"])` → **funcionou** (resposta `[]`). É por aí que a
-nossa equipe toca o GitHub quando o `gh` não existir na máquina.
-
-**O que estava correto nas sondas** (para não confundir "não carrega" com "arquivo quebrado"):
-`.agents/poc-pesquisador.ts` é TypeScript válido (`esbuild --format=esm` → exit **0**), com os
-campos exatamente como a doc publica (`id`, `displayName`, `model`, `toolNames`, `spawnerPrompt`,
-`systemPrompt`, `instructionsPrompt`). O arquivo fica no repo como registro da forma.
-
-**Limites da medição, ditos de propósito:**
-- o cliente pode varrer `.agents/*.ts` **só no start** — as três recusas valem para *esta sessão*;
-  reiniciar o app é o teste que fecha a questão (a doc de skills do próprio produto manda
-  reiniciar quando uma skill não aparece);
-- a documentação do **Freebuff** não afirma em lugar nenhum que o Desktop carrega agente de
-  projeto (quem documenta a forma é o **Codebuff**; o `/init` dele cria `.agents/types/`, que
-  **não existe** neste repo);
-- o `model` do agente é um **ID opaco** no estado deste cliente (`"model": "m-096e75164d"` em
-  `~/.config/freebuff-desktop/state.json`) — não há slug público para espelhar.
+**O cliente NÃO carrega agente definido no projeto:** as três sondas foram recusadas
+(`.agents/<id>.ts`, `.agents/agents/<id>.ts`, `.agents/agents/<id>.md`) e a única spawnável é a
+**injetada** (`researcher-web`, até 6 em paralelo), junto dos MCPs `github`, `playwright` e
+`filesystem`. A medição inteira — sondas, ferramentas de cada MCP, a prova de que o arquivo não
+estava quebrado e os limites declarados — está em
+[`docs/analises/harness-v2-limite-medido-2026-10-15.md`](../../docs/analises/harness-v2-limite-medido-2026-10-15.md).
 
 ## 2. O que isso decide (o contorno)
 
@@ -148,12 +122,9 @@ O dev server da árvore precisa de **porta própria** (o default do Vite é 5173
 principal): `--port`/`--strictPort` são flags do Vite e o `dev` do front é `vite` puro
 (`packages/app/ui/package.json`), sem wrapper que as descarte.
 
-O que evita o retrabalho que o paralelismo cria:
-
-- **Um dono por arquivo.** Dois PRs no mesmo arquivo = conflito no squash: paralelize por
-  assunto disjunto, não por "tarefas pequenas".
-- **Carve-out não paraleliza** (`.github/**`, `.agents/**`, release) — serial, com o dono.
-- **Cada árvore tem o seu `target/` do Rust**: o primeiro `cargo test` de cada árvore paga o
-  build inteiro. Paralelize o que é Python/front; o Rust pesado, em série.
-- **O gate lê o repo onde roda**: `python3 .github/scripts/gates.py` na árvore errada é
-  evidência do trabalho errado.
+O que evita o retrabalho que o paralelismo cria: **um dono por arquivo** (dois PRs no mesmo
+arquivo = conflito no squash: paralelize por assunto disjunto, não por "tarefas pequenas");
+**carve-out não paraleliza** (`.github/**`, `.agents/**`, release: serial, com o dono); **cada
+árvore tem o seu `target/` do Rust** (o 1º `cargo test` de cada árvore paga o build inteiro: o
+Rust pesado vai em série); e **o gate lê o repo onde roda** (`python3 .github/scripts/gates.py`
+na árvore errada é evidência do trabalho errado).

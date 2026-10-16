@@ -65,16 +65,8 @@ fonte de retrocesso (viola a fonte única por assunto do §7 deste checklist).
   `action=rc`", mas ganha uma linha dizendo que o mecanismo **foi supersedido** e
   por quê. Não reescrever o marco; marcar o desvio.
 
-## Apêndice — proveniência das regras (histórico)
+## Apêndice — proveniência das regras
 
-Movido para cá para as regras de uso diário não carregarem data/citação. Nada aqui
-é regra; é de onde cada uma veio.
-
-- **§3** (lista de skills no inventário): conferência de 11/10/2026, issue #170.
-- **§7** (contadores só no §6): achado #81 da auditoria de 03/10/2026.
-- **§8** (mecanismo ≠ atual): a #68 trocou a arquitetura da CI e 6 documentos
-  seguiram ensinando a anterior por semanas; o corolário nasceu da auditoria de
-  07/10/2026 (F-03/F-04).
-- **§9** (baseline em develop): auditoria de 07/10/2026 (F-11).
-- **§10** (LF explícito): auditoria de 07/10/2026 (F-12) — o EOL quebrou o golden e o
-  round-trip duas vezes em 29/09/2026.
+A proveniência de cada regra (issue/data que a originou) saiu daqui para o skill não
+carregar histórico: está em
+[`docs/arquivo/docs-sync-proveniencia-2026-10.md`](../../docs/arquivo/docs-sync-proveniencia-2026-10.md).

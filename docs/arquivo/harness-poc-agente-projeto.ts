@@ -1,7 +1,10 @@
-// Registro MEDIDO (15/10/2026): este arquivo existe para provar a FORMA de agente
-// de projeto que o cliente do Freebuff/Codebuff documenta — e que ele NÃO carrega.
+// 📜 histórico (arquivado 16/10/2026, #269) — registro MEDIDO da FORMA de agente de projeto
+// que o cliente do Freebuff/Codebuff documenta — e que ele NÃO carrega. A medição completa,
+// com as três recusas e os limites declarados, está em
+// `docs/analises/harness-v2-limite-medido-2026-10-15.md`; a forma do adaptador que este
+// arquivo alimentaria está em `.agents/agents/README.md` §5.
 //
-// Três sondas, três recusas (§1 de .agents/agents/README.md):
+// Três sondas, três recusas:
 //   .agents/poc-pesquisador.ts        -> Agent "poc-pesquisador" is not available to spawn
 //   .agents/agents/poc-pesquisador.ts -> Agent "poc-pesquisador-dir" is not available to spawn
 //   .agents/agents/poc-pesquisador.md -> Agent "poc-pesquisador-md" is not available to spawn

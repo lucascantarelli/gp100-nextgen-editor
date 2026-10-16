@@ -1,4 +1,4 @@
-> ✅ **atual** · última revisão 2026-10-14.
+> ✅ **atual** · última revisão 2026-10-16.
 
 # knowledge.md — GP-100 NextGen Editor (ler antes de agir)
 
@@ -10,116 +10,25 @@
 O que a GP-100 faz se resolve MEDITO no aparelho, não deduzido do mock, do manual
 de marketing ou de engenharia reversa. Resposta ao usuário SEMPRE em PT-BR.
 
-Habilidade de entrada: **`AGENTS.md`** (raiz — o que um harness carrega sozinho) e
-`.agents/README.md` (mapa do harness — papéis, skills, prompts, ordem de leitura).
-Os papéis da equipe e o estado da demanda (`flow:*`) são `.agents/agents/README.md`.
-O fluxo de trabalho é `.agents/skills/github-flow/SKILL.md`.
-Dona ausente? **Modo ausente do dono** (mesmo `.agents/README.md`): fila
-autônoma na ordem de prioridade, UMA issue por PR; decisão crítica vira
-comentário NA ISSUE e a fila avança.
+Entrada: **`AGENTS.md`** (raiz — o que um harness carrega sozinho) e `.agents/README.md`
+(mapa do harness). Papéis e estado da demanda (`flow:*`): `.agents/agents/README.md`; fluxo:
+`.agents/skills/github-flow/SKILL.md`; dono ausente: **modo ausente** (`.agents/README.md`).
+O que **não** se faz é a lista do [`AGENTS.md`](AGENTS.md) §5 — aqui é ponteiro, não cópia.
 
 ## Estado vivo (atualizar a cada marco — 1–3 linhas, sem prosa)
 
-- 16/10 — **a higiene do harness virou gate (#267)**: `check_harness.py` cobra caminho
-  que resolve, `description` que dispara, contrato de papel com índice e a regra
-  transversal em UMA casa; a **tabela de fontes únicas** do `.agents/README.md` é
-  SAÍDA dele (`--tabela` gera; editar à mão reprova). Ligação gate → job pela tabela
-  `GATES_LIGADOS` (#273), não por `if` especial.
-- 15/10 — **equipe multiagente (harness v2)**: a limitação foi **medida**, não suposta —
-  este cliente não carrega agente definido no projeto em nenhum dos 3 layouts testados
-  (`.agents/<id>.ts`, `.agents/agents/<id>.ts`, `.agents/agents/<id>.md`); a única
-  spawnável é a injetada (`researcher-web`). Contorno: papel = contrato de arquivo
-  (`.agents/agents/`: triagem→implementador→revisor→verificador) + estado em labels
-  `flow:*` no GitHub + `git worktree` para paralelismo. Entrada nova: `AGENTS.md`.
-- 14/10 — **#261 (`scope-rust` do plano)**: a lista de crates Rust da CI sai dos
-  `members` do manifesto do WORKSPACE (= `parents[2]` de `.github/scripts/`, a
-  armadilha registrada na #168) e o plano agora **falha alto** se não conseguir
-  lê-lo — o `except OSError` que devolvia lista vazia fazia PR de
-  `packages/core`, `packages/cli` ou `packages/library` rodar a CI SEM lint/compile/teste de Rust e ficar
-  verde. Trava em `tools/tests/test_ci_plan.py`.
+- 16/10 — **a higiene do harness virou gate (#267)**: `check_harness.py` cobra caminho,
+  `description`, contrato de papel e **uma casa por regra** — a tabela de fontes únicas é
+  SAÍDA dele (`--tabela` gera; editar à mão reprova) e o #273 liga gate → job.
+- 15/10 — **equipe multiagente (harness v2)**: o cliente **não carrega** agente definido no
+  projeto (medido, 3 layouts); contorno = papel é contrato de arquivo + estado em label
+  `flow:*` + `git worktree`. Entrada nova: `AGENTS.md` — medição em `docs/analises/`.
+- 14/10 — **#261 (`scope-rust` do plano)**: a lista de crates Rust da CI sai dos `members` do
+  manifesto do WORKSPACE (= `parents[2]` de `.github/scripts/`, armadilha da #168) e o plano
+  **falha alto** — o `except OSError` fazia PR de Rust rodar a CI sem lint/compile/teste.
 
-- 13/10 — **#168 (`scripts/` dissolvida)**: CI/gates → `.github/scripts/`;
-  spec/dados → `tools/` (suíte Spec em  `tools/tests/`); empacotamento →
-  `packaging/`; RE → `docs/arquivo/scripts-era-RE/`. `uv run python
-  .github/scripts/gates.py` roda a suíte de gates (contagem no INDEX §6). Armadilhas novas: root em
-  `.github/scripts/` é `parents[2]` de `__file__`; `simulate_release` resolve
-  o git-bash via `shutil.which` (System32/WSL precede o PATH) e traduz
-  `python3`→`python` no sandbox Windows.
-- 13/10 — **#167 (docs categorizada)**: `docs/` virou árvore (`dev/` `tecnico/`
-  `planejamento/` `analises/` `referencias/` `arquivo/`) com TODOS os caminhos
-  do repo atualizados (sed + link checker); `SECURITY.md` da raiz virou ponteiro
-  para `docs/tecnico/seguranca.md`; golden bump v1.3 só de proveniência;
-  `files/` triado no disco (instalador/DebugView/logs fora — 97→16 MB).
-- 14/10 — **#243 (actor fatiado) entregue**: `packages/app/api/src/actor.rs`
-  saiu de 2 702 linhas para um módulo (`actor.rs` = handle + spawn, sob o teto de
-  600) + `actor/`: `estado` (o que a thread possui), `relogio` (loop com prazos +
-  read-back), `fila` (`Request`), `tipos` (DTOs do IPC), `backends`,
-  `{leitura,escrita,boot,diagnostico}` e `tests`. Comportamento idêntico: 27
-  contratos do actor antes e depois, mesmos testes do crate (contagem no `docs/INDEX.md` §6). O par
-  `sink`+`debounce` virou `Cadencia` (escrita marca o estado e avisa a tela
-  junto) e o orçamento do crate ficou declarado em `docs/dev/ARCHITECTURE.md`
-  §4.1 — a cobrança automática do Rust é a **#248**.
-- 14/10 — **CI enxuta (#245/#246)**: Distribuição e Release saíram do
-  `ci.yml` (1777 → ~1350 linhas) para 6 workflows `workflow_call`, com o
-  `ci.yml` ficando com o grafo, o nome dos jobs e a matriz de OS. O `env:` de
-  topo do caller NÃO atravessa o `workflow_call` (nem é contexto do `with:`) —
-  runner/args vêm por `with:` e o resto (toolchain do CLI, `BOT_NAME`/
-  `BOT_EMAIL`) mora no arquivo chamado. Check de job reutilizável que RODA sai
-  como `<caller> / <job>`; `skipped` (todo PR) sai com o nome do caller, então
-  required check de PR não muda. E o `simulate_release` (~2 min) só roda por
-  escopo (`scope-ci`): schedule, tag/dispatch e PR de release.
-- 13/10 — **#164 (sync bilateral) entregue**: estado tipado único no actor
-  (`idle/sync/pending/failed/offline`; `device_info` semeia e `device://sync`
-  transiciona), read-back pós-escrita (debounce 800 ms) + refresh de 10 s pela
-  sequência do boot (`reload_paginas_correntes` — `PROTOCOL.md` §13.15,
-  ADR-15), chip na navbar com ação reler/reconectar e reconciliação "o
-  aparelho vence". Limite honesto: knob físico não emite SysEx — é poll,
-  não push.
-- 13/10 — **regeneração de baseline virou workflow dedicado** (#204):
-  `visual-baselines.yml` (`workflow_dispatch` sem inputs, `contents: read`)
-  regenera as baselines `-linux`; o input `update-snapshots` saiu do `ci.yml`.
-  Motivo: o `default: release` do input `action` fazia o dispatch de baseline
-  cortar rc junto (runs 38070949933 e a do incidente rc.5 de 13/10 — revertido).
-  Contrato dos 3 workflows de pipeline + dos 6 reutilizáveis de dist/release
-  (#245) no `validate_workflows.py` (contratos 14/15).
-- 12/10 — **Navbar enxuta (diretriz do dono)**: cluster de PATCH (◀ ▶ + nome)
-  removido da navbar — troca vive na LISTA e o rótulo no display LED do palco;
-  DeviceBadge sem miniatura SVG (dot `.live-dot`/`.idle-dot` + status honesto).
-- 11/10 — **#170 (harness do agente) em execução**: skills da Era HW
-  (`hardware-dev`, `testing`, `release` novas; 5 da Era RE arquivadas em
-  `docs/arquivo/skills-era-RE/`), `.agents/prompts/` com 6 templates, templates
-  de issue com contrato obrigatório (gate `check_issue_templates.py`) e este
-  arquivo reescrito. O knowledge da era antiga ficou em
-  `docs/arquivo/knowledge-era-RE_2026-10.md`.
-- 11/10 — **#169 (CI na ordem do dono) ✅**: `ci.yml` com estágios em grafo
-  (validação → lint → compilação → infra → segurança → testes → cobertura →
-  distribuição → release), Relatório por último, Fechamento em
-  `issues-fechamento.yml` próprio, Arch Linux na matriz via container.
-- 10/10 — **`docs/referencias/GP100_DEVICE.md` é a fonte canônica do device** (vocabulário:
-  User Patch ≠ User IR ≠ Setlist; fila de lacunas de leitura). O aparelho está
-  ligado nesta máquina e é consultável por sessão (ver `hardware-dev`).
-- 09/10 — **Era Hardware aberta** (épico #171, milestone v1.1.0); roadmap
-  reescrito, era anterior arquivada em `docs/arquivo/`.
-
-## O que NÃO fazer (regras de era, não sugestões)
-
-- **Nada de engenharia reversa**: spec não é reconstruída de Suite/proxy/captura.
-  `docs/arquivo/analysis/` é histórico/evidência; o que importa de lá migrou para
-  `packages/core/data/` (#163). Skills da Era RE estão arquivadas — não
-  ressuscite o processo delas.
-- **Nada de escrever no aparelho fora das travas** (ADR-5): escrita exige a
-  feature `write-verified` + gate H2 passado + roteiro assinado. Não crie
-  terceira camada (env var, flag, subcomando) para contornar.
-- **Nada de contornar gate vermelho** (CI ou local): sem relaxar `-D warnings`,
-  sem pular job, sem `--no-verify`. CI vermelha não vira marco.
-- **Nada de implementar sem issue**; uma issue = um PR; descoberta nova no
-  caminho vira issue na hora — o ciclo é a skill `github-flow`.
-- **Contadores**: a casa é o `docs/INDEX.md` §6 (skill `docs-sync`) — número em
-  dois docs é dívida garantida.
-- **Palpite de protocolo = para o fluxo**: divergência app × aparelho vira issue
-  `protocolo` com evidência; nunca "consertar" o codec/UI no chute.
-- Skill nova só se justificar (description dispara em tarefa recorrente); skill
-  morta vai para `docs/arquivo/`, nunca é apagada.
+- Os **11 marcos anteriores** (14/10 → 09/10) estão em
+  [`docs/arquivo/knowledge-estado-vivo-2026-10.md`](docs/arquivo/knowledge-estado-vivo-2026-10.md).
 
 ## Armadilhas deste host (Windows 11 + Git Bash) — continuam mordendo
 
@@ -136,10 +45,8 @@ comentário NA ISSUE e a fila avança.
   O shell Tauri (`packages/app/api`) é MSVC/portável por ADR-7/ADR-8 —
   compila na CI, não no host.
 - **PATH do cargo**: fixado no sistema por `docs/arquivo/scripts-era-RE/add_cargo_path.ps1`
-  (arquivado na #168, fix de 29/09).
-  Em shell da sessão antiga: `export PATH="/c/Users/Canta/.cargo/bin:$PATH"` —
-  PREPEND (winget/choco sombreiam por append) e caminho em estilo POSIX
-  (`C:\...` no PATH quebra a lista no `:` do drive).
+  (arquivado na #168). Em shell antigo: `export PATH="/c/Users/Canta/.cargo/bin:$PATH"` —
+  PREPEND, e caminho em estilo POSIX (`C:\...` quebra a lista no `:` do drive).
 - **`python3` no Git Bash do Windows NÃO existe** (alias da Microsoft Store):
   usar `uv run python …` da raiz. Na CI (ubuntu) `python3` funciona.
 - **Python sob uv**: `uv sync --all-groups` na RAIZ (venv único `.venv/`);
