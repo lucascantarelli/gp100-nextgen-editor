@@ -291,6 +291,11 @@ GATES_LIGADOS: dict[str, tuple[tuple[str, ...], str]] = {
     "validate_workflows": (("lint-workflows",), ".github/scripts/validate_workflows.py"),
     "check_bundle": (("lint-workflows",), ".github/scripts/check_bundle.py"),
     "check_issue_templates": (("lint-workflows",), ".github/scripts/check_issue_templates.py"),
+    # Os DOIS gates de documentacao, no mesmo job (e o `ci.yml` e quem le o
+    # proprio `ci.yml`): a higiene do doc (#270) divide o passo dos contratos; a
+    # obsolescencia doc x modulo (#275) tem passo proprio, pelo custo do git log.
+    "check_docs": (("lint-workflows",), ".github/scripts/check_docs.py"),
+    "check_docs_modulos": (("lint-workflows",), ".github/scripts/check_docs_modulos.py"),
     "sync_version": (("lint-workflows",), ".github/scripts/sync_version.py"),
     # O gate LENTO: o passo vive no mesmo job, atrás do escopo do `ci_plan.py`
     # (#246); o `if:` é cobrado no 5b, o JOB vem daqui — um mecanismo só.

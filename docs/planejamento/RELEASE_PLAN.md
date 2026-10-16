@@ -1,6 +1,6 @@
 # 🚀 RELEASE PLAN — Issues pré-lançamento (binários multiplataforma para download direto)
 
-> **Status:** ✅ atual · rev. 2 · 01/10/2026 — plano de EPIC-01..05 + issues REL-*
+> **Status:** ✅ atual · rev. 3 · 15/10/2026 — plano de EPIC-01..05 + issues REL-*
 > para o primeiro lançamento multiplataforma (macOS Intel/ARM, Windows x64/ARM,
 > Ubuntu, Linux genéricas). Fonte do escopo: auditoria do pipeline + requisitos
 > de distribuição. Criar issues via templates `epic` (5 épicos) e `feature`
@@ -23,12 +23,12 @@ plataformas sem nova decisão do owner registrada aqui.
 | Área | Estado hoje | Prova |
 |---|---|---|
 | Empacotamento | **Só Windows x64**: instalador NSIS (app) + `gp100-cli.exe` (gnu) | `packages/app/api/tauri.conf.json` → `bundle.targets: ["nsis"]`; jobs `release-cli`/`release-installer` em `windows-latest` |
-| Versão nos bundlers | ✅ **RESOLVIDO (#73)** — `.github/scripts/sync_version.py` governa os 5 manifests (`Cargo.toml`×2, `tauri.conf.json`, `package.json`, `version.json`) e tem `--check` no gate do Lint | `sync_version.py --check` |
+| Versão nos bundlers | ✅ **RESOLVIDO (#73)** — `.github/scripts/sync_version.py` governa os 5 manifests (`Cargo.toml`×2, `tauri.conf.json`, `package.json`, `version.json`) e tem `--check` no gate do Lint; desde a #231 cobre também os 2 `Cargo.lock` (a versão dos pacotes de caminho) | `sync_version.py --check` |
 | Assinatura | Nenhuma (Windows nem macOS) — nada de cert/entitlements/notarization | ausente no pipeline |
 | Smoke de instalação | Só smoke de **hardware** (`hardware-smoke`) e testes de cargo — nenhum teste de instalador em ambiente limpo | `Distribuição · instalador` (build da release) |
 | Auto-update | Inexistente (`tauri-plugin-updater` ausente, sem endpoint/keys) | `tauri.conf.json` sem `plugins` |
 | Rollback | Manual e sem runbook | — |
-| Base que AJUDA | Matriz 3-OS já existe (windows-latest, ubuntu-24.04, macos-15-intel); tags `v*` disparam release; guard de prerelease p/ `-rc`; cadeia rc→promote **simulada no gate** (`.github/scripts/simulate_release.py`) | `ci.yml` |
+| Base que AJUDA | Matriz 3-OS já existe (windows-latest, ubuntu-24.04, macos-15-intel); tags `v*` disparam release; guard de prerelease p/ `-rc`; cadeia rc→promote **simulada no gate** (`.github/scripts/simulate_release.py`, que executa os blocos dos reutilizáveis `release-*.yml` — o corpo saiu do `ci.yml` na #245) | `ci.yml` |
 
 **Lacunas → 5 épicos, 22 issues.** Dependências críticas: assinatura (EPIC-03)
 é o que torna o download direto viável (sem ela, SmartScreen/Gatekeeper

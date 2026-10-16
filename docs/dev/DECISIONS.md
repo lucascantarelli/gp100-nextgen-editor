@@ -1,6 +1,6 @@
 # 📜 DECISIONS — Decisões de design pré-assinadas (ADR-lite)
 
-> **Banner:** ✅ atual · **Última revisão:** 2026-10-11 · **Origem:** ROADMAP P5 (ADR-1..5) + pré-desenho M0.6 (ADR-6) · **Campo:** ADR-12/13 vindos do gate H4 (#177) · **Era HW:** ADR-14 (casa canônica, #163)
+> **Banner:** ✅ atual · **Última revisão:** 2026-10-15 · **Origem:** ROADMAP P5 (ADR-1..5) + pré-desenho M0.6 (ADR-6) · **Campo:** ADR-12/13 vindos do gate H4 (#177) · **Era HW:** ADR-14 (casa canônica, #163)
 >
 > Registra as decisões estruturais do `gp100-core` **antes** de cada bloco de
 > implementação (ADR-1..5 pré-assinados antes do M0; ADR-6 sancionado antes do
@@ -465,7 +465,9 @@ host que a CI já contorna com `RUSTUP_TOOLCHAIN` por perna.
 
 **Consequências.**
 - (+) Dependabot funcional onde opera (src-tauri + npm + actions), CI
-  dispara em cada PR (14 jobs, cache quente).
+  dispara em cada PR com cache quente — a contagem de jobs do pipeline de hoje é a do §6 do
+  [`INDEX`](../INDEX.md) e a do ADR, de 09/2026, está no registro de
+  [`analises/medicoes-datadas-2026-10-15.md`](../analises/medicoes-datadas-2026-10-15.md)).
 - (+) Zero mudança de comportamento local/CI: RUSTUP_TOOLCHAIN nos
   workflows é a fonte da verdade das pernas.
 - (−) Upgrades do core/CLI continuam manuais/deliberados — aceito: é o

@@ -1,3 +1,5 @@
+> 📜 **histórico** (o `INDEX` §3 é a fonte do status) · última revisão 2026-10-13.
+
 # 🔍 Auditoria da era real — do dado inventado ao dado do aparelho (07/10/2026)
 
 > **Status:** 🔨 primeira edição viva, feita ÁREA POR ÁREA à medida que o campo responde.

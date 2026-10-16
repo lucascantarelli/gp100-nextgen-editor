@@ -1,3 +1,5 @@
+> 📜 **histórico** — Era de RE, arquivado na #168 · última revisão 2026-10-13.
+
 # 🧾 H1_REPORT — Relatório do gate H1 (preencher em campo)
 
 > **Status:** 📝 template · **Preencher durante/imediatamente após a sessão** (Fase C do [H1_CHECKLIST.md](H1_CHECKLIST.md)) e arquivar como evidência da issue H1.

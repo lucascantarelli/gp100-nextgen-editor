@@ -80,7 +80,7 @@ def test_todo_gate_do_gates_py_tem_o_passo_no_job_declarado():
 
 
 def test_a_tabela_declara_job_e_trecho_para_cada_gate_de_hoje():
-    """A tabela cobre os 13 gates e nenhum a mais (linha órfã já é falha).
+    """A tabela cobre TODOS os gates de hoje e nenhum a mais (linha órfã já é falha).
 
     Cobre também a assinatura derivada: o `pytest` não nomeia um `.py`, então o
     trecho dele é o comando sem flags e sem o interpretador (`sys.executable` é

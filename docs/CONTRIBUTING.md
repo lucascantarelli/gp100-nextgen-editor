@@ -1,3 +1,5 @@
+> ✅ **atual** · última revisão 2026-10-15.
+
 # 🤝 CONTRIBUTING — Fluxo de contribuição (GP-100 NextGen Editor)
 
 > Vale para humanos **e** agentes. O ciclo completo: **issue → branch → commits →
@@ -121,9 +123,10 @@ Só a área que você tocou — o CI filtra o resto por caminhos.
 | **Gates de script** (pipeline, empacotamento, versão, spec, release) | **`python3 .github/scripts/gates.py`** — roda todos de uma vez, na ordem do CI |
 
 - **`gates.py` é o atalho para "os gates de script"**: `validate_workflows`,
-  `check_bundle`, `check_issue_templates`, `sync_version`, `check_deadcode`,
-  `check_module_size`, `byte_order`, `param_ranges`, `state_pages`, `baseline`,
-  `pytest`, `check_base_images` e `simulate_release` — **13 no total**. Rode
+  `check_bundle`, `check_issue_templates`, `check_docs`, `check_docs_modulos`, `sync_version`,
+  `check_deadcode`, `check_module_size`, `byte_order`, `param_ranges`, `state_pages`,
+  `baseline`, `pytest`, `check_base_images` e `simulate_release` — a **contagem no total é a
+  do §6 do [`INDEX`](INDEX.md)** (fonte única; aqui a lista, lá o número). Rode
   `python3 .github/scripts/gates.py --list` para ver a lista, ou passe nomes para rodar
   só alguns: `python3 .github/scripts/gates.py check_bundle validate_workflows`.
   Todas as dependências (`pyyaml`, `jsonschema`) estão no `pyproject.toml`, então
@@ -146,6 +149,14 @@ Só a área que você tocou — o CI filtra o resto por caminhos.
   própria). Os três gates de dados que estavam nessa situação
   (`byte_order`, `param_ranges`, `state_pages`) passaram ao `Testes · Especificação`.
   Gate novo? O passo no `ci.yml` **e** a linha na tabela, no mesmo commit.
+- **Todo doc que DESCREVE um módulo tem juiz de obsolescência** (#275): o
+  `check_docs_modulos.py` (`.github/scripts/`) compara a última revisão do
+  documento com a **superfície** dos módulos de código que ele cita
+  (`.rs`/`.ts`/`.tsx`/`.js`/`.py`/`.css`, com caminho) e **aponta o documento**
+  quando a superfície mudou depois dele. Refatoração interna (corpo, comentário,
+  formatação) não cobra nada; mudou contrato e o doc não acompanhou? Releia o
+  documento (a data do banner conta como revisão — INDEX §4 item 1) ou declare
+  `ISENCOES[(doc, módulo)]` **com o motivo**, no próprio gate.
 - **`scripts/` está no escopo do `spec`** (`.github/scripts/ci_plan.py`): o pytest testa
   scripts de gate, e mexer só no script deixaria o job de spec como `skipped` —
   os testes ficariam verdes sem rodarem contra a mudança (#21).
@@ -204,8 +215,10 @@ vai colar com a pedaleira ligada.
 
 Ao mexer em transporte/`Session`/CLI, **compile nos dois modos**: o desligado
 prova que nada de escrita entrou por acidente; o ligado prova que a trava não
-virou erro de compilação nem de runtime. `cargo test --workspace` roda os dois
-(14 testes de CLI em cada modo).
+virou erro de compilação nem de runtime. `cargo test --workspace` roda os dois — a medição
+por modo (14/10) está no registro de
+[`analises/medicoes-datadas-2026-10-15.md`](analises/medicoes-datadas-2026-10-15.md), porque
+no doc vivo ela envelhece sem avisar.
 
 Runbooks: [H1_CHECKLIST.md](arquivo/H1_CHECKLIST.md) (leitura),
 [H2_CHECKLIST.md](arquivo/H2_CHECKLIST.md) (escrita — **muda estado do aparelho do
@@ -309,8 +322,10 @@ disparam sozinhos é exatamente o custo que a #68 eliminou.
 
 ### Os workflows reutilizáveis de Distribuição e Release (#245)
 
-Distribuição e Release são os dois blocos mais pesados do pipeline (o `ci.yml`
-tinha 1777 linhas e 29 jobs) e os que mudam mais raramente. O **corpo** de cada
+Distribuição e Release são os dois blocos mais pesados do pipeline (até a #245 o `ci.yml`
+carregava o corpo inteiro dos dois; a medição de antes está no registro de
+[`analises/medicoes-datadas-2026-10-15.md`](analises/medicoes-datadas-2026-10-15.md)) e os que
+mudam mais raramente. O **corpo** de cada
 job vive agora num arquivo com `workflow_call`; no `ci.yml` fica o que o
 **grafo** decide: `name`, `needs`, `if`, `permissions` e — no instalador — a
 matriz de OS.
