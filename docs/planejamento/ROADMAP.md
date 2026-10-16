@@ -1,3 +1,5 @@
+> ✅ **atual** · última revisão 2026-10-13.
+
 # 🗺️ ROADMAP — Era Hardware (o app comandado pelo aparelho)
 
 > **Documento-mestre da virada.** Substitui o roadmap da engenharia reversa, arquivado em

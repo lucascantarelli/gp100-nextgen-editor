@@ -1,3 +1,5 @@
+> ✅ **atual** · última revisão 2026-10-14.
+
 # 📇 INDEX — Mapa da documentação (GP-100 NextGen Editor)
 
 > **Comece aqui.** Este índice diz o que cada documento é, quando ler e qual é a
@@ -183,6 +185,7 @@ reprova qualquer `analysis/` dentro de `packages/`.
 | `packaging/make_sdist.py` | Tarball de fonte com o `ui/dist` embutido — insumo do PKGBUILD | `Distribuição · tarball de fonte` |
 | `sync_version.py` | Os 5 manifests de versão em sincronia (`--check` é o gate) | `Lint · contratos do pipeline` |
 | `check_deadcode.py` | Todo `export` de `src/` tem consumidor fora do arquivo — cobertura 100% não prova que o contrato é consumível (#78) | `Lint · UI` |
+| `check_docs.py` | **Higiene da documentação**: link/âncora resolvem, todo doc tem banner de status com data e contador vive só neste §6 (#270) — teste em `tools/tests/test_check_docs.py` | gate local (`gates.py check_docs`) · `Lint · contratos do pipeline` |
 | `check_module_size.py` | Orçamento de tamanho: front (`App.tsx` < 300 linhas) **e** os `.rs` de `packages/*/src` (#248) — tetos no §4/§4.1 do `docs/dev/ARCHITECTURE.md`; teste em `tools/tests/test_check_module_size.py` | gate local (`gates.py`) · `Lint · UI` · `Lint · Rust (fmt)` |
 | ~~`add_cargo_path.ps1` / `h1_field.sh` / `h1_compare.py`~~ (**arquivados** na #168 em `docs/arquivo/scripts-era-RE/`) | Fix do PATH do cargo (HKLM) · runbook do gate H1 · juiz da Fase C do H1 (níveis 1/2/3 + tabela do §5) | histórico / campo |
 | ~~`h2_field.sh` / `h2_compare.py`~~ (**arquivados** na #168 em `docs/arquivo/scripts-era-RE/`) | Runbook do gate H2 (escrita) · juiz da transcrição do H2 contra a referência de escrita (#22) | histórico / campo |

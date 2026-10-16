@@ -1,3 +1,5 @@
+> ✅ **atual** · última revisão 2026-10-14.
+
 # REAL_DEVICE_GAP — o que o app fala com o aparelho, e o que ainda é mock
 
 > **Status:** 🔨 vivo · **Criado:** 05/10/2026 · **Última auditoria:** 06/10/2026 (a §1 foi reescrita: a barreira de código caiu no mesmo dia em que foi levantada) · **Issue:** [#17](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/17) (bloqueio), [#16](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/16) (entrada)

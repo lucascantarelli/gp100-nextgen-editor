@@ -1,3 +1,5 @@
+> ✅ **atual** · última revisão 2026-10-13.
+
 # 🖼️ UI_REFERENCE — Referencial de UI do editor (app oficial + achados + plano por etapas)
 
 > **Status:** 🔨 em andamento (Fase 1 — casca/navegação) · **Criado:** 30/09/2026 ·

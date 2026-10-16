@@ -1,3 +1,5 @@
+> ✅ **atual** · última revisão 2026-10-14.
+
 # 🤝 CONTRIBUTING — Fluxo de contribuição (GP-100 NextGen Editor)
 
 > Vale para humanos **e** agentes. O ciclo completo: **issue → branch → commits →
@@ -121,7 +123,7 @@ Só a área que você tocou — o CI filtra o resto por caminhos.
 | **Gates de script** (pipeline, empacotamento, versão, spec, release) | **`python3 .github/scripts/gates.py`** — roda todos de uma vez, na ordem do CI |
 
 - **`gates.py` é o atalho para "os gates de script"**: `validate_workflows`,
-  `check_bundle`, `check_issue_templates`, `sync_version`, `check_deadcode`,
+  `check_bundle`, `check_issue_templates`, `check_docs`, `sync_version`, `check_deadcode`,
   `check_module_size`, `byte_order`, `param_ranges`, `state_pages`, `baseline`,
   `pytest`, `check_base_images` e `simulate_release` — **13 no total**. Rode
   `python3 .github/scripts/gates.py --list` para ver a lista, ou passe nomes para rodar

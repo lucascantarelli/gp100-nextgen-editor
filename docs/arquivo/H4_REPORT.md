@@ -1,3 +1,5 @@
+> 📜 **histórico** — Era de RE, arquivado na #168 · última revisão 2026-10-13.
+
 # 🧾 H4_REPORT — Relatório do gate H4 (as páginas 13xx em campo: nome, palco, knob)
 
 > **Status:** ⏳ **aguardando a sessão de campo.** Este arquivo nasce junto do
