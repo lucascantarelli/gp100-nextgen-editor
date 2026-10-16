@@ -1,3 +1,5 @@
+> 📜 **histórico** — Era de RE, arquivado na #168 · última revisão 2026-10-13 · mapa da cápsula: `docs/arquivo/analysis/README.md`.
+
 # 🔬 PROVENANCE — quem gera o quê em `analysis/`
 
 > Este arquivo existe porque o `analysis/check_orphans.py` encontrou scripts que

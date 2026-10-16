@@ -1,3 +1,5 @@
+> ✅ **atual** · última revisão 2026-10-13.
+
 # Empacotamento e distribuição (#27 · #28 · #29)
 
 Fonte de verdade do "como o app vira arquivo de instalação" e, mais útil, do

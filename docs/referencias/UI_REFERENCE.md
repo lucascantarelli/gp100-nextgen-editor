@@ -1,3 +1,5 @@
+> ✅ **atual** · última revisão 2026-10-15.
+
 # 🖼️ UI_REFERENCE — Referencial de UI do editor (app oficial + achados + plano por etapas)
 
 > **Status:** 🔨 em andamento (Fase 1 — casca/navegação) · **Criado:** 30/09/2026 ·
@@ -542,8 +544,10 @@ do conteúdo** nos DOIS lados (Rust e TS) — reimportar o mesmo `.clo` atualiza
 o registro, e uma colisão de CRC ganha sufixo `-2` em vez de sobrescrever outro
 arquivo.
 
-**As 18 baselines de `board-*`/`lib-*` foram renovadas** (o rodapé ficou 30px
-mais baixo, o que move os dois painéis por `stretch`). Renovadas pelo caminho
+**As baselines de `board-*`/`lib-*` foram renovadas** (o rodapé ficou 30px
+mais baixo, o que move os dois painéis por `stretch`) — o total de hoje é o do §6 do
+[`INDEX`](../INDEX.md) e a contagem da rodada ficou no registro de
+[`analises/medicoes-datadas-2026-10-15.md`](../analises/medicoes-datadas-2026-10-15.md). Renovadas pelo caminho
 documentado: `--update-snapshots=all` local (só `win32`) + workflow dedicado
 `visual-baselines.yml` para as de `linux`. `looper-*`, `topbar-*` e
 `erro-*` NÃO foram tocadas — o que prova que a mudança ficou no rodapé e não
@@ -577,7 +581,8 @@ de confirmacao em vez de deixar o dono acreditar que o slot ficou livre.
 biblioteca (§7.8) abriu o SnapTone; a #24 transformou-o na **porta** de um
 modal que escolhe entre tons e IRs, e nao em um segundo botao. Um quarto botao
 no rodape estoura a linha, o rodape vira duas fileiras, a coluna cresce por
-`stretch` e o pedalboard desce junto — foi o que a #25 custou em 18 baselines.
+`stretch` e o pedalboard desce junto — foi o que a #25 custou em baselines (a contagem está no
+registro de [`analises/medicoes-datadas-2026-10-15.md`](../analises/medicoes-datadas-2026-10-15.md)).
 A porta tambem diz a verdade: as duas telas guardam conteudo do dono no
 arquivo dele. **Nenhuma baseline foi regenerada pela #24** (os 78 e2e de
 `playwright` passam sem `--update-snapshots`): a geometria da mesa ficou

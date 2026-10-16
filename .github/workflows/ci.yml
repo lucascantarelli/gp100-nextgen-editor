@@ -323,6 +323,10 @@ jobs:
           # prompt auto-suficiente. Sem gate, "enxugar template" remove a secao
           # e o contrato morre em silencio — mesma classe do check_bundle (#71).
           python3 .github/scripts/check_issue_templates.py
+          # Higiene da documentacao (#270): link/ancora resolvem, todo doc tem banner
+          # de status com data e contador vive so no INDEX §6. Sao tres convencoes do
+          # INDEX §4 que existiam sem juiz — 13 mil linhas dependiam de alguem reler.
+          python3 .github/scripts/check_docs.py
       # ── A OBSOLESCÊNCIA DO DOC TEM JUIZ (#275) ──────────────────────────
       # O `check_docs.py` (#270) pega link morto: estrutura. Um documento pode
       # citar um caminho que EXISTE e descrever uma API que já mudou — link vivo,
