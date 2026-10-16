@@ -8,7 +8,7 @@ arquivos). Leitura manual nao pega regressao: o arquivo que apodrece e o que
 ninguem relê. Este script e a versao mecanica das tres sondas que fecharam a
 #249 — elas moravam num diretorio de rascunho e por isso nunca rodavam.
 
-QUATRO CHECAGENS:
+CINCO CHECAGENS:
  1. CAMINHO — todo caminho do repo citado num code span existe. Caminho curto
     (`actor/estado.rs`) passa quando o proprio arquivo declara a rota-cheia de
     uma base que existe (`packages/app/api/src/actor/`): apontar para base real
@@ -23,9 +23,14 @@ QUATRO CHECAGENS:
     a dona precisa enunciar a regra e nenhuma outra SKILL pode re-enuncia-la.
     Apontar para a dona e permitido; re-enunciar e o defeito (a regra que mora em
     dois lugares sincroniza em um e apodrece no outro).
+ 5. TABELA — a tabela de fontes unicas do `.agents/README.md` e GERADA do REGRAS
+    (abaixo): o gate emite o bloco entre os marcadores `fontes-unica:` e reprova a
+    tabela editada a mao. Escrita a mao ela listava 9 regras enquanto o gate cobria
+    6 — a divergencia era invisivel ate alguem contar as duas colunas.
 
 Uso: python3 .github/scripts/check_harness.py   (exit 1 se houver violacao)
      python3 .github/scripts/check_harness.py --list
+     python3 .github/scripts/check_harness.py --tabela   (reescreve a tabela do README)
 """
 from __future__ import annotations
 
@@ -71,23 +76,31 @@ PREFIXOS_QUE_NAO_SAO_CAMINHO = (
 
 # ── 4. FONTE UNICA ────────────────────────────────────────────────────────────
 # regra -> (arquivos DONOS, padrao que caracteriza a ENUNCIACAO da regra).
+#
+# A CHAVE e a linha da tabela de fontes unicas do `.agents/README.md`: o gate EMITE
+# a tabela (`--tabela`) e reprova a que foi editada a mao. Antes disso a tabela era
+# escrita a mao e listava 9 regras enquanto o gate cobria 6 — o REGRAS era a copia
+# escondida dela; agora a tabela E o REGRAS.
+#
+# A dona pode ser um doc de area (`docs/dev/ARCHITECTURE.md`), nao so skill: o gate
+# le a dona do disco — as varreduras de caminho e front-matter seguem no harness.
 # Duas regras tem mais de uma dona por decisao do `.agents/README.md`: a "visao
 # por camada" de teste e da `testing`, a regra do Rust e da `rust-practices`.
 REGRAS: dict[str, tuple[tuple[str, ...], str]] = {
-    "o aparelho e a fonte / medir, nao deduzir": (
+    "O aparelho é a fonte; medir, não deduzir (ADR-13)": (
         (".agents/skills/hardware-dev/SKILL.md",),
         r"medir, n[ãa]o deduzir|aparelho (é|e) a fonte|\bMEÇA\b",
     ),
-    "ciclo issue→branch→PR→CI→merge": (
+    "Ciclo issue→branch→PR→CI→merge": (
         (".agents/skills/github-flow/SKILL.md",),
         r"CI verde antes do merge|s[óo] com o merge verde|merge \(squash\)|"
         r"→ CI verde → merge",
     ),
-    "conventional commits + footer": (
+    "Conventional commits + footer Codebuff": (
         (".agents/skills/github-flow/SKILL.md",),
         r"conventional commit|footer Codebuff|tipo\(escopo\)",
     ),
-    "onde cada teste vive (src/ x tests/)": (
+    "Onde cada teste vive (unitário `src/` × contrato `tests/`)": (
         (
             ".agents/skills/rust-practices/SKILL.md",
             ".agents/skills/testing/SKILL.md",
@@ -95,17 +108,40 @@ REGRAS: dict[str, tuple[tuple[str, ...], str]] = {
         r"Nunca mova unit[áa]rio|internals (s[ãa]o )?INVIS[ÍI]VEIS|"
         r"mod tests` DENTRO|s[óo] API p[úu]blica → `tests/`",
     ),
-    "contadores s[óo] no INDEX §6": (
+    "Contadores (testes/cobertura/jobs) só no `INDEX.md` §6": (
         (".agents/skills/docs-sync/SKILL.md",),
         r"pertence a `?docs/INDEX\.md`? §6|(vive|fica) s[óo] n[oa] `?(docs/)?INDEX|"
         r"s[óo] no `?INDEX\.md`? §6",
     ),
-    "armadilhas de host (cargo PATH, toolchain)": (
+    "Armadilhas de host (cargo/PATH, toolchain pinada)": (
         ("knowledge.md",),
         r"add_cargo_path|RUSTUP_TOOLCHAIN=|(n[ãa]o|N[ÃA]O) tem MSVC|"
         r"(n[ãa]o|N[ÃA]O) trocar de alvo|fix permanente",
     ),
+    "Cadeia de release rc→promote→tag": (
+        (".agents/skills/release/SKILL.md",),
+        r"rc\s*→[^\n]{0,40}promote",
+    ),
+    "Camada do app (`packages/app/api`: actor, commands, DTO/IPC)": (
+        (".agents/skills/app-dev/SKILL.md",),
+        r"commands, actor e DTOs|DeviceActor|dono( único)? da Session",
+    ),
+    "Estrutura e limites das camadas do front": (
+        ("docs/dev/ARCHITECTURE.md",),
+        r"Cada camada é definida pelo que ela \*\*proíbe\*\*",
+    ),
+    "Papéis da equipe + estado da demanda (`flow:*`)": (
+        (".agents/agents/README.md",),
+        r"labels `?flow:\*|Estado da demanda",
+    ),
+    "Gates locais por área (antes do PR)": (
+        ("docs/CONTRIBUTING.md",),
+        r"^## 4\. Gates locais por área|gates locais por área",
+    ),
 }
+
+# Nao servem de ponteiro: casam em qualquer bloco e o check aprovaria por engano.
+APELIDOS_GENERICOS = {"docs", "src", "tests", "skills", "README", "README.md", "md"}
 
 VIOLACOES: list[str] = []
 
@@ -252,16 +288,25 @@ def blocos(texto: str) -> list[str]:
 def checa_fonte_unica(fontes: dict[str, str]) -> None:
     for regra, (donas, padrao) in REGRAS.items():
         rx = re.compile(padrao, re.IGNORECASE)
-        ausentes = [d for d in donas if d not in fontes]
-        if ausentes:
-            viola("FONTE UNICA", f"{regra}: dona fora do escopo do gate: {', '.join(ausentes)}")
+        textos: dict[str, str] = {}
+        for d in donas:
+            caminho = RAIZ / d
+            if not caminho.exists():
+                viola("FONTE UNICA", f"{regra}: dona declarada nao existe: {d}")
+                continue
+            # a dona pode ser doc de area, fora da varredura do harness: le do disco
+            textos[d] = fontes.get(d) or caminho.read_text(encoding="utf-8")
+        if len(textos) != len(donas):
             continue
-        if not any(rx.search(b) for d in donas for b in blocos(fontes[d])):
+        if not any(rx.search(b) for d in donas for b in blocos(textos[d])):
             viola("FONTE UNICA", f"{regra}: nenhuma dona ({', '.join(donas)}) enuncia a regra — orfã ou padrao morto")
         apelidos: set[str] = set()
         for d in donas:
             p = pathlib.PurePosixPath(d)
             apelidos |= {p.name, p.name.replace(".md", ""), p.parent.name}
+        # Nome generico nao e ponteiro: "docs"/"README"/"skills" casariam em quase
+        # todo bloco e o check passaria a aprovar re-enunciacao por engano.
+        apelidos -= APELIDOS_GENERICOS
         ponteiro = re.compile("|".join(re.escape(x) for x in sorted(apelidos) if x))
         for rel, texto in fontes.items():
             if rel in donas or "/skills/" not in rel:
@@ -271,7 +316,84 @@ def checa_fonte_unica(fontes: dict[str, str]) -> None:
                     viola("FONTE UNICA", f"{regra}: re-enunciada em {rel} — «{b[:110]}»")
 
 
+# ── 5. TABELA ────────────────────────────────────────────────────────────────
+# A tabela de fontes unicas do README e SAIDA do gate, nao texto de doc: quem manda
+# e o REGRAS acima. Editar a mao reprova; `--tabela` reescreve.
+TABELA_DOC = ".agents/README.md"
+TABELA_INICIO = "<!-- fontes-unica:inicio"
+TABELA_FIM = "<!-- fontes-unica:fim -->"
+
+
+def apelido_dona(rel: str) -> str:
+    '''`rust-practices` para uma skill; o caminho inteiro para qualquer outra casa.'''
+    p = pathlib.PurePosixPath(rel)
+    if p.name == "SKILL.md" and p.parent.parent.name == "skills":
+        return p.parent.name
+    return rel
+
+
+def linhas_da_tabela() -> list[str]:
+    linhas = ["| Assunto | Casa (dono) | Os demais |", "|---|---|---|"]
+    for regra, (donas, _) in REGRAS.items():
+        casas = " + ".join(f"`{apelido_dona(d)}`" for d in donas)
+        linhas.append(f"| {regra} | {casas} | apontam |")
+    return linhas
+
+
+def bloco_gerado() -> str:
+    return "\n".join(
+        [
+            f"{TABELA_INICIO} (gerada por `.github/scripts/check_harness.py --tabela`; "
+            "editar a mao reprova) -->"
+        ]
+        + linhas_da_tabela()
+        + [TABELA_FIM]
+    )
+
+
+def bloco_no_readme(texto: str) -> str | None:
+    '''O bloco entre os marcadores — `None` quando eles nao existem (ou estao tortos).'''
+    i = texto.find(TABELA_INICIO)
+    fim = texto.find(TABELA_FIM)
+    if i < 0 or fim < i:
+        return None
+    return texto[i : fim + len(TABELA_FIM)]
+
+
+def checa_tabela() -> None:
+    caminho = RAIZ / TABELA_DOC
+    if not caminho.exists():
+        viola("TABELA", f"{TABELA_DOC}: ausente (a tabela de fontes unicas mora nele)")
+        return
+    atual = bloco_no_readme(caminho.read_text(encoding="utf-8"))
+    if atual is None:
+        viola("TABELA", f"{TABELA_DOC}: sem os marcadores `fontes-unica:inicio/fim`")
+        return
+    if atual != bloco_gerado():
+        viola(
+            "TABELA",
+            f"{TABELA_DOC}: a tabela divergiu do REGRAS do gate — rode "
+            "`check_harness.py --tabela` (a tabela nao se edita a mao)",
+        )
+
+
+def gera_tabela() -> int:
+    '''Escreve o bloco no README. LF explicito: o repo e `* text=auto eol=lf` (docs-sync 10).'''
+    caminho = RAIZ / TABELA_DOC
+    texto = caminho.read_text(encoding="utf-8")
+    atual = bloco_no_readme(texto)
+    if atual is None:
+        print(f"{TABELA_DOC}: marcadores `fontes-unica:` ausentes — nada a gerar")
+        return 1
+    caminho.write_text(texto.replace(atual, bloco_gerado()), encoding="utf-8", newline="\n")
+    print(f"{TABELA_DOC}: tabela gerada ({len(REGRAS)} regras)")
+    return 0
+
+
 def main() -> int:
+    if "--tabela" in sys.argv:
+        return gera_tabela()
+
     fontes = {rel: ler(rel) for rel in FONTES if (RAIZ / rel).exists()}
     faltando = [rel for rel in FONTES if rel not in fontes]
     if faltando:
@@ -280,9 +402,11 @@ def main() -> int:
     checa_frontmatter()
     checa_papeis()
     checa_fonte_unica(fontes)
+    checa_tabela()
 
     if "--list" in sys.argv:
         print(f"fontes: {len(fontes)} arquivos | regras de fonte unica: {len(REGRAS)}")
+        print(f"tabela de fontes unicas: {TABELA_DOC} — gerada de REGRAS, {len(REGRAS)} regras")
         print(f"caminhos de proposito (allowlist): {len(CAMINHOS_DE_PROPOSITO)}")
         return 0
     print(f"harness: {len(fontes)} arquivos | violacoes: {len(VIOLACOES)}")

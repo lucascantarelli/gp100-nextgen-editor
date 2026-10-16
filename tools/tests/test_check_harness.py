@@ -189,3 +189,109 @@ def test_papel_orfao_e_fantasma_reprovam(tmp_path, monkeypatch) -> None:
     texto = " ".join(mod.VIOLACOES)
     assert "revisor.md existe mas nao e citado" in texto
     assert "citado e ausente" in texto or "que nao existe" in texto
+# ── 5. TABELA (saída do gate, não texto de doc) ──────────────────────────────
+#
+# A tabela de fontes únicas do `.agents/README.md` era escrita à mão e listava 9
+# regras enquanto o REGRAS do gate cobria 6 — duas colunas que ninguém comparava.
+# Agora a tabela é EMITIDA do REGRAS: quem edita à mão reprova, e a lista de linhas
+# é o próprio dict. Os testes fixam as duas pontas: o README real bate com o gate, e
+# o que diverge dele é reprovado.
+
+
+def _readme(bloco: str) -> str:
+    return (
+        "# `.agents/` — o harness do agente\n\n"
+        "## Fontes únicas por regra (não duplicar)\n\n"
+        f"{bloco}\n\n"
+        "## Modo ausente do dono (#202)\n"
+    )
+
+
+def test_tabela_do_readme_bate_com_o_gate() -> None:
+    """O contrato do repo: a tabela publicada é exatamente a que o gate emite."""
+    mod = _carregar()
+    texto = (_RAIZ / mod.TABELA_DOC).read_text(encoding="utf-8")
+    assert mod.bloco_no_readme(texto) == mod.bloco_gerado()
+
+
+def test_tabela_editada_a_mao_reprova(tmp_path, monkeypatch) -> None:
+    mod = _carregar()
+    _limpar(mod)
+    monkeypatch.setattr(mod, "RAIZ", tmp_path)
+    destino = tmp_path / mod.TABELA_DOC
+    destino.parent.mkdir(parents=True)
+    tabela = mod.bloco_gerado()
+    destino.write_text(
+        _readme(tabela.replace("| apontam |", "| apontam (a mao) |", 1)), encoding="utf-8"
+    )
+    mod.checa_tabela()
+    assert any("divergiu" in v for v in mod.VIOLACOES), mod.VIOLACOES
+
+
+def test_tabela_sem_marcadores_reprova(tmp_path, monkeypatch) -> None:
+    mod = _carregar()
+    _limpar(mod)
+    monkeypatch.setattr(mod, "RAIZ", tmp_path)
+    destino = tmp_path / mod.TABELA_DOC
+    destino.parent.mkdir(parents=True)
+    destino.write_text(_readme("| Assunto | Casa (dono) | Os demais |"), encoding="utf-8")
+    mod.checa_tabela()
+    assert any("marcadores" in v for v in mod.VIOLACOES), mod.VIOLACOES
+
+
+def test_gera_tabela_escreve_lf_e_e_idempotente(tmp_path, monkeypatch) -> None:
+    """Gerador que suja a árvore a cada rodada é dívida (docs-sync 10)."""
+    mod = _carregar()
+    _limpar(mod)
+    monkeypatch.setattr(mod, "RAIZ", tmp_path)
+    destino = tmp_path / mod.TABELA_DOC
+    destino.parent.mkdir(parents=True)
+    destino.write_text(
+        _readme(f"{mod.TABELA_INICIO} -->\n{mod.TABELA_FIM}"), encoding="utf-8"
+    )
+
+    assert mod.gera_tabela() == 0
+    primeira = destino.read_bytes()
+    assert b"\r" not in primeira, "o gerador escreveu CR: o .gitattributes é eol=lf"
+    assert mod.bloco_no_readme(primeira.decode("utf-8")) == mod.bloco_gerado()
+
+    assert mod.gera_tabela() == 0
+    assert destino.read_bytes() == primeira, "gerar de novo mudou o arquivo"
+
+    _limpar(mod)
+    mod.checa_tabela()
+    assert not mod.VIOLACOES, mod.VIOLACOES
+
+
+def test_gera_tabela_sem_marcadores_falha_alto(tmp_path, monkeypatch) -> None:
+    """Sem marcador o gerador não adivinha: exit 1 em vez de reescrever o arquivo."""
+    mod = _carregar()
+    _limpar(mod)
+    monkeypatch.setattr(mod, "RAIZ", tmp_path)
+    destino = tmp_path / mod.TABELA_DOC
+    destino.parent.mkdir(parents=True)
+    original = _readme("| tabela à mão | x | y |")
+    destino.write_text(original, encoding="utf-8")
+
+    assert mod.gera_tabela() == 1
+    assert destino.read_text(encoding="utf-8") == original
+
+
+def test_toda_regra_tem_linha_e_dona_no_disco() -> None:
+    """A tabela é o REGRAS: nenhuma regra sem linha, nenhuma dona fantasma."""
+    mod = _carregar()
+    tabela = "\n".join(mod.linhas_da_tabela())
+    for regra, (donas, _) in mod.REGRAS.items():
+        assert f"| {regra} |" in tabela, regra
+        for dona in donas:
+            assert (_RAIZ / dona).exists(), f"regra {regra}: dona inexistente {dona}"
+    linhas = [l for l in mod.linhas_da_tabela() if l.startswith("| ") and "---" not in l]
+    assert len(linhas) == len(mod.REGRAS) + 1, "linha na tabela sem regra no gate"
+
+
+def test_dona_fora_da_varredura_e_lida_do_disco() -> None:
+    """A casa pode ser doc de área (`docs/dev/ARCHITECTURE.md`): o gate lê do disco."""
+    mod = _carregar()
+    _limpar(mod)
+    mod.checa_fonte_unica({})
+    assert not mod.VIOLACOES, mod.VIOLACOES
