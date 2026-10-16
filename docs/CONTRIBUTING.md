@@ -80,7 +80,10 @@ mais nada) e checklist de validação da entrega. O gate
   cobre essa lacuna via API (§5).
 - **Push e PR** disparam a CI em toda branch de desenvolvimento. O filtro é o
   de *caminho* (`.github/scripts/ci_plan.py`): um PR que só mexe em `docs/` não sobe
-  Rust nem front.
+  Rust nem front. A lista de caminhos Rust sai dos `members` do `Cargo.toml` da **raiz**
+  do repo e **falha alto** quando ele não é legível (#261 — antes, um erro de caminho
+  virava lista vazia e o PR que mexia só em `packages/core` rodava a CI sem lint, compile
+  e teste de Rust, verde).
 
 ```bash
 git checkout develop && git pull
