@@ -1,6 +1,6 @@
 # FINDINGS — Descompilação GP-100.exe (protocolo)
 
-> ✅ Status: achados corroborados em campo — o que era hipótese aqui virou
+> ✅ Status: achados corroborados em campo (**2026-09-28**) · última revisão 2026-10-13 — o que era hipótese aqui virou
 > confirmação no `docs/tecnico/PROTOCOL.md` §13 (fio) e `docs/referencias/protocol_golden.json`.
 > Mapa geral: `docs/INDEX.md`.
 

@@ -22,7 +22,8 @@ fonte de retrocesso (viola a fonte única por assunto do §7 deste checklist).
    templates em `.agents/prompts/`, histórico em `docs/arquivo/`).
 4. **README.md** — só se algo do panorama mudou (marco estrutural, não issue menor).
 5. **Banners de status** — qualquer doc que ganhou obsolescência parcial ganha
-   banner ✅/⚠️/📜 com ponteiro para o substituto.
+   banner ✅/⚠️/📜 com ponteiro para o substituto (a forma canonica — UMA linha,
+   marcador + data — e do INDEX §4.1, e o `check_docs.py` a cobra).
 6. **PROTOCOL.md** — descobertas de protocolo SEMPRE aqui (com evidência), nunca
    só no knowledge/ROADMAP.
 7. **CONTADORES** — número de teste, cobertura, e2e, baselines ou contagem de

@@ -149,6 +149,32 @@ def test_banner_completo_passa(tmp_path, monkeypatch) -> None:
     assert not mod.VIOLACOES, mod.VIOLACOES
 
 
+def test_banner_em_duas_linhas_reprova(tmp_path, monkeypatch) -> None:
+    """A forma canonica e UMA linha com marcador E data (§4.1, #272): marcador numa
+    nota e a data numa linha propria nao e banner — foi o frouxo que deixou 12
+    documentos passarem, dois deles com divergencia de conteudo escondida atras.
+    """
+    mod = _carregar()
+    _limpar(mod)
+    monkeypatch.setattr(mod, "RAIZ", tmp_path)
+    p = tmp_path / "doc.md"
+    p.write_text("# Titulo\n\n> **Status:** ✅ atual\n> **Data:** 2026-10-15\n", encoding="utf-8")
+    mod.checa_banner({p: p.read_text(encoding="utf-8")})
+    assert len(mod.VIOLACOES) == 1 and "linhas DIFERENTES" in mod.VIOLACOES[0], mod.VIOLACOES
+
+
+def test_banner_fora_da_janela_reprova(tmp_path, monkeypatch) -> None:
+    """A janela e do cabecalho (12 linhas): banner no meio do documento nao conta."""
+    mod = _carregar()
+    _limpar(mod)
+    monkeypatch.setattr(mod, "RAIZ", tmp_path)
+    p = tmp_path / "doc.md"
+    prosa = "\n".join(f"linha {i}" for i in range(mod.JANELA_BANNER))
+    p.write_text(f"# Titulo\n\n{prosa}\n\n> ✅ **atual** · última revisão 2026-10-15.\n", encoding="utf-8")
+    mod.checa_banner({p: p.read_text(encoding="utf-8")})
+    assert len(mod.VIOLACOES) == 2, mod.VIOLACOES  # sem marcador E sem data na janela
+
+
 def test_frontmatter_nao_e_punido(tmp_path) -> None:
     """Skill arquivada: banner markdown ANTES do `---` invalida o bloco YAML."""
     mod = _carregar()

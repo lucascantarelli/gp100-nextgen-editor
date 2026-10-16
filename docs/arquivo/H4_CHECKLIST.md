@@ -1,6 +1,9 @@
 # 🧭 H4_CHECKLIST — Gate de hardware: as páginas 13xx em campo (nome, palco, knob)
 
-> **Status:** ⏳ aguardando a pedaleira + owner · **Criado:** 2026-10-09 · **Issues:** [#155](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/155) (esta sessão) · [#152](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/152) (o negativo que ela confirma em campo)
+> ⚠️ **parcial** · última revisão 2026-10-16 — **aguardando a sessão de campo com o owner**
+> (o artefato de offsets saiu de S1 + `all.prst` e é gated por `state_pages`; o que falta é a
+> medição do palco com o aparelho na USB) · criado 2026-10-09 · relatório: [H4_REPORT.md](H4_REPORT.md)
+> · **Issues:** [#155](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/155) (esta sessão) · [#152](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/152) (o negativo que ela confirma em campo)
 > · **Responsáveis:** owner no hardware
 >
 > ⚠️ **Este gate é IRMÃO do H1, não do H2.** Tudo aqui é **leitura**: o app

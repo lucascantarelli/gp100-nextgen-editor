@@ -1,6 +1,8 @@
 # 🧊 H3_CHECKLIST — Gate de hardware: congelamento pós-captura (baseline v1.2)
 
-> **Status:** ⏳ aguardando a pedaleira + owner · **Última revisão:** 2026-10-04
+> 📜 **histórico** · última revisão 2026-10-16 — gate H3 **FECHADO em 04/10** (baseline v1.1,
+> #23): a sessão rodou, o golden saiu dela e o veredito vive em [`PROTOCOL.md`
+> §13.14](../tecnico/PROTOCOL.md) + `tools/baseline.py show` · relatório: [H3_REPORT.md](H3_REPORT.md)
 > · **Responsáveis:** owner no hardware
 >
 > ⚠️ **Este gate é diferente do H1 e do H2.** O H1 lê, o H2 escreve. O H3

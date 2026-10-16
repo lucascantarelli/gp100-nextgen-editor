@@ -1,5 +1,8 @@
 # Manual V1.8 vs Firmware V2.1 — Afinador (TUNER)
 
+> ⚠️ **parcial** · última revisão 2026-10-11 — nota de análise (comparação manual ×
+> firmware), arquivada na #168; a fonte não versionada é citada abaixo (§ Fontes).
+
 ## Fontes
 
 > ⚠️ **Material proprietário (não versionado).** O PDF do manual oficial da

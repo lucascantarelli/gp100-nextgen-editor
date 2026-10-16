@@ -1,5 +1,8 @@
 # 📜 `docs/arquivo/analysis/` — a Era de RE, em cápsula
 
+> 📜 **histórico** — arquivado na #163/#168 · última revisão 2026-10-13 ·
+> substituto: `docs/INDEX.md` §3 (e o ADR-14 em `docs/dev/DECISIONS.md` diz onde cada assunto vive hoje).
+
 > **Histórico, não processo.** Esta pasta É o antigo `analysis/`, movida aqui
 > inteira na dissolução da **#163** (11/10/2026) **preservando a estrutura**:
 > tudo que os relatórios H1–H4, o `PROTOCOL.md` §13 e o golden citam continua

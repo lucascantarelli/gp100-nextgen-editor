@@ -126,7 +126,7 @@ automática do GitHub.
 | `H1_CHECKLIST.md` · `H1_REPORT.md` | Gate H1 (primeiro contato real, só leitura) — roteiro + relatório; a sessão de campo está em `analysis/captures/sessionH1/` | ✅ gate fechado em campo (§6) |
 | `H2_CHECKLIST.md` · `H2_REPORT.md` | Gate H2 (escrita real — muda estado do aparelho): os 3 fluxos e o veredito | ✅ gate fechado em campo (§6) |
 | `H3_CHECKLIST.md` · `H3_REPORT.md` | Gate H3 (congelamento da especificação): as 4 sessões e o veredito — a baseline saiu daqui | ✅ gate fechado em campo (§6) |
-| `H4_CHECKLIST.md` · `H4_REPORT.md` | Gate H4 (páginas 13xx em campo — leitura) | ✅ gate fechado (§6) |
+| `H4_CHECKLIST.md` · `H4_REPORT.md` | Gate H4 (páginas 13xx em campo — leitura) | ⚠️ roteiro + relatório aguardando a sessão de campo (o **artefato** de offsets veio de S1 + `all.prst` e é gated por `state_pages`; a sessão com o aparelho não tem evidência rastreada — #272 corrigiu o `✅ gate fechado (§6)` que apontava para um §6 sem H4) |
 | `CAPTURE_PLAN.md` | Plano original das rotas de captura | 📜 histórico (cumprido) |
 | `ROADMAP_era-RE_2026-09.md` · `knowledge-era-RE_2026-10.md` | Roadmap e knowledge da Era de Engenharia Reversa (supersedidos) | 📜 histórico |
 | `skills-era-RE/` | As 5 skills da era RE (`proxy-build`, `capture-analyze`, `new-session`, `spec-baseline`, `protocol-validate`) | 📜 histórico |
@@ -251,8 +251,11 @@ O Tauri não gera pacote Arch: a unidade de distribuição **é** a receita vers
 
 ## 4. Convenções de documentação
 
-1. **Todo documento tem um banner de status** nas primeiras linhas: ✅ atual /
-   📜 histórico / ⚠️ parcial — e a data da última revisão.
+1. **Todo documento tem um banner de status** nas primeiras linhas (janela de 12
+   linhas, a do gate): ✅ atual / 📜 histórico / ⚠️ parcial — e a data da última
+   revisão **na MESMA linha** do marcador (`> ✅ **atual** · última revisão
+   2026-10-16.`). Marcador numa nota e data em linha própria **não** é banner: o
+   `check_docs.py` reprova (#272).
 2. **Descoberta nova de protocolo** → entra no `PROTOCOL.md` (com evidência) +
    no `protocol_golden.json` (via `build_golden.py`) + valida com
    `validate_golden.py`. Nunca só conversa.
