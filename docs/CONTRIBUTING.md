@@ -187,7 +187,10 @@ Só a área que você tocou — o CI filtra o resto por caminhos.
   quando a superfície mudou depois dele. Refatoração interna (corpo, comentário,
   formatação) não cobra nada; mudou contrato e o doc não acompanhou? Releia o
   documento (a data do banner conta como revisão — INDEX §4 item 1) ou declare
-  `ISENCOES[(doc, módulo)]` **com o motivo**, no próprio gate.
+  `ISENCOES[(doc, módulo)]` **com o motivo**, no próprio gate. No PR o veredito é
+  a **previsão do squash** (#282): a CI passa `PR_BASE`, o par é medido dentro do
+  range e o vermelho chega antes do merge — sem isso o PR ficava verde e a
+  `develop` vermelha (#277/#279).
 - **`scripts/` está no escopo do `spec`** (`.github/scripts/ci_plan.py`): o pytest testa
   scripts de gate, e mexer só no script deixaria o job de spec como `skipped` —
   os testes ficariam verdes sem rodarem contra a mudança (#21).
