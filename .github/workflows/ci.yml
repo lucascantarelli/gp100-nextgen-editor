@@ -316,6 +316,11 @@ jobs:
           # prompt auto-suficiente. Sem gate, "enxugar template" remove a secao
           # e o contrato morre em silencio — mesma classe do check_bundle (#71).
           python3 .github/scripts/check_issue_templates.py
+          # Higiene do harness do agente (#249): o harness e lido por agentes e
+          # nao tinha gate. A auditoria de 14/10 provou 2x por leitura manual que
+          # "estava tudo certo" quando nao estava (caminho morto, regra
+          # re-enunciada em 6 arquivos) — leitura manual nao pega regressao.
+          python3 .github/scripts/check_harness.py
       # ── A SIMULAÇÃO DO GITFLOW É CONDICIONAL (#246, achado F-13) ─────────
       #
       # `simulate_release.py` executa a cadeia rc→promote DE VERDADE num sandbox
