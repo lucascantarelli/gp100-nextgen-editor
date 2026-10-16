@@ -184,6 +184,7 @@ reprova qualquer `analysis/` dentro de `packages/`.
 | `sync_version.py` | Os 5 manifests de versão em sincronia (`--check` é o gate) | `Lint · contratos do pipeline` |
 | `check_deadcode.py` | Todo `export` de `src/` tem consumidor fora do arquivo — cobertura 100% não prova que o contrato é consumível (#78) | `Lint · UI` |
 | `check_module_size.py` | Orçamento de tamanho: front (`App.tsx` < 300 linhas) **e** os `.rs` de `packages/*/src` (#248) — tetos no §4/§4.1 do `docs/dev/ARCHITECTURE.md`; teste em `tools/tests/test_check_module_size.py` | gate local (`gates.py`) · `Lint · UI` · `Lint · Rust (fmt)` |
+| `check_docs_modulos.py` | **Obsolescência do doc × módulo** (#275): compara a última revisão do documento com a **superfície** dos módulos que ele cita (ancestralidade de commit, não relógio; refatoração interna não cobra) e **aponta o documento**; isenção declarada com motivo, isenção órfã reprova — teste em `tools/tests/test_check_docs_modulos.py` | gate `check_docs_modulos` · CI `Lint · contratos do pipeline` |
 | ~~`add_cargo_path.ps1` / `h1_field.sh` / `h1_compare.py`~~ (**arquivados** na #168 em `docs/arquivo/scripts-era-RE/`) | Fix do PATH do cargo (HKLM) · runbook do gate H1 · juiz da Fase C do H1 (níveis 1/2/3 + tabela do §5) | histórico / campo |
 | ~~`h2_field.sh` / `h2_compare.py`~~ (**arquivados** na #168 em `docs/arquivo/scripts-era-RE/`) | Runbook do gate H2 (escrita) · juiz da transcrição do H2 contra a referência de escrita (#22) | histórico / campo |
 | ~~`wirelog_compare.py`~~ (**arquivado** na #168 em `docs/arquivo/scripts-era-RE/`) | **Núcleo comum dos juízes H1/H2** (#141): o `Frame` do schema P4, o parser e os helpers de tabela | histórico |
@@ -310,7 +311,7 @@ O Tauri não gera pacote Arch: a unidade de distribuição **é** a receita vers
 | E2E (Playwright) | `pnpm exec playwright test --list` | **90** testes em **12** arquivos · **96** baselines · *08/10* |
 | Rust (core + cli + library) | `cargo test --workspace` | **349** testes em **42** suítes (40 binários + 2 doc-tests) · *13/10* |
 | Spec (pytest) | `uv run pytest` | **81** em **7** arquivos · *14/10, re-medido com `--collect-only` pós-#248 (o teste do gate de tamanho entrou; os juízes H arquivados seguem fora desde a #168)* |
-| Gates locais | `uv run python .github/scripts/gates.py` | **13** · *re-medidos em 13/10 pós-#168 (`--list`)* |
+| Gates locais | `uv run python .github/scripts/gates.py` | **14** · *14º em 15/10 — o gate de obsolescência doc × módulo (#275); `--list` mostra a lista* |
 
 > ✅ **Tempo da suíte do front (medido 08/10 na mesma base `develop`):**
 > `pnpm exec vitest run` caiu de **84,7s → 52,3s** com `pool: 'vmThreads'` (#145, F-10):

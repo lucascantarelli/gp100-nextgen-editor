@@ -121,9 +121,10 @@ Só a área que você tocou — o CI filtra o resto por caminhos.
 | **Gates de script** (pipeline, empacotamento, versão, spec, release) | **`python3 .github/scripts/gates.py`** — roda todos de uma vez, na ordem do CI |
 
 - **`gates.py` é o atalho para "os gates de script"**: `validate_workflows`,
-  `check_bundle`, `check_issue_templates`, `sync_version`, `check_deadcode`,
-  `check_module_size`, `byte_order`, `param_ranges`, `state_pages`, `baseline`,
-  `pytest`, `check_base_images` e `simulate_release` — **13 no total**. Rode
+  `check_bundle`, `check_issue_templates`, `check_docs_modulos`, `sync_version`,
+  `check_deadcode`, `check_module_size`, `byte_order`, `param_ranges`,
+  `state_pages`, `baseline`, `pytest`, `check_base_images` e `simulate_release`
+  — **14 no total**. Rode
   `python3 .github/scripts/gates.py --list` para ver a lista, ou passe nomes para rodar
   só alguns: `python3 .github/scripts/gates.py check_bundle validate_workflows`.
   Todas as dependências (`pyyaml`, `jsonschema`) estão no `pyproject.toml`, então
@@ -137,6 +138,14 @@ Só a área que você tocou — o CI filtra o resto por caminhos.
   `simulate_release` roda sempre que você pedir: o custo aqui é seu, não de cada
   PR. A regra fica na **fonte única** (nada de `if:` escrito à mão no YAML), e o
   `validate_workflows.py` cobra que o passo leia `needs.plan.outputs.scope-ci`.
+- **Todo doc que DESCREVE um módulo tem juiz de obsolescência** (#275): o
+  `check_docs_modulos.py` (`.github/scripts/`) compara a última revisão do
+  documento com a **superfície** dos módulos de código que ele cita
+  (`.rs`/`.ts`/`.tsx`/`.js`/`.py`/`.css`, com caminho) e **aponta o documento**
+  quando a superfície mudou depois dele. Refatoração interna (corpo, comentário,
+  formatação) não cobra nada; mudou contrato e o doc não acompanhou? Releia o
+  documento (a data do banner conta como revisão — INDEX §4 item 1) ou declare
+  `ISENCOES[(doc, módulo)]` **com o motivo**, no próprio gate.
 - **`scripts/` está no escopo do `spec`** (`.github/scripts/ci_plan.py`): o pytest testa
   scripts de gate, e mexer só no script deixaria o job de spec como `skipped` —
   os testes ficariam verdes sem rodarem contra a mudança (#21).
