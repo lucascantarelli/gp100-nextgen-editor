@@ -32,7 +32,11 @@ O QUE ELE MEDE, e por que assim:
     reler, nao a contagem.
 
 LIMITES DECLARADOS (o que este gate NAO ve):
-  * citacao SEM caminho (`session.rs` solto) nao entra: o gate nao adivinha o modulo;
+  * citacao SEM caminho (`session.rs` solto) nao entra: o gate nao adivinha o modulo.
+    E uma escolha MEDIDA, nao preguica: aceitar o nome unico do arquivo subiria de 78
+    para 290 pares em 15/10 e obrigaria o `INDEX.md` (o mapa cita os ~50 scripts por
+    nome) e o `DECISIONS.md` a acompanhar a superficie de TODO script — isso e ruido,
+    e ruido vira isencao em massa, que e o mesmo que nao ter gate;
   * dado e configuracao (`.json`, `.toml`, `.yml`) ficam fora: mudam por dado, nao por
     contrato descrito;
   * `docs/arquivo/**` (historico) e `docs/analises/**` (evidencia datada) sao
