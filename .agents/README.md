@@ -1,11 +1,12 @@
 # `.agents/` — o harness do agente (Era Hardware)
 
 Este diretório é o que faz qualquer agente (eu, você, o próximo) entrar neste
-repo e trabalhar **sem briefing extra**. Três peças + uma memória:
+repo e trabalhar **sem briefing extra**. Três camadas + um mapa + uma memória:
 
 ```
 .agents/
 ├── README.md          # este mapa: ordem de entrada + fontes únicas por regra
+├── agents/            # QUEM faz (papéis da equipe: triagem→implementador→revisor→verificador)
 ├── skills/            # COMO se faz (sob demanda, disparadas pela `description`)
 │   ├── github-flow/ · core-dev/ · rust-practices/ · app-dev/
 │   ├── ui-ux-practices/ · testing/ · hardware-dev/
@@ -31,6 +32,9 @@ Aqui fica só a ordem de entrada — para não manter um terceiro catálogo que 
    de codar (`.github/ISSUE_TEMPLATE/`).
 4. **A skill da área** — o campo `description` de cada `SKILL.md` diz quando
    usá-la; skills de processo (`github-flow`, `docs-sync`) valem sempre.
+5. **O papel que você está exercendo** — `.agents/agents/README.md` diz qual contrato
+   ler (triagem, implementador, revisor, verificador) e em que estado (`flow:*`) a
+   demanda entra e sai. Um papel, um turno: não misture implementar e revisar.
 
 ## Regras de vida do harness
 
@@ -49,6 +53,11 @@ Aqui fica só a ordem de entrada — para não manter um terceiro catálogo que 
 - **Uma casa por regra:** regra transversal mora em UMA skill e as outras
   **apontam** (a tabela abaixo). Regra repetida em 3 arquivos sincroniza em 3 e
   apodrece nos outros — o modo de falha que o §8 da `docs-sync` combate.
+- **O harness tem gate próprio:** `python3 .github/scripts/check_harness.py`
+  (ou `gates.py check_harness`) cobra caminho que resolve, `description` que
+  dispara, contrato de papel com índice e a tabela de fontes únicas acima.
+  Rode ao mexer aqui: a leitura manual já deu "está tudo certo" duas vezes com
+  defeito no arquivo (#249).
 
 ## Fontes únicas por regra (não duplicar)
 
@@ -63,6 +72,8 @@ Aqui fica só a ordem de entrada — para não manter um terceiro catálogo que 
 | Cadeia de release rc→promote→tag | `release` (+ prompt `release`) | apontam |
 | Camada do app (`packages/app/api`: actor, commands, DTO/IPC) | `app-dev` | apontam |
 | Estrutura/limites das camadas do front | `docs/dev/ARCHITECTURE.md` | apontam |
+| Papéis da equipe + estado da demanda (`flow:*`) | `.agents/agents/README.md` | apontam |
+| Gates locais por área (antes do PR) | `docs/CONTRIBUTING.md` §4 | `AGENTS.md` indexa |
 
 ## Modo ausente do dono (#202)
 
