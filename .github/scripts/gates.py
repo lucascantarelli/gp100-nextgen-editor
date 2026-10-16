@@ -46,6 +46,12 @@ GATES: list[tuple[str, list[str], str]] = [
         "os templates de issue cumprem o contrato (secoes obrigatorias + prompt, #170)",
     ),
     (
+        "check_docs_modulos",
+        [sys.executable, ".github/scripts/check_docs_modulos.py"],
+        "o doc que descreve um modulo acompanha a superficie dele (ancestralidade de commit + "
+        "diff de superficie; a violacao aponta o documento, #275)",
+    ),
+    (
         "sync_version",
         [sys.executable, ".github/scripts/sync_version.py", "--check"],
         "os 5 manifests de versao em sincronia",
