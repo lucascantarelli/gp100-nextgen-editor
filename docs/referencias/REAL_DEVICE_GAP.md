@@ -98,8 +98,9 @@ janela nativa (MSVC no host, ADR-7). O CLI seguiu explícito e ganhou
    O instalador passa a ser build de **leitura**: fala com a pedaleira e recusa a
    escrita antes do driver (ADR-5), com o motivo na tela (§6 passo 3). **A prova
    do step só existe na próxima tag** — `stage-dist` é `tag` em
-   [`ci_plan.py`](../../.github/scripts/ci_plan.py); em PR o caminho real é coberto pelo
-   `ui-rust` nos três SOs. Restava antes do campo:
+   [`ci_plan.py`](../../.github/scripts/ci_plan.py) (a lista de crates Rust sai dos `members`
+   do manifesto da **raiz** do repo e **falha alto** se ele não for legível — #261); em PR o
+   caminho real é coberto pelo `ui-rust` nos três SOs. Restava antes do campo:
 2. **Nenhuma sessão de campo partiu do APP.** O H1/H2 provaram o core e o CLI;
    `ir_send`, `tone_send` e o knob do **editor** não foram medidos. É o passo 7
    da §6, e é o que a #17 espera.
