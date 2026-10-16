@@ -320,8 +320,8 @@ O Tauri não gera pacote Arch: a unidade de distribuição **é** a receita vers
 | Cobertura do front | `pnpm run test:coverage` | **87,62%** stmts · **81,25%** branch · **86,78%** funcs · **90,04%** linhas · *08/10* |
 | E2E (Playwright) | `pnpm exec playwright test --list` | **90** testes em **12** arquivos · **96** baselines · *08/10* |
 | Rust (core + cli + library) | `cargo test --workspace` | **349** testes em **42** suítes (40 binários + 2 doc-tests) · *13/10* |
-| Spec (pytest) | `uv run pytest` | **81** em **7** arquivos · *14/10, re-medido com `--collect-only` pós-#248 (o teste do gate de tamanho entrou; os juízes H arquivados seguem fora desde a #168)* |
-| Gates locais | `uv run python .github/scripts/gates.py` | **16** · *16 em 15/10 — entraram a higiene da documentação (#270), a obsolescência doc × módulo (#275) e a auditoria de movimento (#263/#264); `--list` mostra a lista* |
+| Spec (pytest) | `uv run pytest` | **189** em **11** arquivos · *16/10, re-medido com `--collect-only`: entra a suíte dos gates de script (`tools/tests/`, onde a higiene do harness entrou com a #267); os juízes H arquivados seguem fora desde a #168* |
+| Gates locais | `uv run python .github/scripts/gates.py` | **17** · *16/10 — a lista cresceu por último com a higiene do harness (#267/#268); antes: #270/#275/#263/#264 em 15/10; `--list` mostra a lista, e a tabela `GATES_LIGADOS` do `validate_workflows.py` cobra o passo de cada um no `ci.yml` (#273)* |
 
 > ✅ **Tempo da suíte do front (medido 08/10 na mesma base `develop`):**
 > `pnpm exec vitest run` caiu de **84,7s → 52,3s** com `pool: 'vmThreads'` (#145, F-10):
