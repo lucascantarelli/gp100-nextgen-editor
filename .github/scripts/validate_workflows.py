@@ -58,6 +58,9 @@ estrutura — e, desde a #68, que a ESTRUTURA nova é o que o projeto adoptou.Co
       (comentário não conta). Gate novo, de outro PR, sem linha na tabela ainda
       é cobrado: o comando dele tem de existir em algum `run:` do `ci.yml`.
       O que não passa, por nenhuma das duas portas, é o gate DESLIGADO.
+      O gate do HARNESS (#249/#267) entra por esta porta: a linha dele na
+      tabela mora com os outros contratos do `lint-workflows` — um mecanismo,
+      não um `if` especial por gate.
 
 Uso: python3 .github/scripts/validate_workflows.py  (exit 1 na primeira violação)
 """
@@ -291,6 +294,9 @@ GATES_LIGADOS: dict[str, tuple[tuple[str, ...], str]] = {
     "validate_workflows": (("lint-workflows",), ".github/scripts/validate_workflows.py"),
     "check_bundle": (("lint-workflows",), ".github/scripts/check_bundle.py"),
     "check_issue_templates": (("lint-workflows",), ".github/scripts/check_issue_templates.py"),
+    # O gate do HARNESS (#249/#267): o job dos contratos e quem le o proprio
+    # `ci.yml` — apagar o passo devolvia um CI verde com o gate morto.
+    "check_harness": (("lint-workflows",), ".github/scripts/check_harness.py"),
     # Os DOIS gates de documentacao, no mesmo job (e o `ci.yml` e quem le o
     # proprio `ci.yml`): a higiene do doc (#270) divide o passo dos contratos; a
     # obsolescencia doc x modulo (#275) tem passo proprio, pelo custo do git log.

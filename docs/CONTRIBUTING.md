@@ -153,11 +153,11 @@ Só a área que você tocou — o CI filtra o resto por caminhos.
 | **Gates de script** (pipeline, empacotamento, versão, spec, release) | **`python3 .github/scripts/gates.py`** — roda todos de uma vez, na ordem do CI |
 
 - **`gates.py` é o atalho para "os gates de script"**: `validate_workflows`,
-  `check_bundle`, `check_issue_templates`, `check_docs`, `check_docs_modulos`, `sync_version`,
-  `check_deadcode`, `check_module_size`, `check_move_only`, `byte_order`, `param_ranges`,
-  `state_pages`, `baseline`, `pytest`, `check_base_images` e `simulate_release` — a
-  **contagem no total é a do §6 do [`INDEX`](INDEX.md)** (fonte única; aqui a lista, lá o
-  número). Rode
+  `check_bundle`, `check_issue_templates`, `check_harness`, `check_docs`, `check_docs_modulos`,
+  `sync_version`, `check_deadcode`, `check_module_size`, `check_move_only`, `byte_order`,
+  `param_ranges`, `state_pages`, `baseline`, `pytest`, `check_base_images` e
+  `simulate_release` — a **contagem no total é a do §6 do [`INDEX`](INDEX.md)** (fonte única;
+  aqui a lista, lá o número). Rode
   `python3 .github/scripts/gates.py --list` para ver a lista, ou passe nomes para rodar
   só alguns: `python3 .github/scripts/gates.py check_bundle validate_workflows`.
   Todas as dependências (`pyyaml`, `jsonschema`) estão no `pyproject.toml`, então

@@ -46,6 +46,12 @@ GATES: list[tuple[str, list[str], str]] = [
         "os templates de issue cumprem o contrato (secoes obrigatorias + prompt, #170)",
     ),
     (
+        "check_harness",
+        [sys.executable, ".github/scripts/check_harness.py"],
+        "o harness do agente nao apodrece: caminho citado existe, skill tem description que dispara, "
+        "contrato de papel tem indice e a regra transversal tem UMA casa (#249)",
+    ),
+    (
         "check_docs",
         [sys.executable, ".github/scripts/check_docs.py"],
         "higiene da documentacao: link/ancora resolvem, todo doc tem banner de status com data, "

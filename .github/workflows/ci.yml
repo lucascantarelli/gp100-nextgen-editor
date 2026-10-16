@@ -312,24 +312,22 @@ jobs:
           # `pyyaml` e `jsonschema` ja vem no `pyproject.toml` (#80); a linha
           # abaixo e o fallback para rodar o script fora do ambiente do projeto.
           python3 -c "import yaml" 2>/dev/null || python3 -m pip install --quiet pyyaml
-          # O gate de empacotamento (#71) estava escrito mas NAO LIGADO: o
-          # `docs/tecnico/PACKAGING.md` afirmava que ele rodava aqui e nao rodava em
-          # lugar nenhum. Sem ele, mainBinaryName, .desktop, .deb e PKGBUILD
-          # podiam divergir em silencio.
+          # O gate de empacotamento (#71) estava escrito mas NAO LIGADO (o PACKAGING.md
+          # afirmava que rodava aqui): mainBinaryName/.desktop/.deb/PKGBUILD divergiam em silencio.
           python3 .github/scripts/check_bundle.py
           python3 .github/scripts/sync_version.py --check
           python3 .github/scripts/validate_workflows.py
-          # O contrato dos templates de issue (#170): secoes obrigatorias e o
-          # prompt auto-suficiente. Sem gate, "enxugar template" remove a secao
-          # e o contrato morre em silencio — mesma classe do check_bundle (#71).
+          # O contrato dos templates de issue (#170): secoes obrigatorias + prompt
+          # auto-suficiente; sem ele, "enxugar template" mata a secao em silencio (#71).
           python3 .github/scripts/check_issue_templates.py
-          # Higiene da documentacao (#270): as tres convencoes do INDEX §4 que existiam
-          # sem juiz — link/ancora, banner com data e contador so no §6.
+          # Os juízes do HARNESS (#249) e da DOCUMENTACAO (#270): regras que existiam
+          # sem gate (caminho morto, skill que nao dispara, link/ancora, banner com data,
+          # contador so no INDEX §6). A razao de cada um vive no docstring do script.
+          python3 .github/scripts/check_harness.py
           python3 .github/scripts/check_docs.py
       # ── A OBSOLESCÊNCIA DO DOC TEM JUIZ (#275) ──────────────────────────
-      # Link morto e estrutura (o #270 pega); aqui e link VIVO com conteudo morto: a
-      # ultima revisao do doc contra a SUPERFICIE dos modulos que ele cita (ancestralidade
-      # de commit, nao relogio). Medido em 15/10: 4 pares velhos em 2 documentos.
+      # Link morto e estrutura (o #270 pega); aqui e link VIVO com conteudo morto: a ultima
+      # revisao do doc contra a SUPERFICIE dos modulos que ele cita (commit, nao relogio).
       - name: obsolescência da documentação (doc × módulo que ele descreve)
         run: python3 .github/scripts/check_docs_modulos.py
       # ── A SIMULAÇÃO DO GITFLOW É CONDICIONAL (#246, achado F-13) ─────────

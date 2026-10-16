@@ -77,7 +77,7 @@ tests/        vitest (jsdom) · e2e/ spec do Playwright (roda do repo, na CI)
 ```
 
 - Componentes **sem lógica de negócio**: recebem dados prontos e callbacks.
-- Tipos TS de payload IPC em `ipc/types.ts`: **espelhos manuais** dos DTOs de
+- Tipos TS de payload IPC em `packages/app/ui/src/ipc/types.ts`: **espelhos manuais** dos DTOs de
   `packages/app/api/src/commands.rs` (geração automática ts-rs/specta é ADR
   pendente — mudou DTO no Rust, muda aqui na mesma PR).
 
@@ -113,7 +113,8 @@ pnpm build         # vite build (bundle; tsc já rodou acima)
 
 - `invoke` só existe dentro do webview — mas os testes NÃO mockam o Tauri:
   em jsdom não existe `window.__TAURI_INTERNALS__`, então `inTauri()`
-  (`ipc/device.ts`) cai no fallback de DEV/TESTE embutido na própria porta,
+  (`packages/app/ui/src/ipc/device.ts`) cai no fallback de DEV/TESTE embutido na
+  própria porta,
   que usa o MESMO shape do MockDevice real. Para observar/substituir uma
   função de porta, o padrão é o mock PARCIAL por teste —
   `vi.mock("../src/ipc/<porta>", async (importOriginal) => ({ ...mod, fn:

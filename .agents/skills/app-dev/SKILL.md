@@ -121,7 +121,8 @@ a cobertura). O maior arquivo do crate hoje é `commands.rs` (869/900).
 
 A **#257** fez o mesmo com os CINCO módulos que estavam congelados acima do genérico no core e
 no CLI: cada um virou **handle** com teto medido — `session.rs` **200** e a coorte
-`session/<módulo>.rs` **400** (#262), `transport/mock.rs` **350**, `preset.rs` **175**,
+`session/<módulo>.rs` **400** (#262), `packages/core/src/transport/mock.rs` **350**
+(o handle; o interior em `transport/mock/`), `preset.rs` **175**,
 `golden.rs` **250** e o `main.rs` do CLI **800**; o mapa do `session` (módulo → dono) e o motivo
 de cada número estão no §4.1.
 

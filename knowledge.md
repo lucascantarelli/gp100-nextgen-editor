@@ -10,19 +10,32 @@
 O que a GP-100 faz se resolve MEDITO no aparelho, não deduzido do mock, do manual
 de marketing ou de engenharia reversa. Resposta ao usuário SEMPRE em PT-BR.
 
-Habilidade de entrada: `.agents/README.md` (mapa do harness — skills, prompts,
-ordem de leitura). O fluxo de trabalho é `.agents/skills/github-flow/SKILL.md`.
+Habilidade de entrada: **`AGENTS.md`** (raiz — o que um harness carrega sozinho) e
+`.agents/README.md` (mapa do harness — papéis, skills, prompts, ordem de leitura).
+Os papéis da equipe e o estado da demanda (`flow:*`) são `.agents/agents/README.md`.
+O fluxo de trabalho é `.agents/skills/github-flow/SKILL.md`.
 Dona ausente? **Modo ausente do dono** (mesmo `.agents/README.md`): fila
 autônoma na ordem de prioridade, UMA issue por PR; decisão crítica vira
 comentário NA ISSUE e a fila avança.
 
 ## Estado vivo (atualizar a cada marco — 1–3 linhas, sem prosa)
 
+- 16/10 — **a higiene do harness virou gate (#267)**: `check_harness.py` cobra caminho
+  que resolve, `description` que dispara, contrato de papel com índice e a regra
+  transversal em UMA casa; a **tabela de fontes únicas** do `.agents/README.md` é
+  SAÍDA dele (`--tabela` gera; editar à mão reprova). Ligação gate → job pela tabela
+  `GATES_LIGADOS` (#273), não por `if` especial.
+- 15/10 — **equipe multiagente (harness v2)**: a limitação foi **medida**, não suposta —
+  este cliente não carrega agente definido no projeto em nenhum dos 3 layouts testados
+  (`.agents/<id>.ts`, `.agents/agents/<id>.ts`, `.agents/agents/<id>.md`); a única
+  spawnável é a injetada (`researcher-web`). Contorno: papel = contrato de arquivo
+  (`.agents/agents/`: triagem→implementador→revisor→verificador) + estado em labels
+  `flow:*` no GitHub + `git worktree` para paralelismo. Entrada nova: `AGENTS.md`.
 - 14/10 — **#261 (`scope-rust` do plano)**: a lista de crates Rust da CI sai dos
   `members` do manifesto do WORKSPACE (= `parents[2]` de `.github/scripts/`, a
   armadilha registrada na #168) e o plano agora **falha alto** se não conseguir
   lê-lo — o `except OSError` que devolvia lista vazia fazia PR de
-  `packages/core|cli|library` rodar a CI SEM lint/compile/teste de Rust e ficar
+  `packages/core`, `packages/cli` ou `packages/library` rodar a CI SEM lint/compile/teste de Rust e ficar
   verde. Trava em `tools/tests/test_ci_plan.py`.
 
 - 13/10 — **#168 (`scripts/` dissolvida)**: CI/gates → `.github/scripts/`;
@@ -173,7 +186,7 @@ comentário NA ISSUE e a fila avança.
 - **Buffers MIM_LONGDATA do proxy chegam com cauda stale**, e resposta longa
   traz `F7` EMBUTIDO no meio (**paginação, NÃO fim de mensagem**). A regra do
   codec é **trim no 1º `F7`** — já aplicada nos decoders/`RealDevice`.
-  Citada por `packages/core/src/lib.rs` (`SYSEX_EOX`) e `transport/real.rs`.
+  Citada por `packages/core/src/lib.rs` (`SYSEX_EOX`) e `packages/core/src/transport/real.rs`.
 - **Linha sem `F7` final não é frame**: o proxy morre no flush e a cauda vem
   preenchida com `ff` — cortar/interpretar isso fabrica payload que nunca
   existiu (lição da baseline v1.1: 63 de 77 mensagens de save eram inventadas).
