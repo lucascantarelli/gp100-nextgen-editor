@@ -105,6 +105,7 @@ automática do GitHub.
 |---|---|---|
 | `audit-2026-10-14.md` | **Auditoria ampla (14/10)**: docs, Rust, front, CI/DevOps, latência MIDI e cobertura do manual — 18 achados (F-01…F-18) com severidade e backlog priorizado; faxina dos artefatos locais não rastreados (`re_tmp`, `superpowers`, `test-results`) | ✅ atual (14/10) |
 | `audit-harness-2026-10-14.md` | **Auditoria do harness (14/10)**: as 9 skills e os 6 prompts de `.agents/` — 12 achados (H-01…H-12), plano de consolidação em 3 commits e a tabela de fontes únicas (issue [#249](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/249)) | ✅ atual (14/10) |
+| `harness-v2-limite-medido-2026-10-15.md` | **Medição do harness v2 (15/10)**: o que este cliente carrega — as quatro sondas de agente de projeto (três recusas), os MCPs injetados e os limites declarados; é para cá que o `AGENTS.md` §7 e a §1 do `.agents/agents/README.md` apontam | ✅ medição (15/10) |
 | `medicoes-datadas-2026-10-15.md` | **Registro das medições datadas (15/10)**: os contadores que saíram dos documentos vivos na [#270](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/270) — diagnóstico da virada (09/10), rodadas de teste manual da UI (set/out) e números de prosa — cada um com a data e a origem; o doc vivo aponta para cá **ou** para o §6 | 📜 histórico (registro da #270) |
 | `audit-2026-10-07.md` | **Auditoria completa (07/10)**: code review + governança + arquitetura + limpeza em todo o repo, com números remediados, achados F-01…F-12 e backlog A-1…A-10 (desfecho na §10) | 📜 histórico (desfecho 08/10) |
 | `audit-era-real-2026-10-07.md` | Auditoria da Era Real (07/10): estado do app real vs mock | 📜 histórico |
@@ -129,6 +130,9 @@ automática do GitHub.
 | `H4_CHECKLIST.md` · `H4_REPORT.md` | Gate H4 (páginas 13xx em campo — leitura) | ⚠️ roteiro + relatório aguardando a sessão de campo (o **artefato** de offsets veio de S1 + `all.prst` e é gated por `state_pages`; a sessão com o aparelho não tem evidência rastreada — #272 corrigiu o `✅ gate fechado (§6)` que apontava para um §6 sem H4) |
 | `CAPTURE_PLAN.md` | Plano original das rotas de captura | 📜 histórico (cumprido) |
 | `ROADMAP_era-RE_2026-09.md` · `knowledge-era-RE_2026-10.md` | Roadmap e knowledge da Era de Engenharia Reversa (supersedidos) | 📜 histórico |
+| `knowledge-estado-vivo-2026-10.md` | Marcos **14/10 → 09/10** do "Estado vivo" do `knowledge.md`, que passou a guardar só os três recentes (enxugamento do harness, [#269](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/269)) | 📜 histórico (16/10) |
+| `harness-poc-agente-projeto.ts` | Registro da forma de agente de projeto que o cliente recusa carregar; veio de `.agents/poc-pesquisador.ts` ([#269](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/269)) — a medição é `../analises/harness-v2-limite-medido-2026-10-15.md` | 📜 histórico (16/10) |
+| `docs-sync-proveniencia-2026-10.md` | Proveniência das regras do checklist da skill `docs-sync` (de onde cada item veio) — a regra viva é o `SKILL.md` ([#269](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/269)) | 📜 histórico (16/10) |
 | `skills-era-RE/` | As 5 skills da era RE (`proxy-build`, `capture-analyze`, `new-session`, `spec-baseline`, `protocol-validate`) | 📜 histórico |
 | `analysis/` | Cápsula da Era de RE (abaixo) — proveniência, não processo | 📜 histórico |
 
@@ -229,8 +233,10 @@ comandos), `knowledge.md` (estado vivo + armadilhas), `.codebuffignore`, `.agent
 (mapa do harness),
 `.agents/agents/` (equipe: `README.md` — desenho e limitação medida do cliente — +
 `triagem.md`, `implementador.md`, `revisor.md`, `verificador.md`),
-`.agents/poc-pesquisador.ts` (registro da forma de agente de projeto recusada pelo
-cliente), `.agents/prompts/` (6 templates: implementar-issue canônico,
+`AGENTS.md` §5 (a lista única do "não fazer"), `docs/arquivo/harness-poc-agente-projeto.ts`
+(registro da forma de agente de projeto recusada pelo cliente) e
+`docs/analises/harness-v2-limite-medido-2026-10-15.md` (a medição), `.agents/prompts/` (6
+templates: implementar-issue canônico,
 executar-issues-em-sequencia, corrigir-bug, code-review-completo, auditoria,
 release),
 `.agents/skills/{github-flow,core-dev,rust-practices,app-dev,ui-ux-practices,testing,hardware-dev,device-reference,release,docs-sync}/SKILL.md`
