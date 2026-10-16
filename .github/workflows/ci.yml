@@ -323,36 +323,26 @@ jobs:
           # prompt auto-suficiente. Sem gate, "enxugar template" remove a secao
           # e o contrato morre em silencio — mesma classe do check_bundle (#71).
           python3 .github/scripts/check_issue_templates.py
-          # Higiene da documentacao (#270): link/ancora resolvem, todo doc tem banner
-          # de status com data e contador vive so no INDEX §6. Sao tres convencoes do
-          # INDEX §4 que existiam sem juiz — 13 mil linhas dependiam de alguem reler.
+          # Higiene da documentacao (#270): as tres convencoes do INDEX §4 que existiam
+          # sem juiz — link/ancora, banner com data e contador so no §6.
           python3 .github/scripts/check_docs.py
       # ── A OBSOLESCÊNCIA DO DOC TEM JUIZ (#275) ──────────────────────────
-      # O `check_docs.py` (#270) pega link morto: estrutura. Um documento pode
-      # citar um caminho que EXISTE e descrever uma API que já mudou — link vivo,
-      # conteúdo morto. Este gate compara a última revisão do doc com a
-      # SUPERFÍCIE dos módulos que ele cita (ancestralidade de commit, não
-      # relógio) e aponta o DOCUMENTO. Medido em 15/10, na árvore de antes do
-      # conserto: 4 pares velhos em 2 documentos (`PACKAGING.md`, `RELEASE_PLAN.md`).
+      # Link morto e estrutura (o #270 pega); aqui e link VIVO com conteudo morto: a
+      # ultima revisao do doc contra a SUPERFICIE dos modulos que ele cita (ancestralidade
+      # de commit, nao relogio). Medido em 15/10: 4 pares velhos em 2 documentos.
       - name: obsolescência da documentação (doc × módulo que ele descreve)
         run: python3 .github/scripts/check_docs_modulos.py
       # ── A SIMULAÇÃO DO GITFLOW É CONDICIONAL (#246, achado F-13) ─────────
       #
-      # `simulate_release.py` executa a cadeia rc→promote DE VERDADE num sandbox
-      # git: ~2 min para proteger uma cadeia que muda raramente. Em TODO PR isso
-      # era custo; o risco real mora em PR que toca a maquinaria de release.
-      #
-      # A regra é do `ci_plan.py` (`scope-ci`), NUNCA um `if:` escrito à mão
-      # aqui — contrato 5, a mesma fonte que decide branch→tipos de job.
-      # `CHANGED=ALL` (tag, schedule, dispatch) marca o escopo como verdadeiro,
-      # então a auditoria noturna e a tag continuam provando a cadeia inteira.
+      # `simulate_release.py` executa a cadeia rc→promote DE VERDADE num sandbox git
+      # (~2 min): em TODO PR isso era custo, e o risco real mora em PR que toca a
+      # maquinaria de release. A regra é do `ci_plan.py` (`scope-ci`), NUNCA um `if:`
+      # à mão — contrato 5; `CHANGED=ALL` (tag, schedule, dispatch) mantém a cadeia provada.
       - name: simulação do GitFlow (cadeia rc→promote)
         if: needs.plan.outputs.scope-ci == 'true'
         run: |
-          # Os self-checks dos juízes H1/H2 saíram com a dissolução de
-          # `scripts/` (#168): os juízes de campo viraram histórico em
-          # `docs/arquivo/scripts-era-RE/` (a evidência dos gates vive nos
-          # relatórios H; os gates fecharam em campo — INDEX §6).
+          # Os self-checks dos juízes H1/H2 saíram com a dissolução de `scripts/` (#168):
+          # viraram histórico em `docs/arquivo/scripts-era-RE/` (INDEX §6).
           python3 .github/scripts/simulate_release.py
 
   lint-commits:
@@ -368,6 +358,17 @@ jobs:
           fetch-depth: 0
       - name: conventional commits
         run: python3 .github/scripts/check_commits.py
+      - name: auditoria de movimento (trailer `Move-only:`)
+        # #263: o commit que declara movimento puro prova, contra o PAI, que nao perdeu nem
+        # reescreveu linha (sem trailer o gate nao audita nada). A base vem do mesmo lugar
+        # que o `plan` usa. O squash do GitHub e caso de movimento: o diff aqui e o PR
+        # INTEIRO — o trailer sobrevive no corpo do squash — e o range inteiro e auditado
+        # como o squash que o merge vai criar (#264), onde da para consertar. Detalhes no
+        # docstring de `check_move_only.py`.
+        env:
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          BEFORE: ${{ github.event.before }}
+        run: python3 .github/scripts/check_move_only.py
 
   lint-rust-fmt:
     name: Lint · Rust (fmt)

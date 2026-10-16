@@ -315,7 +315,7 @@ O Tauri não gera pacote Arch: a unidade de distribuição **é** a receita vers
 | E2E (Playwright) | `pnpm exec playwright test --list` | **90** testes em **12** arquivos · **96** baselines · *08/10* |
 | Rust (core + cli + library) | `cargo test --workspace` | **349** testes em **42** suítes (40 binários + 2 doc-tests) · *13/10* |
 | Spec (pytest) | `uv run pytest` | **81** em **7** arquivos · *14/10, re-medido com `--collect-only` pós-#248 (o teste do gate de tamanho entrou; os juízes H arquivados seguem fora desde a #168)* |
-| Gates locais | `uv run python .github/scripts/gates.py` | **15** · *15 em 15/10 — entraram a higiene da documentação (#270) e a obsolescência doc × módulo (#275); `--list` mostra a lista* |
+| Gates locais | `uv run python .github/scripts/gates.py` | **16** · *16 em 15/10 — entraram a higiene da documentação (#270), a obsolescência doc × módulo (#275) e a auditoria de movimento (#263/#264); `--list` mostra a lista* |
 
 > ✅ **Tempo da suíte do front (medido 08/10 na mesma base `develop`):**
 > `pnpm exec vitest run` caiu de **84,7s → 52,3s** com `pool: 'vmThreads'` (#145, F-10):

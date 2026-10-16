@@ -109,6 +109,33 @@ Formato: `tipo(escopo): assunto` — validado pelo job **gate** do pipeline.
   corta major no próximo play.
 - O **subject** nunca fecha issue; o vínculo de fechamento vai no corpo do PR.
 - Exemplo: `feat(ui): knob com arrasto vertical e teclado (#42)`
+- **Refactor de MOVIMENTO tem trailer** (#263): quando o commit só MOVE texto —
+  o caso canônico é o corte da #257, em que 1 395 linhas saem de `session.rs` e
+  entram em oito módulos —, declare a origem numa linha do corpo:
+  `Move-only: <caminho no repo>` (repetível, um por origem). É uma promessa, e o
+  CI a cobra pelo `check_move_only.py`: contra o **pai** do commit, toda linha de
+  conteúdo da origem tem de existir no destino, na mesma multiplicidade — a única
+  tolerância é o qualificador de visibilidade que o corte exige (`fn tx_req(` →
+  `pub(super) fn tx_req(`) — e toda linha **adicionada** tem de ser andaime
+  (comentário, `use`/`mod`, `impl … {`, `}`, atributo). Mudou uma linha de lógica,
+  inventou código ou re-indentou? O trailer sai do commit e o PR diz o que mudou.
+  Sem trailer o gate não audita nada — ele não adivinha movimento.
+  **Squash e merge são caso de movimento** (#263): o `Squash and merge` colapsa
+  os commits do PR num só — o trailer sobrevive (a mensagem do squash lista as
+  mensagens dos commits, `squash_merge_commit_message: COMMIT_MESSAGES`), mas o
+  diff do commit que a CI vê no `develop` passa a ser o PR inteiro. O gate
+  reconhece o squash (a linha de hífens que o GitHub põe antes do bloco de
+  co-autoria) e o merge (≥ 2 pais, contra o primeiro pai) e separa as cláusulas:
+  o "não perdeu" continua inteiro, o "não reescreveu" continua coberto (linha
+  reescrita some da origem) e só o **andaime** vira aviso — a linha nova pode ser
+  de um commit irmão do PR, e no `develop` não há mais trailer para tirar. A
+  cláusula do andaime foi cobrada inteira por commit, no PR.
+  **A CI do PR já prevê o squash** (#264): além de auditar cada commit contra o
+  pai dele, o gate audita o **range inteiro** como o squash que o merge vai
+  criar — mesmo regime (o "não perdeu" inteiro, o andaime como aviso). É o que
+  pega o commit irmão que apaga uma linha depois do corte: antes o PR passava e o
+  `develop` reprovava sem conserto possível. Um vermelho "previsto" se conserta
+  no PR: reponha a linha, ou atualize a branch (rebase) se a base andou.
 
 ---
 
@@ -127,9 +154,10 @@ Só a área que você tocou — o CI filtra o resto por caminhos.
 
 - **`gates.py` é o atalho para "os gates de script"**: `validate_workflows`,
   `check_bundle`, `check_issue_templates`, `check_docs`, `check_docs_modulos`, `sync_version`,
-  `check_deadcode`, `check_module_size`, `byte_order`, `param_ranges`, `state_pages`,
-  `baseline`, `pytest`, `check_base_images` e `simulate_release` — a **contagem no total é a
-  do §6 do [`INDEX`](INDEX.md)** (fonte única; aqui a lista, lá o número). Rode
+  `check_deadcode`, `check_module_size`, `check_move_only`, `byte_order`, `param_ranges`,
+  `state_pages`, `baseline`, `pytest`, `check_base_images` e `simulate_release` — a
+  **contagem no total é a do §6 do [`INDEX`](INDEX.md)** (fonte única; aqui a lista, lá o
+  número). Rode
   `python3 .github/scripts/gates.py --list` para ver a lista, ou passe nomes para rodar
   só alguns: `python3 .github/scripts/gates.py check_bundle validate_workflows`.
   Todas as dependências (`pyyaml`, `jsonschema`) estão no `pyproject.toml`, então

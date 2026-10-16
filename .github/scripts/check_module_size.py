@@ -27,7 +27,8 @@ DUAS FAMILIAS DE TETO:
 - **genérico** — vale para o que não está declarado: 700 no `components/` do
   front (acima disso, ou falta extrair regra ou falta extrair subcomponente) e
   700 em qualquer `.rs` de `packages/*/src` (acima disso o módulo tem mais de um
-  assunto). As coortes do actor têm teto PRÓPRIO de 300 (§4.1).
+  assunto). As coortes têm teto PRÓPRIO, abaixo do genérico, porque ali o
+  critério é mais estreito: 300 no actor (#243) e 400 em `session/` (#262).
 - **declarado** — o arquivo que SABEMOS passar do genérico e cujo corte está
   escrito como issue (`TETOS` para o front, `TETOS_RUST` para o Rust). A coluna
   do "por que" não é decoração: quando alguém quiser subir um teto, o motivo do
@@ -49,7 +50,7 @@ que ninguém vê deixa de ser revisão.
 
 USO.
     python3 .github/scripts/check_module_size.py
-    python3 .github/scripts/check_module_size.py --allow packages/core/src/session.rs:1420
+    python3 .github/scripts/check_module_size.py --allow packages/core/src/golden.rs:900
     python3 .github/scripts/check_module_size.py --allow src/components/Foo.tsx:820
     python3 .github/scripts/check_module_size.py --list
 """
@@ -81,15 +82,44 @@ TETO_PADRAO = 700
 # tamanho da medicao — a regra e "nao cresce mais", nao "pode crescer ate aqui".
 # O corte de cada um esta escrito como issue (o numero esta no motivo); subir o
 # teto sem cortar e o que este arquivo existe para tornar visivel.
+# A #257 cortou os CINCO que estavam congelados (session, transport/mock, golden,
+# preset e o `main.rs` do CLI): as entradas deles hoje sao o HANDLE daquele corte,
+# medido, mais a folga da mesma ordem dos outros handles.
 TETOS_RUST: list[tuple[str, int, str]] = [
     ("packages/app/api/src/actor.rs", 600, "#243: handle + spawn; coorte nova vira modulo, nao linha"),
     ("packages/app/api/src/commands.rs", 900, "#243: porta do IPC; o corte por coorte e divida declarada"),
     ("packages/app/api/src/lib.rs", 400, "#243: run()/AppState/registro do generate_handler!"),
-    ("packages/core/src/golden.rs", 829, "congelado: golden do fio (R1-R3); corte na #257"),
-    ("packages/core/src/preset.rs", 901, "congelado: modelo de preset/decodificacao; corte na #257"),
-    ("packages/core/src/session.rs", 1395, "congelado: FSM do fio (ADR-3/4/6); corte na #257"),
-    ("packages/core/src/transport/mock.rs", 1258, "congelado: device de mentira espelha o fio; corte na #257"),
-    ("packages/cli/src/main.rs", 1226, "congelado: CLI de campo; corte na #257"),
+    (
+        "packages/core/src/golden.rs",
+        250,
+        "#257: o HANDLE (o que o GoldenFile POSSUI + a carga/validacao) + o `GOLDEN_JSON` "
+        "e o `shape` (o helper de erro que todos os modulos usam); metodo novo vira modulo do assunto",
+    ),
+    (
+        "packages/core/src/preset.rs",
+        175,
+        "#257: o HANDLE (o MODELO — os TIPOS e o que cada um POSSUI, com os campos fechados — "
+        "mais a EMISSAO `to_bytes` e os acessores) + o `shape` (o helper de erro que todos os "
+        "modulos usam); metodo novo vira modulo do assunto",
+    ),
+    (
+        "packages/core/src/session.rs",
+        200,
+        "#257: o HANDLE (o que a Session POSSUI + o ciclo de vida); metodo novo vira modulo do assunto",
+    ),
+    (
+        "packages/core/src/transport/mock.rs",
+        350,
+        "#257: o HANDLE (o que o MockDevice POSSUI + o ciclo de vida) + o `mod tests` inline "
+        "(um `mod tests` em `mock/tests.rs` e `clippy::module_inception`); metodo novo vira modulo do assunto",
+    ),
+    (
+        "packages/cli/src/main.rs",
+        800,
+        "#257: o HANDLE (o USO, os TIPOS e o ciclo de vida do bin) + o `mod tests` inline "
+        "(mover o corpo obriga a re-indentar: o `check_move_only` o le como perdido, e o bloco "
+        "intacto em `tests.rs` e `clippy::module_inception`); subcomando/fluxo novo vira modulo",
+    ),
 ]
 
 # Teto generico do Rust (qualquer `.rs` de `packages/*/src` nao declarado).
@@ -100,6 +130,18 @@ TETO_RUST_PADRAO = 700
 # linhas quase sempre sao duas coortes no mesmo arquivo.
 TETO_COORTE_ACTOR = 300
 DIR_COORTE_ACTOR = "packages/app/api/src/actor/"
+
+# Coorte do `session` (#262 / ARCHITECTURE §4.1): os modulos que o corte da #257
+# tirou do `session.rs` sao UM assunto cada (a transacao, o boot, a escrita, a
+# leitura...), e o teto e menor que o generico pelo mesmo motivo do actor.
+#
+# O numero sai da MEDIDA: o maior assunto legitimo hoje e a `escrita` (347 = as
+# cinco operacoes de escrita do §13.7/§13.11/§13.12/§5); a coorte do actor e 300
+# sobre o maior modulo dela (244, +23%), entao 400 sobre 347 e a mesma folga
+# (+15%). Acima disso o modulo virou dois — o primeiro candidato e separar
+# IR/SnapTone da `escrita`.
+TETO_COORTE_SESSAO = 400
+DIR_COORTE_SESSAO = "packages/core/src/session/"
 
 # Arquivo de teste nao entra no orcamento (cresce com a cobertura, nao com
 # funcionalidade) — por nome e por diretorio.
@@ -119,11 +161,18 @@ def e_teste(rel: str) -> bool:
 
 
 def teto_rust(rel: str, declarados: dict[str, int]) -> int:
-    """Teto de um `.rs`: declarado > coorte do actor > genérico."""
+    """Teto de um `.rs`: declarado > coorte do actor > coorte do session > genérico.
+
+    O declarado vem primeiro porque é decisão registrada para UM arquivo: é ele
+    que sustenta o handle da FSM (`session.rs` = 200) — sem essa precedência, a
+    coorte do diretório engoliria o teto mais estreito.
+    """
     if rel in declarados:
         return declarados[rel]
     if rel.startswith(DIR_COORTE_ACTOR):
         return TETO_COORTE_ACTOR
+    if rel.startswith(DIR_COORTE_SESSAO):
+        return TETO_COORTE_SESSAO
     return TETO_RUST_PADRAO
 
 
@@ -198,6 +247,7 @@ def main() -> int:
         for rel, teto, motivo in TETOS_RUST:
             print(f"  {rel:<44} {teto:>5}  {motivo}")
         print(f"  {DIR_COORTE_ACTOR + '<coorte>.rs':<44} {TETO_COORTE_ACTOR:>5}  coorte do actor (#243, ARCHITECTURE 4.1)")
+        print(f"  {DIR_COORTE_SESSAO + '<modulo>.rs':<44} {TETO_COORTE_SESSAO:>5}  coorte do session (#262, ARCHITECTURE 4.1)")
         print(f"  {'(demais .rs de packages/*/src)':<44} {TETO_RUST_PADRAO:>5}  regra padrao do Rust")
         print(f"  {'(testes: tests.rs, tests/)':<44} {'-':>5}  fora do orcamento: cresce com a cobertura")
         return 0

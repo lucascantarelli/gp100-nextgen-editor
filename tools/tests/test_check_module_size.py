@@ -2,10 +2,12 @@
 
 O gate nasceu do front (#82) e passou a cobrar os `.rs` de `packages/*/src` na
 #248, quando a auditoria de 14/10 mostrou que o Rust nao tinha freio nenhum
-(`actor.rs` chegou a 2 702 linhas, F-07). Um gate que ninguem testa e um gate
-que passa a aprovar por engano — e o modo de falhar aqui e silencioso: se o
-`rglob` nao achar os `.rs`, "dentro do orcamento" e a resposta de uma arvore
-vazia.
+(`actor.rs` chegou a 2 702 linhas, F-07). A #262 acrescentou a segunda familia de
+coorte — os modulos de `session/`, que o corte da #257 tirou de um arquivo de
+1 395 linhas e que, sob o generico de 700, poderiam voltar a ser um deles. Um gate
+que ninguem testa e um gate que passa a aprovar por engano — e o modo de falhar
+aqui e silencioso: se o `rglob` nao achar os `.rs`, "dentro do orcamento" e a
+resposta de uma arvore vazia.
 
 Por isso o teste mede ARVORES SINTETICAS (inflar um arquivo de verdade para
 provar que o gate reprova seria um teste que ninguem roda duas vezes) e, alem
@@ -98,6 +100,57 @@ def test_coorte_do_actor_tem_teto_300(tmp_path):
     cm = _carregar()
     excessos, _ = cm.avalia_rust(arvore, tetos=[])
     assert excessos == [("packages/app/api/src/actor/leitura.rs", 301, 300)]
+
+
+# ── coorte do session (#262) ────────────────────────────────────────────
+
+
+def test_modulo_do_session_acima_da_coorte_reprova(tmp_path):
+    """Os modulos do corte da #257 sao UM assunto cada — e o teto e 400."""
+    arvore = _arvore(tmp_path, {"packages/core/src/session/escrita.rs": 401})
+    cm = _carregar()
+    excessos, _ = cm.avalia_rust(arvore, tetos=[])
+    assert excessos == [("packages/core/src/session/escrita.rs", 401, 400)]
+
+
+def test_modulo_do_session_no_teto_passa(tmp_path):
+    arvore = _arvore(tmp_path, {"packages/core/src/session/boot.rs": 400})
+    cm = _carregar()
+    excessos, _ = cm.avalia_rust(arvore, tetos=[])
+    assert excessos == []
+
+
+def test_as_tres_reguas_de_rust_nao_vazam_para_o_lado(tmp_path):
+    """session (400), actor (300) e generico (700) valem cada um no seu lugar."""
+    arvore = _arvore(
+        tmp_path,
+        {
+            "packages/core/src/session/x.rs": 401,  # coorte do session: reprova
+            "packages/core/src/outro.rs": 401,  # generico: passa
+            "packages/app/api/src/actor/x.rs": 301,  # coorte do actor: reprova
+        },
+    )
+    cm = _carregar()
+    excessos, _ = cm.avalia_rust(arvore, tetos=[])
+    assert excessos == [
+        ("packages/app/api/src/actor/x.rs", 301, 300),
+        ("packages/core/src/session/x.rs", 401, 400),
+    ]
+
+
+def test_teto_declarado_vence_a_coorte_do_diretorio(tmp_path):
+    """Decisao de UM arquivo vence a regra do diretorio (precedencia do `teto_rust`).
+
+    Hoje nenhum teto declarado mora DENTRO de um diretorio de coorte (os handles
+    ficam ao lado: `src/actor.rs`, `session.rs`) — o teste trava a precedencia
+    para o dia em que um morar, e para que a ordem das checagens nao seja
+    invertida numa refatoracao futura.
+    """
+    tetos = [("packages/core/src/session/escrita.rs", 450, "#262: IR/SnapTone saem depois")]
+    arvore = _arvore(tmp_path, {"packages/core/src/session/escrita.rs": 420})
+    cm = _carregar()
+    excessos, ausentes = cm.avalia_rust(arvore, tetos=tetos)
+    assert (excessos, ausentes) == ([], [])
 
 
 def test_arquivo_de_teste_fica_fora_do_orcamento(tmp_path):

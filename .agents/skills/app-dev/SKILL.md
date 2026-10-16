@@ -119,6 +119,12 @@ genérico **700**) e **reprova o build** — a tabela por arquivo está em
 `commands.rs` 900 como dívida declarada; `tests.rs` fica fora, porque cresce com
 a cobertura). O maior arquivo do crate hoje é `commands.rs` (869/900).
 
+A **#257** fez o mesmo com os CINCO módulos que estavam congelados acima do genérico no core e
+no CLI: cada um virou **handle** com teto medido — `session.rs` **200** e a coorte
+`session/<módulo>.rs` **400** (#262), `transport/mock.rs` **350**, `preset.rs` **175**,
+`golden.rs` **250** e o `main.rs` do CLI **800**; o mapa do `session` (módulo → dono) e o motivo
+de cada número estão no §4.1.
+
 O que isso muda na prática: **coorte nova de `Request`/evento que não couber no
 módulo dela faz o gate vermelho** — e a saída certa é módulo novo, não número
 novo. Subir um teto é decisão visível, com a issue que assume o corte citada no

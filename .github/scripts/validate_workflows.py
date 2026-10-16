@@ -308,6 +308,9 @@ GATES_LIGADOS: dict[str, tuple[tuple[str, ...], str]] = {
         ("lint-ui", "lint-rust-fmt"),
         ".github/scripts/check_module_size.py",
     ),
+    # A auditoria de MOVIMENTO roda no job das mensagens: o trailer `Move-only:`
+    # vive no commit, e e ele que o gate le (#263/#264).
+    "check_move_only": (("lint-commits",), ".github/scripts/check_move_only.py"),
     # Os gates de DADOS da especificação (#273): leem artefato versionado
     # (`param_ranges.json`, `state_pages_offsets.json`, a captura da sessão 3) e
     # não precisam de binário nem de GUI — o job da spec é a casa deles.

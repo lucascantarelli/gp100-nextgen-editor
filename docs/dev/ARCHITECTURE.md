@@ -220,21 +220,207 @@ A **#248** estendeu o MESMO gate ao Rust, e a razão é medida: sem freio nenhum
 `packages/app/api/src/actor.rs` chegou a **2 702 linhas** (F-07 da auditoria de
 14/10). A régua é **700 linhas** por `.rs` não declarado — acima disso o módulo
 tem mais de um assunto — e quem já estava acima quando o gate passou a medir tem
-teto **congelado** na própria medida.
+teto **congelado** na própria medida. Os **cinco** congelados (`session`,
+`transport/mock`, `golden`, `preset` e o `main.rs` do CLI) foram cortados na
+#257: as entradas de hoje são o **handle medido** daquele corte, com o motivo
+escrito na própria linha.
 
 | Arquivo | Teto | Por que |
 |---|---|---|
 | qualquer `.rs` de `packages/*/src` | **700** | teto genérico do Rust: mesmo critério do `components/` — dois assuntos no mesmo arquivo |
-| `packages/core/src/session.rs` | 1 395 | **congelado** na medida de 14/10: FSM do fio (ADR-3/4/6) — corte na #257 |
-| `packages/core/src/transport/mock.rs` | 1 258 | **congelado**: o device de mentira espelha o fio — corte na #257 |
-| `packages/cli/src/main.rs` | 1 226 | **congelado**: CLI de campo — corte na #257 |
-| `packages/core/src/preset.rs` | 901 | **congelado**: modelo de preset/decodificação — corte na #257 |
-| `packages/core/src/golden.rs` | 829 | **congelado**: golden do fio (R1–R3) — corte na #257 |
+| `packages/core/src/session.rs` | **200** | **handle da FSM** desde a #257: só a `Session` (o que ela POSSUI) e o ciclo de vida (`new`/`into_transport`); método novo vai para o módulo do assunto |
+| `packages/core/src/session/<módulo>.rs` | **400** | coorte do `session` (#262): cada módulo é UM assunto (a transação, o boot, a escrita…); o número sai da medida do corte — ver a nota do mapa, abaixo |
+| `packages/core/src/transport/mock.rs` | **350** | **handle** desde a #257: o que o `MockDevice` POSSUI (estado, dicionário, inbox, plano de falha) e `new`/`with_slot_sem_nome`/`state` — mais o `mod tests` inline, que não pode virar arquivo (um `mod tests` em `mock/tests.rs` é o `clippy::module_inception`, que a CI reprova) |
+| `packages/cli/src/main.rs` | **800** | **handle** desde a #257: o USO, os CÓDIGOS de saída (`EXIT_*`), os TIPOS (`Command`/`Args`/`UsageError`) e o `main` — mais o `mod tests` inline (o corpo re-indentado o `check_move_only` lê como perdido, e o bloco intacto em `tests.rs` é o `clippy::module_inception`, o mesmo caso do `mock`) |
+| `packages/core/src/preset.rs` | **175** | **handle** desde a #257: o MODELO (os TIPOS e o que cada um POSSUI, com os campos fechados: `Document`, `Element` e o `LineBreak`), a EMISSÃO (`to_bytes`, a projeção dos próprios campos) e os acessores (`root`/`root_mut`/`preset_info`/`presets`); o `shape`, o helper de erro que todos os módulos usam |
+| `packages/core/src/golden.rs` | **250** | **handle** desde a #257: o que o `GoldenFile` POSSUI (`meta`, `templates`, `by_out`, `by_in`) e a carga/validação (`from_json`/`embedded`); o `GOLDEN_JSON` e o `shape`, o helper de erro que todos os módulos usam |
 | `tests.rs`, `tests/` | — | **fora do orçamento**: cresce com a COBERTURA, não com funcionalidade — medir isso só ensinaria a escrever menos teste |
 
-> **Congelado** é decisão, não alvo: o teto é **exatamente** a medida daquele dia,
-> então o arquivo não cresce mais. Quem precisa de linha nova corta — ou traz a
-> decisão de subir o número, com a issue que assume o corte.
+> **Teto declarado** é decisão, não alvo: o número é a medida daquele dia — no
+> `congelado` da #248 era exatamente o tamanho do arquivo que já passava do
+> genérico, e depois dos cortes (#243 no crate do app, #257 no core e no CLI) é o
+> HANDLE medido. Quem precisa de linha nova corta — ou traz a decisão de subir o
+> número, com a issue que assume o corte.
+
+Mapa do `session` (**#257**, primeiro corte dos congelados) — `session.rs` é o
+handle, não o todo:
+
+| Módulo | Teto | Dono de |
+|---|---|---|
+| `session.rs` | 200 | a `Session` (o que a FSM possui: `transport`, `current_pp`, `pps`, `backlog`, `pages`) e `new`/`set_inventory`/`inventory`/`current_pp`/`into_transport` |
+| `session/escrita.rs` | **400** | o que MANDA byte: select (+trava de faixa), knob (D4), save (D3) + `save_frames`, IR (§13.7), SnapTone (§5) |
+| `session/boot.rs` | **400** | o script §13.10 (boot + scan) e o `progress` observacional |
+| `session/transacao.rs` | **400** | D1/D5/D6/D7: montar o pedido, esperar no endpoint certo, validar a FORMA (`tx_req*`, `wait_for*`, `Forma`) |
+| `session/tipos.rs` | **400** | os DTOs e constantes que atravessam a fronteira |
+| `session/paginas.rs` | **400** | a família 13xx: ler do fio e cachear (`state_page`, `scan_state`, `preset_state`) |
+| `session/inventario.rs` | **400** | o espaço de pps do aparelho (§13.4) |
+| `session/globais.rs` | **400** | os registradores da §13.13 (a família fora do golden) |
+| `session/leitura.rs` | **400** | o que só PERGUNTA: User IRs, `read_state5`, backlog de pushes |
+
+O **400** é medida, não escolha (#262): no corte, o maior assunto legítimo
+respondia por 347 linhas (as cinco operações de escrita), e a coorte do actor é
+**300** sobre o maior módulo dela — a mesma folga relativa. Os números de hoje não
+mudam a regra: passou de 400, o módulo virou dois (o primeiro candidato é separar
+IR/SnapTone da `escrita`).
+
+> O caminho público não mudou: tudo continua `crate::session::<Item>` (os
+> `pub use` do handle são o contrato), então o corte é invisível para `cli`,
+> `library` e o crate do app. A prova é a bateria do workspace — **349 passed /
+> 0 failed / 1 ignorado** antes e depois do corte, com a lista de nomes
+> `diff`-idêntica (a medição é da #257; o número do crate sozinho é menor).
+
+Mapa do `transport/mock` (**#257**, segundo corte dos congelados) — `mock.rs` é o
+handle, não o todo:
+
+| Módulo | Dono de |
+|---|---|
+| `mock.rs` | o `MockDevice` (os CAMPOS que ele possui: `state`, `dict`, `inbox`, `fault`, `latency`, contadores) e `new`/`with_slot_sem_nome`/`state`; `embedded_preset`, `shape_err` e as constantes embedadas |
+| `mock/despacho.rs` | a porta do FIO (`impl DeviceTransport`: `open`/`close`/`send_raw`/`recv_raw`, com a latência de ida/volta e a morte que precede o parse) e o despacho do envelope §13 (`ingest`, D1/D3/D5). Os dois no mesmo módulo porque `ingest` é privado dele — de fora só se entra pela porta |
+| `mock/estado.rs` | o ESTADO (`MockState`, derivado de `all.prst`) e os defaults globais |
+| `mock/falha.rs` | o plano de falha do test double (`MockFault::{DieAfter,UsbFlaky}`) e o jitter determinístico (LCG de semente fixa) |
+| `mock/fila.rs` | a fila IN por endpoint (D1/D7): `drain_inbox` e os `queue_push*` |
+| `mock/familia.rs` | o segundo framing do mock: a família GP-50/SnapTone-NAM (§5) e o seu ACK por bloco |
+| `mock/respostas.rs` | do template do golden para a RESPOSTA no fio (o fill indexado, as vars e o envelope) |
+
+> **O que a `clippy` decide na estrutura.** O `mod tests` fica INLINE no handle, e
+> não em `mock/tests.rs`: um módulo `tests` dentro de um arquivo `tests.rs` é o
+> `clippy::module_inception` (o `-D warnings` da CI reprova), e mover o bloco para
+> um arquivo de nome diferente quebraria o `use super::*` dos testes. O teto de
+> 350 conta esse bloco, que a doutrina do gate preferiria fora do orçamento.
+> A `impl DeviceTransport` fica no `despacho.rs` pelo motivo simétrico: `ingest`
+> nasceu método privado do `impl MockDevice` do `mock.rs`, e o corte não pode
+> reescrever a assinatura — `pub(super) fn ingest(...)` passaria dos 100 colunas e
+> o `rustfmt` teria de REEXPRESSAR a linha movida, o que a cláusula (b) do
+> `check_move_only` recusa (a linha reescrita sai da origem e aparece como
+> PERDIDA). Com a porta no mesmo módulo, `ingest` continua privado e a linha
+> assinada sai byte a byte.
+
+> O caminho público não mudou: tudo continua `crate::transport::mock::<Item>`
+> (`MockDevice`, `MockState`, `MockFault` — os `pub use` do handle são o
+> contrato), então o corte é invisível para `cli`, `library` e o crate do app. A
+> prova é a bateria do workspace — **349 passed / 0 failed / 1 ignorado** antes e
+> depois do corte, com as contagens por binário `diff`-idênticas, mais o `fmt
+> --check` e o `clippy -D warnings` do workspace.
+
+Mapa do `golden` (**#257**, terceiro corte dos congelados) — `golden.rs` é o
+handle, não o todo:
+
+| Módulo | Dono de |
+|---|---|
+| `golden.rs` | o `GoldenFile` (os CAMPOS que ele possui: `meta`, `templates` e os dois índices por endpoint) e a CARGA/validação (`from_json`/`embedded`) mais `meta`/`templates`; o `GOLDEN_JSON` e o `shape` (o helper de erro que todos os módulos usam) |
+| `golden/fio.rs` | os BYTES do fio: `hex_decode` (hex ASCII → bytes) e `decode_envelope` (o SysEx completo em `(func, addr, data)`) |
+| `golden/padrao.rs` | o PADRÃO de payload (`Pattern`/`PatternKind`/`Segment`/`SegmentKind`): casar, extrair as vars e construir |
+| `golden/template.rs` | a TRANSAÇÃO (`Template`/`Endpoint`/`Example`): o par OUT/IN e a materialização dele no fio (`build_request`, `matches_response`, `build_response`) |
+| `golden/despacho.rs` | o DESPACHO por endpoint: o índice `(func, addr)` e a escolha do template (`request_template`, `for_response`/`for_request`, `match_*`) |
+
+> **O que a privacidade decide na estrutura.** Este corte não precisou de um único
+> `pub(super)`: o `shape` (o helper de erro) é privado do handle e os módulos o
+> alcançam por `super::shape`, e o único privado que cruzaria fronteira —
+> `addr_hex`, usado só nas mensagens de erro do despacho — foi para o
+> `despacho.rs`, junto do seu único chamador. A linha da origem
+> `use crate::{ProtocolError, SYSEX_EOX, SYSEX_HEADER};` saiu **intacta** para o
+> `template.rs` (o único módulo que usa os três); o handle fica com a versão curta,
+> que é andaime — e `use` é andaime por definição do gate, não linha de item.
+
+> **O preço declarado do byte-a-byte.** Três links intra-doc cruzavam módulo e
+> deixam de resolver: `[GoldenFile::request_template]` e
+> `[Template::matches_shape]` (no `padrao.rs`) e `[decode_envelope]` (no
+> `despacho.rs`). O corte não pode REEXPRESSAR a linha do doc (a cláusula (b) do
+> `check_move_only` a recusa como conteúdo novo) nem acrescentar o `use` que a
+> faria resolver (import usado só por doc-link é `unused_imports` no `-D warnings`
+> da CI). Re-apontar um link é conteúdo, não andaime: fica para um PR fora do
+> `Move-only` — `cargo doc` não é gate da CI, e o crate já gerava 51 avisos
+> desses antes deste corte.
+
+> O caminho público não mudou: tudo continua `crate::golden::<Item>` (`GoldenFile`,
+> `Template`, `Pattern`, `PatternKind`, `Segment`, `SegmentKind`, `Endpoint`,
+> `Example`, `hex_decode`, `decode_envelope`, `GOLDEN_JSON` — os `pub use` do
+> handle são o contrato), então o corte é invisível para `codec`, `session`,
+> `transport::mock`, `wire_log`, `cli` e os testes. A prova é a bateria do
+> workspace — **349 passed / 0 failed / 1 ignorado** antes e depois do corte, com
+> as linhas de `test result` `diff`-idênticas contagem a contagem, mais o `fmt
+> --check` e o `clippy --workspace --all-targets -- -D warnings` limpos.
+
+Mapa do `preset` (**#257**, quarto corte dos congelados) — `preset.rs` é o
+handle, não o todo:
+
+| Módulo | Dono de |
+|---|---|
+| `preset.rs` | o MODELO (os TIPOS e o que cada um POSSUI, com os campos FECHADOS: `Document` com `decl`/`root`/`trailing`, `Element` com os campos de layout e o `LineBreak`), a EMISSÃO (`to_bytes`, a projeção dos próprios campos) e os acessores (`root`/`root_mut`/`preset_info`/`presets`); o `shape` (o helper de erro que todos os módulos usam) |
+| `preset/elemento.rs` | o COMPORTAMENTO do `Element` — os acessores, o writer e o `contains_raw_ampersand` — e o `escape_value`; o `Attr` |
+| `preset/leitura.rs` | a LEITURA estrita do dialecto: o `Parser` (o cursor) e o `Document::parse`, que o dirige |
+| `preset/pp.rs` | o espaço de `pp`: o DECIMAL do documento (`ppID`) × o banco/slot do FIO |
+| `preset/view.rs` | as VIEWS tipadas do vocabulário `pp*`/`Effect`/`params_0..14` (§13.9) |
+| `preset/instantaneo.rs` | o INSTANTÂNEO do layout (`Quebra`/`ElementSnapshot`/`DocumentSnapshot`, o `snapshot` e o `from_snapshot`) e o `element_from`, que o reconstrói |
+| `preset/recorte.rs` | o RECORTE de um preset de fábrica do arquivo inteiro (`apenas_preset`) |
+
+> **O que a tolerância de visibilidade do gate decide na estrutura.** As
+> DECLARAÇÕES ficam no handle, e é isso que mantém este corte em **três**
+> `pub(super)` em vez de treze. Um campo privado de `preset` já é visível para o
+> `preset` e toda a sua subárvore — que é exatamente quem o toca (`elemento` lê e
+> escreve, `leitura` constrói o `Element`, `instantaneo` o reconstrói e o projeta,
+> e o handle lê `root.pre_ws` e chama `root.write`) —, então nenhum campo abre, e o
+> "Campos privados de propósito" que o doc do `Element` promete continua valendo.
+> O que sobra qualificar são os dois casos que cruzam a fronteira DE VERDADE: o
+> `fn write` (chamado pelo `to_bytes`, que fica no módulo PAI — privado de um filho
+> não é visível para o pai) e o `el` das duas views (construído pelo `presets()` do
+> handle). A alternativa foi MEDIDA e reprova no gate: com o `Element` declarado no
+> `elemento` e os nove campos `pub(super)`, a tolerância de visibilidade do
+> `check_move_only` é GULOSA — `    name: String,` casa com a variante
+> `    pub name: String,`, que no destino é a linha do `ElementSnapshot` — e o "não
+> perdeu" acusa quatro linhas perdidas (`name`, `self_closing`, `at_attr`,
+> `cont_indent`).
+
+> O caminho público não mudou: tudo continua `crate::preset::<Item>` (`Document`,
+> `Element`, `Attr`, `PresetView`, `EffectView`, `Quebra`, `ElementSnapshot`,
+> `DocumentSnapshot`, `escape_value`, `pp_id_decimal`, `indice_do_documento` — os
+> `pub use` do handle são o contrato), então o corte é invisível para `preset_json`
+> (que toca os campos públicos dos dois instantâneos), `pedalboard`, `tone_sheet`,
+> `transport::mock`, `library::seed`, o crate do app e os testes. A prova é a
+> bateria do workspace — **349 passed / 0 failed / 1 ignorado** antes e depois do
+> corte, com as 42 linhas de `test result` formando o mesmo multiconjunto (a ordem
+> troca porque o cargo roda os binários em paralelo), mais o `fmt --check` e o
+> `clippy --workspace --all-targets -- -D warnings` limpos. E, ao contrário do
+> `golden`, **nenhum link intra-doc quebra** neste corte: o `cargo doc` dá o mesmo
+> conjunto de 54 avisos, linha a linha, antes e depois.
+
+Mapa do `cli` (**#257**, quinto e ÚLTIMO dos congelados) — `main.rs` é o handle,
+não o todo (no bin, um `mod x;` do crate root procura `src/x.rs`, e não
+`src/main/`: os dois módulos são IRMÃOS do handle em `packages/cli/src/`):
+
+| Módulo | Dono de |
+|---|---|
+| `main.rs` | o USO (`USAGE`), os CÓDIGOS de saída (`EXIT_POLICY_BLOCKED`/`EXIT_PROTOCOL_ERROR`), os TIPOS que o parser constrói e a execução lê (`Command`, `Args`, `UsageError`) e o ciclo de vida do bin (`main`); o `mod tests` inline |
+| `args.rs` | o PARSER: a superfície (subcomando e flags) e a POLÍTICA do `--real` — o `parse_args` e os três `parse_u*` |
+| `execucao.rs` | a EXECUÇÃO: o despacho do `run` e os três fluxos de escrita (`set-param`, `save`, `upload-ir`) com a trava do ADR-5, mais o `fail` (erro de protocolo → exit 3) e o `escrita_verificada` (a trava de compilação) |
+
+> **O que a `clippy` decide na estrutura — e o teto que ela força a declarar.** O
+> `mod tests` fica INLINE, como no `mock`, e as duas saídas foram MEDIDAS: mover o
+> corpo para `src/tests.rs` obriga a re-indentar as ~460 linhas do bloco (o
+> `rustfmt` reindenta, `fmt --check` é gate da CI — e a linha re-indentada o
+> `check_move_only` lê como PERDIDA), e o bloco intacto dentro de `src/tests.rs` é
+> o `clippy::module_inception` (um `mod tests` declarado num arquivo `tests.rs`; o
+> `-D warnings` da CI reprova). É por isso que o teto deste arquivo (**800**) fica
+> acima do genérico — depois do `commands.rs` (900, dívida declarada da #243) é o
+> único caso: 759 linhas são o handle mais o bloco de testes que a doutrina do
+> gate preferiria fora do orçamento.
+
+> **As DECLARAÇÕES ficam no handle** (`Command`, `Args`, `UsageError`, `USAGE` e os
+> `EXIT_*`), como no corte do `preset`: um campo privado do crate root já é visível
+> para o crate root e toda a sua subárvore — que é exatamente quem o toca (`args`
+> constrói o `Args`, `execucao` lê os campos) —, então nenhum campo abre, e o corte
+> fica em CINCO `pub(super)`: o `parse_args` e o `run` (chamados pelo `main`) e os
+> três que só os TESTES do handle chamam (`run_set_param`, `run_save`,
+> `escrita_verificada`).
+
+> O corte é invisível — e, sendo o CLI um **binário**, não há caminho público a
+> preservar: nem o nome dos testes mudou. A prova é a bateria do workspace, no
+> `diff` mais forte da série: **349 passed / 0 failed / 1 ignorado** antes (medido
+> num `git worktree` em `HEAD`) e depois, com a lista de **350 nomes de teste
+> idêntica** — incluindo o caminho do módulo: os 23 do CLI continuam
+> `tests::<nome>` — e as 42 linhas de `test result` iguais contagem a contagem, na
+> MESMA ordem; mais o `fmt --check` e o `clippy --workspace --all-targets --
+> -D warnings` limpos.
 
 #### No crate do app (`packages/app/api`) — desde a #243
 
