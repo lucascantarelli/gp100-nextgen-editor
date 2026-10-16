@@ -964,6 +964,23 @@ jobs:
         run: uv sync --all-groups
       - name: golden, baseline versionada, knob_map e fixtures
         run: uv run pytest
+      # ── OS TRÊS GATES DE DADOS QUE SÓ O `gates.py` LOCAL RODAVA (#273) ──
+      # `byte_order`, `param_ranges` e `state_pages` estavam na lista do
+      # `gates.py` e em NENHUM passo do CI: o gate existia, alguém confiava
+      # nele, e quem reprovava era o `gates.py` — que só roda na máquina de
+      # quem lembra de rodar. O `byte_order` não tinha cobertura nenhuma (gate
+      # morto desde o #23); o `param_ranges --check` e o `state_pages` também
+      # rodam DENTRO do pytest logo acima, mas o passo próprio é o que deixa o
+      # veredito visível no log — a mesma razão do passo da baseline abaixo.
+      # O contrato 16 do `validate_workflows.py` cobra os três daqui, então
+      # apagar qualquer uma destas linhas reprova o `Lint · contratos do
+      # pipeline`.
+      - name: fio real é LE (effectCode u32 — par do H2)
+        run: uv run python tools/check_byte_order.py
+      - name: trava de conteúdo do knob (639 faixas + 92 amostras reais)
+        run: uv run python tools/param_ranges.py --check
+      - name: layout das páginas 13xx contra o artefato embutido
+        run: uv run python tools/validate_state_pages.py
       # O pytest já cobre `baseline.py --check` (o teste
       # `test_golden_baseline_hash_unchanged` chama o gate), mas rodar o
       # comando aqui deixa o número da baseline VISÍVEL no log do job. Sem
