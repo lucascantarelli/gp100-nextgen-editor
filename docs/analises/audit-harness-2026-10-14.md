@@ -1,6 +1,6 @@
 # 🔎 AUDITORIA — harness do agente (`.agents/`) — 2026-10-14
 
-> **Status:** ✅ atual (desta auditoria) · **Prompt usado:** [`.agents/prompts/auditoria.md`](../../.agents/prompts/auditoria.md)
+> ✅ **Status:** **atual (desta auditoria, 2026-10-14)** · última revisão 2026-10-14 · **Prompt usado:** [`.agents/prompts/auditoria.md`](../../.agents/prompts/auditoria.md)
 > **Escopo:** 9 skills ativas (`.agents/skills/`) + 6 prompts (`.agents/prompts/`) + `.agents/README.md`.
 > **Método:** *mechanism over doc* — cada regra/skill foi conferida contra o artefato real
 > (ROADMAP, DECISIONS, `ci.yml`, issues do tracker). Auditoria de **leitura**: nenhuma

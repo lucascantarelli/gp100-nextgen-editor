@@ -1,6 +1,6 @@
 # 🧪 UI_TEST_PLAN — Roteiros de teste manual da UI (por fase)
 
-> **Status:** 🔨 vivo · **Criado:** 30/09/2026 · **Como usar:** executar no browser
+> ✅ **Status:** **vivo** · criado 30/09/2026 · última revisão 2026-10-16 · **Como usar:** executar no browser
 > (`pnpm dev` em `packages/app/ui`, porta 5173) OU no shell Tauri. Marcar ✅/❌ por
 > item e devolver os achados para `docs/referencias/UI_REFERENCE.md` §3. Cada fase só passa
 > para a próxima com a aprovação do owner (decisão 30/09).

@@ -1,7 +1,7 @@
 # Documento de Visão e Estratégia de Engenharia
 ## Projeto: GP-100 NextGen Editor — Suíte multiplataforma para a pedaleira Valeton GP-100
 
-> ✅ **Status: atual (rev. v1.2, 29/09).** §3 e §10 registram a RE concluída com as
+> ✅ **Status: atual (rev. v1.2, 29/09/2026 · última revisão 2026-10-13).** §3 e §10 registram a RE concluída com as
 > evidências das capturas 1–4; §10.6 (round-trip Rust) já executado na M0.2; §11
 > é o roadmap vigente — execução issue-a-issue em `docs/planejamento/ROADMAP.md` (P/M0/H) e
 > `docs/dev/UI_PLAN.md` (M1). Mapa geral: `docs/INDEX.md`.

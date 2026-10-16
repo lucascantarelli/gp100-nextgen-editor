@@ -64,6 +64,8 @@ CAMINHOS_DE_PROPOSITO: dict[str, str] = {}
 # envelhece sem avisar.
 BASELINE_CONTADOR: dict[str, tuple[int, str]] = {}
 
+# A janela do banner: o cabecalho do documento (§4.1 do INDEX, "primeiras linhas").
+JANELA_BANNER = 12
 MARCA = re.compile("✅|📜|⚠️")
 DATA = re.compile(r"\d{2}/\d{2}/\d{4}|\d{4}-\d{2}-\d{2}")
 LINK = re.compile(r"\[[^\]]*\]\(([^)\s]+)\)")
@@ -144,15 +146,44 @@ def tem_frontmatter(texto: str) -> bool:
     return texto.startswith("---\n") and "\n---\n" in texto[:2000]
 
 
+def linha_de_banner(texto: str) -> str:
+    """A linha do BANNER: marcador do trio E data, na MESMA linha (`''` se nao ha).
+
+    A forma canonica e UMA linha (§4.1 do INDEX): `> ✅ **atual** · ultima revisao
+    2026-10-16.`. Aceitar marcador numa nota e a data numa linha propria deixava
+    passar documento sem banner de verdade — medido na #272: 12 documentos, dois
+    deles com divergencia de CONTEUDO escondida atras do cabecalho frouxo.
+    """
+    for linha in texto.splitlines()[:JANELA_BANNER]:
+        if MARCA.search(linha) and DATA.search(linha):
+            return linha
+    return ""
+
+
 def checa_banner(fontes: dict[pathlib.Path, str]) -> None:
     for p, texto in fontes.items():
         if tem_frontmatter(texto):
             continue
-        cabeca = "\n".join(texto.splitlines()[:12])
-        if not MARCA.search(cabeca):
-            viola("BANNER", f"{rel(p)}: sem marcador de status (atual/historico/parcial) nas primeiras linhas")
-        if not DATA.search(cabeca):
-            viola("BANNER", f"{rel(p)}: sem data de revisao nas primeiras linhas")
+        cabeca = "\n".join(texto.splitlines()[:JANELA_BANNER])
+        tem_marca = MARCA.search(cabeca)
+        tem_data = DATA.search(cabeca)
+        if not tem_marca:
+            viola(
+                "BANNER",
+                f"{rel(p)}: sem marcador de status (atual/historico/parcial) nas primeiras "
+                f"{JANELA_BANNER} linhas",
+            )
+        if not tem_data:
+            viola(
+                "BANNER",
+                f"{rel(p)}: sem data de revisao nas primeiras {JANELA_BANNER} linhas",
+            )
+        if tem_marca and tem_data and not linha_de_banner(texto):
+            viola(
+                "BANNER",
+                f"{rel(p)}: marcador e data em linhas DIFERENTES — o banner e UMA linha com "
+                "os dois (§4.1 do INDEX; #272)",
+            )
         marca = MARCA.search(cabeca)
         if marca and marca.group(0) == "📜" and not PONTEIRO.search(cabeca):
             viola(

@@ -1,6 +1,6 @@
 # 🧭 H5_CHECKLIST — Gate de hardware da Era Hardware: boot, modelo tipado e sincronização
 
-> **Status:** 🟡 **pronto para execução** — as dependências do roteiro (#161 boot gate,
+> ⚠️ **Status:** **parcial — pronto para execução** · última revisão 2026-10-16 — as dependências do roteiro (#161 boot gate,
 > #162 FactoryPatch/UserPatch, #164 sync bilateral, #165 aparelho por default) estão
 > **mergeadas e fechadas em `develop`** (verificado em 13/10/2026). O que falta é a sessão
 > em si: executada e assinada pelo owner com o GP-100 na USB — não pelo agente.
