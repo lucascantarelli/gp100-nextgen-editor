@@ -179,7 +179,8 @@ comentário NA ISSUE e a fila avança.
   existiu (lição da baseline v1.1: 63 de 77 mensagens de save eram inventadas).
 - **Log de captura é `append-only`**, com truncamentos SEM-HDR (ring buffer);
   separar sessões por gaps >30s. Nunca "consertar" isso no codec. Citada por
-  `packages/core/src/golden.rs` (`op_payload`).
+  `packages/core/src/codec.rs` (`op_payload`; a citação anterior apontava `golden.rs`, que
+  **nunca** foi o dono — o gate de obsolescência doc × módulo (#275) pegou o ponteiro errado).
 
 ## Workflows canônicos (nunca fazer na mão)
 
