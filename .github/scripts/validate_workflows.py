@@ -52,6 +52,9 @@ estrutura — e, desde a #68, que a ESTRUTURA nova é o que o projeto adoptou.Co
   15. o `simulate_release` (LENTO) roda por ESCOPO (#246, F-13): o `if` do passo
       lê o `scope-ci` do `ci_plan.py`, e a identidade do bot
       (`BOT_NAME`/`BOT_EMAIL`) é idêntica nos três arquivos de release.
+  16. o gate do HARNESS (`check_harness.py`) tem PASSO no `lint-workflows`
+      (#267): apagar a linha do `ci.yml` deixava o CI VERDE com o gate morto —
+      a classe do #71 ("escrito mas NÃO LIGADO").
 
 Uso: python3 .github/scripts/validate_workflows.py  (exit 1 na primeira violação)
 """
@@ -592,6 +595,27 @@ def main() -> int:
         FAILURES.append(
             "ci: o passo 'Diff contra a base do evento' precisa forçar CHANGED=ALL em ref de tag "
             "(#228 — tag movida tem `before` válido e diff vazio, e a distribuição some em silêncio)"
+        )
+
+    # ── 5d. o GATE DO HARNESS roda no lint de contratos (#267) ──────────
+    #
+    # O `check_harness.py` fecha a #249 (caminho morto, contrato de papel órfão,
+    # regra transversal re-enunciada, tabela de fontes únicas divergindo do próprio
+    # check). Ele só vale LIGADO: sem esta checagem, apagar o `run:` do passo
+    # devolvia um CI verde com o gate morto — a classe do #71 ("escrito mas NÃO
+    # LIGADO"), que é justamente o que este arquivo existe para pegar.
+    passo_harness = next(
+        (
+            step
+            for step in ((jobs.get("lint-workflows") or {}).get("steps") or [])
+            if "check_harness.py" in str(step.get("run") or "")
+        ),
+        None,
+    )
+    if passo_harness is None:
+        FAILURES.append(
+            "ci: `lint-workflows` perdeu o passo que roda `check_harness.py` — "
+            "o harness volta a apodrecer em silêncio (#249/#267)"
         )
 
     # ── 6. versionamento e dist por evento, nunca por push/PR ────────────

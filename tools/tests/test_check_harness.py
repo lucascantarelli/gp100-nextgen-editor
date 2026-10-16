@@ -159,6 +159,20 @@ def test_prompt_citando_a_premissa_nao_e_re_enunciado() -> None:
     assert not _violacoes_da_regra(mod, "aparelho"), mod.VIOLACOES
 
 
+def test_pyyaml_ausente_reprova_em_vez_de_pular(monkeypatch) -> None:
+    """Sem `pyyaml` a checagem seria PULADA e o gate diria "0 violacoes".
+
+    "Verde por omissao" e o pior modo de falhar de um verificador: o defeito passa a
+    morar nele. Com `sys.modules["yaml"] = None` o `import yaml` levanta ImportError —
+    e o gate tem de REPROVAR, nao seguir.
+    """
+    mod = _carregar()
+    _limpar(mod)
+    monkeypatch.setitem(sys.modules, "yaml", None)
+    mod.checa_frontmatter()
+    assert any("pyyaml" in v for v in mod.VIOLACOES), mod.VIOLACOES
+
+
 # ── 2/3. FRONT-MATTER e PAPEL ────────────────────────────────────────────────
 
 

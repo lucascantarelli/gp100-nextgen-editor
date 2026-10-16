@@ -217,7 +217,16 @@ def checa_frontmatter() -> None:
         viola("FRONT-MATTER", "nenhuma skill encontrada em .agents/skills/")
     try:
         import yaml  # noqa: PLC0415 — dependencia declarada no pyproject
-    except ModuleNotFoundError:  # pragma: no cover
+    except ImportError:
+        # Sem `pyyaml` a checagem de front-matter seria PULADA em silencio e o gate
+        # imprimiria `violacoes: 0`: "verde por omissao", o pior modo de falhar de um
+        # verificador — o defeito passa a morar nele. ImportError (nao so
+        # ModuleNotFoundError) porque qualquer falha de import cega a checagem.
+        viola(
+            "FRONT-MATTER",
+            "`pyyaml` ausente: a checagem de front-matter seria pulada em silencio "
+            "(verde por omissao) — rode `uv sync --all-groups`",
+        )
         yaml = None  # type: ignore[assignment]
     for sk in skills:
         rel = str(sk.relative_to(RAIZ)).replace("\\", "/")
@@ -226,7 +235,7 @@ def checa_frontmatter() -> None:
         if not bloco:
             viola("FRONT-MATTER", f"{rel}: sem bloco de front-matter")
             continue
-        if yaml is None:  # pragma: no cover
+        if yaml is None:  # a violacao ja foi registrada acima; nao ha o que parsear
             continue
         try:
             dados = yaml.safe_load(bloco.group(1)) or {}
