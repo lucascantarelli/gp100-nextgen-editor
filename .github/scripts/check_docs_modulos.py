@@ -30,6 +30,20 @@ O QUE ELE MEDE, e por que assim:
   * APONTA O DOCUMENTO. A violacao diz qual doc, qual modulo, quantas linhas de
     superficie e os dois shas — o produto e o nome do arquivo que alguem tem de
     reler, nao a contagem.
+  * PREVISAO DO SQUASH (#282). O gate roda na arvore do PR (merge sintetico) e a
+    pergunta que ele faz no `develop` — `--is-ancestor(doc, modulo)` — NAO TEM
+    RESPOSTA quando os dois commits vivem em linhas PARALELAS: medido no PR #260,
+    o doc tinha por ultimo toque `b117765` (que chegou na branch pelo merge da
+    base) e o modulo `a06c7fc` (o corte, escrito antes daquele merge) —
+    `is-ancestor(b117765, a06c7fc)` e FALSO, o gate le "o modulo nao andou depois
+    do doc" e a CI do PR fica verde; no squash o modulo passa a ter por ultimo
+    toque o commit do merge, descendente de `b117765`, e a `develop` fica verde
+    so ate o merge (run 38900637312 vermelha). Duas `develop` vermelhas na mesma
+    sessao (#277/#279), cada uma custando um PR de docs-sync. Em modo PR
+    (`PR_BASE`, que a CI passa) o par e medido DENTRO DO RANGE: cobra quando o PR
+    toca a superficie do modulo e o doc nao acompanhou no mesmo range — o mesmo
+    regime que o #264 deu ao gate de movimento, e o vermelho chega no PR, onde
+    ainda da para consertar.
 
 LIMITES DECLARADOS (o que este gate NAO ve):
   * citacao SEM caminho (`session.rs` solto) nao entra: o gate nao adivinha o modulo.
@@ -46,9 +60,13 @@ LIMITES DECLARADOS (o que este gate NAO ve):
 
 Uso: python3 .github/scripts/check_docs_modulos.py          (exit 1 se houver violacao)
      python3 .github/scripts/check_docs_modulos.py --list   (os pares medidos, com veredito)
+     python3 .github/scripts/check_docs_modulos.py --base <sha>   (regime do PR: previsao do squash)
+A base do PR vem do ambiente (`PR_BASE`), como no `check_move_only.py`; sem ela o gate
+roda no regime da `develop` (ancestralidade). Local: passe `--base`.
 """
 from __future__ import annotations
 
+import os
 import pathlib
 import re
 import subprocess
@@ -169,6 +187,17 @@ def ancestral(anterior: str, posterior: str) -> bool:
     )
 
 
+def revisao_no_range(base: str, caminho: str) -> str:
+    """O commit MAIS NOVO do range `base..HEAD` que tocou `caminho` ('', nenhum).
+
+    E a leitura da previsao do squash (#282): dentro do range os commits estao na
+    MESMA linha, entao a pergunta "o doc acompanhou o modulo?" tem resposta — o
+    que a ancestralidade contra o `develop` nao dava.
+    """
+    saida = _git("log", "--format=%H", f"{base}..HEAD", "--", caminho)
+    return saida.strip().splitlines()[0] if saida.strip() else ""
+
+
 def superficie_desde(revisao: str, modulo: str) -> list[str]:
     """Linhas de SUPERFICIE que o modulo mexeu desde `revisao` (ate o HEAD)."""
     padrao = SUPERFICIE.get(pathlib.Path(modulo).suffix)
@@ -186,9 +215,11 @@ def pares() -> list[tuple[str, str]]:
     return sorted(medidos)
 
 
-def checa_pares(medidos: list[tuple[str, str]]) -> None:
+def checa_pares(medidos: list[tuple[str, str]], base: str = "") -> None:
     for doc, modulo in medidos:
         if (doc, modulo) in ISENCOES:
+            continue
+        if base and checa_previsao(doc, modulo, base):
             continue
         doc_sha, doc_data = ultimo_commit(doc)
         mod_sha, mod_data = ultimo_commit(modulo)
@@ -207,6 +238,35 @@ def checa_pares(medidos: list[tuple[str, str]]) -> None:
             )
 
 
+def checa_previsao(doc: str, modulo: str, base: str) -> bool:
+    """Modo PR (#282): o range decide. Devolve True quando o par ja foi cobrado.
+
+    Em modo PR a ancestralidade por arquivo nao tem resposta (linhas paralelas):
+    o par e cobrado quando o RANGE toca o modulo e o doc NAO acompanhou no mesmo
+    range — ou acompanhou ANTES do ultimo toque do modulo, que e o mesmo veredito
+    que a `develop` dara depois do squash.
+    """
+    mod_range = revisao_no_range(base, modulo)
+    if not mod_range:
+        return False  # o PR nao toca o modulo: nao e trabalho dele
+    doc_range = revisao_no_range(base, doc)
+    if doc_range and ancestral(mod_range, doc_range):
+        return False  # o doc acompanhou o modulo DENTRO do PR
+    doc_sha, doc_data = ultimo_commit(doc)
+    revisao = doc_sha or base
+    linhas = superficie_desde(revisao, modulo)
+    if linhas:
+        viola(
+            f"PREVISTO  {doc}: o PR mexe na superficie de {modulo} ({len(linhas)} "
+            f"linha(s)) e o documento nao acompanhou no mesmo range (ultima revisao: "
+            f"{doc_data} {doc_sha[:7] or base[:7]}) — depois do squash a `develop` fica "
+            "vermelha: releia o documento neste PR ou declare ISENCOES[(doc, modulo)] "
+            "com o motivo"
+        )
+        return True
+    return False
+
+
 def checa_isencoes(medidos: list[tuple[str, str]]) -> None:
     for (doc, modulo), motivo in sorted(ISENCOES.items()):
         if not motivo.strip():
@@ -218,13 +278,29 @@ def checa_isencoes(medidos: list[tuple[str, str]]) -> None:
             )
 
 
+def base_do_range(argv: list[str]) -> str:
+    """A base contra a qual o squash vai ser criado: `--base`, senao `PR_BASE`.
+
+    Sem ela o gate roda no regime do `develop` (ancestralidade) — e e assim que o
+    push e o schedule rodam.
+    """
+    if "--base" in argv:
+        return argv[argv.index("--base") + 1]
+    return os.environ.get("PR_BASE", "").strip()
+
+
 def main(argv: list[str]) -> int:
     medidos = pares()
-    checa_pares(medidos)
+    base = base_do_range(argv)
+    checa_pares(medidos, base)
     checa_isencoes(medidos)
 
     docs = {d for d, _ in medidos}
-    print(f"docs vivos: {len(docs_vivos())} | citando codigo: {len(docs)} | pares: {len(medidos)}")
+    regime = f"previsao do squash ({base[:7]})" if base else "ancestralidade (develop)"
+    print(
+        f"docs vivos: {len(docs_vivos())} | citando codigo: {len(docs)} | "
+        f"pares: {len(medidos)} | regime: {regime}"
+    )
 
     if "--list" in argv:
         for doc, modulo in medidos:

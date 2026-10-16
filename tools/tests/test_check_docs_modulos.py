@@ -86,8 +86,25 @@ def _commit(repo: pathlib.Path, mensagem: str, arquivos: dict[str, str]) -> None
 
 
 def _repo(tmp_path: pathlib.Path) -> pathlib.Path:
-    _git(tmp_path, "init", "-q")
+    _git(tmp_path, "init", "-q", "-b", "main")
     return tmp_path
+
+
+def _sha(repo: pathlib.Path) -> str:
+    r = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=repo,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        env=_ENV,
+    )
+    assert r.returncode == 0, r.stderr
+    return r.stdout.strip()
+
+
+def _git_branch(repo: pathlib.Path, *args: str) -> None:
+    _git(repo, "checkout", *args)
 
 
 def _doc_do_modulo(*, extra: str = "") -> str:
@@ -224,6 +241,74 @@ def test_isencao_orfa_reprova(tmp_path, monkeypatch) -> None:
     monkeypatch.setitem(mod.ISENCOES, ("docs/tecnico/fantasma.md", MODULO), "motivo")
     violacoes = _rodar(mod, repo, monkeypatch)
     assert any("orfa" in v for v in violacoes), violacoes
+
+
+# ── a previsao do squash (#282) ──────────────────────────────────────────────
+
+
+def _rodar_com_base(mod, repo: pathlib.Path, monkeypatch, base: str) -> list[str]:
+    """Roda o gate no regime do PR (o range decide) com a raiz apontada ao repo."""
+    monkeypatch.setattr(mod, "RAIZ", repo)
+    _limpar(mod)
+    mod.main(["--base", base])
+    return list(mod.VIOLACOES)
+
+
+def test_previsao_cobra_o_par_que_o_range_toca_sem_o_doc(tmp_path, monkeypatch) -> None:
+    """O PR mexe na superficie do modulo e nao toca o documento: cobra NO PR."""
+    repo = _repo(tmp_path)
+    _commit(repo, "modulo", {MODULO: _corpo(1)})
+    _commit(repo, "doc", {DOC: _doc_do_modulo()})
+    base = _sha(repo)
+    _commit(repo, "modulo ganha assinatura nova", {MODULO: _assinatura()})
+    mod = _carregar()
+    violacoes = _rodar_com_base(mod, repo, monkeypatch, base)
+    assert any("PREVISTO" in v and MODULO in v for v in violacoes), violacoes
+
+
+def test_previsao_libera_o_par_que_o_doc_acompanhou_no_range(tmp_path, monkeypatch) -> None:
+    """O P7 no mesmo PR: o doc acompanha o modulo DEPOIS dele — nao cobra nada."""
+    repo = _repo(tmp_path)
+    _commit(repo, "modulo", {MODULO: _corpo(1)})
+    _commit(repo, "doc", {DOC: _doc_do_modulo()})
+    base = _sha(repo)
+    _commit(repo, "modulo ganha assinatura nova", {MODULO: _assinatura()})
+    _commit(repo, "doc acompanha o modulo (P7)", {DOC: _doc_do_modulo(extra="Já com `x2`.")})
+    mod = _carregar()
+    assert _rodar_com_base(mod, repo, monkeypatch, base) == []
+
+
+def test_previsao_pega_o_verde_falso_das_linhas_paralelas(tmp_path, monkeypatch) -> None:
+    """O caso MEDIDO no PR #260: o corte nasceu na branch, a revisao do doc chegou
+    depois pelo merge da base. Sem o regime do PR o gate fica VERDE (a ancestralidade
+    por arquivo nao tem resposta entre linhas paralelas) e a `develop` fica vermelha
+    depois do squash.
+    """
+    repo = _repo(tmp_path)
+    _commit(repo, "modulo", {MODULO: _corpo(1)})
+    _git_branch(repo, "-b", "corte")
+    _commit(repo, "corte: modulo ganha assinatura nova", {MODULO: _assinatura()})
+    _git(repo, "checkout", "-q", "main")
+    _commit(repo, "base: doc do modulo", {DOC: _doc_do_modulo()})
+    base = _sha(repo)  # a base do PR: a revisao do doc veio junto com ela
+    _git(repo, "merge", "-q", "--no-ff", "-m", "merge do PR (arvore sintetica)", "corte")
+
+    mod = _carregar()
+    assert _rodar(mod, repo, monkeypatch) == []  # o verde falso, medido
+    violacoes = _rodar_com_base(mod, repo, monkeypatch, base)
+    assert any("PREVISTO" in v and DOC in v for v in violacoes), violacoes
+
+
+def test_sem_base_o_regime_e_o_da_develop(tmp_path, monkeypatch) -> None:
+    """A previsao e do modo PR: sem `PR_BASE`/`--base` o gate nao muda de regime."""
+    repo = _repo(tmp_path)
+    _commit(repo, "modulo", {MODULO: _corpo(1)})
+    _commit(repo, "doc", {DOC: _doc_do_modulo()})
+    _commit(repo, "modulo ganha assinatura nova", {MODULO: _assinatura()})
+    mod = _carregar()
+    violacoes = _rodar(mod, repo, monkeypatch)
+    assert any(v.startswith("VELHO") for v in violacoes), violacoes
+    assert not [v for v in violacoes if "PREVISTO" in v], violacoes
 
 
 # ── genero e materia-prima: o que o gate NAO pode cobrar ─────────────────────

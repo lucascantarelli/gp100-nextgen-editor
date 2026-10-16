@@ -263,11 +263,9 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      # `fetch-depth: 0`: o gate da documentação (`check_docs_modulos.py`, #275)
-      # mede ANCESTRALIDADE de commit (o módulo andou DEPOIS da última revisão do
-      # doc?) — no checkout raso de 1 commit o histórico da base não existe e a
-      # pergunta fica sem resposta. O repo tem ~200 commits: o clone inteiro
-      # custa segundos, e é o mesmo regime que o `lint-commits` já usa.
+      # `fetch-depth: 0`: os gates de doc (#275/#282) medem ANCESTRALIDADE e RANGE de
+      # commit — no checkout raso de 1 commit o histórico da base não existe e a
+      # pergunta fica sem resposta (~200 commits: o clone inteiro custa segundos).
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
@@ -297,10 +295,8 @@ jobs:
       # Intel do macOS 15, anunciado em set/2025 e disponivel ate ago/2027, a
       # ultima imagem x86_64 do Actions); a lista embutida do actionlint 1.7.7
       # e mais antiga e o acusa. Trocar o rotulo por `macos-latest` traria
-      # arm64 e o build do shell Tauri deixaria de ser provado na arquitetura
-      # que o `.dmg` exige — trocaria um falso positivo por perda real de
-      # cobertura. NAO transformar este ignore em rede: ele existe para um
-      # rotulo, e uma rede esconde erro de verdade.
+      # arm64 e o build do shell Tauri deixaria de ser provado na arquitetura que o
+      # `.dmg` exige. NAO transformar este ignore em rede: ele existe para um rotulo.
       - name: actionlint (expressões e contextos do runner)
         run: |
           set -euo pipefail
@@ -309,8 +305,7 @@ jobs:
             -ignore 'label "macos-15-intel" is unknown'
       - name: sintaxe + contratos + empacotamento
         run: |
-          # `pyyaml` e `jsonschema` ja vem no `pyproject.toml` (#80); a linha
-          # abaixo e o fallback para rodar o script fora do ambiente do projeto.
+          # `pyyaml`/`jsonschema` vem do `pyproject.toml` (#80): isto e o fallback.
           python3 -c "import yaml" 2>/dev/null || python3 -m pip install --quiet pyyaml
           # O gate de empacotamento (#71) estava escrito mas NAO LIGADO (o PACKAGING.md
           # afirmava que rodava aqui): mainBinaryName/.desktop/.deb/PKGBUILD divergiam em silencio.
@@ -325,10 +320,15 @@ jobs:
           # contador so no INDEX §6). A razao de cada um vive no docstring do script.
           python3 .github/scripts/check_harness.py
           python3 .github/scripts/check_docs.py
-      # ── A OBSOLESCÊNCIA DO DOC TEM JUIZ (#275) ──────────────────────────
-      # Link morto e estrutura (o #270 pega); aqui e link VIVO com conteudo morto: a ultima
-      # revisao do doc contra a SUPERFICIE dos modulos que ele cita (commit, nao relogio).
+      # ── A OBSOLESCÊNCIA DO DOC TEM JUIZ (#275/#282) ─────────────────────
       - name: obsolescência da documentação (doc × módulo que ele descreve)
+        # Link morto e estrutura (o #270 pega); aqui e link VIVO com conteudo morto: a
+        # ultima revisao do doc contra a SUPERFICIE dos modulos que ele cita. `PR_BASE`
+        # liga a PREVISAO DO SQUASH (#282): no PR o par e medido DENTRO do range, porque
+        # a ancestralidade por arquivo nao responde quando o corte nasceu na branch e a
+        # revisao do doc chegou depois pelo merge da base.
+        env:
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
         run: python3 .github/scripts/check_docs_modulos.py
       # ── A SIMULAÇÃO DO GITFLOW É CONDICIONAL (#246, achado F-13) ─────────
       #
