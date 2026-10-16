@@ -1,3 +1,5 @@
+> 📜 **histórico** — Era de RE, arquivado na #168 · última revisão 2026-10-13.
+
 # Gaps de captura (G1–G6) + G7–G9
 
 > ⚠️ Status: parcial — G1/G2 fechados; G7–G9 abertos pela #23; G3–G6 opcionais

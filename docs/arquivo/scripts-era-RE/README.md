@@ -1,3 +1,5 @@
+> 📜 **histórico** — Era de RE, arquivado na #168 · última revisão 2026-10-13.
+
 # scripts-era-RE — o que restou de `scripts/` (#168)
 
 Cápsula fechada em 13/10 (HW-8). A pasta `scripts/` do repo foi **dissolvida**:

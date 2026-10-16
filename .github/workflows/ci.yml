@@ -263,7 +263,14 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
+      # `fetch-depth: 0`: o gate da documentação (`check_docs_modulos.py`, #275)
+      # mede ANCESTRALIDADE de commit (o módulo andou DEPOIS da última revisão do
+      # doc?) — no checkout raso de 1 commit o histórico da base não existe e a
+      # pergunta fica sem resposta. O repo tem ~200 commits: o clone inteiro
+      # custa segundos, e é o mesmo regime que o `lint-commits` já usa.
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
       # actionlint pega erro de EXPRESSAO que o parser Python nao pega:
       # `${{ }}` malformada, `if:` com tipo errado, matriz vazia, contexto de
       # expressao invalido. O `validate_workflows.py` cobre os CONTRATOS do
@@ -316,6 +323,19 @@ jobs:
           # prompt auto-suficiente. Sem gate, "enxugar template" remove a secao
           # e o contrato morre em silencio — mesma classe do check_bundle (#71).
           python3 .github/scripts/check_issue_templates.py
+          # Higiene da documentacao (#270): link/ancora resolvem, todo doc tem banner
+          # de status com data e contador vive so no INDEX §6. Sao tres convencoes do
+          # INDEX §4 que existiam sem juiz — 13 mil linhas dependiam de alguem reler.
+          python3 .github/scripts/check_docs.py
+      # ── A OBSOLESCÊNCIA DO DOC TEM JUIZ (#275) ──────────────────────────
+      # O `check_docs.py` (#270) pega link morto: estrutura. Um documento pode
+      # citar um caminho que EXISTE e descrever uma API que já mudou — link vivo,
+      # conteúdo morto. Este gate compara a última revisão do doc com a
+      # SUPERFÍCIE dos módulos que ele cita (ancestralidade de commit, não
+      # relógio) e aponta o DOCUMENTO. Medido em 15/10, na árvore de antes do
+      # conserto: 4 pares velhos em 2 documentos (`PACKAGING.md`, `RELEASE_PLAN.md`).
+      - name: obsolescência da documentação (doc × módulo que ele descreve)
+        run: python3 .github/scripts/check_docs_modulos.py
       # ── A SIMULAÇÃO DO GITFLOW É CONDICIONAL (#246, achado F-13) ─────────
       #
       # `simulate_release.py` executa a cadeia rc→promote DE VERDADE num sandbox
@@ -964,6 +984,23 @@ jobs:
         run: uv sync --all-groups
       - name: golden, baseline versionada, knob_map e fixtures
         run: uv run pytest
+      # ── OS TRÊS GATES DE DADOS QUE SÓ O `gates.py` LOCAL RODAVA (#273) ──
+      # `byte_order`, `param_ranges` e `state_pages` estavam na lista do
+      # `gates.py` e em NENHUM passo do CI: o gate existia, alguém confiava
+      # nele, e quem reprovava era o `gates.py` — que só roda na máquina de
+      # quem lembra de rodar. O `byte_order` não tinha cobertura nenhuma (gate
+      # morto desde o #23); o `param_ranges --check` e o `state_pages` também
+      # rodam DENTRO do pytest logo acima, mas o passo próprio é o que deixa o
+      # veredito visível no log — a mesma razão do passo da baseline abaixo.
+      # O contrato 16 do `validate_workflows.py` cobra os três daqui, então
+      # apagar qualquer uma destas linhas reprova o `Lint · contratos do
+      # pipeline`.
+      - name: fio real é LE (effectCode u32 — par do H2)
+        run: uv run python tools/check_byte_order.py
+      - name: trava de conteúdo do knob (639 faixas + 92 amostras reais)
+        run: uv run python tools/param_ranges.py --check
+      - name: layout das páginas 13xx contra o artefato embutido
+        run: uv run python tools/validate_state_pages.py
       # O pytest já cobre `baseline.py --check` (o teste
       # `test_golden_baseline_hash_unchanged` chama o gate), mas rodar o
       # comando aqui deixa o número da baseline VISÍVEL no log do job. Sem

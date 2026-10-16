@@ -1,3 +1,5 @@
+> 📜 **histórico** — Era de RE, arquivado na #168 · última revisão 2026-10-13.
+
 # 🧊 H3_REPORT — Relatório do gate H3 (congelamento pós-captura)
 
 > **Status:** 📝 template · preencher durante/após a sessão
