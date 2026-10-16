@@ -11,5 +11,10 @@ Movido para cá para as regras de uso diário não carregarem data/citação. Na
   seguiram ensinando a anterior por semanas; o corolário nasceu da auditoria de
   07/10/2026 (F-03/F-04).
 - **§9** (baseline em develop): auditoria de 07/10/2026 (F-11).
-- **§10** (LF explícito): auditoria de 07/10/2026 (F-12) — o EOL quebrou o golden e o
+- **§10** (o par checklist × relatório conta UMA história): medição de 16/10/2026 — a
+  #272 decidiu o status dos gates H3/H4 e os relatórios contavam outra história (#287).
+- **§11** (LF explícito): auditoria de 07/10/2026 (F-12) — o EOL quebrou o golden e o
   round-trip duas vezes em 29/09/2026.
+
+> Os itens foram **renumerados** em 16/10/2026 (#287): o antigo §10 (LF explícito) é o §11
+> de hoje, porque o item novo entrou no meio da lista.

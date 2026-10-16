@@ -153,7 +153,9 @@ Medido por `grep` (arquivos que contêm a regra):
   mandam "não mover unitário para tests/" explicitamente (a dúvida que sempre volta).
 - **`README.md` "Modo ausente do dono"** com a linha divisória rotineiro × crítico — modelo
   claro e alinhado ao que foi usado nesta sessão.
-- **`docs-sync` regra 8/10** (mecanismo ≠ atual; LF explícito) — regras que pegam bug real.
+- **`docs-sync` regra 8/11** (mecanismo ≠ atual; LF explícito) — regras que pegam bug real.
+  *(numeração conferida em 16/10/2026, #287: o item 10 novo — par checklist × relatório —
+  deslocou o LF explícito para 11.)*
 
 ---
 

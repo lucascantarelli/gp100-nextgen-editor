@@ -1,9 +1,14 @@
-> 📜 **histórico** — Era de RE, arquivado na #168 · última revisão 2026-10-13.
+> 📜 **histórico** · última revisão 2026-10-16 — arquivado na #168 (Era de RE); o gate H3 **fechou em 04/10** sob a #23 e o veredito é a baseline v1.1 + [`PROTOCOL.md` §13.14](../tecnico/PROTOCOL.md).
 
 # 🧊 H3_REPORT — Relatório do gate H3 (congelamento pós-captura)
 
-> **Status:** 📝 template · preencher durante/após a sessão
-> ([H3_CHECKLIST.md](H3_CHECKLIST.md)) e arquivar como evidência da issue #23.
+> **Status:** 📜 **registro arquivado — a sessão não foi transcrita aqui.** O gate H3 **rodou**
+> em 04/10 sob a [#23](https://github.com/lucascantarelli/gp100-nextgen-editor/issues/23): o
+> golden saiu da sessão, a baseline é a **v1.1** (`uv run python tools/baseline.py show`) e o
+> veredito vive em [`PROTOCOL.md` §13.14](../tecnico/PROTOCOL.md) e na própria baseline. As
+> tabelas abaixo ficaram **em branco** e continuam assim: preencher com medição que não existe é
+> o defeito mais caro deste repo. O que este arquivo vale hoje é como **roteiro** de uma sessão
+> futura — o par com o qual ele nasceu é o [H3_CHECKLIST.md](H3_CHECKLIST.md), também 📜 (#287).
 >
 > ⚠️ Abaseline desta sessão é **o contrato de todo o `gp100-core`**. Um bump
 > errado aqui não quebra um teste: quebra a correspondência entre o que o
