@@ -623,6 +623,52 @@ def test_cli_squash_com_perda_sai_um(tmp_path):
     assert "PERDIDAS" in saida.stderr
 
 
+def test_cli_declared_squash_sem_separador_audita_como_squash(tmp_path):
+    """O squash mergeado com `--body` (#281): sem o separador do GitHub na mensagem,
+    a forma do tip nao denuncia o squash — quem audita declara `--squash`, e o
+    conteudo novo do commit IRMAO vira AVISO em vez de reprovar o corte limpo.
+
+    Medido no #260: os cinco trailers `Move-only:` do PR nao chegaram ao `develop`
+    (o `--body` substitui a mensagem preparada) e a auditoria retroativa do corte
+    saia vermelha com 3 093 linhas "fora do andaime" e ZERO linha perdida.
+    """
+    raiz = _repo(tmp_path)
+    base = _commit(raiz, "chore: base", {"src/a.rs": ORIGEM})
+    _commit(
+        raiz,
+        "refactor(core): fatia a.rs\n\nMove-only: src/a.rs",
+        {"src/a.rs": FACADE, "src/transacao.rs": destino()},
+    )
+    _commit(
+        raiz,
+        "test(core): nota de um commit irmao do PR",
+        {"src/transacao.rs": destino(CORPO_PUB + "    fn do_irmao() {}\n")},
+    )
+    # O squash como o `gh pr merge --squash --body` cria: mensagem PROPRIA, sem a
+    # lista de mensagens dos commits e sem o separador de hifens.
+    _squash(raiz, base, "refactor(core): fatia a.rs (#1)\n\nCorpo escrito a mao no merge.\n")
+
+    declarando = _cli(raiz, "--declared", "src/a.rs", "--squash", "--from", base, "--to", "HEAD")
+    assert declarando.returncode == 0, declarando.stderr
+    assert "(squash)" in declarando.stdout
+    assert "AVISO" in declarando.stdout
+    assert "0 perdida(s)" in declarando.stdout
+
+    # Sem a declaracao, o mesmo commit e lido como movimento ESTRITO — e o corte
+    # limpo sai vermelho (o falso vermelho medido na #281).
+    sem = _cli(raiz, "--declared", "src/a.rs", "--from", base, "--to", "HEAD")
+    assert sem.returncode == 1
+    assert "fora do andaime" in sem.stderr
+
+
+def test_cli_squash_sem_declared_e_erro_de_uso(tmp_path):
+    """`--squash` e do modo retroativo: no modo de trailer quem diz a forma e o commit."""
+    raiz, _, _ = _movimento(tmp_path)
+    saida = _cli(raiz, "--squash")
+    assert saida.returncode == 2
+    assert "--squash so faz sentido com --declared" in saida.stderr
+
+
 def test_cli_merge_sem_trailer_nao_audita(tmp_path):
     """O filtro e o TRAILER, nao o numero de pais: merge comum nao audita nada."""
     raiz = _repo(tmp_path)

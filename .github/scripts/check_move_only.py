@@ -54,6 +54,19 @@ pais) sao CASOS DE MOVIMENTO VALIDOS, com a auditoria separada por clausula:
 O squash de UM commit nao tem o separador e nao precisa dele: o diff daquele
 commit E o diff do movimento, e a auditoria sai estrita como sempre.
 
+O SQUASH SEM O SEPARADOR (#281). O que faz o trailer sobreviver ao squash e a
+mensagem PREPARADA pelo GitHub — e ela so chega ao commit se o merge NAO passar um
+corpo proprio. Medido no repo em 16/10/2026: 47 dos 351 commits sem merge tem o
+separador; o squash do corte do #257 (PR #260) nao tem, porque o merge foi feito
+com `gh pr merge --squash --body "..."` — e nele os CINCO trailers `Move-only:` do
+PR nao chegaram ao `develop` (5 trailers no repo, todos na branch; 0 no `develop`),
+entao o gate imprime "nada a auditar" para sempre e a prova do corte vive so na
+pagina do PR. O que NAO se pode fazer e adivinhar por heuristica: um commit que
+declara movimento e acrescenta linha e exatamente o que a clausula (b) existe para
+reprovar — declarar a forma e trabalho de quem audita. Por isso o modo retroativo
+tem `--squash`, e o procedimento de merge nao passa `--body` (a regra vive em
+`.agents/skills/github-flow`): a mensagem preparada e a que carrega os trailers.
+
 PREVISAO DO SQUASH. O squash junta os commits do PR, entao um commit IRMAO pode
 perder uma linha que o commit do movimento deixou no lugar: o PR passava (o irmao
 nao declara nada) e o `develop` reprovava depois do MERGE, quando o commit que
@@ -75,12 +88,14 @@ MODO RETROATIVO. `--declared CAMINHO` (repetivel) audita o range inteiro contra 
 base dele, sem depender de trailer — para squash/merge, em que o commit original
 nao existe mais, e para conferir um corte ja mergeado. O tip do range decide a
 regra: sendo squash/merge, o diff auditado e o PR inteiro e a clausula do andaime
-vira AVISO; sendo commit, e estrita.
+vira AVISO; sendo commit, e estrita. O tip que nao traz o separador (squash com
+corpo proprio, #281) se declara com `--squash` — so faz sentido com `--declared`.
 
 USO.
     python3 .github/scripts/check_move_only.py
     python3 .github/scripts/check_move_only.py --from develop --to HEAD
     python3 .github/scripts/check_move_only.py --declared packages/core/src/session.rs --from develop
+    python3 .github/scripts/check_move_only.py --declared <origem> --squash --from <base> --to <squash>
 
 SAIDA. Uma linha por origem auditada: `N linha(s) de item, todas presentes` mais o
 andaime contado, o rotulo `(squash)`/`(merge)` quando o diff auditado e o PR
@@ -493,16 +508,26 @@ def main() -> int:
         help="audita o range inteiro contra a base dele (retroativo; sem trailer)",
     )
     ap.add_argument("--raiz", default="", help="raiz do repo (default: a do script)")
+    ap.add_argument(
+        "--squash",
+        action="store_true",
+        help="(com --declared) o tip e um squash mergeado com mensagem propria, sem o "
+        "separador do GitHub (#281): audita como squash, com o andaime como AVISO",
+    )
     args = ap.parse_args()
 
     raiz = Path(args.raiz).resolve() if args.raiz else RAIZ
     try:
+        if args.squash and not args.declared:
+            raise UsoErro("--squash so faz sentido com --declared (o modo de trailer le o commit)")
         base, tip, explicito = resolve_range(raiz, args)
         if args.declared:
             rotulo = f"{base}..{tip}"
             # O modo retroativo audita o RANGE: a forma do TIP e que diz se o
-            # diff auditado e um movimento ou o PR inteiro (squash/merge).
-            estrutura = estrutura_do_commit(raiz, tip)
+            # diff auditado e um movimento ou o PR inteiro (squash/merge) — e o
+            # squash com corpo proprio nao traz a marca que a forma carrega, entao
+            # quem audita declara (`--squash`, #281).
+            estrutura = "squash" if args.squash else estrutura_do_commit(raiz, tip)
             resultados = [
                 audita(raiz, o, base, tip, rotulo, declarada=True, estrutura=estrutura)
                 for o in args.declared

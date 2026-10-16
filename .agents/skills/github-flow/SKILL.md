@@ -70,12 +70,15 @@ vale o que estiver em `docs/CONTRIBUTING.md` + `.github/workflows/`.
    `check_move_only` cobra a promessa contra o pai do commit — não perdeu nem
    reescreveu linha (#263, `docs/CONTRIBUTING.md` §3). Mudou lógica? Tire o
    trailer e diga no PR o que mudou. O **squash** (e o merge de ≥ 2 pais) é
-   reconhecido: o trailer sobrevive no corpo do squash e o gate sabe que ali o
+   reconhecido: a mensagem PREPARADA pelo GitHub carrega o trailer (a config do
+   repo é `squash_merge_commit_message: COMMIT_MESSAGES`) e o gate sabe que ali o
    diff é o PR inteiro — cobra o "não perdeu" inteiro e trata andaime como
    **aviso**, porque a linha nova pode ser de um commit irmão do PR. No PR o
    gate **já prevê o squash** (#264): audita o range inteiro no mesmo regime, e
    um commit irmão que apaga uma linha do corte reprova no PR — onde dá para
-   consertar — em vez de deixar o `develop` vermelho depois do merge.
+   consertar — em vez de deixar o `develop` vermelho depois do merge. ⚠️ Um
+   corpo escrito à mão no merge **apaga** essa mensagem preparada: os trailers
+   não chegam ao `develop` e o gate fica sem o que auditar (#281).
 5. **Push da branch + PR para `develop`** com o template preenchido; tabela de
    gates executados; **`Closes #N` NO CORPO** (nunca no título/comentário).
 6. **CI do PR** — acompanhe até verde (`gh run watch <id> --exit-status`).
@@ -85,7 +88,13 @@ vale o que estiver em `docs/CONTRIBUTING.md` + `.github/workflows/`.
 7. **Review** — releia o diff (`git diff develop...HEAD`) e o PR antes do merge;
    achou algo? corrige na branch (novo commit) — nunca em commit "fix" solto
    na develop.
-8. **Merge (squash) em `develop`** — o workflow próprio
+8. **Merge (squash) em `develop`** — **sem `--body`**: a mensagem preparada do
+   GitHub é o que leva os trailers `Move-only:` e o separador que o gate lê como
+   squash. Se o corpo for escrito à mão (PR com narrativa), ele **repete as
+   linhas `Move-only:`** do PR — foi assim que o corte do #257 perdeu a prova no
+   `develop` (#281, medido: 5 trailers no repo, 0 na develop). Para auditar um
+   squash já mergeado que não tem o separador: `check_move_only.py --declared
+   <origem> --squash --from <base> --to <squash>`. O workflow próprio
    `Issues · Fechamento de issues vinculadas` (`issues-fechamento.yml`, #169)
    fecha a issue via API com comentário de rastreabilidade (PR + sha + run).
    ⚠️ O fechamento só acontece quando o PR foi **mesmo** mergeado; PR fechado
